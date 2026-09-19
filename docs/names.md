@@ -13,7 +13,8 @@
 | Q-01 | APP 运行时选型（→ R1） | FOUNDING_PROMPT §9 | 已裁 → DEC-17 |
 | Q-02 | 数据面应用层协议选型（→ R2） | FOUNDING_PROMPT §9 | 已裁 → DEC-18 |
 | Q-03…Q-09 | design 阶段待裁批次（Zephyr 版本/zenoh 拓扑/APP 包格式/WAMR 模式/逻辑节点范围/断链参数/存储 OTA） | HLD v0.1（design/） | 待裁 |
-| Q-10 | LLD 批次默认值清单（线程优先级/栈/队列/容量/探针与回滚参数等 13 组） | LLD v0.1 批次（design/） | 待裁 |
+| Q-10 | LLD 批次默认值清单（线程优先级/栈/队列/容量/探针与回滚参数等 15 组） | LLD v0.1 批次（design/） | 待裁 |
+| Q-11 | design review-01 语义批次（sys 命令面授权/共享写语义/APP 状态裁剪/审计简化/prov 模型/内存预算） | design-review-01.md | 待裁 |
 
 ## 2. 任务与里程碑
 
@@ -28,6 +29,7 @@
 | M3 | ts-net + ts-power + 集成与重放测试 | HLD v0.1 §7 | 提案（待 HLD 确认） |
 | kickoff | K1 首次提交的 git tag | FOUNDING_PROMPT §9 | 已打 |
 | dec-wamr-zenoh | DEC-17/18 裁定登记提交的 git tag（重大裁决留痕，军规 5） | decisions.md 修订记录 | 已打 |
+| DR-xx | design review 发现编号族（当前 DR-01…17，全部处置） | design/design-review-01.md | 存档 |
 
 ## 3. 板名（DEC-14 目标板集）
 
@@ -71,6 +73,10 @@
 | CONFIG_TS_* | 框架 Kconfig 前缀（LLD-00 §5） | LLD 提案 |
 | TSAP | APP 包容器 magic（"TSAP" u32；格式随 Q-05 定稿） | LLD 提案 |
 | ts_api_v1 / ts_perm_v1 | 版本化 APP 导入面 / 能力文法（破坏性变更须升 v2，门③） | LLD 提案 |
+| ts-store | 存储抽象模块：分区/meta 掉电安全 kv/prov 只读/noinit（DR-01） | HLD v0.2 / LLD 提案 |
+| TS_FAIL_* | 故障原因码族（u32：TS_FAIL_SRC_<<16｜细因，LLD-00 §2.1） | LLD 提案 |
+| ts_ctx_t | APP 调用者不透明上下文（防伪造映射，LLD-00 §3.1） | LLD 提案 |
+| ts_periph_kind_t | 外设描述符类别枚举（含 TS_PK_ADC，DR-13） | LLD 提案 |
 
 ## 修订记录
 
@@ -78,3 +84,4 @@
 - 2026-09-19 · Q-01/Q-02 裁定登记：新增 DEC-17/18、git tag `dec-wamr-zenoh`、外部选型名（WAMR、zenoh/zenoh-pico、LLEXT、wasm3）。
 - 2026-09-19 · design 阶段登记：Q-03…Q-09 待裁批次、里程碑 M1…M3、固件模块名 ts-*（提案态）。
 - 2026-09-20 · LLD 批次登记：Q-10 默认值清单、标识符族（TS_E_*/TS_EVT_*/CONFIG_TS_*/TSAP/ts_api_v1/ts_perm_v1）。
+- 2026-09-20 · review-01 深化登记：Q-11 语义批次、DR 编号族、ts-store/TS_FAIL_*/ts_ctx_t/ts_periph_kind_t。

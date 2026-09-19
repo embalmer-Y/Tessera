@@ -1,13 +1,13 @@
 # HLD · Tessera 固件框架 v0.1（草案，待 owner 确认）
 
-> **状态**：v0.1 草案。design 阶段产出，依流程 §2.4 须 owner 确认后方可进入 impl；配套待裁批次 **Q-03…Q-09**（见 `decisions.md`），本文所有标注〔Q-xx〕处均为未裁默认值/选型，**不得先于裁决进入代码**（军规 2）。
+> **状态**：v0.2 草案（2026-09-20 经 design review-01 深化：新增 ts-store 模块、输入遥测、sys 命令面、断链恢复语义、关键场景时序、内存预算、V1 裁剪清单——DR-01…17 处置见 `design-review-01.md`）。依流程 §2.4 须 owner 确认后方可进入 impl；配套待裁批次 **Q-03…Q-11**（见 `decisions.md`），本文所有标注〔Q-xx〕处均为未裁默认值/选型，**不得先于裁决进入代码**（军规 2）。
 > **输入**：DEC-01…18（`decisions.md`）、安全与确定性合同（`AGENTS.md` §6）、R1/R2 调研 v0.2（`docs/research/`）。
 > **范围**：V1 固件框架（DEC-15 第一阶段；目标平台 native_sim，DEC-13/14）。Agent/模拟器（第二阶段）与硬件定型（第三阶段）不在本文；仅定义与 Agent 的接口契约。
 
 ## 1. 范围与目标
 
 - **V1 交付物**：在 native_sim 上可运行、可测试的固件框架：安全层、HAL、APP 运行时（WAMR）、数据面（zenoh-pico）、受控供电（桩）、可插拔外设描述层（桩）。
-- **V1 明确不做**：逻辑节点（多立方体并联）实现——仅命名空间与接口预留〔Q-07〕；真机四板移植（M3 后按 DEC-15 另列）；真机在环测试。
+- **V1 明确不做**（裁剪清单）：逻辑节点（多立方体并联）实现——仅命名空间与接口预留〔Q-07〕；真机四板移植（M3 后按 DEC-15 另列）；真机在环测试；**APP 业务状态持久化**（升级/回滚后状态丢弃，DR-15）；**审计留痕落盘**（V1 = 内存环形 + sys:get-audit 导出，掉电丢失，DR-07）；输入遥测为轮询变化上报（无硬件中断驱动，DR-02）。
 - **验收基线**：DEC-13 模拟深度（native_sim + 外设桩全链路）+ 安全合同十条全部有对应机制与机械检查（`docs/std/testing.md`）。
 
 ## 2. 架构总览
@@ -47,6 +47,7 @@
 | ts-net | zenoh-pico 会话、命名空间、命令-回执、心跳监视（断链判定） | DEC-06/18；合同 3 | L2/L3/L4 |
 | ts-power | 受控供电开关/限流/功率预算上报（经 ts-safety 落驱动） | DEC-03；合同 7 | L1/L2 |
 | ts-periph | 外设描述与插拔管理（V1 = native_sim 桩外设） | DEC-14；DEC-02 预留 | L1/L3 |
+| ts-store | 存储抽象：分区布局 / 掉电安全 meta / 只读 provisioning / noinit 留痕（DR-01） | DEC-05/07；合同 10 | L1/L2 |
 
 ### 3.1 ts-core
 
@@ -68,6 +69,7 @@
 - 外设类 API（V1）：`gpio`（读/写）、`pwm`、`adc`（输入）、`counter`、`power`（经 ts-power）。接口为板无关抽象（DEC-04：APP 不见具体硬件）。
 - **权限执行点**：每个 ts-hal 调用携带调用者 APP 上下文；对照 manifest 能力裁决，越权 → 拒绝 + 留痕（合同 10）。
 - 外设描述符（ts-periph 配合）：可插拔外设 = 描述符（类/实例/能力/安全参数）注册进框架；未注册外设不可寻址。
+- **输入采集（input monitor，DR-02）**：sysworkq 周期轮询输入实例（gpio-in / adc），值变化 → 发 `TS_EVT_INPUT_CHANGED` 并经 ts-net 发布遥测（周期〔Q-10 #14〕；V1 无硬件中断驱动）。
 
 ### 3.4 ts-appmgr（DEC-05/17 落地）
 
@@ -95,6 +97,8 @@ tessera/<node>/<cube>/<class>/<instance>/<action>
 ```
 
 - **心跳监视（断链判定）**〔Q-08 提案：间隔 500ms、丢失阈值 4、检测上界 ≈2s〕：逾期 → 通知 ts-safety → 全输出进断链态（本地决策，不发网络确认）；输入流继续。
+- **断链恢复语义（DR-04）**：恢复仅解除写入封锁，输出不自动回写——防恢复瞬间意外动作（详见 §4.2）。
+- **sys 命令面（v1，DR-03；授权模型〔Q-11①〕）**：`get-info / get-link / get-safety / get-budget / get-audit / set-time / estop-clear`——**host-only**（APP 能力文法不可达），estop-clear 需确认令牌；细见 LLD-ts-net §4。
 - 密钥/证书：烧录期安全参数区；运行时不改（合同 10）。
 
 ### 3.6 ts-power / ts-periph
@@ -124,7 +128,7 @@ tessera/<node>/<cube>/<class>/<instance>/<action>
 ```text
 上电 → SAFE_POWERON（所有通道，初始化前即达，estop GPIO 最先配置）
 注册+链路确立 → ACTIVE
-断链判定成立 → SAFE_LINKLOSS ；链路恢复 → ACTIVE（需重新确认）
+断链判定成立 → SAFE_LINKLOSS ；链路恢复 → ACTIVE（仅解除写封锁，**不自动回写断链前值**——须显式重设，DR-04）
 estop / WDT / 故障 → SAFE_FAULT（estop 后须人工/显式命令复位）
 ```
 
@@ -144,12 +148,35 @@ estop / WDT / 故障 → SAFE_FAULT（estop 后须人工/显式命令复位）
 8. ts-appmgr（按已装清单加载 APP；APP 故障 → 卸载回滚，**不阻塞系统启动**）
 9. 系统进入运行态（输出仍按链路状态机管理）
 
+### 4.5 关键场景端到端时序（设计基线；标"实测定"处为 M1/M3 验收项）
+
+- **S1 estop**：GPIO 沿 → IRQ → `ts_safety_force_all_fault()`（置原子标志 + 逐通道直写 fault 值；上界目标 < 1ms，实测定）→ ISR 返回后 sysworkq 补发 `TS_EVT_ESTOP` → 事件外发（事后补发，合同 5）。
+- **S2 断链 fail-safe**：host 心跳丢失计数达阈值（500ms×4）→ `ts_safety_set_link(false)`（sysworkq 串行迁移）→ 全通道 SAFE_LINKLOSS（声明值落驱动）；输入/遥测继续。恢复：连续 2 周期〔Q-10 #12〕→ `set_link(true)` → 解除写封锁（不回写，DR-04）。
+- **S3 APP 升级与回滚**：收包 → 验签（ed25519）→ 写 inactive slot + 回读校验 → meta 原子切换（ts-store）→ 下一加载周期卸旧载新 → 健康探针 3×1s 失败 → 回滚切回 + 计数；计数 > 3 → QUARANTINED。
+- **S4 命令往返**：Agent query `…/cmd` → ts_net_thread 解析 CBOR → 命令分发表 →（host 命令走 sys 面）→ `ts_safety_commit`（限幅/slew/限流）→ driver_dispatch → 回执 `{status, data}`；命令超时上界 < 断链检测上界（Q-08）。
+
+### 4.6 内存预算（提案〔Q-11⑥〕；实测后按行修订，不另开 Q）
+
+约束板 = RP2350（SRAM 520KB，最小目标板）。RAM 分解：
+
+| 区块 | 预算 | 依据 |
+|---|---|---|
+| Zephyr 内核 + 网络栈 + mbedTLS | 96KB | 栈与缓冲估算（Q-10 #2） |
+| zenoh-pico | 32KB | R2 v0.2 量级，实测待 |
+| ts 框架静态（通道表/审计环/事件表/perm 表） | 24KB | 容量 × 描述符尺寸（Q-10 #6/#7） |
+| WAMR fast 解释器运行时 | 24KB | R1 v0.2 体积量级 |
+| APP 实例 4 ×（堆 64KB + 栈 8KB） | 288KB | Q-10 #10 |
+| 余量 | ≥56KB | — |
+
+Flash（按板可配，联动 Q-09）：bootloader 64KB ｜ 固件 slot ×2 ｜ APP slot ×2 ｜ prov/meta/noinit 64KB；四板外置/内嵌 flash 量级均宽裕，尺寸表随 M2 板级配置定。
+
 ## 5. 可测试性设计（细则见 `docs/std/testing.md`）
 
 - native_sim 主平台：全模块在仿真上可运行；WDT/estop/供电均有仿真桩。
 - 外设桩：ts-periph 提供 fake 外设描述符（DEC-13 数字孪生-lite 的固件侧挂点；Agent 侧模拟器第二阶段对接）。
 - 重放框架：输入序列文件 → 系统执行 → 输出序列逐位比对（合同 9；时间注入用虚拟时钟）。
 - 机械检查五项（CI 强制）：唯一写路径、三态注册完备、禁用模式、常量出处、estop 路径。
+- 审计/留痕导出：`sys:get-audit` 命令（合规观测点，DR-07）；输入变化进入遥测重放面（DR-02）。
 
 ## 6. 未决问题索引（全文见 `decisions.md`）
 
@@ -162,6 +189,7 @@ estop / WDT / 故障 → SAFE_FAULT（estop 后须人工/显式命令复位）
 | Q-07 | 逻辑节点 V1 范围 | 仅命名空间/接口预留，不实现并联 |
 | Q-08 | 断链判定参数 | 500ms×4 ≈2s 上界；WDT 5s（M3 实测校准） |
 | Q-09 | 存储分区与 OTA | 双 APP slot+meta；MCUmgr/UART 底线 |
+| Q-11 | review-01 语义批次：sys 命令面授权 / 共享写语义 / APP 状态不持久化 / 审计 V1 简化 / prov 模型 / 内存预算分配 | 全部按 review-01 提案 |
 
 ## 7. 里程碑分解（退出均须 owner review）
 
@@ -175,3 +203,4 @@ estop / WDT / 故障 → SAFE_FAULT（estop 后须人工/显式命令复位）
 ## 8. 修订记录
 
 - v0.1 · 2026-09-19：首版草案（design 阶段产出，待 owner 确认 + Q-03…Q-09 裁决）。
+- v0.2 · 2026-09-20：design review-01 深化——新增 ts-store 模块行、§4.5 关键场景时序、§4.6 内存预算、sys 命令面、输入采集、断链恢复语义、V1 裁剪清单（DR-01…17 处置）。

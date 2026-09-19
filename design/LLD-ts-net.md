@@ -42,6 +42,17 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 - 回执：query response = `{status: ts_res_t, data: CBOR}`；框架不自动重试（重试属 Agent 侧语义），但命令超时上界须 < 断链检测上界〔Q-08〕（文档级约束，写入 Agent 接口契约）。
 - 未知 key → TS_E_NOTFOUND 回执（不留静默）。
 
+**sys 命令面（v1，DR-03；授权随 Q-11①）**——注册者为框架自身，标记 `host_only`（APP 的 msg/net 能力文法不可达；host 侧命令通道授权由 prov 凭证保证）：
+
+| key（…/sys/ 下） | 语义 |
+|---|---|
+| get-info | 固件版本/板/构建（`git describe`，versioning.md §5） |
+| get-link / get-safety | 链路与通道安全态汇总（读 ts-safety shadow） |
+| get-budget | 功率预算/用量（ts-power） |
+| get-audit | 安全审计环形导出（含溢出丢弃计数，DR-07） |
+| set-time | 设置墙钟（**仅数据字段**，合同 9；DR-08） |
+| estop-clear | 清除 SAFE_FAULT（参数须带确认令牌 `confirm="estop"`；调用 ts_safety_clear_fault） |
+
 ## 5. 发布（pub.c）
 
 - 遥测：实例值变化（commit 审计缓冲消费）与周期快照〔Q-10 提案 200ms〕合流；缓冲深度〔Q-10 提案 8〕满则丢最旧并计数（遥测尽力而为，不阻塞控制路径）。

@@ -54,8 +54,10 @@
 
 - 触发：每次 push / PR；里程碑 tag 额外跑全量 + 产物构建。
 - job 顺序：lint → L5 机械检查 → 构建（native_sim）→ L1/L2 → L3/L4 → 覆盖率汇总。
+- lint 组成：clang-format 校验 + cppcheck（--enable=warning,style,performance）+ ruff（Python 侧）（DR-16）。
 - 平台基线：native_sim（DEC-13/14）；四板真机构建验证（不上测试）进 CI 可选 job。
 
 ## 修订记录
 
 - v0.1 · 2026-09-19：首版草案。
+- v0.1.1 · 2026-09-20：design review-01——CI lint 补 cppcheck（DR-16）。

@@ -11,6 +11,7 @@ src/hal/
   api.c        ts_api_v1 导入面（WAMR native 符号表，ts-appmgr 按能力过滤装配）
   perm.c       能力文法解析 + 调用者裁决
   registry.c   实例注册（由 ts-periph 描述符喂入）
+  input.c      输入周期采集与变化上报（input monitor，DR-02）
 ```
 
 ## 2. 能力文法 ts_perm_v1（manifest 声明，随 Q-05 裁决定稿）
@@ -40,6 +41,7 @@ ts_res_t ts_log_write (ts_ctx_t c, uint8_t lvl, const char *msg, uint32_t len);
 ts_res_t ts_msg_send  (ts_ctx_t c, const char *to_app, const void *buf, uint32_t len); /* APP间唯一通道 */
 ```
 
+- `ts_ctx_t`（所有函数第一参数）定义与防伪造边界见 LLD-00 §3.1（原生侧映射表，wasm 侧仅整数 id）。
 - **输出路径**：写类 API 全部收敛到 `ts_safety_commit`（本模块**零**直接驱动调用——L5 白名单外即违规）。
 - **权限裁决**（perm.c）：实例不在能力表 → `TS_E_PERM` + `TS_EVT_PERM_DENIED`（调用者 app_id/类/实例/时刻，合同 10 留痕）；裁决在 ts_app 线程上下文同步完成（无锁查只读表，确定性）。
 - 版本策略：符号集变更 = `ts_api_v2` 并行注册，不原地改语义（门 ③ + fw semver X 位）。
@@ -52,23 +54,33 @@ ts_res_t ts_hal_register_class(const ts_periph_desc_t *desc);  /* ts-periph 调�
 
 - 实例号 = 某 class 内的稳定序号（由描述符顺序决定，构建期可复现）；uid→实例映射表供 ts-net 命名空间寻址（`tessera/<node>/<cube>/gpio/<inst>`）。
 
-## 5. Kconfig（节选）
+## 5. 输入采集 input monitor（DR-02，v0.2 新增）
+
+- 执行体：sysworkq 周期工作项（无独立线程，LLD-00 §4 注）；周期 `CONFIG_TS_HAL_INPUT_POLL_MS`〔Q-10 #14 提案 100ms〕。
+- 流程：遍历输入实例（gpio-in/adc）→ 读驱动 → 与上次值比较 → 变化则：发布 `TS_EVT_INPUT_CHANGED`（uid + 旧/新值 + 时间戳）+ 通知 ts-net 发布该实例遥测。
+- 语义：**只观测不改值**（不影响任何控制路径）；断链期间照常采集并进审计面（合同 3"输入流不因保护而中断"的观测侧落点）。
+- 去抖：V1 无（数值抖动 = 遥测抖动，可接受；如需 M2 评审加阈值）。
+
+## 6. Kconfig（节选）
 
 | 项 | 默认〔Q-10〕 | 说明 |
 |---|---|---|
 | CONFIG_TS_HAL_MAX_INSTANCES | 24 | 各类实例总容量 |
+| CONFIG_TS_HAL_INPUT_POLL_MS | 100 | 输入轮询周期（DR-02） |
 
-## 6. 测试要点
+## 7. 测试要点
 
 - L1：文法解析全分支；越权裁决（含边界实例号）。
 - L2：gpio 写 → 安全层拦截（限幅态）传播；adc 读不受断链影响。
 - L4：越权留痕事件进入重放 golden。
 - L5：本模块驱动调用扫描（期望零命中）。
+- L2：input monitor 变化上报（输入序列 → 遥测/事件序列）。
 
-## 7. 未决依赖
+## 8. 未决依赖
 
 - Q-05（manifest 最终格式，能力文法随其定稿）；Q-10（实例容量）。
 
 ## 修订记录
 
 - v0.1 · 2026-09-20：首版草案。
+- v0.2 · 2026-09-20：review-01 深化——新增 §5 input monitor（DR-02）、ts_ctx_t 指针（DR-10）。

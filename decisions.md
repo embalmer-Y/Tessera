@@ -104,8 +104,17 @@
 | 11 | ts-net 重连退避表 | 250/500/1000/2000ms 循环 | 固定表禁随机抖动（合同 9）；最长退避 < 断链检测上界（Q-08 2s）量级 |
 | 12 | 遥测快照周期 / 发布缓冲 / 链路恢复滞回 | 200ms / 8 / 2 周期 | 快照 ≤ 心跳周期一半（观测新鲜度）；缓冲满丢最旧计数（尽力而为语义）；滞回防链路抖动乒乓 |
 | 13 | ts-power 供电槽上限 | 4 | V1 立方体扩展面供电槽数估计 |
+| 14 | ts-hal 输入轮询周期 | 100ms | 输入变化观测新鲜度；过短 = 空转开销，过长 = 遥测滞后（DR-02） |
+| 15 | APP mailbox 深度 / 卸载 join 超时 | 8 / 2000ms | 事件突发缓冲；join 超时强杀防卸载挂死（DR-14） |
 
 - **影响**：M1 起的全部代码常量出处；实测偏差时按行修订本表（不新开 Q，除非语义变化）；与 Q-08 参数的耦合关系如表内 #5/#11/#12。
+
+#### Q-11 · design review-01 语义批次（2026-09-20 呈递）
+
+- **背景**：design review-01（`design/design-review-01.md`，DR-01…17）暴露一批**语义级**设计决策未定义（非数值类，不属 Q-10）：sys 命令面与 estop 清除授权、多 APP 共享输出通道的写语义、APP 状态持久化裁剪、审计留痕 V1 简化、provisioning 数据模型、内存预算分配。不定义则 M1 实现无据。
+- **选项**：A. 本批次批量裁决（逐项可例外，见建议列）；B. 每项独立 Q（6 项，决策成本高）。
+- **建议**：A，全部按 review-01 提案：① sys 命令面 v1 = get-info/get-link/get-safety/get-budget/get-audit/set-time/estop-clear，**host-only**（APP 能力文法不可达），estop-clear 需确认令牌；② 共享通道写语义 = V1 **后写胜出 + 审计含 app_id**（不做独占 claim，避免死锁面；DR-05）；③ APP 业务状态 V1 **不持久化**（升级丢失，DR-15）；④ 审计留痕 V1 = 内存环形 + get-audit 导出（**掉电丢失**，DR-07）；⑤ prov 数据模型 v1（CBOR：node/cube id、router locators、根公钥×2、zenoh 凭证、功率预算、estop 触发沿；运行时只读、烧录通道写，DR-01）；⑥ 内存预算分配表按 HLD §4.6（数值为分配基线，实测按行修订不另开 Q，DR-06）。
+- **影响**：ts-store/ts-hal/ts-net/ts-safety 的实现依据；HLD v0.2 与 LLD v0.2 对应节；与 Q-04（locator/凭证）、Q-05（根公钥）、Q-09（分区）耦合。
 
 ### 已裁（留档）
 
@@ -131,3 +140,4 @@
 - 2026-09-19 · owner 裁定 Q-01/Q-02 → **DEC-17**（APP 运行时 = WASM / WAMR）、**DEC-18**（数据面协议 = zenoh / zenoh-pico）；R1/R2 初步笔记转为选型事实存档，其实测/核验类待补项与两项 DEC 的遗留设计题移交 design 阶段。
 - 2026-09-19 · design 阶段呈递：HLD 固件框架 v0.1（`design/HLD-firmware-framework.md`）+ 待裁批次 **Q-03…Q-09**（Zephyr 版本 / zenoh 拓扑 / APP 包格式 / WAMR 模式 / 逻辑节点范围 / 断链参数 / 存储与 OTA）。
 - 2026-09-20 · LLD 批次呈递：`design/LLD-00-common.md` + 七模块 LLD v0.1 + 待裁 **Q-10**（LLD 默认值清单 13 组）。
+- 2026-09-20 · design review-01（17 项，`design/design-review-01.md`）+ 深化批次：HLD v0.2、LLD v0.2、新增 ts-store；Q-10 表增 #14/#15，新增待裁 **Q-11**（语义批次 6 项）。
