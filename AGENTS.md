@@ -6,11 +6,11 @@
 
 ## 1. 当前状态
 
-- **2026-09-19 · K1 完成，待 owner review（门：流程 §2.4-②）**
-  - 交付物：仓库骨架（§4 全目录）、本文件、`decisions.md`（DEC-01…16 + 待裁 Q-01/Q-02）、`docs/names.md`、`.gitattributes`（`* -text` 字节保真）、`.gitignore`、首次提交（tag `kickoff`）。
-  - 本会话附加交付（owner 指令"初步 research"）：`docs/research/R1-app-runtime.md` 与 `docs/research/R2-protocol.md` 初步笔记（草稿 v0.1：事实清单 + 初步工作假设，**非裁决、非正式 R1/R2 交付**）。
-- **待办**：① K1 review；② R1 正式调研（补实测/回源核验，见 R1 笔记 §3 待补清单）→ Q-01 呈递；③ R2 正式调研（同上，见 R2 笔记 §4）→ Q-02 呈递；④ M0（west 工作区 + native_sim 空模块 + CI 骨架）。
-- **禁区**：K1 review 通过前，禁止开始 R1/R2 之外的任何实现工作（`FOUNDING_PROMPT.md` §9）。
+- **2026-09-19 · K1 完成待 review；Q-01/Q-02 已裁：DEC-17（APP 运行时 = WASM / WAMR）、DEC-18（数据面协议 = zenoh / zenoh-pico），tag `dec-wamr-zenoh`**
+  - K1 交付物：仓库骨架（§4 全目录）、本文件、`decisions.md`（现含 DEC-01…18，无待裁 Q）、`docs/names.md`、`.gitattributes`（`* -text` 字节保真）、`.gitignore`、首次提交（tag `kickoff`）。
+  - R1/R2 初步调研笔记（`docs/research/`，草稿 v0.1）转为选型事实存档；其实测/核验类待补项与 DEC-17/18 备注的遗留设计题 = design 阶段（HLD）的输入。
+- **待办**：① K1 review 显式通过（owner 已裁 Q-01/Q-02，但尚未明示 K1 门通过）→ ② M0（west 工作区 + native_sim 空模块 + CI 骨架）；③ 固件框架规格（design/，输入 = DEC-17/18 遗留设计题 + 安全合同细化）。
+- **禁区**：K1 review 通过前，禁止开始 R1/R2 之外的任何实现工作（`FOUNDING_PROMPT.md` §9；R1/R2 现已闭环，实际约束 = 一切实现工作）。
 
 ## 2. 会话 bootstrap（每次会话固定执行）
 

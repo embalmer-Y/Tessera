@@ -7,7 +7,7 @@
 
 ## 一、已裁定决策（DEC）
 
-> 录入批次：K1（2026-09-19）。以下 16 项均为 **2026-09-18 owner 裁定**，原文见 `FOUNDING_PROMPT.md` §1。
+> DEC-01…16：**2026-09-18 owner 裁定**（K1 录入，原文见 `FOUNDING_PROMPT.md` §1）；DEC-17/18：**2026-09-19 owner 裁定**（原文见备注栏）。
 
 | # | 裁定日期 | 决策（原文） | 备注（含遗留设计题） |
 |---|---|---|---|
@@ -27,25 +27,28 @@
 | DEC-14 | 2026-09-18 | 目标板集：ESP32-S3 / ESP32-P4 / STM32H7 / RP2350 + native_sim（CI 平台） | 各板网络能力差异（S3 原生 WiFi；P4 无无线电需配 C6 或用以太网；H7 有 EMAC 需外挂 PHY；RP2350 需外挂网络模块）——R2/HLD 的输入 |
 | DEC-15 | 2026-09-18 | V1 交付顺序：**固件框架（native_sim 上可运行）→ AI Agent + 模拟器 → 硬件立方体定型** | 理由：硬件结构/连接器周期最长且依赖软件形态验证 |
 | DEC-16 | 2026-09-18 | 独立开源仓库；许可证 Apache-2.0 | — |
+| DEC-17 | 2026-09-19 | APP 运行时 = **WASM 虚拟机**，实现采用 **WAMR**（WebAssembly Micro Runtime，Apache-2.0，有官方 Zephyr 移植） | owner 原文："R1：我们选择WAMR。"；依据 R1 初步笔记（草稿 v0.1，`docs/research/R1-app-runtime.md`）裁定。遗留设计题（HLD 必答）：① 执行模式（解释器 vs AOT vs 混合）与按板预编译策略；② HAL API 绑定层——权限清单（DEC-04）如何映射为 wasm 导入函数/能力句柄（安全合同 10 的强制点）；③ wasm APP 打包与签名格式（DEC-05）；④ 四板 + native_sim 的内存占用/性能实测（R1 待补项转入）；⑤ "LLEXT 作框架原生插件"的混合形态**未裁定**，如采用须另立 Q |
+| DEC-18 | 2026-09-19 | 数据面应用层协议 = **zenoh**，Zephyr 侧采用嵌入式实现 **zenoh-pico**（Apache-2.0，官方 Zephyr 模块） | owner 原文："R2：选择zenoh-pico。"；DEC-08 重开后经 R2 初步笔记（草稿 v0.1，`docs/research/R2-protocol.md`）裁定。遗留设计题（HLD 必答）：① Zephyr 上传输层组合（UDP 单/组播已证实，TCP 及其他待核验）与 WiFi 组播可靠性；② 安全通道配置（zenoh 认证/TLS 选项）与密钥管理（合同 10：不经运行时自适应）；③ 断链判定参数——心跳/保活 → 失联检测时限（合同 3，须过默认值三问）；④ 逻辑节点寻址（DEC-02 遗留题：网关立方体终结 vs 协议多跳）；⑤ RP2350 外挂网络模块适配（DEC-14）；⑥ PC 侧 Agent 的 zenoh 客户端封装（DEC-12） |
 
-## 二、待裁问题（Q）
+## 二、问题登记（Q）——当前无待裁 Q（Q-01/Q-02 已于 2026-09-19 裁定，见 DEC-17/18；下文留档）
 
 ### Q-01 · APP 运行时选型（→ R1）
 
-- **状态**：待裁（R1 进行中；初步笔记见 `docs/research/R1-app-runtime.md`，草稿）。
+- **状态**：**已裁 → DEC-17**（2026-09-19：APP 运行时 = WASM，实现采用 WAMR）。
 - **背景**：DEC-04 要求 APP 与板卡解耦、声明式权限、APP 间仅经框架消息通道隔离；DEC-09 裁定运行时待研究。现状：候选（WASM 解释器 / LLEXT 原生 ELF / 脚本类等）在维护度、沙箱强度、性能、架构覆盖（DEC-14 板集横跨 x86 仿真、Cortex-M、RISC-V、Xtensa）、west 接入成本上差异显著，尚未系统对比。该选型是 APP 打包格式、权限边界落点、Agent 产物形态的前置条件。
 - **选项**：A. WASM 解释器（wasm3 / WAMR / wasmi 等）；B. LLEXT 原生 ELF；C. 脚本语言（MicroPython / Lua 等）；D. 混合或自研加载器。
-- **建议**：待 R1 正式调研完成后按呈递格式呈报。
+- **建议**：（留档）未及正式呈报——owner 于初步笔记阶段直接裁定，见 DEC-17。
 - **影响**：APP 分发与签名对象（DEC-05）；权限清单到沙箱边界的映射（安全合同第 10 条）；实时/性能预算划分；Agent 生成物格式与工具链（DEC-11/12）；目标板覆盖（DEC-14）。
 
 ### Q-02 · 数据面应用层协议选型（→ R2）
 
-- **状态**：待裁（R2 进行中；初步笔记见 `docs/research/R2-protocol.md`，草稿）。
+- **状态**：**已裁 → DEC-18**（2026-09-19：数据面协议 = zenoh，Zephyr 侧用 zenoh-pico）。
 - **背景**：DEC-08 裁定重开（旧项目 Zenoh 结论不复用，事实可复用）；DEC-06 限定数据面只走以太网/WiFi；DEC-07 UART 退出数据面。协议须承载：设备发现、命名空间与编址、命令-回执语义、安全通道、断链判定（喂安全合同第 3 条 fail-safe）、多立方体逻辑节点（DEC-02）。现状：候选（MQTT / CoAP / WebSocket / 裸 TCP+序列化 / Zenoh-pico / DDS 等）未在"Zephyr in-tree 支持度 × 安全 × 确定性 × 逻辑节点承载 × 板覆盖"维度上系统对比。
 - **选项**：A. MQTT(+TLS)；B. CoAP(+OSCORE/DTLS)；C. WebSocket(+TLS)；D. 裸 TCP/UDP + CBOR/Protobuf 自定义语义；E. Zenoh（zenoh-pico）；F. DDS；G. 组合（如发现层 + 数据层分离）。
-- **建议**：待 R2 正式调研完成后按呈递格式呈报。
+- **建议**：（留档）未及正式呈报——owner 于初步笔记阶段直接裁定，见 DEC-18。
 - **影响**：Agent 与模块间 API（DEC-12）；断链心跳与检测时限（安全合同第 3/5 条的参数来源）；多立方体编址（DEC-02 遗留题）；证书/密钥管理与分发；Zephyr 网络栈裁剪与内存占用。
 
 ## 三、修订记录
 
 - 2026-09-19 · K1 录入：DEC-01…16（2026-09-18 owner 裁定）+ 待裁 Q-01/Q-02（依 `FOUNDING_PROMPT.md` §9-2）。
+- 2026-09-19 · owner 裁定 Q-01/Q-02 → **DEC-17**（APP 运行时 = WASM / WAMR）、**DEC-18**（数据面协议 = zenoh / zenoh-pico）；R1/R2 初步笔记转为选型事实存档，其实测/核验类待补项与两项 DEC 的遗留设计题移交 design 阶段。
