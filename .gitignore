@@ -1,0 +1,40 @@
+# ---- 构建产物（Zephyr / west / twister）----
+build/
+build-*/
+twister-out*/
+sanitized-out*/
+compile_commands.json
+*.o
+*.elf
+*.hex
+*.map
+*.uimg
+
+# ---- west 工作区误入侵防护（工作区应在仓库外初始化，见 AGENTS.md §7）----
+/.west/
+/zephyr/
+/bootloader/
+/modules/
+/tools/
+/manifest-repo/
+
+# ---- Python（Agent / 测试 / 脚本）----
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# ---- Node（Agent PC 侧可能使用）----
+node_modules/
+
+# ---- IDE / 编辑器 / 本地环境 ----
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- 本地草稿（约定：*.local.md 不入库）----
+*.local.md
