@@ -13,6 +13,7 @@
 | Q-01 | APP 运行时选型（→ R1） | FOUNDING_PROMPT §9 | 已裁 → DEC-17 |
 | Q-02 | 数据面应用层协议选型（→ R2） | FOUNDING_PROMPT §9 | 已裁 → DEC-18 |
 | Q-03…Q-09 | design 阶段待裁批次（Zephyr 版本/zenoh 拓扑/APP 包格式/WAMR 模式/逻辑节点范围/断链参数/存储 OTA） | HLD v0.1（design/） | 待裁 |
+| Q-10 | LLD 批次默认值清单（线程优先级/栈/队列/容量/探针与回滚参数等 13 组） | LLD v0.1 批次（design/） | 待裁 |
 
 ## 2. 任务与里程碑
 
@@ -65,9 +66,15 @@
 | ts-periph | 外设描述与插拔管理（V1 桩） | HLD 提案 |
 | ts_time_ms | 单调时间服务 API（合同 9 唯一时间源） | HLD 提案 |
 | ts_safety_commit | 唯一写路径出口 API（合同 2） | HLD 提案 |
+| ts_res_t / TS_E_* | 框架错误码类型与错误码族（LLD-00 §2） | LLD 提案 |
+| TS_EVT_* | 事件总线事件 ID 族（LLD-ts-core §4） | LLD 提案 |
+| CONFIG_TS_* | 框架 Kconfig 前缀（LLD-00 §5） | LLD 提案 |
+| TSAP | APP 包容器 magic（"TSAP" u32；格式随 Q-05 定稿） | LLD 提案 |
+| ts_api_v1 / ts_perm_v1 | 版本化 APP 导入面 / 能力文法（破坏性变更须升 v2，门③） | LLD 提案 |
 
 ## 修订记录
 
 - 2026-09-19 · K1 建立：登记 DEC/Q 编号、任务号、板名、项目名。
 - 2026-09-19 · Q-01/Q-02 裁定登记：新增 DEC-17/18、git tag `dec-wamr-zenoh`、外部选型名（WAMR、zenoh/zenoh-pico、LLEXT、wasm3）。
 - 2026-09-19 · design 阶段登记：Q-03…Q-09 待裁批次、里程碑 M1…M3、固件模块名 ts-*（提案态）。
+- 2026-09-20 · LLD 批次登记：Q-10 默认值清单、标识符族（TS_E_*/TS_EVT_*/CONFIG_TS_*/TSAP/ts_api_v1/ts_perm_v1）。
