@@ -8,8 +8,8 @@
 
 - **2026-09-19 · K1 完成，待 owner review（门：流程 §2.4-②）**
   - 交付物：仓库骨架（§4 全目录）、本文件、`decisions.md`（DEC-01…16 + 待裁 Q-01/Q-02）、`docs/names.md`、`.gitattributes`（`* -text` 字节保真）、`.gitignore`、首次提交（tag `kickoff`）。
-  - 本会话附加任务（owner 指令"初步 research"）：R1/R2 初步调研笔记进行中，完成后入 `docs/research/` 并另次提交——属草稿，非正式 R1/R2 交付。
-- **待办**：① K1 review；② R1 正式调研 → Q-01 呈递；③ R2 正式调研 → Q-02 呈递；④ M0（west 工作区 + native_sim 空模块 + CI 骨架）。
+  - 本会话附加交付（owner 指令"初步 research"）：`docs/research/R1-app-runtime.md` 与 `docs/research/R2-protocol.md` 初步笔记（草稿 v0.1：事实清单 + 初步工作假设，**非裁决、非正式 R1/R2 交付**）。
+- **待办**：① K1 review；② R1 正式调研（补实测/回源核验，见 R1 笔记 §3 待补清单）→ Q-01 呈递；③ R2 正式调研（同上，见 R2 笔记 §4）→ Q-02 呈递；④ M0（west 工作区 + native_sim 空模块 + CI 骨架）。
 - **禁区**：K1 review 通过前，禁止开始 R1/R2 之外的任何实现工作（`FOUNDING_PROMPT.md` §9）。
 
 ## 2. 会话 bootstrap（每次会话固定执行）
