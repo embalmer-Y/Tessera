@@ -1,6 +1,6 @@
 # R1 · APP 运行时调研 —— 初步笔记（草稿 v0.1）
 
-> **状态**：**已裁**——2026-09-19 owner 裁定 Q-01：APP 运行时 = WASM，实现采用 **WAMR**（DEC-17，原文："R1：我们选择WAMR。"）。本文转为选型事实存档：§3 待补清单中选型类条目随裁决关闭，实测与设计映射类条目移交 design 阶段（HLD 输入，另见 DEC-17 备注遗留设计题）。
+> **状态**：**已裁**——2026-09-19 owner 裁定 Q-01：APP 运行时 = WASM，实现采用 **WAMR**（DEC-17，原文："R1：我们选择WAMR。"）。本文转为选型事实存档：§3 待补清单中选型类条目随裁决关闭，实测与设计映射类条目移交 design 阶段（HLD 输入，另见 DEC-17 备注遗留设计题）。**v0.2（2026-09-19）**：增补 §5 二次核验（WAMR 版本/体积/Zephyr 集成），作为 HLD 与 Q 批次输入。
 > **服务对象**：Q-01（DEC-09）→ 已裁 → DEC-17。
 > **调研日期**：2026-09-19，web 检索；本文事实为检索摘要转述，**采信前须回源核验**（来源见文末）。
 
@@ -93,3 +93,46 @@
 - GitHub issue《llext: Better memory management and mmu/mpu support》（2023-10 起）：https://github.com/zephyrproject-rtos/zephyr
 - Antmicro《Fast development of AI applications in Zephyr with LLEXT》（2024-12）：https://antmicro.com
 - MicroPython Zephyr port 文档：https://docs.micropython.org ；port 起源 issue：https://github.com/micropython/micropython/issues/2481
+
+## 5. 二次核验与增补（v0.2 · 2026-09-19，DEC-17 落地输入）
+
+> **背景**：DEC-17 已裁定 WAMR；本节回源核验初步笔记关键事实并补落地细节。事实仍为检索转述；体积/性能数值在目标板实测（M2）前一律视为**待实测**。
+
+### 5.1 版本与维护（核验通过，优于初判）
+
+- 当前发布 **WAMR 2.4.5（2026-06-28）**；2.4.x 系列持续修复（含 CVE-2026-54914：WASI `poll_oneoff` 堆溢出、CVE-2026-54913），release notes 含 Breaking Changes 类目。
+- 含义：维护活跃（正信号）；**升级须按 minor 评估 API 兼容**——west manifest 钉 revision，升级走显式提交 + 全量回归（见 `docs/std/versioning.md`）。
+
+### 5.2 体积 / 性能（核验通过，量级与初判一致）
+
+- 官方 README 运行库体积：**classic 解释器 ~56.3KB / fast 解释器 ~58.9KB / AOT-only 运行时 ~29.4KB**（代码体积）。
+- fast 解释器相对 classic 约 **2× 性能**（Intel 2021 设计论文：操作码重编码、标签化块等）。
+- AOT：**wamrc** 在宿主机把 wasm 编译为 AOT 文件；运行时更小、RAM 更省、近原生性能；代价：AOT 文件大于 wasm、**按目标架构生成**。
+- ESP32 社区实践（PlatformIO）：解释器模式内存开销约 **50–100KB** 量级（含模块）——四板 + native_sim 实测仍为 M2 必做。
+- 方法论参考：ACM 2025 嵌入式 WASM 基准、arXiv 2025-11 IoT 实测（性能/内存/能耗）。
+
+### 5.3 Zephyr 集成方式（核验通过）
+
+- 官方样例 `product-mini/platforms/zephyr/simple`：最小 WAMR-on-Zephyr（运行时初始化 → 实例化以 C 数组内嵌的 wasm 模块 → 执行导出函数）；提供 module.yml/Kconfig 的 Zephyr 模块化集成路径。
+- 上游 zephyr#118425（WAMR 纳入 Zephyr 外部组件清单）仍在推进——当前集成方式 = **自管 west manifest 引入并钉 revision**。
+- 隔离模型（Intel 论述）：**两层**——Zephyr 用户态隔离 WAMR 运行时线程 + WAMR 沙箱隔离 wasm 模块。HLD 采纳为权限纵深；Zephyr 用户态在 native_sim 的可用性待 M0/M1 验证。
+
+### 5.4 对 HLD 的直接输入
+
+1. 执行模式三选 → **Q-06** 呈递；初步倾向 fast 解释器起步 + AOT 预留（Agent 工具链侧 wamrc）。
+2. **WASI 全集默认关**（CVE 集中面 + 体积 + 权限面最小化）；HAL 绑定用 WAMR native 注册机制注入自定义 `ts_*` 导入函数（符号名与语义在 HLD 定义，M0 核验 API 细节）。
+3. wasm APP 包 = 分发单位（语言无关，保持 DEC-04 跨板迁移）；AOT 化属 Agent 构建选项而非分发型态变更（并入 Q-05 呈递）。
+
+### 5.5 新增来源（v0.2，检索于 2026-09-19）
+
+- WAMR releases（2.4.5，2026-06-28）：https://github.com/wasm-micro-runtime/wasm-micro-runtime
+- wamrc AOT 编译器 README：https://github.com/wasm-micro-runtime/wasm-micro-runtime/blob/main/wamr-compiler/README.md
+- Intel《A Fast WebAssembly Interpreter design in WASM-Micro-Runtime》（2021-10）：https://www.intel.com
+- ACM 2025《Benchmarking WebAssembly for Embedded Systems》：https://dl.acm.org ；arXiv 2025-11《WebAssembly on Resource-Constrained IoT Devices》：https://arxiv.org
+- WAMR Zephyr simple 样例：https://github.com/wasm-micro-runtime/wasm-micro-runtime/tree/main/product-mini/platforms/zephyr/simple
+- WAMR-ESP32（PlatformIO 注册表）：https://registry.platformio.org
+
+## 修订记录
+
+- v0.1 · 2026-09-19：初步笔记（草稿）；同日 owner 裁定 → DEC-17。
+- v0.2 · 2026-09-19：二次核验增补 §5（版本/体积/集成方式/两层隔离），输入 HLD 与 Q-05/Q-06。

@@ -1,6 +1,6 @@
 # R2 · 数据面应用层协议选型 —— 初步笔记（草稿 v0.1）
 
-> **状态**：**已裁**——2026-09-19 owner 裁定 Q-02：数据面协议 = **zenoh**（Zephyr 侧采用 **zenoh-pico**）（DEC-18，原文："R2：选择zenoh-pico。"）。本文转为选型事实存档：§4 待补清单中选型类条目随裁决关闭，实测/核验类条目与 §3 耦合点移交 design 阶段（HLD 输入，另见 DEC-18 备注遗留设计题）。
+> **状态**：**已裁**——2026-09-19 owner 裁定 Q-02：数据面协议 = **zenoh**（Zephyr 侧采用 **zenoh-pico**）（DEC-18，原文："R2：选择zenoh-pico。"）。本文转为选型事实存档：§4 待补清单中选型类条目随裁决关闭，实测/核验类条目与 §3 耦合点移交 design 阶段（HLD 输入，另见 DEC-18 备注遗留设计题）。**v0.2（2026-09-19）**：增补 §6 二次核验（zenoh-pico 版本/传输/TLS/足迹），作为 HLD 与 Q 批次输入。
 > **服务对象**：Q-02（DEC-08）→ 已裁 → DEC-18。
 > **调研日期**：2026-09-19，web 检索转述，**采信前须回源核验**（来源见文末）。
 
@@ -58,3 +58,49 @@
 - Zenoh 官方博客《Zenoh-Pico Peer to Peer Improvements》（2025-07）：https://zenoh.io
 - Zephyr 官方文档（CoAP client 示例等网络协议文档）：https://docs.zephyrproject.org
 - 第三方聚合页（gRPC 支持声明，**未核验**）：https://apis.io
+
+## 6. 二次核验与增补（v0.2 · 2026-09-19，DEC-18 落地输入）
+
+> **背景**：DEC-18 已裁定 zenoh/zenoh-pico；本节回源核验并补落地细节。事实为检索转述；RAM 足迹与 keepalive 默认值待实测/回源。
+
+### 6.1 版本与 API 稳定性
+
+- zenoh-pico 当前文档线 **1.9.0**（readthedocs）；与 Rust zenoh 1.x 协议兼容、原生 C API。
+- 1.x 线 API 相对 0.x 稳定，minor 间仍有破坏性变更记录 → **west 钉 revision**（与 WAMR 同策略，见 `docs/std/versioning.md`）。
+
+### 6.2 传输、安全与平台（核验通过，且优于初判）
+
+- 传输：**TCP、UDP 单播/组播**、串口、蓝牙（蓝牙依 DEC-06 排除）；**TLS 基于 mbedTLS**，编译期开关 `Z_FEATURE_LINK_TLS`（**默认 OFF**——启用须显式决定，纳入 Q-04 呈递）。
+- Zephyr：在 Zephyr 官方外部模块清单内（`develop/manifest/external/zenoh-pico`）；文档口径支持 UDP（单/组播）与 TCP over IPv4/IPv6。
+- 足迹：核心最小配置 ~**15KB flash**（2022 官方博客，裁剪极限）；RP2040 全功能基线 ~**80KB flash**（2025-01 官方博客）。RAM 权威数字未见——**待实测**。
+- 对 DEC-18 影响：无翻转；"Zephyr 上仅 UDP"的保守假设被推翻（TCP 亦支持），拓扑选项扩大（Q-04）。
+
+### 6.3 发现与命名（落地要点）
+
+- 发现：组播 scouting + gossip；端点角色 client（连 router）与 peer（对等）两种——**V1 拓扑选择 → Q-04**。
+- 命名：zenoh key expression 层级命名空间（如 `tessera/**`）可承载"逻辑节点 / 立方体 / 资源"三级编址（语法细节回源 zenoh 1.x 文档核验，HLD 给草案）。
+
+### 6.4 断链语义与安全（HLD 必答项来源）
+
+- 保活：zenoh 链路层 keepalive（参数可配，默认值待回源核验）→ 映射安全合同第 3 条失联检测时限（**Q-08**，须实测校准）。
+- 安全：TLS（mbedTLS）+ zenoh 认证（口令 / x509 家族；pico 侧支持矩阵待核验）；密钥烧录与轮换属 HLD 安全配置面（合同 10：不经运行时自适应）。
+
+### 6.5 对 HLD 的直接输入
+
+1. 拓扑建议基础：V1 立方体 = **zenoh client** 连 PC 侧 zenohd router（UDP/TCP 单播 + TLS）；peer 模式与组播发现留逻辑节点（DEC-02）阶段。
+2. 命名空间 key 语法草案在 HLD §数据面（随 HLD 一并过门 ③ 公共协议确认）。
+3. keepalive → fail-safe 参数 → Q-08（默认值三问）。
+
+### 6.6 新增来源（v0.2，检索于 2026-09-19）
+
+- zenoh-pico 仓库：https://github.com/eclipse-zenoh/zenoh-pico
+- zenoh-pico 1.9.0 文档（Z_FEATURE_LINK_TLS 等）：https://zenoh-pico.readthedocs.io
+- Zephyr 外部模块清单 zenoh-pico 页：https://docs.zephyrproject.org/latest/develop/manifest/external/zenoh-pico.html
+- RP2040 支持博客（2025-01，~80KB flash 基线）：https://zenoh.io/blog/2025-01-08-introducing-raspberry-pi-pico-support-in-zenoh-pico
+- 核心裁剪极限（2022-06，~15KB）：https://zenoh.io/blog/2022-06-09-zenoh-pico-above-and-beyond
+- P2P unicast 改进（2025-07）：https://zenoh.io/blog/2025-07-11-zenoh-pico-peer-to-peer-unicast
+
+## 修订记录
+
+- v0.1 · 2026-09-19：初步笔记（草稿）；同日 owner 裁定 → DEC-18。
+- v0.2 · 2026-09-19：二次核验增补 §6（版本/传输/TLS/足迹/发现命名），输入 HLD 与 Q-04/Q-08。
