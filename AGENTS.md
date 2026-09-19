@@ -6,11 +6,11 @@
 
 ## 1. 当前状态
 
-- **2026-09-19 · K1 完成待 review；Q-01/Q-02 已裁：DEC-17（APP 运行时 = WASM / WAMR）、DEC-18（数据面协议 = zenoh / zenoh-pico），tag `dec-wamr-zenoh`**
-  - K1 交付物：仓库骨架（§4 全目录）、本文件、`decisions.md`（现含 DEC-01…18，无待裁 Q）、`docs/names.md`、`.gitattributes`（`* -text` 字节保真）、`.gitignore`、首次提交（tag `kickoff`）。
-  - R1/R2 初步调研笔记（`docs/research/`，草稿 v0.1）转为选型事实存档；其实测/核验类待补项与 DEC-17/18 备注的遗留设计题 = design 阶段（HLD）的输入。
-- **待办**：① K1 review 显式通过（owner 已裁 Q-01/Q-02，但尚未明示 K1 门通过）→ ② M0（west 工作区 + native_sim 空模块 + CI 骨架）；③ 固件框架规格（design/，输入 = DEC-17/18 遗留设计题 + 安全合同细化）。
-- **禁区**：K1 review 通过前，禁止开始 R1/R2 之外的任何实现工作（`FOUNDING_PROMPT.md` §9；R1/R2 现已闭环，实际约束 = 一切实现工作）。
+- **2026-09-19 · K1 review 经 owner 推进指令视为通过；research v0.2 + HLD v0.1 + 规范套件 v0.1 已交付，全部待 owner review**
+  - K1 门处置：owner 指令"深入 research → design → 规范文档"（2026-09-19）视为 K1 review 通过与阶段推进授权；如有误请 owner 纠正，本行即改。
+  - 交付物：① research v0.2（R1/R2 增补 §5/§6 二次核验：WAMR 2.4.5/体积/集成、zenoh-pico 1.9/传输/TLS/足迹）；② `design/HLD-firmware-framework.md` v0.1（架构分层 + ts-* 七模块 + 合同逐条映射 + 里程碑 M1…M3）；③ `docs/std/`（README/testing/versioning/progress/coding）；④ 待裁批次 **Q-03…Q-09**（`decisions.md`）。
+  - 待办：① Q-03…Q-09 裁决 + HLD 确认 + 规范套件批准（tag `std-v1`）；② M0（west 工作区 + native_sim 空模块 + CI 骨架，依赖 Q-03）；③ M1…M3 按 HLD 实施。
+  - 禁区：HLD 确认与 Q 批次裁决前不进 impl（流程 §2.4-②/③）；规范套件 v0.1 未生效前按本文件既有规则执行。
 
 ## 2. 会话 bootstrap（每次会话固定执行）
 
@@ -67,6 +67,7 @@ FOUNDING_PROMPT.md  创始 prompt 原文（K1 起始输入，存档不删）
 decisions.md        DEC/Q 登记册
 docs/research/      调研文档（R1/R2 产出于此）
 docs/names.md       命名空间登记表
+docs/std/           开发规范套件（testing/versioning/progress/coding；v0.1 待 owner review，批准后 tag std-v1 生效）
 design/             规格文档（research 裁决后建立；现为空占位）
 firmware/           Zephyr 工程（app/ module/ tests/；west 工作区在仓库之外初始化，Zephyr 树不进本仓库；M0 启动）
 agent/              MCP server + 模拟器 + 构建工具链（PC 侧；DEC-15 第二阶段）
