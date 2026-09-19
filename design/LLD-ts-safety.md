@@ -46,6 +46,7 @@ SAFE_POWERON ──── 链路确立(ts_safety_set_link(true))──→ ACTIVE
 ```
 
 - 每次通道态迁移发布 `TS_EVT_SAFE_STATE_CHANGED`（uid + 旧/新态）——重放观测点。
+- **断链恢复语义（DR-04）**：SAFE_LINKLOSS → ACTIVE 仅解除写入封锁，**不自动回写断链前的值**——shadow 即安全值，输出恢复必须经显式 commit（防恢复瞬间意外动作）。
 - 并发：全局 `link_up` 原子标志 + 每通道 `state` 原子枚举；迁移操作在 sysworkq 上下文串行化（避免多源并发改态）。
 
 ## 4. 唯一写路径出口（commit.c）——合同 2 的强制点
@@ -66,16 +67,19 @@ ts_res_t ts_safety_readback(const char *uid, ts_out_value_t *out); /* [any] 影�
    ——防 estop ISR 与本线程竞争末笔（见 §5）；
 7. 审计：commit 事件（uid/value/t/结果）入环形审计缓冲〔深度 Q-10 提案 64〕，供遥测与重放比对。
 
+- **审计消费与溢出（DR-07）**：消费者 = ts-net 遥测合流 + `sys:get-audit` 导出命令（LLD-ts-net §4）；溢出覆盖最旧并累加丢弃计数；**V1 不落盘（掉电丢失）**——记入 HLD §1 裁剪清单〔Q-11④〕。
+
 ## 5. estop 与 fail-safe 直达（force.c）——合同 5/8
 
 ```c
 void ts_safety_force_all_fault(void);   /* [ISR] estop GPIO 回调直接调用：置原子 forced → 逐通道直写 fault 值 */
 void ts_safety_system_fail(uint32_t reason);  /* [thread] WDT/BOOT/子系统故障：进 SAFE_FAULT 并停机编排 */
 void ts_safety_set_link(bool up);       /* [thread] ts-net 专用（经 sysworkq 串行化迁移） */
-ts_res_t ts_safety_clear_fault(void);   /* [thread] 显式命令复位（estop 后人工恢复） */
+ts_res_t ts_safety_clear_fault(void);   /* [thread] 仅 sys:estop-clear 命令可达（host-only + 确认令牌，LLD-ts-net §4；授权模型 Q-11①） */
 ```
 
 - **estop 路径纪律**（L5 机械检查目标）：`ts_safety_force_all_fault` 调用图内禁：分配、队列、锁、协议栈符号；仅原子置位 + driver_dispatch 直写（driver_dispatch 写函数须可重入/无锁——在 driver_dispatch.c 内以"写只依赖注册期冻结数据"实现）。
+- **estop 引脚绑定（DR-11）**：devicetree `chosen` 节点 `ts,estop-gpio`（板级 overlay 提供）；boot 步骤 1 由本模块读取并配置 IRQ（触发沿来自 prov 配置，构建期/烧录期确定）。
 - estop ISR 返回后：sysworkq 补发 `TS_EVT_ESTOP`（含触发时间戳，合同 5"事后补发事件"）。
 - 与 commit 竞争的裁决：force 先置 `forced` 原子标志；commit 末段在 irq_lock 内复查（§4-6），保证 ISR 写入不被随后末笔覆盖；`clear_fault` 前 forced 标志不复位。
 
@@ -110,3 +114,4 @@ extern const ts_driver_ops_t ts_drivers[3];   /* [GPIO]=native_sim 桩/gpio、[P
 ## 修订记录
 
 - v0.1 · 2026-09-20：首版草案（estop 无锁直达 + commit 末段 irq_lock 复查为本版关键设计）。
+- v0.2 · 2026-09-20：review-01——断链恢复不自动回写（DR-04）、审计消费/溢出策略（DR-07）、estop DT 绑定（DR-11）、clear_fault 授权收敛 sys:estop-clear（DR-03）。

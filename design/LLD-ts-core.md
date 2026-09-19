@@ -25,7 +25,7 @@ extern const ts_boot_step_t ts_boot_steps[TS_BOOT_STEP_COUNT];
 ts_noreturn void ts_core_boot(void);
 ```
 
-- 任一步返回非 TS_OK → 调用 `ts_safety_system_fail(TS_FAIL_BOOT_<idx>)`（全输出进 SAFE_FAULT）后进入受控停机循环（喂狗停止 → 硬 WDT 兜底复位，复位原因留痕于 noinit 区）。
+- 任一步返回非 TS_OK → 调用 `ts_safety_system_fail(TS_FAIL_BOOT_<idx>)`（全输出进 SAFE_FAULT）后进入受控停机循环（喂狗停止 → 硬 WDT 兜底复位，复位原因留痕于 noinit 区——noinit 读写经 ts-store 接口，DR-01/17）。
 - 每步执行前后发布 `TS_EVT_BOOT_STEP`（payload：idx/name/result）——重放测试的初始化观测点。
 
 ## 3. 单调时间（time.c）
@@ -47,6 +47,7 @@ typedef enum {
     TS_EVT_SAFE_STATE_CHANGED,       /* payload: 通道 uid + 新态 */
     TS_EVT_APP_LOADED, TS_EVT_APP_UNLOADED, TS_EVT_APP_QUARANTINED,
     TS_EVT_PERIPH_ATTACH, TS_EVT_PERIPH_DETACH,
+    TS_EVT_INPUT_CHANGED,            /* 输入值变化（ts-hal input monitor，DR-02） */
     TS_EVT_WDT_WARN, TS_EVT_POWER_BUDGET,
     TS_EVT_PERM_DENIED,              /* 合同10 越权留痕 */
 } ts_evt_id_t;
@@ -93,3 +94,4 @@ void ts_wdt_feed(ts_wdt_src_t src);                              /* [any] 原子
 ## 修订记录
 
 - v0.1 · 2026-09-20：首版草案。
+- v0.2 · 2026-09-20：review-01——事件表补 TS_EVT_INPUT_CHANGED（DR-02）、noinit 依赖 ts-store（DR-17）。

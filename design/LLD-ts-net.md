@@ -28,6 +28,8 @@ src/net/
 int ts_net_key_cmd(char *buf, size_t n, const char *uid);     /* …/<class>/<inst>/cmd     */
 int ts_net_key_tel(char *buf, size_t n, const char *uid);     /* …/<class>/<inst>/telemetry */
 int ts_net_key_evt(char *buf, size_t n, const char *uid);     /* …/<class>/<inst>/event   */
+int ts_net_key_hb  (char *buf, size_t n, bool host_dir);      /* …/sys/hb（cube→host）/ …/sys/hb-host（host→cube），DR-12 */
+int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>（命令面见 §4，DR-03） */
 /* 前缀 tessera/<node>/<cube> 由 node/cube id 配置拼装；node 段为 DEC-02 预留层（Q-07） */
 ```
 
@@ -74,3 +76,4 @@ int ts_net_key_evt(char *buf, size_t n, const char *uid);     /* …/<class>/<in
 ## 修订记录
 
 - v0.1 · 2026-09-20：首版草案。
+- v0.2 · 2026-09-20：review-01——keyspace 补 hb/sys 构造器（DR-12）；§4 补 sys 命令面（DR-03，深化批次）。

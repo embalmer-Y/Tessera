@@ -39,11 +39,31 @@ typedef int32_t ts_res_t;                 /* TS_OK=0；负数为错误 */
 
 - 只增不复用；模块不得私造错误码（新增走本文修订 + review 门 ③）。
 
+### 2.1 故障原因码 TS_FAIL_*（DR-09 补）
+
+```c
+/* u32 reason：高 16 位 = 来源（TS_FAIL_SRC_*），低 16 位 = 细因（来源模块自定义） */
+#define TS_FAIL_SRC_BOOT   0x0001U   /* 细因 = 失败的 boot 步骤 idx */
+#define TS_FAIL_SRC_WDT    0x0002U   /* 细因 = ts_wdt_src_t */
+#define TS_FAIL_SRC_SAFETY 0x0003U   /* 细因 = ts-safety 自定义 */
+#define TS_FAIL_SRC_STORE  0x0004U   /* 细因 = ts-store 错误细分 */
+```
+
+- 用于 `ts_safety_system_fail(reason)`、noinit 留痕与复位后诊断；不得挪用为通用 API 返回值。
+
 ## 3. 时间与上下文
 
 - 唯一时间源：`uint64_t ts_time_ms(void)`（[any]，单调；ts-core LLD §3）。
 - 每个 API 注明**允许上下文**：`[thread]`（线程）/ `[ISR]`（中断）/ `[any]`；`[thread]` API 禁在中断调用（断言拦截）。
 - ISR 路径禁分配/禁队列/禁锁（estop 机械检查，testing.md §3.5）。
+
+### 3.1 调用者上下文 ts_ctx_t（DR-10 补）
+
+```c
+typedef struct ts_ctx_opaque ts_ctx_t;   /* 不透明句柄；由 ts-appmgr 每 APP 实例化并注入 */
+```
+
+- ts-hal/ts-power 全部 API 以其为第一参数；实现侧经它反查权限表与 app_id。**防伪造边界**：wasm 侧只能见到整数 id（导入函数签名），id→上下文映射表在原生侧且不可被 APP 寻址。
 
 ## 4. 线程模型（全系统线程清单——唯一出处）
 
@@ -56,6 +76,7 @@ typedef int32_t ts_res_t;                 /* TS_OK=0；负数为错误 */
 | main（init 后转监督） | 10 | 板级配置 | 初始化编排、空转监督 |
 
 - 抢占式优先级均为 Q-10 提案值；禁止协作式长占（确定性 + 响应上界）。
+- 输入采集（ts-hal）与存储服务（ts-store）**无独立线程**——sysworkq 周期工作项（DR-01/02）。
 
 ## 5. 命名与 Kconfig
 
@@ -70,3 +91,4 @@ typedef int32_t ts_res_t;                 /* TS_OK=0；负数为错误 */
 ## 修订记录
 
 - v0.1 · 2026-09-20：首版（错误码/线程模型/布局/命名约定；Q-10 登记项随 LLD 批次）。
+- v0.2 · 2026-09-20：review-01 修复——§2.1 TS_FAIL_* 原因码（DR-09）、§3.1 ts_ctx_t（DR-10）、线程表补注（DR-01/02）。

@@ -17,10 +17,13 @@ src/periph/
 ```c
 typedef struct {
     const char      *uid;      /* 逻辑名："gpio0"、"pwm1"、"pwr0"…（编址用，跨板稳定） */
-    ts_ch_kind_t     kind;     /* gpio | pwm | power（adc 为纯输入，不进 ts-safety） */
+    ts_periph_kind_t  kind;     /* TS_PK_GPIO / TS_PK_PWM / TS_PK_POWER / TS_PK_ADC（DR-13） */
     const void      *dt_spec;  /* Zephyr devicetree spec（板相关，构建期绑定） */
     ts_out_ch_t      safe;     /* 三安全态值 + limits（随描述符冻结，合同 10） */
 } ts_periph_desc_t;
+
+typedef enum { TS_PK_GPIO, TS_PK_PWM, TS_PK_POWER, TS_PK_ADC } ts_periph_kind_t;
+/* DR-13：与 ts_ch_kind_t（仅输出通道）分离；TS_PK_ADC 只注册 ts-hal 输入侧，不进 ts-safety */
 
 ts_res_t ts_periph_register(const ts_periph_desc_t *d);  /* init 步骤 5 批量执行 */
 ```
@@ -63,3 +66,4 @@ ts_res_t ts_periph_register(const ts_periph_desc_t *d);  /* init 步骤 5 批量
 ## 修订记录
 
 - v0.1 · 2026-09-20：首版草案。
+- v0.2 · 2026-09-20：review-01——kind 枚举独立为 ts_periph_kind_t（含 ADC，DR-13）。
