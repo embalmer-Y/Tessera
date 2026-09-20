@@ -15,6 +15,7 @@
 | Q-03…Q-09 | design 阶段待裁批次（Zephyr 版本/zenoh 拓扑/APP 包格式/WAMR 模式/逻辑节点范围/断链参数/存储 OTA） | HLD v0.1（design/） | 待裁 |
 | Q-10 | LLD 批次默认值清单（线程优先级/栈/队列/容量/探针与回滚参数等 15 组） | LLD v0.1 批次（design/） | 待裁 |
 | Q-11 | design review-01 语义批次（sys 命令面授权/共享写语义/APP 状态裁剪/审计简化/prov 模型/内存预算） | design-review-01.md | 待裁 |
+| Q-12 | CI 平台与远端仓库托管（M0 前置） | 开发就绪度评估（2026-09-20） | 待裁 |
 
 ## 2. 任务与里程碑
 
@@ -85,3 +86,4 @@
 - 2026-09-19 · design 阶段登记：Q-03…Q-09 待裁批次、里程碑 M1…M3、固件模块名 ts-*（提案态）。
 - 2026-09-20 · LLD 批次登记：Q-10 默认值清单、标识符族（TS_E_*/TS_EVT_*/CONFIG_TS_*/TSAP/ts_api_v1/ts_perm_v1）。
 - 2026-09-20 · review-01 深化登记：Q-11 语义批次、DR 编号族、ts-store/TS_FAIL_*/ts_ctx_t/ts_periph_kind_t。
+- 2026-09-20 · 就绪度评估登记：Q-12（CI 平台与远端托管）。

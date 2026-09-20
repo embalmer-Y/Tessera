@@ -116,6 +116,13 @@
 - **建议**：A，全部按 review-01 提案：① sys 命令面 v1 = get-info/get-link/get-safety/get-budget/get-audit/set-time/estop-clear，**host-only**（APP 能力文法不可达），estop-clear 需确认令牌；② 共享通道写语义 = V1 **后写胜出 + 审计含 app_id**（不做独占 claim，避免死锁面；DR-05）；③ APP 业务状态 V1 **不持久化**（升级丢失，DR-15）；④ 审计留痕 V1 = 内存环形 + get-audit 导出（**掉电丢失**，DR-07）；⑤ prov 数据模型 v1（CBOR：node/cube id、router locators、根公钥×2、zenoh 凭证、功率预算、estop 触发沿；运行时只读、烧录通道写，DR-01）；⑥ 内存预算分配表按 HLD §4.6（数值为分配基线，实测按行修订不另开 Q，DR-06）。
 - **影响**：ts-store/ts-hal/ts-net/ts-safety 的实现依据；HLD v0.2 与 LLD v0.2 对应节；与 Q-04（locator/凭证）、Q-05（根公钥）、Q-09（分区）耦合。
 
+#### Q-12 · CI 平台与远端仓库托管（2026-09-20 呈递，M0 前置）
+
+- **背景**：M0 需建 CI 骨架与代码远端；仓库现为纯本地（无 remote）；`docs/std/testing.md` v0.1 定义了 CI job 结构但未点名平台（开发就绪度评估发现的基础设施选型缺口，属门 ①）。
+- **选项**：A. GitHub + GitHub Actions；B. GitLab + GitLab CI；C. 自托管（Gitea/Woodpecker 等）。
+- **建议**：A：与 DEC-16 开源定位一致、公开仓免费、Zephyr 社区 CI 先例与 twister 集成参考最多、artifact 留存便利；仓库建议 public 起步（与 Apache-2.0 定位一致），owner 创建远端后提供地址。
+- **影响**：M0 CI 骨架的实现对象；`versioning.md` §5 产物命名/留存落地点；LICENSE 文件随 M0 首提交补齐（DEC-16 执行项，非裁决）。
+
 ### 已裁（留档）
 
 #### Q-01 · APP 运行时选型（→ R1）
@@ -141,3 +148,4 @@
 - 2026-09-19 · design 阶段呈递：HLD 固件框架 v0.1（`design/HLD-firmware-framework.md`）+ 待裁批次 **Q-03…Q-09**（Zephyr 版本 / zenoh 拓扑 / APP 包格式 / WAMR 模式 / 逻辑节点范围 / 断链参数 / 存储与 OTA）。
 - 2026-09-20 · LLD 批次呈递：`design/LLD-00-common.md` + 七模块 LLD v0.1 + 待裁 **Q-10**（LLD 默认值清单 13 组）。
 - 2026-09-20 · design review-01（17 项，`design/design-review-01.md`）+ 深化批次：HLD v0.2、LLD v0.2、新增 ts-store；Q-10 表增 #14/#15，新增待裁 **Q-11**（语义批次 6 项）。
+- 2026-09-20 · 开发就绪度评估后登记 **Q-12**（CI 平台与远端托管，M0 前置）；待裁全景 = Q-03…Q-12 + HLD/LLD 确认 + 规范套件批准。
