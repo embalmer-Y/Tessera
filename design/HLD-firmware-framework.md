@@ -170,6 +170,8 @@ estop / WDT / 故障 → SAFE_FAULT（estop 后须人工/显式命令复位）
 
 Flash（按板可配，联动 Q-09）：bootloader 64KB ｜ 固件 slot ×2 ｜ APP slot ×2 ｜ prov/meta/noinit 64KB；四板外置/内嵌 flash 量级均宽裕，尺寸表随 M2 板级配置定。
 
+**PSRAM 分层策略〔随 Q-10 裁决生效〕**：框架安全数据（ts-safety 通道表/审计、ts-core、喂狗、zenoh 控制结构）**必须留在内部 SRAM**（保护与断链判定路径的响应上界不容外部 RAM 延迟）；**APP 沙箱内存（WAMR 实例堆）可放 PSRAM**（APP 非硬实时路径，与"重实时在框架层"的分层一致）。板级现状：ESP32-S3 = Zephyr 官方 SPIRAM 支持（多堆 + 池模式挂接 WAMR）；ESP32-P4 内部 RAM 较大、PSRAM 随版本演进待核验；STM32H7 内部 1MB+ 压力小（SDRAM 待核验）；**RP2350 硬件支持 16MB QSPI PSRAM 但 Zephyr 无驱动 → 按 520KB 内部 SRAM 约束**（上游补驱动列为后续贡献项）。性能降幅与每板上限 M2 实测（AOT 可缓解，DEC-25）；事实与来源见 R1 §5.6。
+
 ## 5. 可测试性设计（细则见 `docs/std/testing.md`）
 
 - native_sim 主平台：全模块在仿真上可运行；WDT/estop/供电均有仿真桩。

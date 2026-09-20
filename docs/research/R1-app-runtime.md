@@ -132,7 +132,18 @@
 - WAMR Zephyr simple 样例：https://github.com/wasm-micro-runtime/wasm-micro-runtime/tree/main/product-mini/platforms/zephyr/simple
 - WAMR-ESP32（PlatformIO 注册表）：https://registry.platformio.org
 
+### 5.6 PSRAM 堆放置事实（v0.3 · 2026-09-21，owner 问询触发）
+
+- **ESP32-S3（Zephyr）**：官方支持 PSRAM——`CONFIG_ESP_SPIRAM` 家族（`soc/espressif/common/Kconfig.spiram`），有官方 SPIRAM sample（ESP32/S2/S3），多堆机制可让 `k_malloc` 覆盖外部区域；Espressif 有 Zephyr PSRAM 使能指南（2024-12）。
+- **WAMR 堆挂接**：两条路——① 系统分配器模式（malloc 落在 PSRAM 支持的堆上）；② **池分配器模式（Alloc_With_Pool）**：静态池经 linker 段放入外部 RAM，`wasm_runtime_full_init` 挂接——对确定性/隔离更干净（池边界显式），本项目倾向 ②。
+- **RP2350**：硬件支持至 16MB QSPI PSRAM（第三方评测口碑好，缓存有效），但 **Zephyr 的 RP2350 支持目前仅 QSPI flash，无 PSRAM 驱动**（Pico SDK/Arduino-Pico 有）→ Zephyr 下 V1 按 520KB 内部 SRAM 约束；为 Zephyr 上游补 RP2350 PSRAM 驱动可作后续贡献项（非 V1）。
+- **STM32H7**：内部 RAM 1MB+（压力小）；FMC SDRAM 的 Zephyr 支持待核验，V1 非关键。
+- **性能/确定性**：PSRAM 访问慢于内部 SRAM（缓存缓解），解释执行访存密集 → APP 执行降幅待 M2 实测（AOT 可缓解，DEC-25）；确定性合同不受影响（时间源在框架层；重放比对输出序列非墙钟）。
+
+来源：Espressif Zephyr PSRAM 指南 https://developer.espressif.com ；Zephyr SPIRAM sample https://docs.zephyrproject.org ；Kconfig.spiram https://pigweed.googlesource.com ；WAMR 线性内存分配案例 https://github.com ；RP2350 PSRAM 评测 https://dmitry.gr ；RP2350 Zephyr 支持讨论 https://github.com ；ESP32-S3 外部 RAM 静态分配 https://danielmangum.com
+
 ## 修订记录
 
 - v0.1 · 2026-09-19：初步笔记（草稿）；同日 owner 裁定 → DEC-17。
 - v0.2 · 2026-09-19：二次核验增补 §5（版本/体积/集成方式/两层隔离），输入 HLD 与 Q-05/Q-06。
+- v0.3 · 2026-09-21：增补 §5.6 PSRAM 堆放置事实（owner 问询触发），输入 Q-10 #10 修订与 HLD §4.6。
