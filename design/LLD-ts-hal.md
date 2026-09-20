@@ -56,14 +56,14 @@ ts_res_t ts_hal_register_class(const ts_periph_desc_t *desc);  /* ts-periph 调�
 
 ## 5. 输入采集 input monitor（DR-02，v0.2 新增）
 
-- 执行体：sysworkq 周期工作项（无独立线程，LLD-00 §4 注）；周期 `CONFIG_TS_HAL_INPUT_POLL_MS`〔Q-10 #14 提案 100ms〕。
+- 执行体：sysworkq 周期工作项（无独立线程，LLD-00 §4 注）；周期 `CONFIG_TS_HAL_INPUT_POLL_MS`〔DEC-27 #14： 100ms〕。
 - 流程：遍历输入实例（gpio-in/adc）→ 读驱动 → 与上次值比较 → 变化则：发布 `TS_EVT_INPUT_CHANGED`（uid + 旧/新值 + 时间戳）+ 通知 ts-net 发布该实例遥测。
 - 语义：**只观测不改值**（不影响任何控制路径）；断链期间照常采集并进审计面（合同 3"输入流不因保护而中断"的观测侧落点）。
 - 去抖：V1 无（数值抖动 = 遥测抖动，可接受；如需 M2 评审加阈值）。
 
 ## 6. Kconfig（节选）
 
-| 项 | 默认〔Q-10〕 | 说明 |
+| 项 | 默认〔DEC-27〕 | 说明 |
 |---|---|---|
 | CONFIG_TS_HAL_MAX_INSTANCES | 24 | 各类实例总容量 |
 | CONFIG_TS_HAL_INPUT_POLL_MS | 100 | 输入轮询周期（DR-02） |
@@ -84,3 +84,4 @@ ts_res_t ts_hal_register_class(const ts_periph_desc_t *desc);  /* ts-periph 调�
 
 - v0.1 · 2026-09-20：首版草案。
 - v0.2 · 2026-09-20：review-01 深化——新增 §5 input monitor（DR-02）、ts_ctx_t 指针（DR-10）。
+- v0.2.1 · 2026-09-21：裁决同步——出处标注收敛为 DEC 编号（SC-02）。

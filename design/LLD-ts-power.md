@@ -40,7 +40,7 @@ ts_res_t ts_power_request(ts_ctx_t c, uint8_t slot, bool on, uint32_t ma);  /* t
 
 ## 5. Kconfig（节选）
 
-| 项 | 默认〔Q-10〕 | 说明 |
+| 项 | 默认〔DEC-27〕 | 说明 |
 |---|---|---|
 | CONFIG_TS_POWER_MAX_SLOTS | 4 | 供电槽数量上限 |
 
@@ -57,3 +57,4 @@ ts_res_t ts_power_request(ts_ctx_t c, uint8_t slot, bool on, uint32_t ma);  /* t
 ## 修订记录
 
 - v0.1 · 2026-09-20：首版草案。
+- v0.1.1 · 2026-09-21：裁决同步——出处标注收敛（SC-02）。

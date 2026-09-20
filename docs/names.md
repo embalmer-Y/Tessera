@@ -19,7 +19,7 @@
 | Q-06、Q-07 | WAMR 执行模式 / 逻辑节点 V1 范围 | HLD v0.1 / decisions.md §二 | 已裁 → DEC-25/26 |
 | Q-10 | LLD 批次默认值清单（15 组） | LLD v0.1 批次（design/） | 已裁 → DEC-27 |
 | Q-11 | design review-01 语义批次 | design-review-01.md | 已裁 → DEC-29/30 |
-| Q-12 | CI 平台与远端仓库托管（M0 前置） | 开发就绪度评估（2026-09-20） | 待裁 |
+| Q-12 | CI 平台与远端仓库托管（M0 前置） | 开发就绪度评估（2026-09-20） | 已裁 → DEC-24 |
 
 ## 2. 任务与里程碑
 
@@ -39,6 +39,7 @@
 | dec-27-29 | 裁决批次 3（DEC-27…29）登记提交的 git tag | decisions.md 修订记录 | 已打 |
 | dec-30 | 裁决批次 4（DEC-30，Q 链全部裁毕）登记提交的 git tag | decisions.md 修订记录 | 已打 |
 | DR-xx | design review 发现编号族（当前 DR-01…17，全部处置） | design/design-review-01.md | 存档 |
+| SC-xx | 最终自检发现编号族（当前 SC-01…04，全部处置） | design/final-selfcheck.md | 存档 |
 
 ## 3. 板名（DEC-14 目标板集；**DEC-28 修订**：RP2350 移出，策略转向高性能高配置）
 

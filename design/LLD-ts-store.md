@@ -76,7 +76,7 @@ ts_res_t ts_store_slot_hash (uint8_t slot, uint8_t sha[32]);   /* 供安装校�
 
 ## 7. Kconfig（节选）
 
-| 项 | 默认〔Q-10〕 | 说明 |
+| 项 | 默认〔DEC-27〕 | 说明 |
 |---|---|---|
 | CONFIG_TS_STORE_META_MAX | 256B | meta 记录上限（appmgr 字段集） |
 
@@ -94,3 +94,4 @@ ts_res_t ts_store_slot_hash (uint8_t slot, uint8_t sha[32]);   /* 供安装校�
 ## 修订记录
 
 - v0.1 · 2026-09-20：首版（design review-01 DR-01/17 处置新增）。
+- v0.1.1 · 2026-09-21：裁决同步——DEC-20/21/23/27/30 出处收敛（SC-02）。

@@ -2,7 +2,7 @@
 
 > **状态**：v0.1 草案，随 LLD 批次待 owner review。上位文档：`design/HLD-firmware-framework.md`（下称 HLD）。
 > **用途**：所有 ts-* 模块 LLD 共享的错误码/时间/上下文/线程/命名/Kconfig 约定；本文是唯一出处，各模块 LLD 只引用不复写。
-> **未决承载**：标注〔Q-xx〕处为待裁值；本文新增默认值统一入 **Q-10**（LLD 批次默认值清单，`decisions.md`）。
+> **出处规则（2026-09-21 裁决后）**：数值默认值出处统一为 **DEC-27**（原 Q-10 清单，已裁）；历史〔Q-xx〕标注已随裁决收敛为 DEC 编号。
 
 ## 1. 目录与文件布局（west 工作区外的仓库内源，M0 经 manifest 挂载）
 
@@ -67,7 +67,7 @@ typedef struct ts_ctx_opaque ts_ctx_t;   /* 不透明句柄；由 ts-appmgr 每 
 
 ## 4. 线程模型（全系统线程清单——唯一出处）
 
-| 线程 | 优先级（Zephyr 抢占式，小=高）〔Q-10 提案〕 | 栈〔Q-10〕 | 职责 |
+| 线程 | 优先级（Zephyr 抢占式，小=高）〔DEC-27：〕 | 栈〔DEC-27〕 | 职责 |
 |---|---|---|---|
 | （无线程）estop | GPIO IRQ 直达 | — | ts-safety force（合同5） |
 | sysworkq（Zephyr 系统工作队列） | 3 | 2048B | ts-core 周期服务（WDT 巡检/事件分发） |
@@ -75,7 +75,7 @@ typedef struct ts_ctx_opaque ts_ctx_t;   /* 不透明句柄；由 ts-appmgr 每 
 | ts_app_*（每 APP 一线程） | 8 | manifest 声明（上限 Q-10） | WAMR 执行 |
 | main（init 后转监督） | 10 | 板级配置 | 初始化编排、空转监督 |
 
-- 抢占式优先级均为 Q-10 提案值；禁止协作式长占（确定性 + 响应上界）。
+- 抢占式优先级均为 DEC-27 定值；禁止协作式长占（确定性 + 响应上界）。
 - 输入采集（ts-hal）与存储服务（ts-store）**无独立线程**——sysworkq 周期工作项（DR-01/02）。
 
 ## 5. 命名与 Kconfig
@@ -92,3 +92,4 @@ typedef struct ts_ctx_opaque ts_ctx_t;   /* 不透明句柄；由 ts-appmgr 每 
 
 - v0.1 · 2026-09-20：首版（错误码/线程模型/布局/命名约定；Q-10 登记项随 LLD 批次）。
 - v0.2 · 2026-09-20：review-01 修复——§2.1 TS_FAIL_* 原因码（DR-09）、§3.1 ts_ctx_t（DR-10）、线程表补注（DR-01/02）。
+- v0.2.1 · 2026-09-21：最终自检——出处标注收敛为 DEC 编号（SC-02），"未决承载"改为"出处规则"（DEC-27）。

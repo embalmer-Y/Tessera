@@ -9,7 +9,7 @@
 
 ```text
 src/appmgr/
-  pkg.c        包解析与验签（Q-05 提案格式）
+  pkg.c        包解析与验签（DEC-21 格式）
   slot.c       双 slot + meta 区（掉电安全）
   host.c       WAMR 宿主：实例化/符号装配/线程
   health.c     健康探针与回滚决策
@@ -26,7 +26,7 @@ manifest: { app_id(反域名串), app_ver(semver 串), min_fw_ver, capabilities[
 
 - 验签：根公钥在安全参数分区（烧录期写入，运行时只读，合同 10）；失败 → TS_E_INVALID_SIG + 留痕，不入 slot。
 
-## 3. slot 与 meta（slot.c，〔Q-09 提案〕；分区读写经 ts-store，DR-01）
+## 3. slot 与 meta（slot.c，〔DEC-23〕；分区读写经 ts-store，DR-01）
 
 ```text
 分区：app_slot_a | app_slot_b | meta(2 份冗余写, 序号防撕裂)
@@ -34,7 +34,7 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 ```
 
 - 升级写序（掉电安全）：写 inactive slot → 校验回读 → meta 新序号原子切换 → 下一加载周期生效。
-- 回滚：健康失败 → active 切回上一 slot、rollback_count++；计数 >〔Q-10 提案 3〕→ 该版本 QUARANTINED（拒载 + `TS_EVT_APP_QUARANTINED`），不循环。
+- 回滚：健康失败 → active 切回上一 slot、rollback_count++；计数 >〔DEC-27： 3〕→ 该版本 QUARANTINED（拒载 + `TS_EVT_APP_QUARANTINED`），不循环。
 
 ## 4. APP 生命周期状态机（health.c + host.c）
 
@@ -45,16 +45,16 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 ```
 
 - 加载发生在 boot 步骤 8；APP 级故障**不阻塞系统启动**（HLD §4.4-8）。
-- 健康探针：周期〔Q-10 提案 1000ms〕调用 wasm 导出 `app_health_ping`；连续超时〔Q-10 提案 3〕次 → 触发回滚。
+- 健康探针：周期〔DEC-27： 1000ms〕调用 wasm 导出 `app_health_ping`；连续超时〔DEC-27： 3〕次 → 触发回滚。
 
 ## 5. WAMR 宿主（host.c）
 
 - 实例化参数：fast 解释器、WASI 关〔DEC-25〕；堆 = manifest.mem.heap（上限**每板动态配置**〔DEC-27，默认值见 HLD §4.6 每板表〕）、栈独立线程栈。
 - **导入面装配（权限硬边界的落点）**：`ts_native_syms[]` 全集（= ts_api_v1 符号，LLD-ts-hal §3）逐项标注所需能力；实例化时**只注册** manifest 能力覆盖的子集——未授权符号在 wasm 模块内即不存在（链接期即拒，而非调用期判）。
-- APP 线程：每 APP 一个 Zephyr 线程（优先级/栈见 LLD-00 §4 与 manifest.mem.stack，上限〔Q-10 提案 8KB〕）；同时加载上限〔Q-10 提案 4〕个 APP。
-- 调用约定：框架按序调 `app_init` →（tick 若导出）周期〔Q-10 提案 100ms〕驱动 → 事件到达时调 `app_evt`；wasm 陷出到 ts_* 导入即在本线程上下文执行（权限裁决无跨线程跳转）。
-- **事件串行化（DR-14）**：tick 与 app_evt 均在 APP 线程内执行；外部事件入每 APP mailbox（深度〔Q-10 #15 提案 8〕，满则丢最旧 + 计数），线程主循环顺序消费——单线程内无重入。
-- **卸载/升级停止语义（DR-14）**：停止投递 → 排空 mailbox → join（超时〔Q-10 #15 提案 2s〕强杀并回收）；强杀不影响框架喂狗（TS_WDT_APPMGR 独立喂狗源）。APP 业务状态 V1 不持久化（HLD §1 裁剪，DR-15）。
+- APP 线程：每 APP 一个 Zephyr 线程（优先级/栈见 LLD-00 §4 与 manifest.mem.stack，上限〔DEC-27： 8KB〕）；同时加载上限〔DEC-27： 4〕个 APP。
+- 调用约定：框架按序调 `app_init` →（tick 若导出）周期〔DEC-27： 100ms〕驱动 → 事件到达时调 `app_evt`；wasm 陷出到 ts_* 导入即在本线程上下文执行（权限裁决无跨线程跳转）。
+- **事件串行化（DR-14）**：tick 与 app_evt 均在 APP 线程内执行；外部事件入每 APP mailbox（深度〔DEC-27 #15： 8〕，满则丢最旧 + 计数），线程主循环顺序消费——单线程内无重入。
+- **卸载/升级停止语义（DR-14）**：停止投递 → 排空 mailbox → join（超时〔DEC-27 #15： 2s〕强杀并回收）；强杀不影响框架喂狗（TS_WDT_APPMGR 独立喂狗源）。APP 业务状态 V1 不持久化（HLD §1 裁剪，DR-15）。
 
 ## 6. 测试要点
 
@@ -71,3 +71,4 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 
 - v0.1 · 2026-09-20：首版草案（"按能力过滤符号装配"为权限硬边界核心机制）。
 - v0.2 · 2026-09-20：review-01——slot 经 ts-store（DR-01）、mailbox 串行化与卸载停止语义（DR-14）、APP 状态不持久化声明（DR-15）。
+- v0.2.1 · 2026-09-21：裁决同步——DEC-27 每板堆配置；出处标注收敛（SC-02）。

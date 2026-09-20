@@ -33,7 +33,7 @@ ts_res_t ts_safety_register_channel(const ts_out_ch_t *ch);  /* [thread] init �
 ```
 
 - 注册校验：uid 非空且不撞、三态值齐全且落在 limits 内（fault/poweron/linkloss 值本身必须合法——安全态值不得超限）；违例 → TS_E_PARAM（注册即失败，不留半注册）。
-- 注册表：静态数组，容量〔Q-10 提案 32〕；描述符指针来源 = 构建期配置 + ts-periph 描述符（安全参数**运行时只读**，合同 10）。
+- 注册表：静态数组，容量〔DEC-27： 32〕；描述符指针来源 = 构建期配置 + ts-periph 描述符（安全参数**运行时只读**，合同 10）。
 
 ## 3. 三安全态状态机（channel.c）
 
@@ -65,7 +65,7 @@ ts_res_t ts_safety_readback(const char *uid, ts_out_value_t *out); /* [any] 影�
 5. 限流（TS_CH_POWER）：请求电流 > current_limit_ma → TS_E_RANGE；
 6. 末段临界区：`irq_lock(); if (!atomic_forced) { driver_dispatch_write(ch, v); shadow=v; } irq_unlock();`
    ——防 estop ISR 与本线程竞争末笔（见 §5）；
-7. 审计：commit 事件（uid/value/t/结果/**调用者 app_id**〔DEC-30②〕）入环形审计缓冲〔深度 Q-10 提案 64〕，供遥测与重放比对。
+7. 审计：commit 事件（uid/value/t/结果/**调用者 app_id**〔DEC-30②〕）入环形审计缓冲〔深度 DEC-27： 64〕，供遥测与重放比对。
 
 - **审计消费与溢出（DR-07）**：消费者 = ts-net 遥测合流 + `sys:get-audit` 导出命令（LLD-ts-net §4）；溢出覆盖最旧并累加丢弃计数；**V1 不落盘（掉电丢失）**——记入 HLD §1 裁剪清单〔DEC-30④〕。
 
@@ -96,7 +96,7 @@ extern const ts_driver_ops_t ts_drivers[3];   /* [GPIO]=native_sim 桩/gpio、[P
 
 ## 7. Kconfig（节选）
 
-| 项 | 默认〔Q-10〕 | 说明 |
+| 项 | 默认〔DEC-27〕 | 说明 |
 |---|---|---|
 | CONFIG_TS_SAFETY_MAX_CHANNELS | 32 | 注册表容量 |
 | CONFIG_TS_SAFETY_AUDIT_DEPTH | 64 | 审计环形缓冲深度 |
@@ -115,3 +115,4 @@ extern const ts_driver_ops_t ts_drivers[3];   /* [GPIO]=native_sim 桩/gpio、[P
 
 - v0.1 · 2026-09-20：首版草案（estop 无锁直达 + commit 末段 irq_lock 复查为本版关键设计）。
 - v0.2 · 2026-09-20：review-01——断链恢复不自动回写（DR-04）、审计消费/溢出策略（DR-07）、estop DT 绑定（DR-11）、clear_fault 授权收敛 sys:estop-clear（DR-03）。
+- v0.2.1 · 2026-09-21：裁决同步——DEC-30② 审计含 app_id；出处标注收敛（SC-02）。

@@ -69,7 +69,7 @@
 - 外设类 API（V1）：`gpio`（读/写）、`pwm`、`adc`（输入）、`counter`、`power`（经 ts-power）。接口为板无关抽象（DEC-04：APP 不见具体硬件）。
 - **权限执行点**：每个 ts-hal 调用携带调用者 APP 上下文；对照 manifest 能力裁决，越权 → 拒绝 + 留痕（合同 10）。
 - 外设描述符（ts-periph 配合）：可插拔外设 = 描述符（类/实例/能力/安全参数）注册进框架；未注册外设不可寻址。
-- **输入采集（input monitor，DR-02）**：sysworkq 周期轮询输入实例（gpio-in / adc），值变化 → 发 `TS_EVT_INPUT_CHANGED` 并经 ts-net 发布遥测（周期〔Q-10 #14〕；V1 无硬件中断驱动）。
+- **输入采集（input monitor，DR-02）**：sysworkq 周期轮询输入实例（gpio-in / adc），值变化 → 发 `TS_EVT_INPUT_CHANGED` 并经 ts-net 发布遥测（周期〔DEC-27 #14〕；V1 无硬件中断驱动）。
 
 ### 3.4 ts-appmgr（DEC-05/17 落地）
 
@@ -134,7 +134,7 @@ estop / WDT / 故障 → SAFE_FAULT（estop 后须人工/显式命令复位）
 
 ### 4.3 看门狗拓扑
 
-硬件 WDT 一只（超时初值〔Q-08 联动提案 5s〕）；软件喂狗注册表按子系统独立 feed；WDT 复位前的报告区写入最后 feed 时间戳（复位后留痕可查）。
+硬件 WDT 一只（超时初值〔DEC-22：10s〕）；软件喂狗注册表按子系统独立 feed；WDT 复位前的报告区写入最后 feed 时间戳（复位后留痕可查）。
 
 ### 4.4 初始化顺序（固定；任一步失败 → 全系统 fail-safe 停机）
 
@@ -151,7 +151,7 @@ estop / WDT / 故障 → SAFE_FAULT（estop 后须人工/显式命令复位）
 ### 4.5 关键场景端到端时序（设计基线；标"实测定"处为 M1/M3 验收项）
 
 - **S1 estop**：GPIO 沿 → IRQ → `ts_safety_force_all_fault()`（置原子标志 + 逐通道直写 fault 值；上界目标 < 1ms，实测定）→ ISR 返回后 sysworkq 补发 `TS_EVT_ESTOP` → 事件外发（事后补发，合同 5）。
-- **S2 断链 fail-safe**：host 心跳丢失计数达阈值（出厂默认 1000ms×6，DEC-22 prov 可配）→ `ts_safety_set_link(false)`（sysworkq 串行迁移）→ 全通道 SAFE_LINKLOSS（声明值落驱动）；输入/遥测继续。恢复：连续 2 周期〔Q-10 #12〕→ `set_link(true)` → 解除写封锁（不回写，DR-04）。
+- **S2 断链 fail-safe**：host 心跳丢失计数达阈值（出厂默认 1000ms×6，DEC-22 prov 可配）→ `ts_safety_set_link(false)`（sysworkq 串行迁移）→ 全通道 SAFE_LINKLOSS（声明值落驱动）；输入/遥测继续。恢复：连续 2 周期〔DEC-27 #12〕→ `set_link(true)` → 解除写封锁（不回写，DR-04）。
 - **S3 APP 升级与回滚**：收包 → 验签（ed25519）→ 写 inactive slot + 回读校验 → meta 原子切换（ts-store）→ 下一加载周期卸旧载新 → 健康探针 3×1s 失败 → 回滚切回 + 计数；计数 > 3 → QUARANTINED。
 - **S4 命令往返**：Agent query `…/cmd` → ts_net_thread 解析 CBOR → 命令分发表 →（host 命令走 sys 面）→ `ts_safety_commit`（限幅/slew/限流）→ driver_dispatch → 回执 `{status, data}`；命令超时上界 < 断链检测上界（Q-08）。
 
@@ -214,3 +214,4 @@ Flash（按板可配，DEC-23）：bootloader 64KB ｜ 固件 slot ×2 ｜ APP s
 
 - v0.1 · 2026-09-19：首版草案（design 阶段产出，待 owner 确认 + Q-03…Q-09 裁决）。
 - v0.2 · 2026-09-20：design review-01 深化——新增 ts-store 模块行、§4.5 关键场景时序、§4.6 内存预算、sys 命令面、输入采集、断链恢复语义、V1 裁剪清单（DR-01…17 处置）。
+- v0.2.1 · 2026-09-21：裁决同步（DEC-19…30）——出处标注收敛、WDT 旧值 5s 修正为 DEC-22 的 10s（SC-02/SC-04）。

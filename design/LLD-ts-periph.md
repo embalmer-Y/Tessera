@@ -49,7 +49,7 @@ ts_res_t ts_periph_register(const ts_periph_desc_t *d);  /* init 步骤 5 批量
 
 ## 5. Kconfig（节选）
 
-| 项 | 默认〔Q-10〕 | 说明 |
+| 项 | 默认〔DEC-27〕 | 说明 |
 |---|---|---|
 | CONFIG_TS_PERIPH_MAX_DESCS | 24 | 描述符容量（与 ts-hal 实例容量一致） |
 
@@ -67,3 +67,4 @@ ts_res_t ts_periph_register(const ts_periph_desc_t *d);  /* init 步骤 5 批量
 
 - v0.1 · 2026-09-20：首版草案。
 - v0.2 · 2026-09-20：review-01——kind 枚举独立为 ts_periph_kind_t（含 ADC，DR-13）。
+- v0.2.1 · 2026-09-21：裁决同步——出处标注收敛为 DEC 编号（SC-02）。

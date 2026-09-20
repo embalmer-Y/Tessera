@@ -55,11 +55,11 @@ typedef enum {
 typedef struct { ts_evt_id_t id; uint64_t t_ms; const void *data; size_t len; } ts_evt_t;
 
 ts_res_t ts_evt_subscribe(ts_evt_id_t id, void (*fn)(const ts_evt_t *, void *), void *user); /* [thread] 仅 init 期 */
-void ts_evt_publish(const ts_evt_t *e);   /* [thread] 同步分发；[ISR] 投递到深度〔Q-10 提案 16〕队列由 sysworkq 分发 */
+void ts_evt_publish(const ts_evt_t *e);   /* [thread] 同步分发；[ISR] 投递到深度〔DEC-27： 16〕队列由 sysworkq 分发 */
 ```
 
 - **确定性**：分发顺序 = 注册表静态顺序（禁运行期插队）；同一事件多次发布的间隔与内容进入重放记录。
-- 订阅容量：每事件类型最大订阅数〔Q-10 提案 4〕；注册表满 → TS_E_NOMEM（启动期即暴露）。
+- 订阅容量：每事件类型最大订阅数〔DEC-27： 4〕；注册表满 → TS_E_NOMEM（启动期即暴露）。
 
 ## 5. 看门狗框架（wdt.c）
 
@@ -69,13 +69,13 @@ ts_res_t ts_wdt_register(ts_wdt_src_t src, uint32_t period_ms);  /* init 期 */
 void ts_wdt_feed(ts_wdt_src_t src);                              /* [any] 原子更新 last_feed */
 ```
 
-- 硬件 WDT：单只，超时 = max(periods)×2 与〔DEC-22：10s〕取小〔Q-10 复核〕。
+- 硬件 WDT：单只，超时 = max(periods)×2 与〔DEC-22：10s〕取小（DEC-27 定值）。
 - 巡检：sysworkq 周期 = 最小 period/2；发现逾期 → 先 `TS_EVT_WDT_WARN`（带 src 与最后 feed 时间）→ `ts_safety_system_fail(TS_FAIL_WDT_<src>)` → 停喂硬 WDT（复位后 noinit 留痕可定位，合同 4）。
 - native_sim：硬 WDT 用仿真桩（test 构建可注入逾期）。
 
 ## 6. Kconfig（节选）
 
-| 项 | 默认〔Q-10〕 | 说明 |
+| 项 | 默认〔DEC-27〕 | 说明 |
 |---|---|---|
 | CONFIG_TS_CORE_EVT_QUEUE_DEPTH | 16 | ISR 投递队列深度 |
 | CONFIG_TS_CORE_MAX_SUBS | 4 | 每事件类型订阅上限 |
@@ -95,3 +95,4 @@ void ts_wdt_feed(ts_wdt_src_t src);                              /* [any] 原子
 
 - v0.1 · 2026-09-20：首版草案。
 - v0.2 · 2026-09-20：review-01——事件表补 TS_EVT_INPUT_CHANGED（DR-02）、noinit 依赖 ts-store（DR-17）。
+- v0.2.1 · 2026-09-21：裁决同步——出处标注收敛为 DEC 编号（SC-02）。

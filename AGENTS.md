@@ -9,6 +9,7 @@
 - **2026-09-21（三） · 裁决批次 4 已登记（DEC-30，tag `dec-30`）：Q-01…Q-12 全部裁毕（DEC-17…30，共 14 项）；仅余 C-1/C-2/C-3 三项文档确认，确认后 M0 开工**
   - DEC-30（Q-11①-⑤ 按建议）：sys 命令面 host-only（estop-clear 确认令牌）；共享写后写胜出 + 审计含 app_id；APP 状态 V1 不持久化；审计 V1 内存环形（掉电丢失）；prov = CBOR schema v1 运行时只读。
   - 设计文档已全面同步 DEC 语义（HLD/LLD 内全部未决项标注收敛为 DEC 编号；各 LLD 未决依赖多数清零）。
+  - **最终自检完成（2026-09-21，`design/final-selfcheck.md`，SC-01…04 全处置）——已交 owner 人工检查**。
   - 待 owner：**仅三行**——C-1 HLD v0.2 确认 / C-2 LLD v0.2 确认 / C-3 规范套件批准（打 tag `std-v1`）。
   - M0 就绪清单：Q-03/Q-10/Q-12 已裁 ✅；GitHub 远端地址待 owner 提供（DEC-24）；宿主环境验证（Windows/WSL2）与 LICENSE 补齐在 M0 内完成。
   - 禁区：C-1/C-2/C-3 确认前不进 impl。
