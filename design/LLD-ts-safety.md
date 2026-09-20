@@ -65,9 +65,9 @@ ts_res_t ts_safety_readback(const char *uid, ts_out_value_t *out); /* [any] 影�
 5. 限流（TS_CH_POWER）：请求电流 > current_limit_ma → TS_E_RANGE；
 6. 末段临界区：`irq_lock(); if (!atomic_forced) { driver_dispatch_write(ch, v); shadow=v; } irq_unlock();`
    ——防 estop ISR 与本线程竞争末笔（见 §5）；
-7. 审计：commit 事件（uid/value/t/结果）入环形审计缓冲〔深度 Q-10 提案 64〕，供遥测与重放比对。
+7. 审计：commit 事件（uid/value/t/结果/**调用者 app_id**〔DEC-30②〕）入环形审计缓冲〔深度 Q-10 提案 64〕，供遥测与重放比对。
 
-- **审计消费与溢出（DR-07）**：消费者 = ts-net 遥测合流 + `sys:get-audit` 导出命令（LLD-ts-net §4）；溢出覆盖最旧并累加丢弃计数；**V1 不落盘（掉电丢失）**——记入 HLD §1 裁剪清单〔Q-11④〕。
+- **审计消费与溢出（DR-07）**：消费者 = ts-net 遥测合流 + `sys:get-audit` 导出命令（LLD-ts-net §4）；溢出覆盖最旧并累加丢弃计数；**V1 不落盘（掉电丢失）**——记入 HLD §1 裁剪清单〔DEC-30④〕。
 
 ## 5. estop 与 fail-safe 直达（force.c）——合同 5/8
 
@@ -75,7 +75,7 @@ ts_res_t ts_safety_readback(const char *uid, ts_out_value_t *out); /* [any] 影�
 void ts_safety_force_all_fault(void);   /* [ISR] estop GPIO 回调直接调用：置原子 forced → 逐通道直写 fault 值 */
 void ts_safety_system_fail(uint32_t reason);  /* [thread] WDT/BOOT/子系统故障：进 SAFE_FAULT 并停机编排 */
 void ts_safety_set_link(bool up);       /* [thread] ts-net 专用（经 sysworkq 串行化迁移） */
-ts_res_t ts_safety_clear_fault(void);   /* [thread] 仅 sys:estop-clear 命令可达（host-only + 确认令牌，LLD-ts-net §4；授权模型 Q-11①） */
+ts_res_t ts_safety_clear_fault(void);   /* [thread] 仅 sys:estop-clear 命令可达（host-only + 确认令牌，LLD-ts-net §4；授权 DEC-30①） */
 ```
 
 - **estop 路径纪律**（L5 机械检查目标）：`ts_safety_force_all_fault` 调用图内禁：分配、队列、锁、协议栈符号；仅原子置位 + driver_dispatch 直写（driver_dispatch 写函数须可重入/无锁——在 driver_dispatch.c 内以"写只依赖注册期冻结数据"实现）。
@@ -109,7 +109,7 @@ extern const ts_driver_ops_t ts_drivers[3];   /* [GPIO]=native_sim 桩/gpio、[P
 
 ## 9. 未决依赖
 
-- DEC-22（断链时序参数）、DEC-23（分区）、DEC-27（容量/审计深度）已裁；仍待 Q-11②（共享写语义）。
+- DEC-22（断链时序参数）、DEC-23（分区）、DEC-27（容量/审计深度）、DEC-30②（共享写 = 后写胜出 + 审计含 app_id）已裁；无未决。
 
 ## 修订记录
 

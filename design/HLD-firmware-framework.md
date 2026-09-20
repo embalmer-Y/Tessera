@@ -98,7 +98,7 @@ tessera/<node>/<cube>/<class>/<instance>/<action>
 
 - **心跳监视（断链判定）**〔DEC-22：参数**部署期可配（prov）**；出厂默认间隔 1000ms、阈值 6、检测上界 ≈6s（考虑超长物理链路），WDT 独立 10s；M3 长链路场景标定〕：逾期 → 通知 ts-safety → 全输出进断链态（本地决策，不发网络确认）；输入流继续。
 - **断链恢复语义（DR-04）**：恢复仅解除写入封锁，输出不自动回写——防恢复瞬间意外动作（详见 §4.2）。
-- **sys 命令面（v1，DR-03；授权模型〔Q-11①〕）**：`get-info / get-link / get-safety / get-budget / get-audit / set-time / estop-clear`——**host-only**（APP 能力文法不可达），estop-clear 需确认令牌；细见 LLD-ts-net §4。
+- **sys 命令面（v1，DR-03；授权模型〔DEC-30①〕）**：`get-info / get-link / get-safety / get-budget / get-audit / set-time / estop-clear`——**host-only**（APP 能力文法不可达），estop-clear 需确认令牌；细见 LLD-ts-net §4。
 - 密钥/证书：烧录期安全参数区；运行时不改（合同 10）。
 
 ### 3.6 ts-power / ts-periph
@@ -188,7 +188,7 @@ Flash（按板可配，DEC-23）：bootloader 64KB ｜ 固件 slot ×2 ｜ APP s
 
 ## 6. 未决问题索引（全文见 `decisions.md`）
 
-> 裁决批次 1（2026-09-20）：Q-03/04/05/08/09/12 → DEC-19…24；批次 2（2026-09-21）：Q-06/Q-07 → DEC-25/26；批次 3（2026-09-21）：Q-10 → DEC-27、板卡策略 → DEC-28（RP2350 移出）、Q-11⑥ → DEC-29。**仍待裁：Q-11①-⑤**。
+> 裁决批次 1（2026-09-20）：Q-03/04/05/08/09/12 → DEC-19…24；批次 2（2026-09-21）：Q-06/Q-07 → DEC-25/26；批次 3（2026-09-21）：Q-10 → DEC-27、板卡策略 → DEC-28（RP2350 移出）、Q-11⑥ → DEC-29；批次 4（2026-09-21）：Q-11①-⑤ → DEC-30。**全部 Q 已裁毕；待 C-1/C-2 文档确认。**
 
 | Q | 主题 | 本文建议 |
 |---|---|---|

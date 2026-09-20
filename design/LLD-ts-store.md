@@ -50,7 +50,7 @@ typedef struct {
   char     zenoh_cred[96];                /* TLS/认证凭证（Q-04） */
   uint32_t power_budget_ma;               /* ts-power 预算 */
   uint8_t  estop_trigger_flags;           /* 触发沿等（DR-11） */
-} ts_prov_t;                              /* 序列化 = CBOR，schema v1〔Q-11⑤〕 */
+} ts_prov_t;                              /* 序列化 = CBOR，schema v1〔DEC-30⑤〕 */
 ts_res_t ts_store_prov_load(void);        /* 启动一次：CRC 校验失败 → fail-safe（合同 6） */
 const ts_prov_t *ts_store_prov(void);     /* [any] 只读指针；无写接口（写通道仅烧录期/测试构建注入） */
 ```
@@ -89,7 +89,7 @@ ts_res_t ts_store_slot_hash (uint8_t slot, uint8_t sha[32]);   /* 供安装校�
 
 ## 9. 未决依赖
 
-- DEC-20（locator/宿主）、DEC-21（根公钥体系）、DEC-23（分区布局）、DEC-27（META_MAX）已裁；仍待 Q-11⑤（schema 定稿）。
+- DEC-20（locator/宿主）、DEC-21（根公钥体系）、DEC-23（分区布局）、DEC-27（META_MAX）、DEC-30⑤（CBOR schema v1）已裁；无未决。
 
 ## 修订记录
 

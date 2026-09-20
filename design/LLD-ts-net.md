@@ -42,7 +42,7 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 - 回执：query response = `{status: ts_res_t, data: CBOR}`；框架不自动重试（重试属 Agent 侧语义），但命令超时上界须 < 断链检测上界〔Q-08〕（文档级约束，写入 Agent 接口契约）。
 - 未知 key → TS_E_NOTFOUND 回执（不留静默）。
 
-**sys 命令面（v1，DR-03；授权随 Q-11①）**——注册者为框架自身，标记 `host_only`（APP 的 msg/net 能力文法不可达；host 侧命令通道授权由 prov 凭证保证）：
+**sys 命令面（v1，DR-03；授权 DEC-30①）**——注册者为框架自身，标记 `host_only`（APP 的 msg/net 能力文法不可达；host 侧命令通道授权由 prov 凭证保证）：
 
 | key（…/sys/ 下） | 语义 |
 |---|---|
