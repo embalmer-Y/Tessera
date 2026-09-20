@@ -82,7 +82,7 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 
 ## 9. 未决依赖
 
-- Q-07（node 段语义）、Q-10（退避表/快照周期/缓冲）；DEC-20（拓扑/宿主）、DEC-22（心跳参数，M3 长链路标定）已裁。
+- Q-10（退避表/快照周期/缓冲）；DEC-20（拓扑/宿主）、DEC-22（心跳）、DEC-26（node 段预留，单立方体时 node = cube）已裁。
 
 ## 修订记录
 

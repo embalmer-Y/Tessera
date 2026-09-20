@@ -11,9 +11,10 @@
 | DEC-17 | APP 运行时 = WASM，实现采用 WAMR | decisions.md（Q-01 裁定） | 生效 |
 | DEC-18 | 数据面协议 = zenoh（Zephyr 侧 zenoh-pico） | decisions.md（Q-02 裁定） | 生效 |
 | DEC-19 … DEC-24 | 裁决批次 1（2026-09-20：Zephyr 4.4+持续跟进 / client+ARM64 宿主 / TSAP 包格式 / 断链参数延长且 prov 可配 / 双 slot+MCUmgr / GitHub CI） | decisions.md | 生效 |
+| DEC-25 … DEC-26 | 裁决批次 2（2026-09-21：fast 解释器+WASI 关+AOT 保留 / 逻辑节点仅预留） | decisions.md | 生效 |
 | Q-01 | APP 运行时选型（→ R1） | FOUNDING_PROMPT §9 | 已裁 → DEC-17 |
 | Q-02 | 数据面应用层协议选型（→ R2） | FOUNDING_PROMPT §9 | 已裁 → DEC-18 |
-| Q-06、Q-07 | design 阶段待裁（2026-09-20 已补通俗解释，待 owner 裁决） | HLD v0.1 / decisions.md §二 | 待裁 |
+| Q-06、Q-07 | WAMR 执行模式 / 逻辑节点 V1 范围 | HLD v0.1 / decisions.md §二 | 已裁 → DEC-25/26 |
 | Q-10 | LLD 批次默认值清单（线程优先级/栈/队列/容量/探针与回滚参数等 15 组） | LLD v0.1 批次（design/） | 待裁 |
 | Q-11 | design review-01 语义批次（sys 命令面授权/共享写语义/APP 状态裁剪/审计简化/prov 模型/内存预算） | design-review-01.md | 待裁 |
 | Q-12 | CI 平台与远端仓库托管（M0 前置） | 开发就绪度评估（2026-09-20） | 待裁 |
@@ -32,6 +33,7 @@
 | kickoff | K1 首次提交的 git tag | FOUNDING_PROMPT §9 | 已打 |
 | dec-wamr-zenoh | DEC-17/18 裁定登记提交的 git tag（重大裁决留痕，军规 5） | decisions.md 修订记录 | 已打 |
 | dec-19-24 | 裁决批次 1（DEC-19…24）登记提交的 git tag | decisions.md 修订记录 | 已打 |
+| dec-25-26 | 裁决批次 2（DEC-25/26）登记提交的 git tag | decisions.md 修订记录 | 已打 |
 | DR-xx | design review 发现编号族（当前 DR-01…17，全部处置） | design/design-review-01.md | 存档 |
 
 ## 3. 板名（DEC-14 目标板集）
@@ -91,3 +93,4 @@
 - 2026-09-20 · review-01 深化登记：Q-11 语义批次、DR 编号族、ts-store/TS_FAIL_*/ts_ctx_t/ts_periph_kind_t。
 - 2026-09-20 · 就绪度评估登记：Q-12（CI 平台与远端托管）。
 - 2026-09-20 · 裁决批次 1 登记：DEC-19…24、tag `dec-19-24`、router 宿主平台；Q-06/Q-07 仍待裁（已补解释）。
+- 2026-09-21 · 裁决批次 2 登记：DEC-25/26、tag `dec-25-26`；仍待裁 Q-10/Q-11 + C-1…C-3。

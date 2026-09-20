@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-09-21 · 裁决批次 2 已登记（DEC-25/26，tag `dec-25-26`）；仅剩待裁：Q-10、Q-11 + C-1…C-3 文档确认，全部落定即启动 M0**
+  - 已裁：DEC-25（Q-06：V1 = fast 解释器 + WASI 关 + AOT 留作 Agent 构建选项）、DEC-26（Q-07：逻辑节点 V1 仅预留，node 段预留、单立方体时 node = cube id）。正文（HLD §1/§3.4、LLD-ts-appmgr/ts-net/ts-store 等）已同步 DEC 语义。
+  - 待 owner：① **Q-10**（15 组工程默认值）/ **Q-11**（6 项语义）——详细解释已呈递（2026-09-21 会话）；② C-1 HLD v0.2 / C-2 LLD v0.2 / C-3 规范套件批准（tag `std-v1`）。
+  - M0 前置补充：GitHub 远端地址待 owner 提供（DEC-24）；宿主环境验证（Windows/WSL2）与 LICENSE 补齐在 M0 内完成。
+  - 禁区：C-1/C-2 与 Q-10/Q-11 落定前不进 impl。
 - **2026-09-20（三） · 裁决批次 1 已登记（DEC-19…24，tag `dec-19-24`）；仍待裁：Q-06/Q-07（已补通俗解释）、Q-10、Q-11 + HLD/LLD 确认 + 规范套件批准**
   - 已裁：Q-03（4.4 + **持续跟进最新 stable**，DEC-19）、Q-04（client；router 宿主扩至 **ARM64 Linux 工业/机器人主板**，DEC-20）、Q-05（TSAP 容器，DEC-21）、Q-08（断链参数因超长物理链路**延长且 prov 可配**：1000ms×6≈6s、WDT 10s，DEC-22）、Q-09（双 slot + MCUmgr，DEC-23）、Q-12（GitHub Actions，DEC-24）。正文相关参数已同步（HLD/LLD/Q-10 表）。
   - 待 owner：① Q-06/Q-07——已按 owner 要求在 decisions.md 补通俗解释，读后裁决；② Q-10（15 组默认值）/Q-11（6 项语义）；③ C-1 HLD v0.2 / C-2 LLD v0.2 / C-3 规范套件（tag `std-v1`）。

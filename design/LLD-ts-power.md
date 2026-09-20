@@ -52,7 +52,7 @@ ts_res_t ts_power_request(ts_ctx_t c, uint8_t slot, bool on, uint32_t ma);  /* t
 
 ## 7. 未决依赖
 
-- Q-09（slot/分区布局中供电参数区）、Q-10（槽容量）。
+- DEC-23（分区布局）已裁；仍待 Q-10（槽容量）。
 
 ## 修订记录
 

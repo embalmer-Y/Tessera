@@ -15,7 +15,7 @@ src/appmgr/
   health.c     健康探针与回滚决策
 ```
 
-## 2. 包格式 TAPP v1（〔Q-05 提案〕，定稿随其裁决）
+## 2. 包格式 TAPP v1（DEC-21 裁定）
 
 ```text
 "TSAP" magic u32 | fmt_ver u16(=1) | manifest_len u32 | wasm_len u32
@@ -49,7 +49,7 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 
 ## 5. WAMR 宿主（host.c）
 
-- 实例化参数：解释器 fast 模式〔Q-06 提案〕、WASI 关、堆 = manifest.mem.heap（上限〔Q-10 提案 64KB〕）、栈独立线程栈。
+- 实例化参数：fast 解释器、WASI 关〔DEC-25〕；堆 = manifest.mem.heap（上限〔Q-10 提案 64KB〕）、栈独立线程栈。
 - **导入面装配（权限硬边界的落点）**：`ts_native_syms[]` 全集（= ts_api_v1 符号，LLD-ts-hal §3）逐项标注所需能力；实例化时**只注册** manifest 能力覆盖的子集——未授权符号在 wasm 模块内即不存在（链接期即拒，而非调用期判）。
 - APP 线程：每 APP 一个 Zephyr 线程（优先级/栈见 LLD-00 §4 与 manifest.mem.stack，上限〔Q-10 提案 8KB〕）；同时加载上限〔Q-10 提案 4〕个 APP。
 - 调用约定：框架按序调 `app_init` →（tick 若导出）周期〔Q-10 提案 100ms〕驱动 → 事件到达时调 `app_evt`；wasm 陷出到 ts_* 导入即在本线程上下文执行（权限裁决无跨线程跳转）。
@@ -65,7 +65,7 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 
 ## 7. 未决依赖
 
-- Q-05（包格式定稿）、Q-06（执行模式）、Q-09（分区）、Q-10（探针周期/回滚上限/堆栈上限/APP 数上限）。
+- DEC-21（TSAP 格式）、DEC-25（执行模式/WASI）、DEC-23（分区）已裁；仍待 Q-10（探针周期/回滚上限/堆栈上限/APP 数上限）。
 
 ## 修订记录
 

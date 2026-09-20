@@ -109,7 +109,7 @@ extern const ts_driver_ops_t ts_drivers[3];   /* [GPIO]=native_sim 桩/gpio、[P
 
 ## 9. 未决依赖
 
-- Q-08（断链判定喂入本模块 set_link 的时序参数）；Q-09（供电通道与 APP slot 供电边界）；Q-10（容量/审计深度）。
+- DEC-22（断链时序参数）、DEC-23（分区）已裁；仍待 Q-10（容量/审计深度）、Q-11②（共享写语义）。
 
 ## 修订记录
 

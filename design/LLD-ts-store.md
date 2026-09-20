@@ -14,7 +14,7 @@ src/store/
   noinit.c     noinit 留痕（复位原因/WDT 报告）
 ```
 
-## 2. 分区模型（布局随 Q-09 裁决定稿；本节为读写语义）
+## 2. 分区模型（布局随 Q-09 裁决定稿；本节为读写语义）〔DEC-23 已裁〕
 
 ```text
 PROV（只读）｜ META_A/META_B（掉电安全 kv）｜ APP_SLOT_A/B ｜ NOINIT ｜ [AUDIT 预留，V1 不落盘 DR-07]
@@ -89,7 +89,7 @@ ts_res_t ts_store_slot_hash (uint8_t slot, uint8_t sha[32]);   /* 供安装校�
 
 ## 9. 未决依赖
 
-- Q-04（locator/凭证字段）、Q-05（根公钥体系）、Q-09（分区布局）、Q-11⑤（schema 定稿）、Q-10（META_MAX）。
+- DEC-20（locator/宿主）、DEC-21（根公钥体系）、DEC-23（分区布局）已裁；仍待 Q-11⑤（schema 定稿）、Q-10（META_MAX）。
 
 ## 修订记录
 

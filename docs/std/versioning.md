@@ -32,7 +32,7 @@
 
 - WAMR、zenoh-pico 经自管 west manifest 引入，**revision 一律钉具体提交 SHA 或上游 release tag**，禁 `main`/`master` 浮动引用。
 - 升级 = 独立 `build(deps):` 提交，说明升级动因（安全修复优先）+ 回归范围；WAMR minor 含 breaking changes（R1 v0.2 核验），升级前查 release notes。
-- Zephyr 版本基线随 **Q-03** 裁决钉住；变更走技术栈变更门（§2.4-⑤，须证明阻塞性）。
+- Zephyr 版本基线 = **4.4**（DEC-19），并按 owner 指令**持续跟进最新 stable**：每个 Zephyr release 评估升级，升级走显式提交 + 全量回归（钉住具体版本，禁浮动引用）；变更走技术栈变更门（§2.4-⑤，须证明阻塞性）。
 
 ## 5. 产物命名与版本落地
 
