@@ -69,7 +69,7 @@ ts_res_t ts_wdt_register(ts_wdt_src_t src, uint32_t period_ms);  /* init 期 */
 void ts_wdt_feed(ts_wdt_src_t src);                              /* [any] 原子更新 last_feed */
 ```
 
-- 硬件 WDT：单只，超时 = max(periods)×2 与〔Q-08 提案 5s〕取小〔Q-10 复核〕。
+- 硬件 WDT：单只，超时 = max(periods)×2 与〔DEC-22：10s〕取小〔Q-10 复核〕。
 - 巡检：sysworkq 周期 = 最小 period/2；发现逾期 → 先 `TS_EVT_WDT_WARN`（带 src 与最后 feed 时间）→ `ts_safety_system_fail(TS_FAIL_WDT_<src>)` → 停喂硬 WDT（复位后 noinit 留痕可定位，合同 4）。
 - native_sim：硬 WDT 用仿真桩（test 构建可注入逾期）。
 

@@ -18,7 +18,7 @@ src/net/
 
 ## 2. 会话（session.c）
 
-- 角色 client：locator 来自烧录配置（router 地址）；重连退避固定表〔Q-10：250/500/1000/2000ms 循环〕（确定性，禁指数抖动随机）。
+- 角色 client〔DEC-20〕：locator 来自 prov（router 地址；宿主 = Windows/Linux PC 或 ARM64 Linux 工业/机器人主板）；重连退避固定表〔Q-10：250/500/1000/2000ms 循环〕（确定性，禁指数抖动随机）。
 - TLS：`Z_FEATURE_LINK_TLS` 显式开启〔Q-04〕；证书/密钥只读自安全参数分区（合同 10）。
 - 会话状态：DOWN/CONNECTED；迁移发布 `TS_EVT_NET_LINK_UP/DOWN`（观测用；**安全语义以 linkmon 为准**，避免双源）。
 
@@ -61,7 +61,7 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 
 ## 6. 心跳监视（linkmon.c）——合同 3 判定源
 
-- 发送：周期〔Q-08 提案 500ms〕pub `…/sys/hb`；监视：host 侧 `…/sys/hb-host` 超过〔Q-08 提案 4〕个周期未达 → `ts_safety_set_link(false)`（经 sysworkq 串行迁移）；恢复带滞回（连续〔Q-10 提案 2〕个周期）才 `set_link(true)`。
+- 发送：周期〔DEC-22：prov 可配，出厂默认 1000ms〕pub `…/sys/hb`；监视：host 侧 `…/sys/hb-host` 超过〔DEC-22：默认 6〕个周期未达 → `ts_safety_set_link(false)`（经 sysworkq 串行迁移）；恢复带滞回（连续〔Q-10 提案 2〕个周期）才 `set_link(true)`。
 - 判定完全本地（不依赖 router 确认自己的存在——合同 8）；输入/遥测方向不受 set_link 影响（合同 3）。
 - 测试注入：`CONFIG_TS_TEST` 构建提供 hb 帧注入/抑制接口（L4 断链场景驱动）。
 
@@ -82,7 +82,7 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 
 ## 9. 未决依赖
 
-- Q-04（角色/传输/TLS）、Q-07（node 段语义）、Q-08（心跳参数）、Q-10（退避表/快照周期/缓冲）。
+- Q-07（node 段语义）、Q-10（退避表/快照周期/缓冲）；DEC-20（拓扑/宿主）、DEC-22（心跳参数，M3 长链路标定）已裁。
 
 ## 修订记录
 

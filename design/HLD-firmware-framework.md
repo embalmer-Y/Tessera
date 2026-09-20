@@ -82,7 +82,7 @@
 
 ### 3.5 ts-net（DEC-18 落地）
 
-- 端点角色〔Q-04 提案〕：V1 = zenoh **client** 连 PC 侧 zenohd router（UDP/TCP 单播 + TLS，`Z_FEATURE_LINK_TLS` 显式开启）。
+- 端点角色〔DEC-20〕：V1 = zenoh **client** 连宿主侧 zenohd router（Windows/Linux PC 或 ARM64 Linux 工业/机器人主板；UDP/TCP 单播 + TLS，`Z_FEATURE_LINK_TLS` 显式开启）。
 - **命名空间草案**（随本文过门 ③）：
 
 ```text
@@ -96,7 +96,7 @@ tessera/<node>/<cube>/<class>/<instance>/<action>
 心跳：cube 周期 pub .../hb；host 周期 pub .../sys/hb-host（双向）
 ```
 
-- **心跳监视（断链判定）**〔Q-08 提案：间隔 500ms、丢失阈值 4、检测上界 ≈2s〕：逾期 → 通知 ts-safety → 全输出进断链态（本地决策，不发网络确认）；输入流继续。
+- **心跳监视（断链判定）**〔DEC-22：参数**部署期可配（prov）**；出厂默认间隔 1000ms、阈值 6、检测上界 ≈6s（考虑超长物理链路），WDT 独立 10s；M3 长链路场景标定〕：逾期 → 通知 ts-safety → 全输出进断链态（本地决策，不发网络确认）；输入流继续。
 - **断链恢复语义（DR-04）**：恢复仅解除写入封锁，输出不自动回写——防恢复瞬间意外动作（详见 §4.2）。
 - **sys 命令面（v1，DR-03；授权模型〔Q-11①〕）**：`get-info / get-link / get-safety / get-budget / get-audit / set-time / estop-clear`——**host-only**（APP 能力文法不可达），estop-clear 需确认令牌；细见 LLD-ts-net §4。
 - 密钥/证书：烧录期安全参数区；运行时不改（合同 10）。
@@ -151,7 +151,7 @@ estop / WDT / 故障 → SAFE_FAULT（estop 后须人工/显式命令复位）
 ### 4.5 关键场景端到端时序（设计基线；标"实测定"处为 M1/M3 验收项）
 
 - **S1 estop**：GPIO 沿 → IRQ → `ts_safety_force_all_fault()`（置原子标志 + 逐通道直写 fault 值；上界目标 < 1ms，实测定）→ ISR 返回后 sysworkq 补发 `TS_EVT_ESTOP` → 事件外发（事后补发，合同 5）。
-- **S2 断链 fail-safe**：host 心跳丢失计数达阈值（500ms×4）→ `ts_safety_set_link(false)`（sysworkq 串行迁移）→ 全通道 SAFE_LINKLOSS（声明值落驱动）；输入/遥测继续。恢复：连续 2 周期〔Q-10 #12〕→ `set_link(true)` → 解除写封锁（不回写，DR-04）。
+- **S2 断链 fail-safe**：host 心跳丢失计数达阈值（出厂默认 1000ms×6，DEC-22 prov 可配）→ `ts_safety_set_link(false)`（sysworkq 串行迁移）→ 全通道 SAFE_LINKLOSS（声明值落驱动）；输入/遥测继续。恢复：连续 2 周期〔Q-10 #12〕→ `set_link(true)` → 解除写封锁（不回写，DR-04）。
 - **S3 APP 升级与回滚**：收包 → 验签（ed25519）→ 写 inactive slot + 回读校验 → meta 原子切换（ts-store）→ 下一加载周期卸旧载新 → 健康探针 3×1s 失败 → 回滚切回 + 计数；计数 > 3 → QUARANTINED。
 - **S4 命令往返**：Agent query `…/cmd` → ts_net_thread 解析 CBOR → 命令分发表 →（host 命令走 sys 面）→ `ts_safety_commit`（限幅/slew/限流）→ driver_dispatch → 回执 `{status, data}`；命令超时上界 < 断链检测上界（Q-08）。
 
@@ -179,6 +179,8 @@ Flash（按板可配，联动 Q-09）：bootloader 64KB ｜ 固件 slot ×2 ｜ 
 - 审计/留痕导出：`sys:get-audit` 命令（合规观测点，DR-07）；输入变化进入遥测重放面（DR-02）。
 
 ## 6. 未决问题索引（全文见 `decisions.md`）
+
+> 2026-09-20 裁决批次 1：Q-03/Q-04/Q-05/Q-08/Q-09/Q-12 已裁 → DEC-19…24（正文相关值已同步 DEC 语义）；仍待裁：Q-06/Q-07（已补通俗解释）、Q-10、Q-11。
 
 | Q | 主题 | 本文建议 |
 |---|---|---|
