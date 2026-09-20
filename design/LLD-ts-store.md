@@ -89,7 +89,7 @@ ts_res_t ts_store_slot_hash (uint8_t slot, uint8_t sha[32]);   /* 供安装校�
 
 ## 9. 未决依赖
 
-- DEC-20（locator/宿主）、DEC-21（根公钥体系）、DEC-23（分区布局）已裁；仍待 Q-11⑤（schema 定稿）、Q-10（META_MAX）。
+- DEC-20（locator/宿主）、DEC-21（根公钥体系）、DEC-23（分区布局）、DEC-27（META_MAX）已裁；仍待 Q-11⑤（schema 定稿）。
 
 ## 修订记录
 

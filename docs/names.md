@@ -12,11 +12,12 @@
 | DEC-18 | 数据面协议 = zenoh（Zephyr 侧 zenoh-pico） | decisions.md（Q-02 裁定） | 生效 |
 | DEC-19 … DEC-24 | 裁决批次 1（2026-09-20：Zephyr 4.4+持续跟进 / client+ARM64 宿主 / TSAP 包格式 / 断链参数延长且 prov 可配 / 双 slot+MCUmgr / GitHub CI） | decisions.md | 生效 |
 | DEC-25 … DEC-26 | 裁决批次 2（2026-09-21：fast 解释器+WASI 关+AOT 保留 / 逻辑节点仅预留） | decisions.md | 生效 |
+| DEC-27 … DEC-29 | 裁决批次 3（2026-09-21：Q-10 全项+WAMR 堆每板动态配置 / 板卡策略转向高性能并移出 RP2350 / 内存预算每板动态计算） | decisions.md | 生效 |
 | Q-01 | APP 运行时选型（→ R1） | FOUNDING_PROMPT §9 | 已裁 → DEC-17 |
 | Q-02 | 数据面应用层协议选型（→ R2） | FOUNDING_PROMPT §9 | 已裁 → DEC-18 |
 | Q-06、Q-07 | WAMR 执行模式 / 逻辑节点 V1 范围 | HLD v0.1 / decisions.md §二 | 已裁 → DEC-25/26 |
-| Q-10 | LLD 批次默认值清单（线程优先级/栈/队列/容量/探针与回滚参数等 15 组） | LLD v0.1 批次（design/） | 待裁 |
-| Q-11 | design review-01 语义批次（sys 命令面授权/共享写语义/APP 状态裁剪/审计简化/prov 模型/内存预算） | design-review-01.md | 待裁 |
+| Q-10 | LLD 批次默认值清单（15 组） | LLD v0.1 批次（design/） | 已裁 → DEC-27 |
+| Q-11 | design review-01 语义批次 | design-review-01.md | 部分已裁（⑥ → DEC-29）；①-⑤ 待裁 |
 | Q-12 | CI 平台与远端仓库托管（M0 前置） | 开发就绪度评估（2026-09-20） | 待裁 |
 
 ## 2. 任务与里程碑
@@ -34,16 +35,17 @@
 | dec-wamr-zenoh | DEC-17/18 裁定登记提交的 git tag（重大裁决留痕，军规 5） | decisions.md 修订记录 | 已打 |
 | dec-19-24 | 裁决批次 1（DEC-19…24）登记提交的 git tag | decisions.md 修订记录 | 已打 |
 | dec-25-26 | 裁决批次 2（DEC-25/26）登记提交的 git tag | decisions.md 修订记录 | 已打 |
+| dec-27-29 | 裁决批次 3（DEC-27…29）登记提交的 git tag | decisions.md 修订记录 | 已打 |
 | DR-xx | design review 发现编号族（当前 DR-01…17，全部处置） | design/design-review-01.md | 存档 |
 
-## 3. 板名（DEC-14 目标板集）
+## 3. 板名（DEC-14 目标板集；**DEC-28 修订**：RP2350 移出，策略转向高性能高配置）
 
 | 标识符 | 含义 | 网络能力备注 |
 |---|---|---|
-| ESP32-S3 | Espressif 目标板 | 原生 WiFi |
-| ESP32-P4 | Espressif 目标板 | 无无线电，需配 ESP32-C6 或用以太网 |
-| STM32H7 | ST 目标板 | 有 EMAC，需外挂 PHY |
-| RP2350 | Raspberry Pi 目标板 | 需外挂网络模块 |
+| ESP32-S3 | Espressif 目标板 | 原生 WiFi；PSRAM 2–8MB（Zephyr 官方支持） |
+| ESP32-P4 | Espressif 目标板 | 无无线电，需配 ESP32-C6 或用以太网；PSRAM 待核验 |
+| STM32H7 | ST 目标板 | 有 EMAC，需外挂 PHY；FMC SDRAM 待核验 |
+| RP2350 | （原目标板，**DEC-28 移出**：Zephyr 无 PSRAM 驱动 + 520KB SRAM，不符高性能取向） | 存档 |
 | native_sim | Zephyr 仿真平台 | CI 平台 |
 
 ## 4. 项目与外部名称
@@ -94,3 +96,4 @@
 - 2026-09-20 · 就绪度评估登记：Q-12（CI 平台与远端托管）。
 - 2026-09-20 · 裁决批次 1 登记：DEC-19…24、tag `dec-19-24`、router 宿主平台；Q-06/Q-07 仍待裁（已补解释）。
 - 2026-09-21 · 裁决批次 2 登记：DEC-25/26、tag `dec-25-26`；仍待裁 Q-10/Q-11 + C-1…C-3。
+- 2026-09-21 · 裁决批次 3 登记：DEC-27…29、tag `dec-27-29`；§3 板表更新（RP2350 移出）；仍待裁 Q-11①-⑤ + C-1…C-3。

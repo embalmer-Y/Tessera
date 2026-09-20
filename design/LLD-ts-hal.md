@@ -78,7 +78,7 @@ ts_res_t ts_hal_register_class(const ts_periph_desc_t *desc);  /* ts-periph 调�
 
 ## 8. 未决依赖
 
-- DEC-21（manifest/TSAP）已裁（能力文法 ts_perm_v1 随之定稿方向）；仍待 Q-10（实例容量）。
+- DEC-21（manifest/TSAP）、DEC-27（实例容量）已裁；无未决。
 
 ## 修订记录
 
