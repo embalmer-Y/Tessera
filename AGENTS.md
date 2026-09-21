@@ -10,7 +10,7 @@
   - DEC-30（Q-11①-⑤ 按建议）：sys 命令面 host-only（estop-clear 确认令牌）；共享写后写胜出 + 审计含 app_id；APP 状态 V1 不持久化；审计 V1 内存环形（掉电丢失）；prov = CBOR schema v1 运行时只读。
   - 设计文档已全面同步 DEC 语义（HLD/LLD 内全部未决项标注收敛为 DEC 编号；各 LLD 未决依赖多数清零）。
   - **最终自检完成（2026-09-21，`design/final-selfcheck.md`，SC-01…04 全处置）——已交 owner 人工检查**。
-  - 待 owner：**仅三行**——C-1 HLD v0.2 确认 / C-2 LLD v0.2 确认 / C-3 规范套件批准（打 tag `std-v1`）。
+  - 待 owner：**Q-13**（APP 线程模型，owner 问询触发已呈递：建议禁止自建线程、编译期禁用）+ **三行确认**——C-1 HLD v0.2 确认 / C-2 LLD v0.2 确认 / C-3 规范套件批准（打 tag `std-v1`）。
   - M0 就绪清单：Q-03/Q-10/Q-12 已裁 ✅；GitHub 远端地址待 owner 提供（DEC-24）；宿主环境验证（Windows/WSL2）与 LICENSE 补齐在 M0 内完成。
   - 禁区：C-1/C-2/C-3 确认前不进 impl。
 - **2026-09-21（二） · 裁决批次 3 已登记（DEC-27…29，tag `dec-27-29`）：Q-10 全裁 + 板卡策略转向高性能（RP2350 移出）+ 内存预算每板动态；仅剩 Q-11①-⑤ 与 C-1…C-3**
