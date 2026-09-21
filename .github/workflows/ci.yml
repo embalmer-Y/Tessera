@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: Apache-2.0
+# Tessera CI 骨架（M0；docs/std/testing.md §6）。
+# job 顺序：repo-checks（lint/编码）→ native-build（构建 native_sim）→ twister（L1 冒烟）。
+# L5 机械检查脚本自 M1 上线后接入独立 job（一票否决）。
+# 注：Zephyr 依赖经 west 钉在 v4.4.0 tag（DEC-19）；升级走显式提交 + 全量回归。
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  repo-checks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: pytest 仓库检查（编码/无 BOM，军规 4）
+        run: |
+          pip install pytest
+          pytest firmware/tests/pytest -v
+
+  native-build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 初始化 west 工作区（Zephyr v4.4.0，DEC-19）
+        run: |
+          pip install west
+          west init -m https://github.com/zephyrproject-rtos/zephyr --mr v4.4.0 ~/ws
+          cd ~/ws && west update
+      - name: 构建 firmware/app @ native_sim
+        run: |
+          source ~/ws/zephyr/zephyr-env.sh
+          west build -b native_sim "$GITHUB_WORKSPACE/firmware/app" -d build-app --pristine=always -- \
+            -DZEPHYR_EXTRA_MODULES="$GITHUB_WORKSPACE/firmware/module/tessera"
+      - name: twister 冒烟（framework.smoke @ native_sim）
+        run: |
+          source ~/ws/zephyr/zephyr-env.sh
+          west twister -p native_sim -T "$GITHUB_WORKSPACE/firmware/tests" \
+            --extra-args=ZEPHYR_EXTRA_MODULES="$GITHUB_WORKSPACE/firmware/module/tessera"

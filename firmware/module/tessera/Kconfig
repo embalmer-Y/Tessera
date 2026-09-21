@@ -1,0 +1,17 @@
+# Tessera firmware framework module
+# SPDX-License-Identifier: Apache-2.0
+# 子系统 Kconfig 自 M1 起按 design/LLD-* 逐模块加入（ts-core/ts-safety/…）。
+
+menu "Tessera framework"
+
+config TS_MODULE
+	bool "Tessera framework module present"
+	default y
+	help
+	  Build marker set automatically when the tessera module is wired
+	  into the Zephyr build (ZEPHYR_EXTRA_MODULES / west manifest).
+	  Source: M0 skeleton (design/HLD-firmware-framework.md §7 M0).
+
+comment "Subsystems land from M1 per design/LLD-* (ts-core, ts-safety, ts-hal, ts-appmgr, ts-net, ts-power, ts-periph, ts-store)"
+
+endmenu

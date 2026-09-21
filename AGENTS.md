@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-09-21（五） · M0 实施与验证完成（约 85%）：构建/pytest/twister 构建级全绿；两项外部依赖待 owner（主机 gcc、GitHub 远端）**
+  - 已达成：LICENSE(Apache-2.0)；tessera 模块接入 Zephyr 构建（**规范布局 `zephyr/module.yml`**，HWMv2）；**交叉构建绿**（app+模块 @ nucleo_h743zi，SDK 1.0.1 + Zephyr v4.4.0 钉版）；**pytest 绿**（编码/无 BOM）；**twister 构建级绿**（smoke @ qemu_cortex_m3）；CI 骨架 yaml 就绪（GitHub Actions，DEC-24）。
+  - 环境结论（实测）：Windows 原生**构建级完全胜任**（交叉工具链 + venv 3.12.13）；QEMU 二进制 SDK 自带；但 ① native_sim 需主机 gcc（缺）② Zephyr 4.4.0 的 qemu 板 twister 元数据未迁移（`twister.yaml` 缺失），QEMU 运行级测试当前不执行（与 OS 无关的数据缺口）。**运行级测试策略 = WSL2（Ubuntu 就绪，差 `sudo apt install -y build-essential` 一行）+ GitHub CI(Linux)**；Windows 承担构建级。
+  - 工作区已钉 **v4.4.0**（原浮动 main，DEC-19 纪律）；网络经代理 127.0.0.1:7897 同步全绿（mbedtls-3.6 曾失败，代理后解决）。
+  - 待 owner：① 主机 gcc（WSL 一行命令或 Windows mingw）→ 补 native_sim 构建/twister 运行级验证；② GitHub 远端地址 → CI 上线（M0 完整退出）。
 - **2026-09-21（四） · impl 阶段启动：DEC-31（Q-13 禁自建线程）+ C-1/C-2/C-3 确认，规范套件生效（tag `std-v1`）；M0 进行中**
   - 环境深查结论（owner 指示复检，工作区 `D:\Software\project\zephyrproject`）：专用 venv **Python 3.12.13** + west 1.5.0 + Zephyr python 依赖齐；cmake 4.4.3 + ninja 1.13.2；**Zephyr SDK 1.0.1**（交叉工具链全，含 xtensa-esp32s3/arm；hosttools 仅 qemu/openocd，**无主机 gcc**）；WSL2 Ubuntu（Python 3.12.3+venv，**无 gcc**）。
   - **环境缺口（唯一）**：native_sim 需主机 gcc——owner 二选一：① WSL 内 `sudo apt install -y build-essential`；② Windows 装 MSYS2/mingw。补齐前 M0 构建验证用 SDK 交叉工具链（目标板）先行。
