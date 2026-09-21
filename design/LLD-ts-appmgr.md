@@ -52,7 +52,7 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 - 实例化参数：fast 解释器、WASI 关〔DEC-25〕；堆 = manifest.mem.heap（上限**每板动态配置**〔DEC-27，默认值见 HLD §4.6 每板表〕）、栈独立线程栈。
 - **导入面装配（权限硬边界的落点）**：`ts_native_syms[]` 全集（= ts_api_v1 符号，LLD-ts-hal §3）逐项标注所需能力；实例化时**只注册** manifest 能力覆盖的子集——未授权符号在 wasm 模块内即不存在（链接期即拒，而非调用期判）。
 - APP 线程：每 APP **恰好一个**框架创建的 Zephyr 线程（优先级/栈见 LLD-00 §4 与 manifest.mem.stack，上限〔DEC-27： 8KB〕）；同时加载上限〔DEC-27： 4〕个 APP。
-- **APP 不可自建线程**〔Q-13 提案 A〕：WAMR 的 wasm pthread/共享内存特性**编译期不启用**，且 ts_api_v1 不提供任何线程创建导入——限制方式 = **能力不存在**（与符号装配硬边界同哲学），而非运行时配额。
+- **APP 不可自建线程**〔DEC-31〕：WAMR 的 wasm pthread/共享内存特性**编译期不启用**，且 ts_api_v1 不提供任何线程创建导入——限制方式 = **能力不存在**（与符号装配硬边界同哲学），而非运行时配额。
   - APP 内并发 = 事件模型（app_evt/tick 串行回调）+ 语言内协作式并发（协程/async/状态机）；线程级真并行由 **APP 之间**提供（多核板 Zephyr SMP，S3/P4 双核）。
   - 长计算纪律：单次 tick/evt 回调工作量应有界（健康探针〔DEC-27 #8〕为最终防线）；重计算走 AOT（DEC-25）或下沉框架层原生实现。
   - 预留扩展：manifest schema v2 可增 `threads:{max,stack}` 能力字段（权限门控 + 计数 + 栈预算）后才启用 WAMR 线程特性——**V1 不实现**。
@@ -69,7 +69,7 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 
 ## 7. 未决依赖
 
-- DEC-21（TSAP）、DEC-25（执行模式/WASI）、DEC-23（分区）、DEC-27（探针/回滚/APP 数等默认值与每板堆配置）已裁；待 **Q-13**（APP 线程模型，已按建议 A 预写）。
+- DEC-21/25/23/27 已裁；DEC-31（APP 线程模型：禁自建线程）已裁；**无未决**。
 
 ## 修订记录
 

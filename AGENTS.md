@@ -6,6 +6,12 @@
 
 ## 1. 当前状态
 
+- **2026-09-21（四） · impl 阶段启动：DEC-31（Q-13 禁自建线程）+ C-1/C-2/C-3 确认，规范套件生效（tag `std-v1`）；M0 进行中**
+  - 环境深查结论（owner 指示复检，工作区 `D:\Software\project\zephyrproject`）：专用 venv **Python 3.12.13** + west 1.5.0 + Zephyr python 依赖齐；cmake 4.4.3 + ninja 1.13.2；**Zephyr SDK 1.0.1**（交叉工具链全，含 xtensa-esp32s3/arm；hosttools 仅 qemu/openocd，**无主机 gcc**）；WSL2 Ubuntu（Python 3.12.3+venv，**无 gcc**）。
+  - **环境缺口（唯一）**：native_sim 需主机 gcc——owner 二选一：① WSL 内 `sudo apt install -y build-essential`；② Windows 装 MSYS2/mingw。补齐前 M0 构建验证用 SDK 交叉工具链（目标板）先行。
+  - **纪律处置**：工作区 zephyr 原为浮动 main（v4.4.0+16104），M0 内钉到 **v4.4.0 tag**（DEC-19）。
+  - **开发流程计划**（每会话一交付单元 + 同批测试 + CI 绿 + DoD 对照 + 里程碑 review 门）：M0（本会话：环境/骨架/CI/LICENSE）→ M1（ts-core+ts-safety，L5 机械检查脚本与 L4 重放框架雏形）→ M2a（ts-store+TSAP/slot）→ M2b（ts-hal 权限+WAMR 宿主+样例 APP）→ M3a（ts-net）→ M3b（ts-power+ts-periph+集成重放）→ 板级移植（ESP32-S3→P4→H7）。
+  - 待办：① owner 补主机 gcc（一行命令）；② M0 收尾（native_sim 构建 + twister 运行）；③ GitHub 远端（DEC-24，CI 上线）。
 - **2026-09-21（三） · 裁决批次 4 已登记（DEC-30，tag `dec-30`）：Q-01…Q-12 全部裁毕（DEC-17…30，共 14 项）；仅余 C-1/C-2/C-3 三项文档确认，确认后 M0 开工**
   - DEC-30（Q-11①-⑤ 按建议）：sys 命令面 host-only（estop-clear 确认令牌）；共享写后写胜出 + 审计含 app_id；APP 状态 V1 不持久化；审计 V1 内存环形（掉电丢失）；prov = CBOR schema v1 运行时只读。
   - 设计文档已全面同步 DEC 语义（HLD/LLD 内全部未决项标注收敛为 DEC 编号；各 LLD 未决依赖多数清零）。

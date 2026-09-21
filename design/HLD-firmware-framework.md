@@ -77,7 +77,7 @@
 - 验签：根公钥在安全参数分区（烧录期写入，运行时只读）；验签失败 → 拒装 + 留痕。
 - 存储〔DEC-23〕：双 APP slot（a/b）+ meta 区（当前版本指针、回滚计数）；A/B 切换保证回滚原子性。
 - 加载：WAMR 实例化时按 manifest 能力**子集注册** `ts_*` 导入函数（白名单式绑定 = 权限硬边界，DEC-04/合同 10）；WASI 全集默认关〔DEC-25：fast 解释器，AOT 留作构建选项〕。
-- APP 线程模型〔Q-13 提案〕：每 APP 单线程、**禁止自建线程**（WAMR 线程特性编译期禁用，ts_api_v1 无创建导入）；并发 = 事件模型 + APP 间并行（多核 SMP）；预留 manifest v2 `threads` 字段扩展（V1 不实现）。
+- APP 线程模型〔DEC-31〕：每 APP 单线程、**禁止自建线程**（WAMR 线程特性编译期禁用，ts_api_v1 无创建导入）；并发 = 事件模型 + APP 间并行（多核 SMP）；预留 manifest v2 `threads` 字段扩展（V1 不实现）。
 - 健康探针：框架周期 ping APP 导出的 `app_health_ping`；超时 → 卸载 + 回滚 + 计数；计数超限 → 拒载该版本并留痕（防回滚循环）。
 - APP 间通信：`ts_msg_send(recv_app, payload)` 经框架路由（key 前缀 `app/<appid>/**` 隔离）；禁止任何直接互访（DEC-04）。
 

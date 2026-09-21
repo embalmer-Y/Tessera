@@ -1,7 +1,7 @@
 # docs/std/ · Tessera 开发规范套件
 
 > **定位**：`AGENTS.md` 是流程宪法（阶段门 / review 门 / 军规十条 / 安全合同），本目录是其下可执行细则；两者冲突时以 `AGENTS.md` 与 owner 最新裁决（`decisions.md` DEC）为准。
-> **状态**：**v0.1 草案，待 owner review；批准后打 tag `std-v1` 生效**。生效前按 `AGENTS.md` 既有规则执行，本套件仅作预览。
+> **状态**：**已生效**——2026-09-21 owner 批准（C-3，DEC-31 载体；tag `std-v1`；testing.md 为 v0.1.1）。生效后的任何修改 = 规范变更，走 review 门（先登记 Q 呈递，不得直接改写生效版）。
 > **修改流程**：生效后的任何修改 = 规范变更，走 review 门（先登记 Q 呈递，不得直接改写生效版）。
 
 ## 文件清单
