@@ -83,7 +83,7 @@
 
 ### 3.5 ts-net（DEC-18 落地）
 
-- 端点角色〔DEC-20〕：V1 = zenoh **client** 连宿主侧 zenohd router（Windows/Linux PC 或 ARM64 Linux 工业/机器人主板；UDP/TCP 单播 + TLS，`Z_FEATURE_LINK_TLS` 显式开启）。
+- 端点角色〔DEC-20；宿主范围修订 DEC-32〕：V1 = zenoh **client** 连宿主侧 zenohd router（**Linux PC** 或 ARM64 Linux 工业/机器人主板——Windows 移出；UDP/TCP 单播 + TLS，`Z_FEATURE_LINK_TLS` 显式开启）。
 - **命名空间草案**（随本文过门 ③）：
 
 ```text

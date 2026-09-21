@@ -18,7 +18,7 @@ src/net/
 
 ## 2. 会话（session.c）
 
-- 角色 client〔DEC-20〕：locator 来自 prov（router 地址；宿主 = Windows/Linux PC 或 ARM64 Linux 工业/机器人主板）；重连退避固定表〔DEC-27：250/500/1000/2000ms 循环〕（确定性，禁指数抖动随机）。
+- 角色 client〔DEC-20；宿主修订 DEC-32〕：locator 来自 prov（router 地址；宿主 = **Linux PC** 或 ARM64 Linux 工业/机器人主板，Windows 移出）；重连退避固定表〔DEC-27：250/500/1000/2000ms 循环〕（确定性，禁指数抖动随机）。
 - TLS：`Z_FEATURE_LINK_TLS` 显式开启〔DEC-20〕；证书/密钥只读自安全参数分区（合同 10）。
 - 会话状态：DOWN/CONNECTED；迁移发布 `TS_EVT_NET_LINK_UP/DOWN`（观测用；**安全语义以 linkmon 为准**，避免双源）。
 

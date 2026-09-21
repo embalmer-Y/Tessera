@@ -42,6 +42,7 @@
 | DEC-29 | 2026-09-21 | Q-11⑥：**内存预算按板动态分配计算**——构建期按板生成预算表（分配规则与每板默认见 HLD §4.6），不再维护单一全局表 | owner 原文："Q-11：内存预算分配表需要根据不同板卡动态分配计算。"（Q-11①-⑤ 本轮回复未涉及，**仍待 owner 明示**） |
 | DEC-30 | 2026-09-21 | Q-11①-⑤ 按建议值：① **sys 命令面 v1** = 7 命令，host-only（APP 能力文法不可达），estop-clear 需确认令牌；② **共享通道写 = 后写胜出 + 审计含 app_id**（不做独占 claim）；③ **APP 业务状态 V1 不持久化**（升级/回滚后归零）；④ **审计留痕 V1 = 内存环形 + get-audit 导出**（掉电丢失，接受此权衡）；⑤ **prov 数据模型 = CBOR schema v1**（运行时只读，仅烧录通道写） | owner 原文："对于Q-11，这些配置按照建议值"。至此 **Q-01…Q-12 全部裁毕**（对应 DEC-17…30，共 14 项裁决） |
 | DEC-31 | 2026-09-21 | Q-13 按建议 A：V1 **禁止 APP 自建线程**（WAMR 线程/共享内存特性编译期不启用；ts_api_v1 不提供创建导入——"能力不存在"而非运行时配额）；并发 = 事件模型 + 语言内协作式并发 + APP 间 SMP 并行；预留 manifest v2 `threads` 字段（V1 不实现） | owner 原文："可以了我们现在开始开发把吧……"（"可以了"视为对 Q-13 建议 A 与人工检查三项的确认——如有误请 owner 纠正，本行即改）。**同批确认**：C-1 HLD v0.2.x / C-2 LLD v0.2.x 批次 / C-3 规范套件批准生效（tag `std-v1`）；M0 开工授权；开发环境 = `D:\Software\project\zephyrproject`（深查结论见 AGENTS.md 当前状态） |
+| DEC-32 | 2026-09-21 | **Agent 运行平台仅 Linux**（Windows 不支持——修订 DEC-20 宿主范围，移出 Windows PC）；**开发环境整体迁移至 WSL2**（Ubuntu 24.04：仓库 `~/tessera` + Zephyr 工作区 `~/zephyrproject`）；Windows 侧 zephyr 环境复原至 owner 原状（main 检出） | owner 原文："既然如此我希望请你复原我在windows上的zephyr环境，然后将我们整个project迁移至wsl，并记录，当前我们的agent不支持在windows下运行只做linux支持。" 环境迁移记录见 `docs/dev-environment.md` |
 
 ## 二、问题登记（Q）
 
@@ -201,3 +202,4 @@
 - 2026-09-21 · **裁决批次 4**：Q-11①-⑤ → **DEC-30**（按建议值）。**至此 Q-01…Q-12 全部裁毕（DEC-17…30）**；仅余 C-1 HLD / C-2 LLD / C-3 规范套件三项文档确认，确认后 M0 开工。tag `dec-30`。
 - 2026-09-21 · 登记待裁 **Q-13**（APP 线程模型与并发限制——owner 问询"APP 能否建线程/单线程是否够/限制方式"触发；建议 A：编译期禁用 + 三层限制机制）。
 - 2026-09-21 · **impl 阶段启动**：Q-13 → **DEC-31**；owner 指令"可以了，开始开发"一并确认 **C-1 HLD / C-2 LLD / C-3 规范套件批准生效（tag `std-v1`）**；M0 开工，开发环境 = `D:\Software\project\zephyrproject`。
+- 2026-09-21 · **DEC-32**：Agent 仅支持 Linux（修订 DEC-20，Windows 宿主移出）；开发环境整体迁 **WSL2 Ubuntu 24.04**（仓库 `~/tessera`、工作区 `~/zephyrproject`），Windows zephyr 环境复原；记录于 `docs/dev-environment.md`。
