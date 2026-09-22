@@ -6,6 +6,10 @@
 
 ## 1. 当前状态
 
+- **2026-09-22（六） · 裁决批次 7（tag `dec-37`）：DEC-37（Q-18：C——Agent 全 Python：PydanticAI + FastMCP + 自建编码工具集，修订 DEC-33 基座条款，北极星沿用）+ 涟漪审查完成（design-review-02：**固件设计套件零改动**）+ R5 HLD 级核验落盘——Agent 轨道待裁 Q 再度清零，HLD 输入齐备**
+  - 涟漪审查（`design/design-review-02-agent-python-ripple.md`，DR-18…23 全处置）：固件设计套件（HLD+8 LLD）**零 TS/Node/pi 触点、零改动**——Agent↔固件合同均为格式/协议（TSAP/zenoh/prov/sys 面），语言无关；规范套件 coding.md 原文即假设 agent/=Python（一致而非冲突）；待补两节 = versioning.md Python 依赖钉版（DR-18）+ dev-environment.md agent venv（DR-19），均在 agent 骨架批次完成。
+  - R5（`docs/research/R5-agent-python-stack.md`）要点：**审批闸超预期**（PydanticAI Hooks：wrap_tool_execute/ApprovalRequired/requires_approval = pi beforeToolCall 超集 + FastMCP Middleware 第二层）；agent 嵌入 MCP server 为官方正名模式；FastMCP 4 单部署覆盖全 spec 版本（2024-11-05…2026-07-28）；**TSAP 签名栈** = cbor2(canonical)+pycose+cryptography（pycose 停滞 → 单键 phdr 纪律 + DIY fallback 双验）；**zenoh-python** = eclipse-zenoh 1.10.1 同步 API（asyncio 需线程包裹），三方同 minor 钉版（router/zenoh-python/zenoh-pico），**Zenoh 2.0 计划 2026 H2 = 联合升级风险，牵动 M3a**。
+  - Agent 轨道输入终态：DEC-33/34/35/36/37 + R3/R4/R5——**Agent HLD 可启动**（下一交付单元）；固件主线并行不变（GitHub 远端 → M1）。
 - **2026-09-22（五） · 登记待裁 Q-18（Agent 实现语言：TS 维持 / Python 宿主+pi RPC / 自研，owner 问询"可否改为 python 或 rust 开发"触发）；同日 owner 澄清动因（完全不熟 Node）→ 建议修订为 C（PydanticAI + FastMCP 全 Python），B1 备选**
   - 关键事实：pi 只有 TS 库形态（A=进程内库最优但 owner 不可 review）；**Python 生态无健康成品 coding agent 内核**（aider 停更/OpenHands 非库/pi·OpenCode·goose 均非 Python）→ C = PydanticAI v2（MIT、类型化输出、Ollama 本地、原生 Temporal 持久执行、官方 agent 嵌入 MCP server）+ FastMCP 门面 + 自建最小编码工具集（read/write/apply_patch/exec 四件）。
   - 修订后建议：**C**（全 Python 单进程、owner 可 review 全部自研代码）；B1 备选（Python 门面 + pi 子进程经 pi-mcp-adapter 回接）；A = 无语言约束时的技术最优；D（Rust）不建议。

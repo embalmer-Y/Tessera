@@ -47,10 +47,11 @@
 | DEC-34 | 2026-09-22 | **MCP 工具面 = 双层**：原子工具层必开（build/simulate/package/sign/deploy/provision/query…——"Agent 无豁免"检查与可测性落点，人类与成品 agent 均可直接调用）+ 高层任务工具层 V1 先 2-3 个（develop_app 等，DEC-12 能力链交付形态）；全部长任务工具按 **MCP Tasks extension** 句柄化（taskId/ttlMs/pollIntervalMs + 轮询/订阅，旧客户端同步回落）；工具面增删 = Agent 特有 review 门 | owner 原文："Q-15：认可双层选择。" 事实依据 R3 §4.6/§7；具体工具清单在 Agent HLD 定稿（走门 ③ 公共 API 变更）。**实现机制已被 DEC-36② 细化**（Tasks extension 客户端采用为零 → 自定义句柄+轮询工具，语义对齐 Tasks V2） |
 | DEC-35 | 2026-09-22 | **ACP 二级人机接口：V1 不做，仅架构预留**——会话编排层与传输解耦（Agent HLD 须明确该边界），后补 ACP 适配模块即可启用 Zed/JetBrains 人肉驱动 | owner 原文："Q-16 · ACP 人机接口（此前详解已呈，补 R4 证据后重呈）：我们进行预留。V1 不做。" 对象 = Zed/JetBrains 的 Agent Client Protocol（与已并入 A2A 的 IBM 同名 ACP 区分，names.md 已登记命名陷阱） |
 | DEC-36 | 2026-09-22 | **Q-17 四子项全部采纳（Agent 交互栈定案）**：① 对外合同 = **MCP 唯一**（DEC-12 维持；stdio 起步 + Streamable HTTP 预留；实现纪律 = stateless-first 对齐 spec 2026-07-28 + 2025-11-25 兼容基线回归 + 规避弃用特性 Roots/Sampling/Logging/SSE/elicitation 依赖，"需更多信息"建模为工具结构化返回）；② 长任务 = **自定义任务句柄 + status/log 轮询工具**（语义对齐 Tasks V2 tasks/get/update/cancel，官方普及后平滑切换——细化 DEC-34 实现机制）；③ 领域能力分发 = **Agent Skills 开放标准**（SKILL.md；V1 随 agent 附最小固件域 skill 集；docs MCP server 可选后置）；④ 多域组合默认 = **上层编排 + 域 agent 各自 MCP 面**；**A2A v1.0 明确预留**（跨主体/长周期对等场景——如 Galatea 规模——时启用） | owner 原文："Q-17 · 交互栈确认：全部采纳，但要记录A2A的预留。" **A2A 预留记录点（owner 特别要求）**：本 DEC + `docs/names.md` A2A 行（生效·预留）+ Agent HLD 架构预留节（agent 身份/Agent Card/对等任务委托的接入缝）。watch 项：agentgateway（部署治理）、MCP roadmap agent 身份/委托线（DPoP/WIF/ID-JAG） |
+| DEC-37 | 2026-09-22 | **Q-18 裁定 C：Agent 实现 = 全 Python（PydanticAI v2 + FastMCP 门面 + 自建最小编码工具集）**——修订 DEC-33 基座条款（pi 库内核 → Python 框架 + 自建循环；实现语言 TypeScript → Python）；DEC-33 北极星与落地约束（多域预留 / 平台层解耦 / 跨域组合走 MCP / V1 范围不变）**全部沿用**；owner 动因 = 完全不熟 Node，全部自研代码必须 owner 可 review | owner 原文："Q-18：C，同时请你完整review一边之前的design是否需要进行一定的调整。有调整的地方需要重新research。" 派生修订：① DEC-36③ Skills 加载从"pi 原生支持"改为**自建 skill loader**（对外分发形态不变）；② beforeToolCall 等效闸 = PydanticAI 工具包装/中间件（R5 核验落点）；③ Agent 侧 TSAP 打包签名（DEC-21）与 zenoh 客户端封装（DEC-18 备注⑥）改用 Python 栈（R5 核验 cbor2/COSE-Sign1/ed25519/zenoh-python）；④ Q-18 涟漪审查见 `design/design-review-02-agent-python-ripple.md`（固件设计套件零改动结论留档） |
 
 ## 二、问题登记（Q）
 
-### 问题批次（Agent 轨道呈递，2026-09-22；**当前待裁：Q-18**——Q-14…Q-17 已裁 → DEC-33…36）
+### 问题批次（Agent 轨道呈递，2026-09-22；**Q-14…Q-18 均已裁 → DEC-33…37，待裁清零**）
 
 #### Q-14 · Tessera Agent 基座选型（2026-09-22 呈递，owner 指令触发）
 
@@ -111,7 +112,7 @@
 
 #### Q-18 · Agent 实现语言（TypeScript/Node vs Python vs Rust，2026-09-22 呈递，owner 问询触发）
 
-- **状态**：**待裁**。
+- **状态**：**已裁 → DEC-37**（2026-09-22：C——全 Python，PydanticAI + FastMCP + 自建编码工具集；修订 DEC-33 基座条款）。
 - **背景**：DEC-33 定 Agent 基座 = pi（进程内库）+ 官方 MCP TS SDK 门面 + 自研工具集，实现语言随之 = TypeScript/Node。owner 问询：可否改为 Python 或 Rust 开发？语言选择与基座用法**强耦合**：pi 只以 TS 库形式存在（R3 §4.1 实查：包 @earendil-works/pi-coding-agent 内含 SDK，`createAgentSession`/`Agent` 类 import 使用；另有 `pi --mode rpc` 子进程 JSONL 模式供非 Node 宿主集成）；换语言 = 换 pi 的使用方式或换基座。语言运行时性能不构成决策因素（Agent 是 PC 侧编排器，瓶颈在构建/仿真子进程）。
 - **通俗解释（关键耦合点）**：选 TS 不是因为 Node 本身更优，而是 **pi 这个 agent 内核只有 TS 库形态**——只有同语言直接 import，才能拿到 DEC-33 的两个决定性优势：单进程最薄封装（MCP 门面与 agent 循环同进程，无跨进程跳数）+ `beforeToolCall` 进程内钩子（可阻断/改写工具调用 = "Agent 无豁免"的宿主侧闸）。换语言的两条路：① pi 照用但降级为**子进程经 RPC（stdio JSONL）驱动**——基座保留，多一层进程间通信；权限闸改为"自定义工具内部强制 + 一个小型 pi 扩展（JS，随 pi 子进程加载）兜底内置工具"；② 弃 pi 换语言原生框架（Python = PydanticAI + FastMCP 自建循环，即 R3 方案 D；Rust ≈ 全自研）。
 - **选项**：
@@ -289,3 +290,4 @@
 - 2026-09-22 · **裁决批次 6（Agent 轨道交互栈）**：Q-16 → **DEC-35**（ACP：V1 不做仅预留）、Q-17 → **DEC-36**（交互栈 4 子项全采纳 + A2A 预留显式登记，owner 特别要求）。tag `dec-35-36`。**Agent 轨道待裁 Q 清零**——research 阶段落定，下一交付单元 = Agent design（HLD）。
 - 2026-09-22 · 登记待裁 **Q-18**（Agent 实现语言：TS 维持 / Python 宿主+pi RPC / 全自研，owner 问询"可否改为 python 或 rust"触发；建议 A 维持，B 为可接受变体）。
 - 2026-09-22 · **Q-18 建议修订**（owner 澄清动因"完全不熟 Node"）：改推 **C（PydanticAI + FastMCP 全 Python）**，B 细化为 B1 备选（pi 子进程经 MCP 回接）；补核验 PydanticAI 事实（Ollama 本地支持、原生 Temporal 持久执行）；Python 版图应答入 Q-18 条目。
+- 2026-09-22 · **裁决批次 7**：Q-18 → **DEC-37**（全 Python：PydanticAI + FastMCP + 自建编码工具集；修订 DEC-33 基座条款，北极星与落地约束沿用）。同批启动：**Q-18 涟漪审查**（design 全量 review，结论留档 `design/design-review-02-agent-python-ripple.md`）+ **R5 补充核验**（PydanticAI/FastMCP HLD 级事实、TSAP Python 签名栈、zenoh-python）。tag `dec-37`。
