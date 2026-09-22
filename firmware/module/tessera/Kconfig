@@ -125,4 +125,56 @@ config TS_APPMGR
 	help
 	  design/LLD-ts-appmgr.md (M2b). WAMR runtime binding = M2b.2.
 
+
+config TS_NET
+	bool "ts-net: zenoh session / keyspace / publish queue / link monitor"
+	depends on TS_CORE
+	default y
+	help
+	  design/LLD-ts-net.md (M3a). Transport seam: logic (keyspace/pubq/
+	  session/linkmon) is transport-agnostic; zenoh-pico binding compiled
+	  only under TS_NET_ZENOH (tests inject a fake transport).
+
+if TS_NET
+
+config TS_NET_HB_PERIOD_MS
+	int "Heartbeat period in ms (cube send + host monitor basis)"
+	default 1000
+	help
+	  Source: DEC-22 (provisionable; factory default 1000ms).
+
+config TS_NET_HB_MISS_LIMIT
+	int "Host heartbeat miss limit (periods) before link-loss"
+	default 6
+	help
+	  Source: DEC-22 (~6s at default period).
+
+config TS_NET_HB_RECOVER
+	int "Consecutive host heartbeats required to re-declare link up"
+	default 2
+	help
+	  Source: DEC-27 (hysteresis).
+
+config TS_NET_PUBQ_DEPTH
+	int "Publish queue depth (drop-oldest when full)"
+	default 8
+	help
+	  Source: DEC-27 (LLD-ts-net §7).
+
+config TS_NET_TELEM_INTERVAL_MS
+	int "Periodic telemetry snapshot interval in ms"
+	default 200
+	help
+	  Source: DEC-27. Consumed by telemetry merge (M3a.2).
+
+config TS_NET_ZENOH
+	bool "zenoh-pico transport binding (pin 1.10.1, DR-22)"
+	depends on TS_NET && ZENOH_PICO
+	default n
+	help
+	  Requires zenoh-pico Zephyr module in ZEPHYR_EXTRA_MODULES. Link-level
+	  liveness refinement (keepalive) lands with M3a.2.
+
+endif # TS_NET
+
 endmenu

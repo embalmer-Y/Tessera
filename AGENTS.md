@@ -6,6 +6,12 @@
 
 ## 1. 当前状态
 
+- **2026-09-23（三） · M3a.1 交付：ts-net 传输缝 + keyspace/pubq/session/linkmon + zenoh-pico 1.10.1 钉版接线——本地全绿（twister 8/8 配置 31 用例 / L5 6/6 / app 构建 / 编码 0）；zenoh 真实绑定（CONFIG_TS_NET_ZENOH）经 overlay 构建编译链接绿**
+  - 交付物：`include/ts/net.h` + `src/net/{keyspace,pubq,session,linkmon,zenoh}.c` + internal.h + Kconfig（TS_NET 族：HB_PERIOD 1000/MISS 6/RECOVER 2/PUBQ 8，DEC-22/27）+ `firmware/tests/net`（5 用例：key 构造与截断/退避表/pubq DOWN 丢弃与满溢/会话建链-退避-掉线/**linkmon→safety 断链-恢复集成**）。
+  - 传输缝纪律（对齐 ts-store backend 先例）：z_* 副作用全部收敛于 zenoh.c；逻辑层（linkmon/pubq/session）确定性可测（合同 9）。
+  - zenoh-pico 接线留痕（dev-env §7）：① 上游 Zephyr 模块不生成 config.h（需 cmake configure + 剥离 feature 宏区落位）；② **CONFIG_POSIX_API=y 为关键项**（host libc 下 netdb.h 与 Zephyr net_ip.h 结构冲突）；③ overlay 入仓 = `firmware/tests/net/overlay-zenoh.conf`。
+  - 关键修复：ts_net_set_ids 原子拒绝（失败不清空既有前缀——测试首跑暴露）。
+  - **M3a.2（下一单元）**：遥测发布（input 事件→pubq）/ sys 命令面（host-only，DEC-30①）/ cmd.c query 分发 / boot 编排接线（prov→session）/ L3 端到端（native_sim ↔ zenohd router）。
 - **2026-09-23（二） · 补审查批次交付：MA0/MA1/MA2 + M2a/M2b 五单元实现审查（`design/impl-review-m2a-ma2.md`，IR-05…20 全处置）+ 修复 10 项——复验全绿（twister 7/7 配置 26 用例 / L5 6/6 / app 生产构建 / agent pytest 34+1skip / ruff / 编码 0 违规）**
   - 必修三项：**IR-05 验签桩 fail-open**（verify_cose_minimal 改 fail-closed：非 CONFIG_TS_TEST 一律拒装，真实验签随 M2b.2）；**IR-06 TSAP 边界 u32 回绕**（cose_off+1 在 UINT32_MAX 处回绕使越界检查失效 → u64 比较 + 新用例）；**IR-14 网关面 tsap_keygen 无审批闸**（HLD §5.1 strict 类 → 句柄化 + input_required + sys_approve allow/deny 双路径 E2E 实测，拒绝 = 无密钥产出）。
   - 其余修复：IR-07 off+len 回绕加固 / IR-08 pwm hz·permille 域检查 / IR-09 回滚 meta 写失败传播+状态回退 / IR-10 prov estop 截断拒绝 / IR-11·12 文字纪律（perm 注释实态化、noinit·runner 残留措辞、sim_run 死参数移除）/ IR-13 tsap_package 产物目录白名单（_resolve_within 与 keygen 同纪律）。

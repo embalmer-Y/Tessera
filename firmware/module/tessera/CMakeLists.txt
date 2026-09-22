@@ -43,3 +43,14 @@ zephyr_library_sources_ifdef(CONFIG_TS_APPMGR
   src/appmgr/pkg.c
   src/appmgr/slot.c
 )
+
+zephyr_library_sources_ifdef(CONFIG_TS_NET
+  src/net/keyspace.c
+  src/net/pubq.c
+  src/net/session.c
+  src/net/linkmon.c
+)
+
+zephyr_library_sources_ifdef(CONFIG_TS_NET_ZENOH
+  src/net/zenoh.c
+)
