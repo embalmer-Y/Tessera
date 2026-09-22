@@ -1,0 +1,69 @@
+# docs/project-plan.md · Tessera 统一项目开发计划
+
+> **版本**：v1.0 · 2026-09-22 · 依 owner 指令与 **DEC-39** 建立（"整个项目统一规划并着手开发"）。
+> **权威顺序**：owner 最新裁决（decisions.md DEC）> `FOUNDING_PROMPT.md` > 本计划。计划变更走修订记录；里程碑进出走 review 门（流程 §2.4-②）。
+> **结构**：双轨并行——**轨道 A（固件框架，M 系）** 与 **轨道 B（AI Agent，MA 系）**；交叉依赖见 §4；实施节奏（单会话一交付单元，军规/流程 §2.3）建议排序见 §7。
+
+## 1. 总体路线（DEC-15 三阶段，执行节奏并行化）
+
+1. **阶段一 · 固件框架**（native_sim 上可运行）：M0 → M1 → M2a → M2b → M3a → M3b → 板级移植。
+2. **阶段二 · AI Agent + 模拟器**：MA0 → MA1 → MA2 → MA3。
+3. **阶段三 · 硬件立方体定型**：连接器/结构/电源（依赖软件形态验证）。
+
+双轨并行不改变阶段内容顺序，仅执行节奏并行（DEC-39）；北极星（DEC-33：多域 → 机器人/Galatea 自生产）为方向约束，不进 V1 里程碑。
+
+## 2. 轨道 A · 固件框架（M 系；DoD 详见 `design/HLD-firmware-framework.md` §7）
+
+| 里程碑 | 范围 | 状态（2026-09-22） | 退出标准 |
+|---|---|---|---|
+| **M0** 环境/骨架/CI/LICENSE | west 工作区 + native_sim 模块构建 + CI 骨架 + LICENSE | **本地全绿**（WSL：构建 + twister 运行级 + pytest）；余 = GitHub 远端推送（owner 待办 §5） | 推送 + CI 绿（tag `m0`） |
+| **M1** | ts-core + ts-safety + L5 机械检查脚本 + **L4 重放框架雏形**（MA2 的接口依赖，见 §4） | 待启动 | HLD §7 M1 DoD |
+| **M2a** | ts-store + TSAP 格式定稿 + slot（A05 manifest 镜像依赖） | 待启动 | HLD §7 |
+| **M2b** | ts-hal 权限（ts_perm_v1）+ WAMR 宿主 + 样例 APP | 待启动 | HLD §7 |
+| **M3a** | ts-net（zenoh-pico；发现/key/sys 命令——A06 对齐依赖） | 待启动 | HLD §7 |
+| **M3b** | ts-power + ts-periph（外设桩——A04 深度仿真依赖）+ 集成重放 | 待启动 | HLD §7 |
+| **板级** | ESP32-S3 → ESP32-P4 → STM32H7 | 未启动 | 前置：Zephyr SDK for Linux（§5-②） |
+
+## 3. 轨道 B · AI Agent（MA 系；DoD 详见 `design/HLD-agent.md` §7）
+
+| 里程碑 | 范围 | 状态（2026-09-22） | 退出标准 |
+|---|---|---|---|
+| **MA0** | agent/ 骨架（包结构/config/CLI 桩/CI 接线）+ DR-18（versioning Python 钉版节）+ DR-19（dev-env agent venv 节） | **本批开工（DEC-39）** | 本地 pytest + ruff 绿；CI yaml 就绪（上线随远端，同 M0 惯例） |
+| **MA1** | A00+A01+A02+A03：网关/编排/审批闸/审计 + fw_* 最小集 + sys_*/task_* | 待启动 | MCP 客户端实测（build/twister 句柄化 + 审批流） |
+| **MA2** | A04 模拟器 + A05 TSAP 签名 | 待启动（依赖 §4） | 签名往返 + 双实现互验 + smoke 确定性比对绿 |
+| **MA3** | A06 zenoh 部署 + A07 skills + 高层链 app_develop/app_deploy | 待启动（依赖 §4） | 端到端：spec → TSAP 包 → 部署到仿真立方体 |
+
+## 4. 交叉依赖（双轨咬合点）
+
+| Agent 侧 | 依赖固件侧 | 交付物对齐 |
+|---|---|---|
+| MA2 模拟器 | **M1** L4 重放框架雏形 | 输入注入/输出捕获协议（LLD-A04 §2 接口约定，M1 设计时共同定稿） |
+| MA2 TSAP | **M2a** TSAP 格式定稿 | manifest 字段镜像（LLD-A05 §2） |
+| MA3 部署 | **M3a** ts-net | 发现/liveness key、sys 命令实现、APP 安装入口、维护模式语义（LLD-A06 §6） |
+| MA3 模拟深度 | **M3b** 外设桩 | 场景 channel_kind 扩展位 |
+| 共同 watch | **Zenoh 2.0**（上游计划 2026 H2） | 三方（zenohd/eclipse-zenoh/zenoh-pico）联合升级 + 全量回归——M3a/MA3 前评估 |
+
+## 5. owner 待办（阻塞项）
+
+1. **GitHub 远端地址**（DEC-24）→ M0 完整退出（tag `m0`）+ CI 上线（固件与 agent 两个 job 同时点亮）。
+2. **Zephyr SDK for Linux 下载**（~1GB；板级移植前置；native_sim 开发不需要）。
+
+## 6. 环境与基础设施事实源
+
+- `docs/dev-environment.md`：WSL 目录规范（`~/project/{tessera,zephyrproject,logs}`）+ 固件 venv；**MA0 起增补 agent venv（`~/project/agent-venv`，DR-19）**。
+- CI：`.github/workflows/ci.yml`（repo-checks → 固件构建/twister → **agent lint+pytest（MA0 接入）**）。
+
+## 7. 会话交付单元建议排序（单会话一单元，流程 §2.3）
+
+M1 → MA1 → M2a → MA2 → M2b → M3a → MA3 → M3b → 板级（S3）→ …
+（原则：依赖就绪先行的最小单元；任一里程碑 DoD 全绿才进下一个；M/MA 交替推进双轨。）
+
+## 8. 执行纪律（不变）
+
+- 规范套件（tag `std-v1`：testing/versioning/progress/coding）+ 军规十条 + 安全与确定性合同（AGENTS.md §6）。
+- 里程碑退出 = review 门（呈递 DoD 对照）；工具面/公共 API/安全合同变更 = 各自 review 门。
+- 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
+
+## 修订记录
+
+- v1.0 · 2026-09-22：初版（DEC-39 授权；双轨统一；MA0 同批开工）。

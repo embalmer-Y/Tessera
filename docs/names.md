@@ -22,6 +22,7 @@
 | DEC-36 | Agent 交互栈定案：MCP 唯一对外（stateless-first 纪律）+ 长任务自定义句柄轮询 + Agent Skills 分发 + 多域编排默认；**A2A v1.0 预留**（owner 要求显式记录） | decisions.md（Q-17 裁定） | 生效 |
 | DEC-37 | Agent 实现 = 全 Python（PydanticAI + FastMCP + 自建编码工具集）；修订 DEC-33 基座条款（pi 未选用），北极星与落地约束沿用；动因 = owner 不熟 Node、自研代码须可 review | decisions.md（Q-18 裁定） | 生效 |
 | DEC-38 | Q-19 裁定：11 项按建议；#6 上下文压缩 V1 即支持（动态预算取模型窗口、阈值 70%、最低 32k）；#9 输出截断动态化（预算×5%，最低 16KiB/2KiB） | decisions.md（Q-19 裁定） | 生效 |
+| DEC-39 | C-4/C-5 确认（Agent design 阶段退出，含工具面清单定型）+ 统一项目计划授权（docs/project-plan.md 双轨）+ MA0 开工 | decisions.md | 生效 |
 | Q-01 | APP 运行时选型（→ R1） | FOUNDING_PROMPT §9 | 已裁 → DEC-17 |
 | Q-02 | 数据面应用层协议选型（→ R2） | FOUNDING_PROMPT §9 | 已裁 → DEC-18 |
 | Q-06、Q-07 | WAMR 执行模式 / 逻辑节点 V1 范围 | HLD v0.1 / decisions.md §二 | 已裁 → DEC-25/26 |
@@ -46,7 +47,8 @@
 | R3 | Agent 基座选型调研（coding agent / 框架 / MCP 封装） | owner 指令（2026-09-22） | v1.0 落盘，随 Q-14/Q-15/Q-16 呈递待裁 |
 | R4 | Agent 交互与接入方式调研（协议/实践/趋势） | owner 指令（2026-09-22，质疑 MCP 选型触发） | v1.0 落盘，随 Q-16 重呈 + Q-17 新登记待裁 |
 | R5 | Agent Python 栈 HLD 级核验（PydanticAI/FastMCP/TSAP 签名栈/zenoh-python） | owner 指令（2026-09-22，Q-18 涟漪审查"有调整的地方需要重新research"） | v1.0 落盘，供 Agent HLD 与 design-review-02 使用 |
-| MA0…MA3 | Agent 轨道里程碑（骨架/网关+核心+fw 工具/模拟器+TSAP/部署+skills+高层链） | design/HLD-agent.md §7 | 待启动（依赖见 HLD §7） |
+| MA0…MA3 | Agent 轨道里程碑（骨架/网关+核心+fw 工具/模拟器+TSAP/部署+skills+高层链） | design/HLD-agent.md §7 | MA0 进行中（2026-09-22 开工，DEC-39）；MA1…MA3 待启动 |
+| project-plan | 统一项目开发计划（双轨 M 系 + MA 系，DEC-39 授权） | docs/project-plan.md | v1.0 生效 |
 | M0 | west 工作区 + native_sim 空模块构建 + CI 骨架 | FOUNDING_PROMPT §7 | **本地全绿（2026-09-21，WSL：构建+twister 运行级+pytest）**；仅余 GitHub 远端推送（CI 上线） |
 | M1 | ts-core + ts-safety（安全层最小闭环） | HLD §7 | 待启动（规格已生效） |
 | M2 | ts-hal + ts-appmgr + WAMR 集成（拆 M2a：store/TSAP/slot；M2b：hal/权限/WAMR） | HLD §7 | 待启动（规格已生效） |
@@ -161,3 +163,4 @@
 - 2026-09-22 · **裁决批次 7 登记**：DEC-37（Q-18：C 全 Python）、tag `dec-37`；pi 转存档（未选用，B1 备选留档）；新增 PydanticAI/FastMCP、TSAP Python 签名栈、eclipse-zenoh、R5、DR-18…23；Vercel AI SDK 存档。
 - 2026-09-22 · **Agent design 批次登记**：HLD-agent/LLD-A00…A07、Q-19（默认值 13 项）、MA0…MA3、TA_E_*/工具名族/DomainPack/Frontend/PeerTransport/SessionOrchestrator/TaskRegistry/TsapManifestV1 等标识符族；C-4/C-5 呈递。
 - 2026-09-22 · **裁决批次 8 登记**：DEC-38（Q-19：11 项按建议 + #6/#9 修订）、tag `dec-38`；Q-19 转已裁；设计文档同步（HLD v0.1.1 / LLD-A00·A01·A02 v0.1.1）。
+- 2026-09-22 · **裁决批次 9 登记**：DEC-39（C-4/C-5 确认 + 统一计划 + MA0 开工）、tag `dec-39`；project-plan 标识符登记。
