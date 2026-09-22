@@ -67,12 +67,17 @@ uint32_t ts_safety_test_fail_reason(void)
 #endif
 
 /* estop 事后补发（sysworkq 周期驱动；由 wdt 巡检复用同一节奏） */
+static bool estop_announced;
+
+void ts_safety_estop_announce_reset(void)
+{
+	estop_announced = false; /* clear_fault 释放锁存时复位（IR-01：二次 estop 可再补发） */
+}
+
 void ts_safety_estop_deferred_publish(void)
 {
-	static bool announced;
-
-	if (atomic_get(&ts_forced) != 0 && !announced) {
-		announced = true;
+	if (atomic_get(&ts_forced) != 0 && !estop_announced) {
+		estop_announced = true;
 		const ts_estop_evt_t payload = {
 			.t_ms = (uint32_t)atomic_get(&ts_forced_at),
 		};

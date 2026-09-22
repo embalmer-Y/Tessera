@@ -26,9 +26,12 @@ struct ts_ch_slot {
 extern struct ts_ch_slot ts_ch_table[CONFIG_TS_SAFETY_MAX_CHANNELS];
 extern size_t ts_ch_count;
 
-extern atomic_t ts_forced;      /* estop/fail 锁存标志（clear 前不复位，LLD §5） */
+extern atomic_t ts_forced;      /* estop/fail 锁存标志（clear_fault 释放，IR-01） */
 extern atomic_t ts_forced_at;   /* forced 置位时刻（低 32 位，estop 补发事件用） */
 extern atomic_t ts_link_up;     /* 全局链路标志（LLD §3） */
+
+/** estop 补发宣布位复位（clear_fault 调用；IR-01） */
+void ts_safety_estop_announce_reset(void);
 
 /* ts_out_value_t 的规范单字编码（审计/记录统一用；b→0/1，pwr→en<<31|ma&0x7FFFFFFF） */
 static inline uint32_t ts_value_encode(ts_ch_kind_t k, ts_out_value_t v)

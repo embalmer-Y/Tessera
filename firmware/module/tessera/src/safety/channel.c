@@ -112,13 +112,16 @@ void ts_safety_set_link(bool up)
 
 ts_res_t ts_safety_clear_fault(void)
 {
-	if (atomic_get(&ts_forced) != 0) {
-		return TS_E_STATE; /* estop 锁存：forced 不复位前拒绝（LLD §5） */
-	}
+	/* IR-01 修复（M1 自检）：clear_fault 是 estop 锁存的**唯一释放路径**
+	 *（LLD §5"clear_fault 前 forced 标志不复位"= 复位只经此处发生）；
+	 * 运行期可达性 = 仅 sys:estop-clear（host-only + 确认令牌，DEC-30①，
+	 * M3 ts-net 接线；M1 直调仅供测试）。
+	 * LLD §3 状态机图未明示复位目标态；实现取条件恢复
+	 * （link up → ACTIVE，否则 SAFE_LINKLOSS），语义随 M3 net 联调复核。 */
+	atomic_set(&ts_forced, 0);
+	ts_safety_estop_announce_reset();
 	for (size_t i = 0; i < ts_ch_count; i++) {
 		if (ts_ch_table[i].state == TS_ST_SAFE_FAULT) {
-			/* LLD §3 状态机图未明示复位目标态；实现取条件恢复
-			 * （link up → ACTIVE，否则 SAFE_LINKLOSS），语义随 M3 net 联调复核。 */
 			set_state(i, atomic_get(&ts_link_up) ? TS_ST_ACTIVE : TS_ST_SAFE_LINKLOSS);
 			ts_ch_table[i].have_last = false;
 		}

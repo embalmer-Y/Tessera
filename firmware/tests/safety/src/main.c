@@ -154,15 +154,26 @@ ZTEST(framework_safety, test_safety_full_scenario)
 	};
 	zassert_equal(ts_safety_register_channel(&one_more), TS_E_NOMEM, "registry full");
 
-	/* ---- 7. estop 直达 + 锁存（合同 5/8；终态，置于场景末尾） ---- */
+	/* ---- 7. estop 直达 + 锁存与释放（合同 5/8；IR-01 后：clear 是唯一释放路径） ---- */
 	ts_safety_force_all_fault();
 	zassert_equal(ts_safety_channel_state("pwm1", &st), TS_OK);
 	zassert_equal(st, TS_ST_SAFE_FAULT);
 	zassert_equal(ts_safety_commit("pwm1", v), TS_E_STATE, "commit locked after estop");
-	zassert_equal(ts_safety_clear_fault(), TS_E_STATE, "clear denied while forced latched");
 	zassert_equal(ts_safety_readback("pwm1", &rb), TS_OK);
 	zassert_equal(rb.u, 100, "fault value applied");
 
+	/* estop-clear（M1 直调 = 测试入口；运行期唯一入口 = sys:estop-clear，M3）：
+	 * 释放锁存 → 条件恢复（link up → ACTIVE）→ 写路径恢复 */
+	zassert_equal(ts_safety_clear_fault(), TS_OK);
+	zassert_equal(ts_safety_channel_state("pwm1", &st), TS_OK);
+	zassert_equal(st, TS_ST_ACTIVE, "conditional recovery to ACTIVE");
+	v.u = 300;
+	zassert_equal(ts_safety_commit("pwm1", v), TS_OK, "write path restored after clear");
+
+	/* 二次 estop 可再次锁存（announce 复位，IR-01） */
+	ts_safety_force_all_fault();
+	zassert_equal(ts_safety_channel_state("pwm1", &st), TS_OK);
+	zassert_equal(st, TS_ST_SAFE_FAULT, "re-latch after clear");
 	ts_time_test_bind(NULL);
 }
 

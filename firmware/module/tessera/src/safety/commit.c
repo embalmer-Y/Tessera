@@ -99,16 +99,23 @@ ts_res_t ts_safety_commit(const char *uid, ts_out_value_t v)
 		return TS_E_RANGE;
 	}
 
-	/* 4) 末段临界区：防 estop ISR 与本线程竞争末笔（LLD §4-6） */
+	/* 4) 末段临界区：防 estop ISR 与本线程竞争末笔（LLD §4-6）。
+	 * IR-02：pre-check 与此处之间 forced 可能被置位——未写回时返回 TS_E_STATE
+	 * 并如实审计（否则审计会记录一次从未落驱动的"成功"提交）。 */
 	unsigned int key = irq_lock();
+	bool written = false;
 
 	if (atomic_get(&ts_forced) == 0) {
 		ts_drivers[ch->kind].write(ch, &v);
 		s->shadow = v;
 		s->last_t = ts_time_ms();
 		s->have_last = true;
+		written = true;
 	}
 	irq_unlock(key);
+	if (!written) {
+		res = TS_E_STATE;
+	}
 
 	audit_append(i, ch->kind, v, res);
 	(void)k_mutex_unlock(&commit_lock);
