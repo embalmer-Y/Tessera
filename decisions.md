@@ -44,11 +44,13 @@
 | DEC-31 | 2026-09-21 | Q-13 按建议 A：V1 **禁止 APP 自建线程**（WAMR 线程/共享内存特性编译期不启用；ts_api_v1 不提供创建导入——"能力不存在"而非运行时配额）；并发 = 事件模型 + 语言内协作式并发 + APP 间 SMP 并行；预留 manifest v2 `threads` 字段（V1 不实现） | owner 原文："可以了我们现在开始开发把吧……"（"可以了"视为对 Q-13 建议 A 与人工检查三项的确认——如有误请 owner 纠正，本行即改）。**同批确认**：C-1 HLD v0.2.x / C-2 LLD v0.2.x 批次 / C-3 规范套件批准生效（tag `std-v1`）；M0 开工授权；开发环境 = `D:\Software\project\zephyrproject`（深查结论见 AGENTS.md 当前状态） |
 | DEC-32 | 2026-09-21 | **Agent 运行平台仅 Linux**（Windows 不支持——修订 DEC-20 宿主范围，移出 Windows PC）；**开发环境整体迁移至 WSL2**（Ubuntu 24.04：仓库 `~/tessera` + Zephyr 工作区 `~/zephyrproject`）；Windows 侧 zephyr 环境复原至 owner 原状（main 检出） | owner 原文："既然如此我希望请你复原我在windows上的zephyr环境，然后将我们整个project迁移至wsl，并记录，当前我们的agent不支持在windows下运行只做linux支持。" 环境迁移记录见 `docs/dev-environment.md` |
 | DEC-33 | 2026-09-22 | **Agent 基座 = pi（earendil-works/pi，MIT）作进程内库内核** + 官方 MCP TS SDK 2.x 门面 + 自研 Tessera 工具集（TypeScript，Node ≥22）；**架构必须为多域 Agent 预留**（未来引入 PCB AI Agent 开发、外壳/结构件开发等多种流程自动化）；**北极星目标：平台应用于机器人或 Galatea 项目时能完全自动化地"自己生产自己"** | owner 原文："Q-14：建议采用PI进行构建，同时需要为未来我们引入PCB AI Agent开发，外壳/结构件开发等多种流程的自动化预留，最终目标是该项目应用于机器人或我们的D:\Software\project\Galatea项目时能够完全自动化的自己生产自己。" 落地约束（Agent HLD 输入）：① V1 范围不变——固件域是第一个工具域；② 平台层（会话编排/任务管理/审计）与域工具集解耦，新域 = 新增工具包不改平台；③ 跨域组合走 MCP（DEC-34 双层天然支持：域 agent 互为 MCP server/client，可被上层编排 agent 驱动）；④ 北极星为方向约束，不扩大 V1 交付范围 |
-| DEC-34 | 2026-09-22 | **MCP 工具面 = 双层**：原子工具层必开（build/simulate/package/sign/deploy/provision/query…——"Agent 无豁免"检查与可测性落点，人类与成品 agent 均可直接调用）+ 高层任务工具层 V1 先 2-3 个（develop_app 等，DEC-12 能力链交付形态）；全部长任务工具按 **MCP Tasks extension** 句柄化（taskId/ttlMs/pollIntervalMs + 轮询/订阅，旧客户端同步回落）；工具面增删 = Agent 特有 review 门 | owner 原文："Q-15：认可双层选择。" 事实依据 R3 §4.6/§7；具体工具清单在 Agent HLD 定稿（走门 ③ 公共 API 变更） |
+| DEC-34 | 2026-09-22 | **MCP 工具面 = 双层**：原子工具层必开（build/simulate/package/sign/deploy/provision/query…——"Agent 无豁免"检查与可测性落点，人类与成品 agent 均可直接调用）+ 高层任务工具层 V1 先 2-3 个（develop_app 等，DEC-12 能力链交付形态）；全部长任务工具按 **MCP Tasks extension** 句柄化（taskId/ttlMs/pollIntervalMs + 轮询/订阅，旧客户端同步回落）；工具面增删 = Agent 特有 review 门 | owner 原文："Q-15：认可双层选择。" 事实依据 R3 §4.6/§7；具体工具清单在 Agent HLD 定稿（走门 ③ 公共 API 变更）。**实现机制已被 DEC-36② 细化**（Tasks extension 客户端采用为零 → 自定义句柄+轮询工具，语义对齐 Tasks V2） |
+| DEC-35 | 2026-09-22 | **ACP 二级人机接口：V1 不做，仅架构预留**——会话编排层与传输解耦（Agent HLD 须明确该边界），后补 ACP 适配模块即可启用 Zed/JetBrains 人肉驱动 | owner 原文："Q-16 · ACP 人机接口（此前详解已呈，补 R4 证据后重呈）：我们进行预留。V1 不做。" 对象 = Zed/JetBrains 的 Agent Client Protocol（与已并入 A2A 的 IBM 同名 ACP 区分，names.md 已登记命名陷阱） |
+| DEC-36 | 2026-09-22 | **Q-17 四子项全部采纳（Agent 交互栈定案）**：① 对外合同 = **MCP 唯一**（DEC-12 维持；stdio 起步 + Streamable HTTP 预留；实现纪律 = stateless-first 对齐 spec 2026-07-28 + 2025-11-25 兼容基线回归 + 规避弃用特性 Roots/Sampling/Logging/SSE/elicitation 依赖，"需更多信息"建模为工具结构化返回）；② 长任务 = **自定义任务句柄 + status/log 轮询工具**（语义对齐 Tasks V2 tasks/get/update/cancel，官方普及后平滑切换——细化 DEC-34 实现机制）；③ 领域能力分发 = **Agent Skills 开放标准**（SKILL.md；V1 随 agent 附最小固件域 skill 集；docs MCP server 可选后置）；④ 多域组合默认 = **上层编排 + 域 agent 各自 MCP 面**；**A2A v1.0 明确预留**（跨主体/长周期对等场景——如 Galatea 规模——时启用） | owner 原文："Q-17 · 交互栈确认：全部采纳，但要记录A2A的预留。" **A2A 预留记录点（owner 特别要求）**：本 DEC + `docs/names.md` A2A 行（生效·预留）+ Agent HLD 架构预留节（agent 身份/Agent Card/对等任务委托的接入缝）。watch 项：agentgateway（部署治理）、MCP roadmap agent 身份/委托线（DPoP/WIF/ID-JAG） |
 
 ## 二、问题登记（Q）
 
-### 问题批次（Agent 轨道呈递，2026-09-22；**当前待裁：Q-16 / Q-17**——Q-14/Q-15 已裁 → DEC-33/34）
+### 问题批次（Agent 轨道呈递，2026-09-22；**Q-14…Q-17 均已裁 → DEC-33…36，待裁清零**）
 
 #### Q-14 · Tessera Agent 基座选型（2026-09-22 呈递，owner 指令触发）
 
@@ -70,7 +72,7 @@
 
 #### Q-16 · ACP 二级人机接口（V1 范围，2026-09-22 呈递；同日 owner 问询触发补呈详解）
 
-- **状态**：**待裁**（owner："请你详细讲解这个二级人机接口的作用于现在计划的实现方式我来定夺"）。
+- **状态**：**已裁 → DEC-35**（2026-09-22：V1 不做，仅架构预留）。
 - **背景**：ACP（Agent Client Protocol，Zed+JetBrains 共治，v1 stable / v2 draft）= "agent 客户端"与"agent"之间的标准协议，与 MCP 互补（ACP = 客户端 ↔ agent 的人机集成；MCP = agent ↔ 工具/被其他 AI 调用）；主要 coding agent 均已支持（goose/OpenCode/Gemini 原生；pi 经社区适配器 svkozak/pi-acp）。
 - **通俗讲解（2026-09-22 补呈）**：
   - **ACP 是什么**：类比 LSP——LSP 让任何编辑器能接任何语言服务器，ACP 让任何"agent 客户端"能接任何 agent。传输 = JSON-RPC over stdio：客户端（编辑器）把 agent 作为**子进程**启动，双方交换结构化消息。
@@ -92,7 +94,7 @@
 
 #### Q-17 · Tessera Agent 交互栈确认（2026-09-22 呈递，R4 结论）
 
-- **状态**：**待裁**。
+- **状态**：**已裁 → DEC-36**（2026-09-22：四子项全部采纳 + A2A 预留显式记录）。
 - **背景**：owner 指出 DEC-12 的 MCP 选择基于其既有知识、未必最新最前沿，指令第二轮调研（R4，`docs/research/R4-agent-interaction.md`）。R4 结论：**MCP 不但没过时，反而刚完成现代化大版本（2026-07-28 stateless 断代）并已捐入 Linux Foundation AAIF 中立治理**；协议战争已收敛为分层栈（MCP+A2A v1.0+AGENTS.md 同伞 AAIF；Agent Skills 成能力分发开放标准；无颠覆者）。但 2026-07-28 断代 + 客户端现实差异要求实现纪律更新，另有 Skills 分发一项新增建议——涉及选型与对 DEC-34 的实现级细化，按门 ① 呈递。
 - **通俗解释**：
   - **AAIF / open agentic stack**：Linux Foundation 旗下基金会（2025-12 成立），Anthropic 捐 MCP、OpenAI 捐 AGENTS.md、Google 系 A2A 2026-08 入会——三大件同伞，事实上的"agent 互操作标准栈"；R4 判定协议层无颠覆者，押注该栈 = 押注主流。
@@ -267,3 +269,4 @@
 - 2026-09-22 · **Agent 轨道启动**（owner 指令）：R3 基座选型调研落盘（`docs/research/R3-agent-foundation.md` v1.0，三路并行实查）；登记待裁 **Q-14**（Agent 基座选型，建议 A：pi 库内核 + 官方 MCP TS SDK 门面）/ **Q-15**（MCP 工具面形态，建议双层）/ **Q-16**（ACP 二级接口，建议 V1 不做）。
 - 2026-09-22 · **裁决批次 5（Agent 轨道首批）**：Q-14 → **DEC-33**（pi 基座 + 多域 Agent 预留 + 北极星"应用于机器人/Galatea 时完全自动化自己生产自己"）、Q-15 → **DEC-34**（双层 MCP 工具面 + 长任务 Tasks 句柄化）；Q-16 按 owner 要求补呈详解（作用 + 实现方式）后**仍待裁**。tag `dec-33-34`。
 - 2026-09-22 · **R4 交互与接入方式调研**（owner 质疑 MCP 选型触发，`docs/research/R4-agent-interaction.md` v1.0）：MCP 确认为前沿正确选择（协议格局已收敛为 AAIF open agentic stack）；登记待裁 **Q-17**（交互栈确认 4 子项：MCP 维持+实现纪律 / 长任务机制细化 / Skills 分发 / A2A 预留）；**Q-16 重呈**（R4 证据补强）。
+- 2026-09-22 · **裁决批次 6（Agent 轨道交互栈）**：Q-16 → **DEC-35**（ACP：V1 不做仅预留）、Q-17 → **DEC-36**（交互栈 4 子项全采纳 + A2A 预留显式登记，owner 特别要求）。tag `dec-35-36`。**Agent 轨道待裁 Q 清零**——research 阶段落定，下一交付单元 = Agent design（HLD）。

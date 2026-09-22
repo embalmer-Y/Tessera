@@ -6,6 +6,10 @@
 
 ## 1. 当前状态
 
+- **2026-09-22（四） · 裁决批次 6（tag `dec-35-36`）：DEC-35（Q-16：ACP V1 不做仅预留）+ DEC-36（Q-17：交互栈 4 子项全采纳，A2A v1.0 预留显式登记）——Agent 轨道待裁 Q 清零，research 阶段落定**
+  - 交互栈定案（DEC-36）：MCP 唯一对外合同（stateless-first 对齐 2026-07-28 + 2025-11-25 兼容基线回归 + 弃用特性规避）；长任务 = 自定义任务句柄 + status/log 轮询工具（语义对齐 Tasks V2，细化 DEC-34）；领域能力分发 = Agent Skills（SKILL.md，V1 附最小固件域 skill 集）；多域组合默认 = 上层编排 + 域 agent 各自 MCP 面；**A2A v1.0 预留**（owner 要求显式记录：DEC-36 + names.md A2A 行 + Agent HLD 架构预留节——agent 身份/Agent Card/对等任务委托接入缝；Galatea 规模/跨主体对等场景启用）。
+  - ACP（DEC-35）：V1 不做，仅架构预留（会话编排层与传输解耦；后补适配模块即启用 Zed/JetBrains 人肉驱动）。
+  - **Agent 轨道 research 全部落定**（R3 基座 + R4 交互栈，Q-14…Q-17 → DEC-33…36）。下一交付单元 = **Agent design（HLD）**：输入 = DEC-33/34/35/36 + R3/R4 事实集 + 北极星多域预留；固件主线并行不变（GitHub 远端 → M1）。
 - **2026-09-22（三） · R4 交互与接入方式调研完成（owner 质疑 MCP 选型触发，`docs/research/R4-agent-interaction.md` v1.0）：MCP 确认为前沿正确选择——协议格局已收敛为 AAIF open agentic stack；呈递 Q-17（交互栈确认 4 子项）+ Q-16 重呈（R4 证据补强）**
   - R4 要点：① 协议战争收敛——MCP+A2A(v1.0)+AGENTS.md 同入 Linux Foundation AAIF，Agent Skills（SKILL.md）成能力分发开放标准（**pi 原生支持**），无颠覆者；② MCP 2026-07-28 断代（stateless/MRTR/弃用 Roots/Sampling/Logging）→ 实现纪律 stateless-first + 2025-11-25 兼容基线；③ 长任务现实：Tasks extension 客户端采用为零 → 自定义句柄+轮询工具落地（Q-17② 细化 DEC-34）；④ 生态位验证：Quilter Speedrun（AI 设计主板已造出但**固件 bring-up 全人工**）+ IoT-SkillsBench（专家 skills≈满分）+ ESP-IDF v6 官方 MCP（同构先例）——Tessera 定位空置但窗口收窄。
   - 命名陷阱（已登记 names.md）：Zed/JetBrains 的 ACP（Q-16 对象，编辑器↔agent，客户端 80+）≠ IBM 的同名 ACP（已并入 A2A 消亡）。
