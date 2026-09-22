@@ -47,7 +47,7 @@
 | R3 | Agent 基座选型调研（coding agent / 框架 / MCP 封装） | owner 指令（2026-09-22） | v1.0 落盘，随 Q-14/Q-15/Q-16 呈递待裁 |
 | R4 | Agent 交互与接入方式调研（协议/实践/趋势） | owner 指令（2026-09-22，质疑 MCP 选型触发） | v1.0 落盘，随 Q-16 重呈 + Q-17 新登记待裁 |
 | R5 | Agent Python 栈 HLD 级核验（PydanticAI/FastMCP/TSAP 签名栈/zenoh-python） | owner 指令（2026-09-22，Q-18 涟漪审查"有调整的地方需要重新research"） | v1.0 落盘，供 Agent HLD 与 design-review-02 使用 |
-| MA0…MA3 | Agent 轨道里程碑（骨架/网关+核心+fw 工具/模拟器+TSAP/部署+skills+高层链） | design/HLD-agent.md §7 | MA0 进行中（2026-09-22 开工，DEC-39）；MA1…MA3 待启动 |
+| MA0…MA3 | Agent 轨道里程碑（骨架/网关+核心+fw 工具/模拟器+TSAP/部署+skills+高层链） | design/HLD-agent.md §7 | MA0 **本地完成**（2026-09-22，ruff+pytest 绿；CI 点亮随远端）；MA1…MA3 待启动 |
 | project-plan | 统一项目开发计划（双轨 M 系 + MA 系，DEC-39 授权） | docs/project-plan.md | v1.0 生效 |
 | M0 | west 工作区 + native_sim 空模块构建 + CI 骨架 | FOUNDING_PROMPT §7 | **本地全绿（2026-09-21，WSL：构建+twister 运行级+pytest）**；仅余 GitHub 远端推送（CI 上线） |
 | M1 | ts-core + ts-safety（安全层最小闭环） | HLD §7 | 待启动（规格已生效） |

@@ -6,6 +6,10 @@
 
 ## 1. 当前状态
 
+- **2026-09-22（九） · MA0 交付（DEC-39 开工授权）：agent/ 骨架 + CI 接线 + DR-18/19 补节——本地全绿（ruff 全过 + agent pytest 13/13 + 仓库 pytest 2/2）；CI yaml 就绪（agent-checks job，随 GitHub 远端点亮，同 M0 惯例）**
+  - 交付物：`agent/pyproject.toml`（依赖钉版 = DEC-38 #1）/ `config.example.toml` / `tessera_agent/`（8 子包 + 配置加载器 LLD-A00 §4 + CLI 桩）/ `agent/tests/`（13 用例）；`.github/workflows/ci.yml` 增 `agent-checks`（ruff + pytest）；`.gitignore` 增 agent 运行时产物（audit/keys/build/config.toml）；`docs/std/versioning.md` §4.1（DR-18 Python 钉版）；`docs/dev-environment.md` §1/§3.5（DR-19，agent-venv = `~/project/agent-venv` 已建立）。
+  - 统一计划：`docs/project-plan.md` v1.0（双轨 M 系 + MA 系，DEC-39）——**下一交付单元 = M1**（ts-core+ts-safety+L5 脚本+L4 重放雏形；MA2 的接口依赖），之后 MA1。
+  - 待 owner：GitHub 远端地址（DEC-24）→ M0 完整退出 + 双 CI job 点亮。
 - **2026-09-22（八） · 裁决批次 8（tag `dec-38`）：Q-19 已裁——11 项按建议 + #6/#9 owner 修订（上下文压缩 V1 即支持：动态预算取模型窗口/阈值 70%/最低 32k；输出截断动态化：预算×5%/最低 16KiB+2KiB）；设计文档已同步（HLD v0.1.1 / LLD-A00·A01·A02 v0.1.1）——仅余 C-4/C-5 文档确认**
   - DEC-38 落地数值（32k/5%/16KiB/2KiB）= owner 授权 design 定并登记于 DEC（代码常量出处）；压缩语义：保留系统提示/skills/近期轮次 + 远段摘要，压缩后仍超限才失败，原始历史不丢弃（审计保留）。
   - 待 owner：**C-4**（HLD-agent v0.1.1 确认）/ **C-5**（LLD-A00…A07 批次确认）→ MA0 开工。

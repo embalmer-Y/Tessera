@@ -26,6 +26,15 @@ __pycache__/
 .venv/
 venv/
 
+# ---- Agent 运行时产物（LLD-A00：审计/密钥/构建/本地配置不入库）----
+agent/audit/
+agent/keys/
+agent/build/
+agent/config.toml
+.ruff_cache/
+*.egg-info/
+dist/
+
 # ---- Node（Agent PC 侧可能使用）----
 node_modules/
 

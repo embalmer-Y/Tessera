@@ -1,0 +1,30 @@
+# tessera-agent 配置模板（LLD-A00 §4）
+# 用法：复制为 agent/config.toml（已 gitignore）；密钥一律环境变量，不入本文件。
+# 优先级：内置默认 < config.toml < 环境变量（TESSERA_AGENT_CONFIG / TESSERA_AGENT_DEFAULT_MODEL）。
+
+[agent]
+workspace_repo = "~/project/tessera"           # 固件仓库（HLD-agent §1 单工作区模型）
+west_workspace = "~/project/zephyrproject"     # west 工作区
+west_venv_python = "~/project/zephyrproject/.venv/bin/python"  # fw_* 工具子进程解释器
+audit_dir = "~/project/tessera/agent/audit"    # 审计双流落盘（LLD-A00 §3）
+
+[providers]
+# 默认模型串（PydanticAI 格式）：openai:gpt-… / anthropic:claude-… / ollama:qwen3 …
+default_model = "ollama:qwen3"
+# 自定义 OpenAI-compatible 端点（DEC-12 提供者无关）：
+# [providers.custom]
+# base_url = "http://127.0.0.1:8000/v1"
+
+[policy]
+# 工具审批类别覆盖（LLD-A02 §3）：只可收紧 auto→confirm→strict，不可放宽。
+# fw_build = "strict"
+# deploy_push_app = "strict"   # 默认已是 strict
+
+[zenoh]
+router_locator = "tcp/127.0.0.1:7447"
+# TLS（自签场景必须显式 root_ca，R5 §5 教训）：
+# tls_config = "~/project/zenohd/zenoh-tls.json5"
+
+[limits]
+# 空缺项 = DEC-38 默认（TTL 30min / 审批等待 10min / 日志环形 1000 行 / 限流 30/min 等）；
+# 上下文预算与压缩随模型配置动态（DEC-38 #6），不在此静态配置。

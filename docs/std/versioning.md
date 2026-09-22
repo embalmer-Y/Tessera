@@ -34,6 +34,12 @@
 - 升级 = 独立 `build(deps):` 提交，说明升级动因（安全修复优先）+ 回归范围；WAMR minor 含 breaking changes（R1 v0.2 核验），升级前查 release notes。
 - Zephyr 版本基线 = **4.4**（DEC-19），并按 owner 指令**持续跟进最新 stable**：每个 Zephyr release 评估升级，升级走显式提交 + 全量回归（钉住具体版本，禁浮动引用）；变更走技术栈变更门（§2.4-⑤，须证明阻塞性）。
 
+### §4.1 Python 依赖钉住（agent/；DR-18，MA0 增补）
+
+- agent/ 的 Python 依赖经 `agent/pyproject.toml` 钉版，**出处 = Q-19 #1 / DEC-38**：`pydantic-ai-slim[openai,anthropic,google,mcp]==2.47.*`、`fastmcp==4.0.*`、`cbor2==6.1.4`、`pycose==1.1.0`、`cryptography>=42`、`eclipse-zenoh==1.10.1`（**三方同 minor**：zenohd router / zenoh-python / 固件 zenoh-pico，DR-22）；禁浮动引用。
+- 升级 = 独立 `build(deps):` 提交 + agent 测试全量回归；eclipse-zenoh 升级还须三方协同（牵动固件 M3a）；技术栈级变更走 §2.4-⑤ 门。
+- 虚拟环境：`~/project/agent-venv`（独立于固件 venv，见 `docs/dev-environment.md` §3.5）。
+
 ## 5. 产物命名与版本落地
 
 - 固件版本号 = `git describe` 生成并写入构建（版本字符串可在运行时经 `sys/version` 查询，供 Agent 与日志对齐）。

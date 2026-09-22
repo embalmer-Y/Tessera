@@ -9,8 +9,9 @@
 ~/project/                       # 开发根（owner 指定，2026-09-21）
   tessera/                       # 本项目仓库（git，主库；自 Windows D:\ 迁入）
   zephyrproject/                 # west 工作区（Zephyr 树 + modules，仓库之外——FOUNDING_PROMPT §4）
-    .venv/                       # 专用 Python 虚拟环境（不可移动！见 §5 教训）
+    .venv/                       # 固件专用 Python 虚拟环境（不可移动！见 §5 教训）
     build-m0-app/  twister-out/  # 构建产物（不入任何 git 库）
+  agent-venv/                    # Agent 专用 venv（MA0 起，DR-19；Python 3.12，依赖钉版见 agent/pyproject.toml）
   logs/                          # 本地构建/测试日志（持久路径；/tmp 是 tmpfs 勿用）
 ```
 
@@ -44,6 +45,19 @@ cd ~/project/zephyrproject
 ```
 
 - 注：`-DZEPHYR_EXTRA_MODULES` 的路径含 `~` 时须展开（脚本中用 `$HOME`）；后续按 `docs/std/versioning.md` §4 迁入自管 west manifest 后可省。
+
+### §3.5 Agent 开发命令（MA0 起，DR-19）
+
+```bash
+# 初始化（一次性）：独立 venv + 钉版安装（DEC-38 #1；pip 清华镜像）
+python3.12 -m venv ~/project/agent-venv
+~/project/agent-venv/bin/pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -e "~/project/tessera/agent[dev]"
+# lint + 测试（军规 10：交付即验证）
+~/project/agent-venv/bin/ruff check ~/project/tessera/agent
+~/project/agent-venv/bin/python -m pytest ~/project/tessera/agent/tests -v
+```
+
+- agent venv 与固件 venv **互不混用**（依赖面隔离；工具链调用经子进程，LLD-A03 §3）；CI 侧等价 job 见 `.github/workflows/ci.yml` `agent-checks`。
 
 ## 4. Windows 侧复原记录（2026-09-21，DEC-32）
 

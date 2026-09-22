@@ -1,0 +1,45 @@
+# Tessera Agent 包定义（MA0 骨架；LLD-A00…A07）
+# 依赖钉版出处：Q-19 #1 / DEC-38；升级走显式提交 + agent 测试全量回归（docs/std/versioning.md §4.1）。
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tessera-agent"
+version = "0.1.0"
+description = "Tessera AI Agent - MCP server wrapping firmware build/simulate/package/deploy toolchain"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+dependencies = [
+    # 来源: DEC-38 #1（R5 §6 定案）
+    "pydantic-ai-slim[openai,anthropic,google,mcp]==2.47.*",
+    "fastmcp==4.0.*",
+    "cbor2==6.1.4",
+    "pycose==1.1.0",
+    "cryptography>=42",
+    "eclipse-zenoh==1.10.1",  # 三方同 minor：zenohd/zenoh-python/zenoh-pico（DR-22）
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-json-report",  # 来源: DEC-38 #1（fw_pytest 结果解析同源）
+    "ruff>=0.6",           # 来源: Q-19 #11
+]
+
+[project.scripts]
+tessera-agent = "tessera_agent.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["tessera_agent"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# ASYNC = 阻塞调用检查（DR-23：事件循环内禁阻塞）；B = 常见缺陷；I = 导入排序；UP = 现代化
+select = ["E", "F", "I", "B", "UP", "ASYNC"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
