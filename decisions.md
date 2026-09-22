@@ -50,7 +50,7 @@
 
 ## 二、问题登记（Q）
 
-### 问题批次（Agent 轨道呈递，2026-09-22；**Q-14…Q-17 均已裁 → DEC-33…36，待裁清零**）
+### 问题批次（Agent 轨道呈递，2026-09-22；**当前待裁：Q-18**——Q-14…Q-17 已裁 → DEC-33…36）
 
 #### Q-14 · Tessera Agent 基座选型（2026-09-22 呈递，owner 指令触发）
 
@@ -108,6 +108,19 @@
   - ④ **多域组合模式**：默认 = 上层编排 + 域 agent 各自 MCP 面（agents-as-tools，2026 生产主流）；**A2A v1.0 仅预留**（跨主体/长周期对等场景，如 Galatea 规模）；AGENTS.md 维持现状（已 AAIF 标准）。watch：agentgateway（部署治理）、MCP roadmap 的 agent 身份/委托线。
 - **建议**：①②③④ 全部采纳。①④ 为确认与预留（零新增成本）；② 是 R4 发现的现实约束修正（不采纳则长工具在真实客户端上必超时）；③ 新增但低成本高收益（pi 原生支持 + 学术佐证 + 解决训练截止痛点）。
 - **影响**：Agent HLD 交互层规格（stateless 设计/句柄式返回/弃用规避清单）；agent/ 增 skills 目录与最小 skill 集；后续上线时 MCP Registry 占名（工程事项，不另开 Q）。
+
+#### Q-18 · Agent 实现语言（TypeScript/Node vs Python vs Rust，2026-09-22 呈递，owner 问询触发）
+
+- **状态**：**待裁**。
+- **背景**：DEC-33 定 Agent 基座 = pi（进程内库）+ 官方 MCP TS SDK 门面 + 自研工具集，实现语言随之 = TypeScript/Node。owner 问询：可否改为 Python 或 Rust 开发？语言选择与基座用法**强耦合**：pi 只以 TS 库形式存在（R3 §4.1 实查：包 @earendil-works/pi-coding-agent 内含 SDK，`createAgentSession`/`Agent` 类 import 使用；另有 `pi --mode rpc` 子进程 JSONL 模式供非 Node 宿主集成）；换语言 = 换 pi 的使用方式或换基座。语言运行时性能不构成决策因素（Agent 是 PC 侧编排器，瓶颈在构建/仿真子进程）。
+- **通俗解释（关键耦合点）**：选 TS 不是因为 Node 本身更优，而是 **pi 这个 agent 内核只有 TS 库形态**——只有同语言直接 import，才能拿到 DEC-33 的两个决定性优势：单进程最薄封装（MCP 门面与 agent 循环同进程，无跨进程跳数）+ `beforeToolCall` 进程内钩子（可阻断/改写工具调用 = "Agent 无豁免"的宿主侧闸）。换语言的两条路：① pi 照用但降级为**子进程经 RPC（stdio JSONL）驱动**——基座保留，多一层进程间通信；权限闸改为"自定义工具内部强制 + 一个小型 pi 扩展（JS，随 pi 子进程加载）兜底内置工具"；② 弃 pi 换语言原生框架（Python = PydanticAI + FastMCP 自建循环，即 R3 方案 D；Rust ≈ 全自研）。
+- **选项**：
+  - A. **维持 TypeScript/Node**（DEC-33 不变）：pi 进程内库——最薄封装、钩子全控、单进程。
+  - B. **Python 宿主 + pi RPC 子进程**：保留 pi 基座；MCP 门面改用官方 Python SDK / FastMCP（Tier-1 成熟）；与固件工具链（west/twister/pytest）同生态，胶水层可原生调用同语言异常处理而非子进程 JSON 解析；代价 = 一层 RPC + 强制点移位（工具内 + JS 小扩展）。
+  - C. **Python 全自研**（PydanticAI v2 + FastMCP，R3 方案 D）：纯 Python；但会话管理/文件编辑工具/上下文策略全自建，违背 owner"基于现有 agent"指令精神。
+  - D. **Rust**：pi 不可用；goose crate 无稳定公共 API（R3 ⚠️未核验其承诺）；MCP Rust SDK（rmcp，goose 所用）成熟度低于 TS/Python Tier-1；基本等于全自研——工程量最大、迭代最慢。
+- **建议**：**A 维持**（DEC-33 理由仍然成立：pi 进程内嵌入是决定性优势，语言是基座的从属选择；固件 Python 工具链经子进程复用的成本已评估可接受——west/twister 本就是 CLI 优先设计）。若 owner 更看重**与固件 Python 工具链同生态**或团队 Python 熟悉度，**B 是可接受变体**（保留基座决策，仅语言层修订；且强制点移入工具内部反而更硬——闸在产物必经路径上）。C/D 不建议。
+- **影响**：选 A 无变化；选 B → DEC-33 语言条款修订（TypeScript → Python 宿主 + pi RPC），agent/ 结构 = FastMCP/官方 Py SDK 门面 + pi 子进程管理器 + JS 小扩展（进程内闸）+ Python 工具集，Agent HLD 按此展开；选 C/D → 基座决策重开（须重新走门 ⑤ 技术栈变更）。
 
 ### 问题批次（design 阶段呈递；Q-01…Q-13 均已裁）
 
@@ -270,3 +283,4 @@
 - 2026-09-22 · **裁决批次 5（Agent 轨道首批）**：Q-14 → **DEC-33**（pi 基座 + 多域 Agent 预留 + 北极星"应用于机器人/Galatea 时完全自动化自己生产自己"）、Q-15 → **DEC-34**（双层 MCP 工具面 + 长任务 Tasks 句柄化）；Q-16 按 owner 要求补呈详解（作用 + 实现方式）后**仍待裁**。tag `dec-33-34`。
 - 2026-09-22 · **R4 交互与接入方式调研**（owner 质疑 MCP 选型触发，`docs/research/R4-agent-interaction.md` v1.0）：MCP 确认为前沿正确选择（协议格局已收敛为 AAIF open agentic stack）；登记待裁 **Q-17**（交互栈确认 4 子项：MCP 维持+实现纪律 / 长任务机制细化 / Skills 分发 / A2A 预留）；**Q-16 重呈**（R4 证据补强）。
 - 2026-09-22 · **裁决批次 6（Agent 轨道交互栈）**：Q-16 → **DEC-35**（ACP：V1 不做仅预留）、Q-17 → **DEC-36**（交互栈 4 子项全采纳 + A2A 预留显式登记，owner 特别要求）。tag `dec-35-36`。**Agent 轨道待裁 Q 清零**——research 阶段落定，下一交付单元 = Agent design（HLD）。
+- 2026-09-22 · 登记待裁 **Q-18**（Agent 实现语言：TS 维持 / Python 宿主+pi RPC / 全自研，owner 问询"可否改为 python 或 rust"触发；建议 A 维持，B 为可接受变体）。
