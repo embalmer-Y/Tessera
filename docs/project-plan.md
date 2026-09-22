@@ -30,7 +30,7 @@
 |---|---|---|---|
 | **MA0** | agent/ 骨架（包结构/config/CLI 桩/CI 接线）+ DR-18（versioning Python 钉版节）+ DR-19（dev-env agent venv 节） | **本批开工（DEC-39）** | 本地 pytest + ruff 绿；CI yaml 就绪（上线随远端，同 M0 惯例） |
 | **MA1** | A00+A01+A02+A03：网关/编排/审批闸/审计 + fw_* 最小集 + sys_*/task_* | **本地全绿（2026-09-22）**——FastMCP 客户端实测（sys/task/审批流）+ fw_pytest 与 fw_build 句柄化实测；CI 随远端 | MCP 客户端实测：build 句柄化跑通 + 审批流实测 ✓ |
-| **MA2** | A04 模拟器 + A05 TSAP 签名 | 待启动（依赖 §4） | 签名往返 + 双实现互验 + smoke 确定性比对绿 |
+| **MA2** | A04 模拟器 + A05 TSAP 签名 | **本地全绿（2026-09-22）**——pytest 33+1(E2E 实证) 全绿：TSAP 往返+双实现互验+篡改矩阵；sim E2E 真实构建+双跑确定性绿 | 签名往返 + 双实现互验 + smoke 确定性比对绿 ✓ |
 | **MA3** | A06 zenoh 部署 + A07 skills + 高层链 app_develop/app_deploy | 待启动（依赖 §4） | 端到端：spec → TSAP 包 → 部署到仿真立方体 |
 
 ## 4. 交叉依赖（双轨咬合点）

@@ -26,6 +26,9 @@ from tessera_agent.common.limits import ContextBudget
 from tessera_agent.common.tasks import TaskRegistry
 from tessera_agent.gateway.approvals import ApprovalBroker
 from tessera_agent.tools_fw import tools as fw
+from tessera_agent.tools_sim import runner as sim_runner
+from tessera_agent.tools_sim.scenario import scenario_validate
+from tessera_agent.tools_tsap import tools as tsap_tools
 
 # 来源: DEC-38 #10——限流 30 工具调用/min/客户端
 RATE_LIMIT_PER_MIN = 30
@@ -210,6 +213,52 @@ def build_app(ctx: AppContext) -> FastMCP:
             return await fw.fw_pytest(ctx.cfg, ctx.budget, scope=scope, log_fn=log)
 
         return await spawn("fw_pytest", args, body)
+
+    # ---- sim_*（MA2，LLD-A04）----------------------------------------------
+    @mcp.tool
+    @audited("sim_validate_scenario")
+    async def sim_validate_scenario(scenario: dict) -> dict:
+        """校验仿真场景 schema v1（inputs 升序/op 合法等）；返回错误清单（空=合法）。"""
+        return {"errors": scenario_validate(scenario)}
+
+    @mcp.tool
+    @audited("sim_run")
+    async def sim_run(scenario: dict, rebuild: bool = False) -> dict:
+        """运行确定性重放仿真（framework.replay 双跑比对 + 期望评估；长任务句柄）。"""
+        args = {"scenario": scenario, "rebuild": rebuild}
+        task_id = f"simrun-{secrets.token_hex(4)}"
+
+        async def body(task) -> dict:
+            log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
+            return await sim_runner.sim_run(ctx.cfg, scenario, task_id=task_id, log_fn=log)
+
+        return await spawn("sim_run", args, body)
+
+    # ---- tsap_*（MA2，LLD-A05；无签名不产出——硬点）--------------------------
+    @mcp.tool
+    @audited("tsap_keygen")
+    async def tsap_keygen(name: str, out_dir: str = "agent/keys") -> dict:
+        """生成 ed25519 开发密钥对（私钥 0600 落盘，不回显/不入审计）。"""
+        return tsap_tools.tsap_keygen(name, out_dir, [str(ctx.cfg.workspace_repo)])
+
+    @mcp.tool
+    @audited("tsap_package")
+    async def tsap_package(
+        wasm_path: str, manifest: dict, key_path: str, out_dir: str = "agent/build"
+    ) -> dict:
+        """TSAP 打包签名（canonical CBOR + COSE_Sign1 双实现互验；长任务句柄）。"""
+        args = {"wasm_path": wasm_path, "manifest": manifest, "key_path": key_path}
+
+        async def body(task) -> dict:
+            return tsap_tools.tsap_package(wasm_path, manifest, key_path, out_dir)
+
+        return await spawn("tsap_package", args, body)
+
+    @mcp.tool
+    @audited("tsap_verify")
+    async def tsap_verify(package_path: str, pub_key_path: str) -> dict:
+        """TSAP 包全量反向验证（容器头 + COSE 双实现 + manifest 解码）。"""
+        return tsap_tools.tsap_verify(package_path, pub_key_path)
 
     return mcp
 

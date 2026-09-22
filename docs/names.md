@@ -59,6 +59,11 @@
 | tsap.h / tsap_view_t / TSAP_MAGIC / TSAP_HEADER_SIZE | TSAP v1 容器格式定稿（16 字节头/大端；M2a，DEC-21） | include/ts/tsap.h | 已实现（M2a） |
 | ts_sha256 / ts_sha256_ctx_t | 自包含 SHA-256（slot 安装校验摘要；M2a，宿主向量对拍 hashlib 验证） | src/store/sha256.c | 已实现（M2a） |
 | framework.store | M2a twister 用例（meta 撕裂/prov 校验/slot+sha 向量/noinit/tsap 头） | firmware/tests/store | 已实现（M2a 全绿） |
+| TsapManifest / manifest CBOR schema v1 | Agent 侧 manifest 镜像（canonical CBOR；app_id/semver/health_ping 必含校验） | agent/tessera_agent/tools_tsap/manifest.py | 已实现（MA2） |
+| cose 双实现族（sign_pycose/sign_diy/verify_both/sign_cross_verified） | COSE_Sign1(ed25519) 双实现互验（DR-21 单键纪律 + pycose 停更对冲） | agent/tessera_agent/tools_tsap/cose.py | 已实现（MA2） |
+| Scenario / SimInput / SimExpectation | 仿真场景 schema v1（inputs 升序/eq-within-count） | agent/tessera_agent/tools_sim/scenario.py | 已实现（MA2） |
+| sim_run 执行器（_replay_build/_replay_run_once） | L4 重放直接二进制执行（M1 接口）+ 双跑确定性 + 期望评估 + timeline_digest | agent/tessera_agent/tools_sim/runner.py | 已实现（MA2） |
+| test_sim_e2e | MA2 退出 E2E（真实构建+双跑+断言；env TESSERA_SIM_E2E=1 启用） | agent/tests/test_tsap_sim.py | 已验证通过（2026-09-22） |
 | project-plan | 统一项目开发计划（双轨 M 系 + MA 系，DEC-39 授权） | docs/project-plan.md | v1.0 生效 |
 | M0 | west 工作区 + native_sim 空模块构建 + CI 骨架 | FOUNDING_PROMPT §7 | **本地全绿（2026-09-21，WSL：构建+twister 运行级+pytest）**；仅余 GitHub 远端推送（CI 上线） |
 | M1 | ts-core + ts-safety（安全层最小闭环） | HLD §7 | **本地全绿（2026-09-22）：twister 4/4 配置 12 用例 + L5 5/5 + pytest；M1 退出 review 门已呈报** |
