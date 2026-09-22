@@ -1,6 +1,5 @@
-# Tessera firmware framework module
 # SPDX-License-Identifier: Apache-2.0
-# 子系统 Kconfig 自 M1 起按 design/LLD-* 逐模块加入（ts-core/ts-safety/…）。
+# Tessera framework module Kconfig（子系统按 design/LLD-* 逐里程碑加入）。
 
 menu "Tessera framework"
 
@@ -12,6 +11,58 @@ config TS_MODULE
 	  into the Zephyr build (ZEPHYR_EXTRA_MODULES / west manifest).
 	  Source: M0 skeleton (design/HLD-firmware-framework.md §7 M0).
 
-comment "Subsystems land from M1 per design/LLD-* (ts-core, ts-safety, ts-hal, ts-appmgr, ts-net, ts-power, ts-periph, ts-store)"
+config TS_CORE
+	bool "ts-core: boot orchestration / event bus / time / WDT framework"
+	depends on TS_MODULE
+	default y
+	help
+	  design/LLD-ts-core.md (M1).
+
+if TS_CORE
+
+config TS_CORE_EVT_QUEUE_DEPTH
+	int "ISR event post queue depth"
+	default 16
+	help
+	  Source: DEC-27 (LLD-ts-core §4/§6).
+
+config TS_CORE_MAX_SUBS
+	int "Max subscribers per event type"
+	default 4
+	help
+	  Source: DEC-27 (LLD-ts-core §4/§6). Registry full = TS_E_NOMEM at init.
+
+config TS_TEST
+	bool "Test build hooks (virtual clock / injection / observable fail path)"
+	default n
+	help
+	  Enables ts_time_test_bind, ts_evt_poll_drain, ts_wdt_patrol_once and
+	  non-halting ts_safety_system_fail (LLD-ts-core §3/§6, LLD-ts-safety §5).
+
+endif # TS_CORE
+
+config TS_SAFETY
+	bool "ts-safety: output protection / three safe states / estop / fail-safe"
+	depends on TS_CORE
+	default y
+	help
+	  design/LLD-ts-safety.md (M1).
+
+if TS_SAFETY
+
+config TS_SAFETY_MAX_CHANNELS
+	int "Output channel registry capacity"
+	default 32
+	help
+	  Source: DEC-27 (LLD-ts-safety §2/§7).
+
+config TS_SAFETY_AUDIT_DEPTH
+	int "Commit audit ring depth"
+	default 64
+	help
+	  Source: DEC-27 (LLD-ts-safety §4/§7). Overflow overwrites oldest and
+	  counts drops (DR-07); not persisted in V1 (DEC-30-4).
+
+endif # TS_SAFETY
 
 endmenu

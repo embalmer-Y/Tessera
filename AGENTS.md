@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-09-22（十） · M1 交付（DEC-39 统一计划后首个固件单元）：ts-core + ts-safety + L5 机械检查 + L4 重放雏形——本地全绿（app 构建 ✓ / twister 4/4 配置 12 用例 100% ✓ / L5 5/5 ✓ / pytest ✓）；停在 M1 退出 review 门**
+  - 交付物：`firmware/module/tessera/`（include/ts/{err,core,safety}.h + src/core/{time,events,wdt,boot}.c + src/safety/{channel,commit,force,driver_dispatch}.c + Kconfig 八项 DEC-27 出处）；`firmware/tests/{core,safety,replay}`（L1 + 有状态顺序场景 + L4 雏形）；`firmware/tests/l5/check_l5.py`（五项机械检查）+ CI `l5-checks` job；app 接入 ts_core_boot。
+  - 实现收敛留痕（LLD v0.2.2 已登记）：BOOT_STEP 事件收敛为完成后单条；限幅拦截返回 TS_E_RANGE；estop/system_fail 不发 SAFE_STATE_CHANGED（观测走 ESTOP 补发）；clear_fault 条件恢复目标态（M3 复核）；estop 补发 = 巡检检测 forced 上升沿。
+  - **L4 雏形接口定稿（MA2 依赖）**：输入 = 虚拟时钟脚本（V1 编译期内嵌）、输出 = stdout JSONL（{"t_ms","ch","value_u"}）、判定 = ztest 退出码；确定性验证 = 双通道同脚本逐项比对 + 规格推导 golden（禁"跑一遍当基准"）。
+  - 待 owner：**M1 退出 review**（DoD 对照见呈报；CI 上线随 GitHub 远端——与 M0 同一阻塞项）。下一单元 = MA1。
 - **2026-09-22（九） · MA0 交付（DEC-39 开工授权）：agent/ 骨架 + CI 接线 + DR-18/19 补节——本地全绿（ruff 全过 + agent pytest 13/13 + 仓库 pytest 2/2）；CI yaml 就绪（agent-checks job，随 GitHub 远端点亮，同 M0 惯例）**
   - 交付物：`agent/pyproject.toml`（依赖钉版 = DEC-38 #1）/ `config.example.toml` / `tessera_agent/`（8 子包 + 配置加载器 LLD-A00 §4 + CLI 桩）/ `agent/tests/`（13 用例）；`.github/workflows/ci.yml` 增 `agent-checks`（ruff + pytest）；`.gitignore` 增 agent 运行时产物（audit/keys/build/config.toml）；`docs/std/versioning.md` §4.1（DR-18 Python 钉版）；`docs/dev-environment.md` §1/§3.5（DR-19，agent-venv = `~/project/agent-venv` 已建立）。
   - 统一计划：`docs/project-plan.md` v1.0（双轨 M 系 + MA 系，DEC-39）——**下一交付单元 = M1**（ts-core+ts-safety+L5 脚本+L4 重放雏形；MA2 的接口依赖），之后 MA1。

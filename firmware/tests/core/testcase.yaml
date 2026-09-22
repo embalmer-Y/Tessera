@@ -1,0 +1,7 @@
+tests:
+  framework.core:
+    tags: framework
+    integration_platforms:
+      - native_sim
+    platform_allow:
+      - native_sim

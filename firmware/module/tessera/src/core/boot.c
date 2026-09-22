@@ -1,0 +1,87 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/*
+ * 初始化编排器（LLD-ts-core §2）：顺序表驱动；合同 6（任一步失败 → 全系统 fail-safe）。
+ */
+#include <ts/core.h>
+#include <ts/safety.h>
+#include <zephyr/kernel.h>
+
+/* 事件 payload 类型（core.h 侧集中定义于本文件上方 include；此处仅实现） */
+
+static ts_res_t step_estop_gpio(void)
+{
+	/* estop DT 绑定（DR-11）：chosen 节点 ts,estop-gpio；无节点板（native_sim/测试）空操作。
+	 * 生产板必须提供（板级断言 M2+ 强化）。实现在 ts-safety force.c。 */
+	return ts_safety_estop_init();
+}
+
+static ts_res_t step_safety_poweron(void)
+{
+	/* 全通道置 SAFE_POWERON 初态（注册表此刻通常为空——通道随 ts-periph 注册；
+	 * 本步确保任何“boot 期已注册”通道即刻进入安全态）。 */
+	return ts_safety_poweron_init();
+}
+
+static ts_res_t step_wdt_start(void)
+{
+	return ts_wdt_start();
+}
+
+static ts_res_t step_core_init(void)
+{
+	/* 事件/时间服务为静态初始化（无动态 init）；本步保留为编排占位以固定顺序，
+	 * M2 起 periph/hal/store/net/appmgr 步骤按 HLD §4.4 顺序尾部追加。 */
+	return TS_OK;
+}
+
+/*
+ * 顺序 = HLD §4.4（规格，不可调换；只允许尾部追加）：
+ * estop GPIO → 全通道 SAFE_POWERON → WDT 启动 → core →（后续里程碑追加）。
+ */
+const ts_boot_step_t ts_boot_steps[TS_BOOT_STEP_COUNT] = {
+	{"estop_gpio", step_estop_gpio},
+	{"safety_poweron", step_safety_poweron},
+	{"wdt_start", step_wdt_start},
+	{"core_init", step_core_init},
+};
+
+FUNC_NORETURN void ts_core_boot(void)
+{
+	for (int i = 0; i < TS_BOOT_STEP_COUNT; i++) {
+		ts_res_t res = ts_boot_steps[i].fn();
+		/* 每步完成后发布 BOOT_STEP（含失败步的 result）——重放观测点；
+		 * “执行前后发布”收敛为完成后单条（失败步亦有观测），语义等价且 golden 稳定。 */
+		const ts_boot_step_evt_t payload = {
+			.idx = (uint8_t)i,
+			.result = res,
+			.name = ts_boot_steps[i].name,
+		};
+		const ts_evt_t evt = {
+			.id = TS_EVT_BOOT_STEP,
+			.t_ms = ts_time_ms(),
+			.data = &payload,
+			.len = sizeof(payload),
+		};
+
+		ts_evt_publish(&evt);
+		if (res != TS_OK) {
+			/* 合同 6：任一步失败 → 全系统 fail-safe，不得半启动。
+			 * noinit 留痕经 ts-store（M2 接入，当前为弱桩）。 */
+			ts_safety_system_fail(TS_FAIL_BOOT(i));
+			for (;;) {
+				k_sleep(K_FOREVER); /* 停喂硬 WDT → 兜底复位 */
+			}
+		}
+	}
+
+	const ts_evt_t done = {
+		.id = TS_EVT_BOOT_DONE,
+		.t_ms = ts_time_ms(),
+	};
+	ts_evt_publish(&done);
+
+	/* main 线程 init 后转监督（LLD-00 §4 线程表） */
+	for (;;) {
+		k_sleep(K_FOREVER);
+	}
+}

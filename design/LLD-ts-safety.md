@@ -116,3 +116,4 @@ extern const ts_driver_ops_t ts_drivers[3];   /* [GPIO]=native_sim 桩/gpio、[P
 - v0.1 · 2026-09-20：首版草案（estop 无锁直达 + commit 末段 irq_lock 复查为本版关键设计）。
 - v0.2 · 2026-09-20：review-01——断链恢复不自动回写（DR-04）、审计消费/溢出策略（DR-07）、estop DT 绑定（DR-11）、clear_fault 授权收敛 sys:estop-clear（DR-03）。
 - v0.2.1 · 2026-09-21：裁决同步——DEC-30② 审计含 app_id；出处标注收敛（SC-02）。
+- v0.2.2 · 2026-09-22：M1 实现收敛留痕——① §4-3 限幅被拦截时返回 **TS_E_RANGE**（err.h：限幅/slew/预算均属"输出被安全层拦截"），落值仍为 clamp 后值；② §3 状态机图的 estop/system_fail 路径**不发布** SAFE_STATE_CHANGED（ISR 禁队列），观测走 TS_EVT_ESTOP 补发与状态查询；③ clear_fault 复位目标态取**条件恢复**（link up→ACTIVE，否则 SAFE_LINKLOSS；图未明示，随 M3 net 联调复核）。
