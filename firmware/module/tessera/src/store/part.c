@@ -53,7 +53,8 @@ static ts_res_t ram_read(ts_store_part_t part, uint32_t off, void *buf, uint32_t
 	uint32_t size;
 	uint8_t *base = part_ram(part, &size);
 
-	if (base == NULL || off + len > size) {
+	/* 溢出安全边界（IR-07）：off+len 在 u32 域可能回绕 */
+	if (base == NULL || off > size || len > size - off) {
 		return TS_E_RANGE;
 	}
 	memcpy(buf, base + off, len);
@@ -65,7 +66,7 @@ static ts_res_t ram_write(ts_store_part_t part, uint32_t off, const void *buf, u
 	uint32_t size;
 	uint8_t *base = part_ram(part, &size);
 
-	if (base == NULL || off + len > size) {
+	if (base == NULL || off > size || len > size - off) {
 		return TS_E_RANGE;
 	}
 	memcpy(base + off, buf, len);

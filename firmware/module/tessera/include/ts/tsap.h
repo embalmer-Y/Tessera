@@ -65,10 +65,12 @@ static inline bool tsap_header_parse(const uint8_t *buf, size_t len, tsap_view_t
 	v->manifest_off = TSAP_HEADER_SIZE;
 	v->wasm_off = TSAP_HEADER_SIZE + v->manifest_len;
 	v->cose_off = v->wasm_off + v->wasm_len;
-	/* 溢出与越界防御（长度和必须装进 u64 且留 COSE 空间） */
+	/* 溢出与越界防御（长度和必须装进 u64 且留 COSE 空间）。
+	 * cose_off+1 必须在 u64 域比较：u32 域在 cose_off==UINT32_MAX 时回绕为 0，
+	 * 会使越界检查失效（impl-review IR-06）。 */
 	uint64_t total = (uint64_t)TSAP_HEADER_SIZE + v->manifest_len + v->wasm_len;
 
-	if (total > (uint64_t)UINT32_MAX || v->cose_off + 1 > len) {
+	if (total > (uint64_t)UINT32_MAX || total + 1 > (uint64_t)len) {
 		return false;
 	}
 	return true;

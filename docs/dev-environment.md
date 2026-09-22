@@ -74,6 +74,7 @@ python3.12 -m venv ~/project/agent-venv
 2. **native_sim 默认 32 位**：需 `gcc-multilib`（仅 build-essential 会报 `bits/libc-header-start.h` 缺失）；64 位变体 `native_sim/native/64` 无此需求。
 3. **WSL /tmp 是 tmpfs**：VM 重启即清——日志一律写 `~/project/logs`。
 4. **west update 网络失败先查代理**：本机 GitHub 需代理 127.0.0.1:7897（owner 提供）；apt/pip 用国内镜像免代理。
+5. **bash 不展开 `=` 后的 `~`**：`--extra-args=ZEPHYR_EXTRA_MODULES=~/...` 会把字面 `~` 传给 CMake（报 not a valid zephyr module）——一律用绝对路径或 `$HOME`。
 
 ## 6. 会话规范（此后所有开发会话）
 

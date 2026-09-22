@@ -36,7 +36,7 @@ ts_res_t ts_store_noinit_get(void *rec, uint16_t *len, bool *fresh)
 
 	*fresh = true;
 	if (ts_store_backend.read(TS_PART_NOINIT, 0, hdr, sizeof(hdr)) != TS_OK) {
-		return TS_OK; /* 空区（read 未创建文件路径返回抹除态 0xFF） */
+		return TS_OK; /* 读失败按无留痕（保守） */
 	}
 	if (ts_get_le16(hdr) != NOINIT_MAGIC) {
 		return TS_OK; /* 抹除态/无留痕 → fresh */

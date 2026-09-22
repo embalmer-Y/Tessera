@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""sim_run 执行器（LLD-A04 §2；M1 定稿的 L4 接口：twister framework.replay +
-stdout JSONL + 退出码）。
+"""sim_run 执行器（LLD-A04 §2；M1 定稿的 L4 接口）。
 
-流程：校验场景 → west twister 运行 framework.replay（固件内嵌场景 + 双通道
-确定性自证）→ 解析设备日志中的 JSONL 写序列 → 期望评估（eq/within/count）→
+流程：校验场景 → west build 构建 framework.replay 镜像（native_sim；固件内嵌
+场景 + 双通道确定性自证）→ **直接执行测试二进制**（不经 twister——L4 契约 =
+stdout JSONL 写序列 + 退出码）→ 解析写序列 → 期望评估（eq/within/count）→
 **双跑比对**（两次运行写序列逐项一致 → determinism=true，合同 9 的 Agent 侧
 机械验证）→ 报告（timeline_digest = 写序列 sha256 重放指纹）。
 """

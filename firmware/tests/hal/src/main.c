@@ -124,6 +124,43 @@ ZTEST(framework_hal, test_01_gpio_write_via_safety)
 	ts_hal_unbind_context(&ctx);
 }
 
+/* ---- pwm 参数域（IR-08：超打包域拒绝，防静默截断）------------------------ */
+
+ZTEST(framework_hal, test_05_pwm_param_range)
+{
+	static const ts_out_ch_t pwm_ch = {
+		.uid = "pwm1", .kind = TS_CH_PWM,
+		.poweron = {.u = 0}, .linkloss = {.u = 0}, .fault = {.u = 0},
+		.limits = {.min = 0, .max = 0xFFFFFFFFU, .slew_per_ms = 0},
+	};
+	static const ts_hal_dev_desc_t pwm_dev = {.uid = "pwm1", .kind = TS_DEV_PWM};
+
+	zassert_equal(ts_safety_register_channel(&pwm_ch), TS_OK);
+	zassert_equal(ts_hal_register_dev(&pwm_dev), TS_OK);
+
+	uint8_t inst = (uint8_t)(ts_hal_dev_count() - 1);
+	char cap[32];
+
+	snprintf(cap, sizeof(cap), "pwm:set:%u", inst);
+	ts_perm_table_t t;
+	ts_ctx_t ctx;
+
+	ts_perm_table_init(&t);
+	zassert_equal(ts_perm_parse(cap, &t), TS_OK);
+	zassert_equal(ts_hal_bind_context(&ctx, 3, &t), TS_OK);
+
+	ts_safety_set_link(true);
+	zassert_equal(ts_pwm_set(ctx, inst, 7000000U, 500), TS_E_PARAM, "hz 超打包域上限");
+	zassert_equal(ts_pwm_set(ctx, inst, 1000U, 1001), TS_E_PARAM, "permille > 1000");
+	zassert_equal(ts_pwm_set(ctx, inst, 1000U, 500), TS_OK);
+	ts_out_value_t rb;
+
+	zassert_equal(ts_safety_readback("pwm1", &rb), TS_OK);
+	zassert_equal(rb.u, ((1000U / 100U) << 16) | 500U, "打包值经安全层往返一致");
+
+	ts_hal_unbind_context(&ctx);
+}
+
 /* ---- 实例注册边界（L1）--------------------------------------------------- */
 
 ZTEST(framework_hal, test_09_dev_registry_bounds)

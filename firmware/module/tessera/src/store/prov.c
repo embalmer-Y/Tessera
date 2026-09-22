@@ -215,8 +215,8 @@ ts_res_t ts_store_prov_load(void)
 			}
 			break;
 		default:
-			if (!rd_uint(&r, &u)) {
-				return TS_E_IO;
+			if (!rd_uint(&r, &u) || u > 0xFFU) {
+				return TS_E_IO; /* estop 标志域 u8（防静默截断，IR-10） */
 			}
 			prov.estop_trigger_flags = (uint8_t)u;
 			break;

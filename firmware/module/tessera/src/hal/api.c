@@ -11,6 +11,9 @@
 
 #define MAX_DEVS CONFIG_TS_HAL_MAX_INSTANCES /* DEC-27 #7：24 */
 
+/* hz 打包进 u16（值/100）：上限 65535*100 Hz（打包域定义，impl-review IR-08） */
+#define PWM_HZ_MAX 6553500U
+
 static ts_hal_dev_desc_t devices[MAX_DEVS];
 static size_t dev_count;
 
@@ -79,6 +82,9 @@ ts_res_t ts_pwm_set(ts_ctx_t c, uint8_t inst, uint32_t hz, uint16_t permille)
 	ts_res_t r = ts_perm_check(c, TS_PERM_CLASS_PWM, TS_PERM_OP_SET, inst);
 
 	if (r != TS_OK) return r;
+	if (hz > PWM_HZ_MAX || permille > 1000) {
+		return TS_E_PARAM; /* 打包域上限（impl-review IR-08），防静默截断 */
+	}
 	const ts_hal_dev_desc_t *d = find_dev(inst, TS_DEV_PWM);
 
 	if (d == NULL) return TS_E_NOTFOUND;

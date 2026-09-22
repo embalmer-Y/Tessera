@@ -92,19 +92,23 @@ def test_cose_cross_verification_four_quadrants(keypair: tuple[Path, Path]):
 def test_tsap_package_verify_roundtrip(tmp_path: Path, keypair: tuple[Path, Path], wasm_blob: Path):
     priv, pub = keypair
     out = tmp_path / "pkg"
-    r = tsap_package(str(wasm_blob), VALID_MANIFEST, str(priv), str(out))
+    r = tsap_package(str(wasm_blob), VALID_MANIFEST, str(priv), str(out), [str(tmp_path)])
     assert r["signer_impl"] == "pycose"
     v = tsap_verify(r["package_path"], str(pub))
     assert v["valid"] is True
     assert v["manifest"]["app_id"] == "com.example.demo"
     assert v["wasm_len"] == 68
     assert set(v["checks"]) == {"header", "cose.pycose", "cose.diy", "manifest"}
+    # 产物目录越界拒绝（IR-13）
+    with pytest.raises(TaError) as eo:
+        tsap_package(str(wasm_blob), VALID_MANIFEST, str(priv), "/tmp", [str(tmp_path)])
+    assert eo.value.code == TA_E_POLICY
 
 
 def test_tsap_tamper_matrix(tmp_path: Path, keypair: tuple[Path, Path], wasm_blob: Path):
     priv, pub = keypair
     out = tmp_path / "pkg"
-    r = tsap_package(str(wasm_blob), VALID_MANIFEST, str(priv), str(out))
+    r = tsap_package(str(wasm_blob), VALID_MANIFEST, str(priv), str(out), [str(tmp_path)])
     pkg = bytearray(Path(r["package_path"]).read_bytes())
 
     def expect_reject(data: bytes, why: str):
@@ -131,7 +135,10 @@ def test_tsap_tamper_matrix(tmp_path: Path, keypair: tuple[Path, Path], wasm_blo
 
 def test_tsap_no_signature_no_output(tmp_path: Path, wasm_blob: Path):
     with pytest.raises(TaError) as ei:
-        tsap_package(str(wasm_blob), VALID_MANIFEST, str(tmp_path / "nope.key"), str(tmp_path))
+        tsap_package(
+            str(wasm_blob), VALID_MANIFEST, str(tmp_path / "nope.key"), str(tmp_path),
+            [str(tmp_path)],
+        )
     assert ei.value.code == TA_E_TSAP  # 无签名不产出（硬点）
 
 

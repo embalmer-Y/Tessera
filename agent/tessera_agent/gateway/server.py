@@ -42,9 +42,14 @@ class AppContext:
     approvals: ApprovalBroker = field(default_factory=ApprovalBroker)
     audit: ToolAudit | None = None
     started_at: float = field(default_factory=time.time)
+    # tsap_* 产物写白名单根（默认 workspace；测试注入 tmp 根）
+    write_roots: list[str] | None = None
 
     def tool_audit(self) -> ToolAudit:
         return self.audit if self.audit is not None else ToolAudit(self.cfg.audit_dir)
+
+    def roots(self) -> list[str]:
+        return self.write_roots if self.write_roots else [str(self.cfg.workspace_repo)]
 
 
 def _ta_payload(exc: TaError) -> str:
@@ -223,9 +228,9 @@ def build_app(ctx: AppContext) -> FastMCP:
 
     @mcp.tool
     @audited("sim_run")
-    async def sim_run(scenario: dict, rebuild: bool = False) -> dict:
+    async def sim_run(scenario: dict) -> dict:
         """运行确定性重放仿真（framework.replay 双跑比对 + 期望评估；长任务句柄）。"""
-        args = {"scenario": scenario, "rebuild": rebuild}
+        args = {"scenario": scenario}
         task_id = f"simrun-{secrets.token_hex(4)}"
 
         async def body(task) -> dict:
@@ -238,8 +243,25 @@ def build_app(ctx: AppContext) -> FastMCP:
     @mcp.tool
     @audited("tsap_keygen")
     async def tsap_keygen(name: str, out_dir: str = "agent/keys") -> dict:
-        """生成 ed25519 开发密钥对（私钥 0600 落盘，不回显/不入审计）。"""
-        return tsap_tools.tsap_keygen(name, out_dir, [str(ctx.cfg.workspace_repo)])
+        """生成 ed25519 开发密钥对（strict 类：挂起宿主审批，超时自动拒绝；
+        长任务句柄——轮询 task_status 至 input_required，经 sys_pending_approvals/
+        sys_approve 决；私钥 0600 落盘，不回显/不入审计）。"""
+        args = {"name": name, "out_dir": out_dir}
+
+        async def body(task) -> dict:
+            approval = ctx.approvals.request(
+                "tsap_keygen",
+                {"name": name, "out_dir": out_dir},
+                reason="strict 类：生成签名密钥材料（HLD §5.1）",
+            )
+            task.state = "input_required"
+            try:
+                await ctx.approvals.wait(approval)
+            finally:
+                task.state = "working"
+            return tsap_tools.tsap_keygen(name, out_dir, ctx.roots())
+
+        return await spawn("tsap_keygen", args, body)
 
     @mcp.tool
     @audited("tsap_package")
@@ -250,7 +272,7 @@ def build_app(ctx: AppContext) -> FastMCP:
         args = {"wasm_path": wasm_path, "manifest": manifest, "key_path": key_path}
 
         async def body(task) -> dict:
-            return tsap_tools.tsap_package(wasm_path, manifest, key_path, out_dir)
+            return tsap_tools.tsap_package(wasm_path, manifest, key_path, out_dir, ctx.roots())
 
         return await spawn("tsap_package", args, body)
 

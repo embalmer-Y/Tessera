@@ -266,6 +266,12 @@ ZTEST(framework_store, test_tsap_header)
 	pkg[9] = 0xFF; /* manifest_len=255 → cose_off+1 > len */
 	zassert_false(tsap_header_parse(pkg, sizeof(pkg), &v));
 	zassert_false(tsap_header_parse(pkg, 10, &v), "长度不足");
+
+	/* IR-06：总长恰为 UINT32_MAX 的回绕头——修复前 cose_off+1 在 u32 域回绕为 0，
+	 * 越界检查失效（OOB 读风险）；必须在 u64 域拒绝 */
+	pkg[6] = 0xFF; pkg[7] = 0xFF; pkg[8] = 0xFF; pkg[9] = 0xE0; /* man=0xFFFFFFE0 */
+	pkg[10] = 0; pkg[11] = 0; pkg[12] = 0; pkg[13] = 0x0F;      /* wasm=0xF */
+	zassert_false(tsap_header_parse(pkg, sizeof(pkg), &v), "回绕头必须拒绝");
 }
 
 ZTEST_SUITE(framework_store, NULL, store_setup, NULL, NULL, NULL);

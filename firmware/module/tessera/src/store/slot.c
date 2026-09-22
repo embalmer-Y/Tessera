@@ -32,7 +32,7 @@ ts_res_t ts_store_slot_write(uint8_t slot, uint32_t off, const void *buf, uint32
 	const uint8_t *src = buf;
 	uint32_t size = ts_store_backend.size(part);
 
-	if (off + len > size) {
+	if (off > size || len > size - off) { /* 溢出安全边界（IR-07） */
 		return TS_E_RANGE;
 	}
 	for (uint32_t o = 0; o < len; o += SLOT_RW_CHUNK) {
@@ -58,7 +58,9 @@ ts_res_t ts_store_slot_read(uint8_t slot, uint32_t off, void *buf, uint32_t len)
 	if (buf == NULL || slot_of(slot, &part) != TS_OK) {
 		return TS_E_PARAM;
 	}
-	if (off + len > ts_store_backend.size(part)) {
+	uint32_t size = ts_store_backend.size(part);
+
+	if (off > size || len > size - off) { /* 溢出安全边界（IR-07） */
 		return TS_E_RANGE;
 	}
 	return ts_store_backend.read(part, off, buf, len);

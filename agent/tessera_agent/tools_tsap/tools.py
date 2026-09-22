@@ -22,20 +22,23 @@ TSAP_FMT_VER = 1
 TSAP_HEADER = struct.Struct(">IHIIH")  # magic|fmt_ver|manifest_len|wasm_len|rsv
 
 
+def _resolve_within(out_dir: str, allowed_roots: list[str]) -> Path:
+    """输出目录解析 + workspace 白名单（impl-review IR-13：产物路径必在白名单根内）。"""
+    real = Path(os.path.expanduser(out_dir)).resolve()
+    for root in allowed_roots:
+        r = Path(os.path.expanduser(root)).resolve()
+        if real == r or str(real).startswith(str(r) + os.sep):
+            return real
+    msg = f"输出目录越界（白名单外）: {out_dir}"
+    raise TaError(TA_E_POLICY, msg, domain="tsap")
+
+
 def tsap_keygen(name: str, out_dir: str, allowed_roots: list[str]) -> dict:
     """Ed25519 开发密钥对生成（strict 类）。私钥仅写文件 0600，不进返回/日志。 """
     if not re.fullmatch(r"[a-zA-Z0-9._-]{1,48}", name):
         msg = f"非法密钥名: {name!r}"
         raise TaError(TA_E_ARGS, msg, domain="tsap")
-    base = Path(os.path.expanduser(out_dir))
-    real = base.resolve()
-    for root in allowed_roots:
-        r = Path(os.path.expanduser(root)).resolve()
-        if real == r or str(real).startswith(str(r) + os.sep):
-            break
-    else:
-        msg = f"密钥目录越界（白名单外）: {out_dir}"
-        raise TaError(TA_E_POLICY, msg, domain="tsap")
+    real = _resolve_within(out_dir, allowed_roots)
     real.mkdir(parents=True, exist_ok=True)
     priv_path = real / f"{name}.key"
     pub_path = real / f"{name}.pub"
@@ -50,7 +53,9 @@ def tsap_keygen(name: str, out_dir: str, allowed_roots: list[str]) -> dict:
     return {"pub_key_path": str(pub_path), "pub_key_fingerprint": fingerprint}
 
 
-def tsap_package(wasm_path: str, manifest: dict, key_path: str, out_dir: str) -> dict:
+def tsap_package(
+    wasm_path: str, manifest: dict, key_path: str, out_dir: str, allowed_roots: list[str]
+) -> dict:
     """打包签名（confirm 类，句柄化）。返回 {package_path, manifest_digest, signer_impl…}。"""
     wasm = Path(os.path.expanduser(wasm_path))
     if not wasm.is_file():
@@ -78,7 +83,7 @@ def tsap_package(wasm_path: str, manifest: dict, key_path: str, out_dir: str) ->
     header = TSAP_HEADER.pack(TSAP_MAGIC, TSAP_FMT_VER, len(manifest_cbor), len(wasm_bytes), 0)
     package = header + payload + cose_bytes
 
-    out = Path(os.path.expanduser(out_dir))
+    out = _resolve_within(out_dir, allowed_roots)
     out.mkdir(parents=True, exist_ok=True)
     pkg_path = out / f"{m.app_id}-{m.app_ver}.tsap"
     pkg_path.write_bytes(package)

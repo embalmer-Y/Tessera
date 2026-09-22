@@ -42,7 +42,9 @@ static int parse_op(const char *s, size_t len)
 	return -1;
 }
 
-/* 解析实例段："0-3" / "0,2" / "5" / "*"（msg 类用 name——V1 按 0 处理） */
+/* 解析实例段（数值文法）："0-3" / "0,2" / "5"。
+ * V1 只收数值实例：msg 类 name 形态（LLD-ts-hal §2）未实现前一律 TS_E_PARAM
+ * 拒绝（fail-closed，impl-review IR-11）——不允许声明未实现的能力形态。 */
 static ts_res_t parse_instances(const char *s, size_t len, uint32_t *bitmap)
 {
 	size_t i = 0;

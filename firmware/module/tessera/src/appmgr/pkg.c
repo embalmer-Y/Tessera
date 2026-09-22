@@ -11,7 +11,10 @@
 #include "internal.h"
 
 /* V1：简化 ed25519 验签骨架（真实现随 WAMR/M2b.2 引入——当前仅结构校验。
- * WAMR 自带 COSE 验签能力；此处预留接口与哈希校验。 */
+ * WAMR 自带 COSE 验签能力；此处预留接口与哈希校验。
+ * **fail-closed 纪律（impl-review IR-05）**：真实验签未接入前，非测试构建
+ * 一律拒绝安装（TS_E_INVALID_SIG）——仅 CONFIG_TS_TEST 构建允许结构级
+ * 通过以驱动 slot/meta 链路测试。 */
 static ts_res_t verify_cose_minimal(const uint8_t *cose, uint32_t cose_len,
 				     const uint8_t root_pubkey[32])
 {
@@ -22,8 +25,12 @@ static ts_res_t verify_cose_minimal(const uint8_t *cose, uint32_t cose_len,
 	if (cose[0] != 0xd2 || cose[1] != 0x84) {
 		return TS_E_INVALID_SIG;
 	}
-	/* TODO M2b.2：接入 ed25519 验签（WAMR crypto 或 mbedtls） */
+#ifndef CONFIG_TS_TEST
+	/* 生产构建：无真实验签 = 无安装（TODO M2b.2：ed25519 验签接入后移除） */
+	return TS_E_INVALID_SIG;
+#else
 	return TS_OK;
+#endif
 }
 
 ts_res_t ts_appmgr_install(const uint8_t *pkg_data, size_t pkg_len,

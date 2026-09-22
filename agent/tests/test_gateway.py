@@ -287,3 +287,82 @@ def test_gateway_approval_flow_end_to_end(tmp_path, monkeypatch):
             assert calls == ["x=7"]
 
     run(main())
+
+
+def test_gateway_keygen_strict_gate(tmp_path, monkeypatch):
+    """IR-14：MCP 面 strict 工具（tsap_keygen，HLD §5.1）必须过审批闸——
+    句柄化 + input_required → sys_approve 放行 / 拒绝两路径；拒绝 = 无密钥产出。"""
+    monkeypatch.setenv(APPROVAL_TOKEN_ENV, "tok-xyz")
+
+    async def main():
+        from tessera_agent.common.limits import ContextBudget as CB
+        from tessera_agent.gateway.server import AppContext, build_app
+
+        cfg = AgentConfig(
+            workspace_repo=PKG_ROOT.parent,
+            west_workspace=PKG_ROOT.parent,
+            west_venv_python=Path(sys.executable),
+            audit_dir=tmp_path / "audit",
+            default_model="ollama:test",
+            context_window=32_000,
+            router_locator="tcp/127.0.0.1:7447",
+        )
+        ctx = AppContext(cfg=cfg, budget=CB(32_000), write_roots=[str(tmp_path)])
+        app = build_app(ctx)
+        keys_dir = tmp_path / "keys"
+
+        async def wait_state(c, tid, want_terminal: bool):
+            sd = {}
+            for _ in range(300):
+                sd = unwrap(await c.call_tool("task_status", {"task_id": tid}))
+                done = sd["state"] not in ("working", "input_required")
+                if done if want_terminal else sd["state"] == "input_required":
+                    return sd
+                await asyncio.sleep(0.02)
+            return sd
+
+        async with Client(app) as c:
+            # 路径 1：allow → completed + 密钥产出
+            r = unwrap(
+                await c.call_tool("tsap_keygen", {"name": "dev1", "out_dir": str(keys_dir)})
+            )
+            assert r["state"] == "working"
+            tid = r["task_id"]
+            sd = await wait_state(c, tid, want_terminal=False)
+            assert sd["state"] == "input_required", sd
+            pend = unwrap(await c.call_tool("sys_pending_approvals", {}))["pending"]
+            assert pend and pend[0]["tool"] == "tsap_keygen"
+            ok = unwrap(
+                await c.call_tool(
+                    "sys_approve",
+                    {"approval_id": pend[0]["approval_id"], "decision": "allow",
+                     "token": "tok-xyz"},
+                )
+            )
+            assert ok["decision"] == "allow"
+            sd = await wait_state(c, tid, want_terminal=True)
+            assert sd["state"] == "completed", sd
+            assert Path(sd["result"]["pub_key_path"]).is_file()  # noqa: ASYNC240
+
+            # 路径 2：deny → failed(TA_E_APPROVAL_DENIED) + 无密钥产出
+            r2 = unwrap(
+                await c.call_tool("tsap_keygen", {"name": "dev2", "out_dir": str(keys_dir)})
+            )
+            tid2 = r2["task_id"]
+            sd2 = await wait_state(c, tid2, want_terminal=False)
+            assert sd2["state"] == "input_required", sd2
+            pend2 = unwrap(await c.call_tool("sys_pending_approvals", {}))["pending"]
+            dn = unwrap(
+                await c.call_tool(
+                    "sys_approve",
+                    {"approval_id": pend2[0]["approval_id"], "decision": "deny",
+                     "token": "tok-xyz"},
+                )
+            )
+            assert dn["decision"] == "deny"
+            sd2 = await wait_state(c, tid2, want_terminal=True)
+            assert sd2["state"] == "failed", sd2
+            assert sd2["error"]["code"] == TA_E_APPROVAL_DENIED
+            assert not (keys_dir / "dev2.key").exists()
+
+    run(main())

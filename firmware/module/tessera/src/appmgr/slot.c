@@ -11,11 +11,13 @@
 ts_app_info_t current_app;
 bool initialized;
 
+#ifdef CONFIG_TS_TEST
 void ts_appmgr_test_reset(void)
 {
 	initialized = false;
 	memset(&current_app, 0, sizeof(current_app));
 }
+#endif
 
 ts_res_t ts_appmgr_meta_read(ts_appmgr_meta_t *meta)
 {
@@ -65,6 +67,8 @@ ts_res_t ts_appmgr_rollback(void)
 		return TS_E_ROLLBACK_LIMIT;
 	}
 	/* 切换 slot + 递增计数 + 写 meta（原子） */
+	ts_app_state_t prev_state = current_app.state;
+
 	current_app.active_slot ^= 1;
 	current_app.rollback_count++;
 	current_app.state = TS_APP_ROLLBACK;
@@ -74,7 +78,16 @@ ts_res_t ts_appmgr_rollback(void)
 		.boot_gen = 0,
 		.app_ver_u32 = 0,
 	};
-	ts_appmgr_meta_write(&meta);
+	ts_res_t r = ts_appmgr_meta_write(&meta);
+
+	if (r != TS_OK) {
+		/* meta 写失败：回退运行时状态并报错——运行态与持久态不得分叉
+		 * （impl-review IR-09；重启后回到旧 meta = 安全侧） */
+		current_app.active_slot ^= 1;
+		current_app.rollback_count--;
+		current_app.state = prev_state;
+		return r;
+	}
 	const ts_evt_t evt = {.id = TS_EVT_APP_UNLOADED, .t_ms = ts_time_ms()};
 	ts_evt_publish(&evt);
 	return TS_OK;
