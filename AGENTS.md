@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-09-22（十一） · M1 自检完成（IR-01 estop 清除死锁修复等，`design/impl-review-m1.md`，owner"review检查后继续"授权）+ MA1 交付：MCP 网关/任务句柄/审批闸/预算压缩/fw_* 工具——本地全绿（ruff ✓ / pytest 26/26 ✓ / FastMCP 客户端实测 ✓ / fw_build 句柄化实测 ✓）**
+  - MA1 交付物：A00（errors/limits+ContextBudget/tasks+TaskRegistry/audit/proc 纪律）、A01（FastMCP 装配 build_app + sys_*/task_* + 审批呈现 token 防代批 + 限流）、A02 MA1 核心（gated_tool 审批闸=工具包装层、PolicyTable 只可收紧、PlanDto、maybe_compress 70% 压缩）、A03（fw_workspace_status/build/twister/pytest + extra_args 白名单）；CLI `tessera-agent serve`（stdio，DEC-38 #2）。
+  - 实测留痕：fw_build @ native_sim 经 MCP 句柄轮询至 completed（106 步构建/142 行日志）；审批流端到端（挂起→pending 呈现→错 token 拒→对 token 放行）；fw_pytest 真实子进程句柄化进单测。
+  - 下一单元（project-plan §7）：**M2a**（ts-store + TSAP 格式定稿 + slot）；MA2（模拟器+TSAP 签名）随其后——依赖 M1 L4 接口已定稿 ✓、M2a TSAP 定稿。
+  - 待 owner：GitHub 远端（点亮全部 CI job：repo/l5/agent/build/twister）。
 - **2026-09-22（十） · M1 交付（DEC-39 统一计划后首个固件单元）：ts-core + ts-safety + L5 机械检查 + L4 重放雏形——本地全绿（app 构建 ✓ / twister 4/4 配置 12 用例 100% ✓ / L5 5/5 ✓ / pytest ✓）；停在 M1 退出 review 门**
   - 交付物：`firmware/module/tessera/`（include/ts/{err,core,safety}.h + src/core/{time,events,wdt,boot}.c + src/safety/{channel,commit,force,driver_dispatch}.c + Kconfig 八项 DEC-27 出处）；`firmware/tests/{core,safety,replay}`（L1 + 有状态顺序场景 + L4 雏形）；`firmware/tests/l5/check_l5.py`（五项机械检查）+ CI `l5-checks` job；app 接入 ts_core_boot。
   - 实现收敛留痕（LLD v0.2.2 已登记）：BOOT_STEP 事件收敛为完成后单条；限幅拦截返回 TS_E_RANGE；estop/system_fail 不发 SAFE_STATE_CHANGED（观测走 ESTOP 补发）；clear_fault 条件恢复目标态（M3 复核）；estop 补发 = 巡检检测 forced 上升沿。

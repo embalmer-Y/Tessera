@@ -28,6 +28,9 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
     "providers": {
         # PydanticAI 模型串：openai:... / anthropic:... / ollama:...（LLD-A02 §2）
         "default_model": "",
+        # 模型上下文窗口（DEC-38 #6：预算动态取此值；≥32k 为最低要求）。
+        # 由部署方按所用模型声明；缺省按最低 32k 保守处理。
+        "context_window": 32768,
     },
     "zenoh": {
         "router_locator": "tcp/127.0.0.1:7447",
@@ -48,6 +51,7 @@ class AgentConfig:
     west_venv_python: Path
     audit_dir: Path
     default_model: str
+    context_window: int
     router_locator: str
 
 
@@ -87,5 +91,6 @@ def load_config(path: str | Path | None = None) -> AgentConfig:
         west_venv_python=_expand(str(merged["agent"]["west_venv_python"])),
         audit_dir=_expand(str(merged["agent"]["audit_dir"])),
         default_model=default_model,
+        context_window=int(merged["providers"].get("context_window", 32768)),
         router_locator=str(merged["zenoh"]["router_locator"]),
     )

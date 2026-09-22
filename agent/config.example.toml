@@ -11,6 +11,8 @@ audit_dir = "~/project/tessera/agent/audit"    # 审计双流落盘（LLD-A00 §
 [providers]
 # 默认模型串（PydanticAI 格式）：openai:gpt-… / anthropic:claude-… / ollama:qwen3 …
 default_model = "ollama:qwen3"
+# 模型上下文窗口（DEC-38 #6：会话预算动态取此值；≥32k 最低要求，压缩阈值 70%）
+context_window = 32768
 # 自定义 OpenAI-compatible 端点（DEC-12 提供者无关）：
 # [providers.custom]
 # base_url = "http://127.0.0.1:8000/v1"
