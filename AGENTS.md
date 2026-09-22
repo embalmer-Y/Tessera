@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-09-22（二） · 裁决批次 5（Agent 轨道首批）已登记（tag `dec-33-34`）：DEC-33 = pi 基座 + 多域预留 + 北极星"自己生产自己"；DEC-34 = 双层 MCP 工具面；Q-16 补呈详解后仍待裁**
+  - DEC-33 要点：Agent 基座 = **pi（earendil-works/pi，MIT）进程内库内核** + 官方 MCP TS SDK 2.x 门面 + 自研 Tessera 工具集（TypeScript，Node ≥22）。**owner 附加北极星**：为未来 PCB AI Agent、外壳/结构件开发等多流程自动化预留；最终应用于机器人或 Galatea 项目时能完全自动化"自己生产自己"。落地约束：V1 范围不变（固件域 = 第一个工具域）；平台层与域工具集解耦；跨域组合走 MCP。
+  - DEC-34 要点：MCP 工具面双层——原子工具必开（"Agent 无豁免"+可测性）+ 高层任务工具 V1 先 2-3 个；长任务统一 MCP Tasks 句柄化；工具面增删 = Agent 特有 review 门。
+  - 待 owner：**Q-16**（ACP 二级人机接口——已按 owner 要求补呈详解：作用 + 实现方式，见 decisions.md §二）。
+  - 下一步：Q-16 裁决后启动 **Agent design 会话（HLD）**（pi 基座/双层工具面/多域预留为输入）；固件主线并行不变（GitHub 远端 → M1）。
 - **2026-09-22（一） · Agent 轨道启动：R3 基座选型调研完成（`docs/research/R3-agent-foundation.md` v1.0，三路并行实查）；呈递 Q-14/Q-15/Q-16 待 owner 裁决；固件主线（GitHub 远端 → M1）不变**
   - owner 指令（2026-09-22）：Agent 核心基于现有 agent/框架（点名 OpenCode、pi），且必须可封装为 MCP server 被其他 Agent 调用；先做一轮 research。
   - 调研要点（实查 2026-09-22）：生态三项重大变化——OpenCode 迁库 **anomalyco**、pi 迁库 **earendil-works** 并公司化（Armin Ronacher 深度加入）、MCP 治权移交 Linux Foundation AAIF（spec 现行 2026-07-28，Tasks 长任务扩展转正）；**无候选原生自带"暴露为 MCP server"，外壳一律自建（官方 MCP SDK）**；出局组：Claude Agent SDK（闭源运行时+Anthropic 模型锁定）/ Gemini CLI（锁 Google）/ Crush（FSL）/ Aider（停更）/ Amazon Q CLI（已归档）。

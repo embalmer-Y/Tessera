@@ -43,14 +43,16 @@
 | DEC-30 | 2026-09-21 | Q-11①-⑤ 按建议值：① **sys 命令面 v1** = 7 命令，host-only（APP 能力文法不可达），estop-clear 需确认令牌；② **共享通道写 = 后写胜出 + 审计含 app_id**（不做独占 claim）；③ **APP 业务状态 V1 不持久化**（升级/回滚后归零）；④ **审计留痕 V1 = 内存环形 + get-audit 导出**（掉电丢失，接受此权衡）；⑤ **prov 数据模型 = CBOR schema v1**（运行时只读，仅烧录通道写） | owner 原文："对于Q-11，这些配置按照建议值"。至此 **Q-01…Q-12 全部裁毕**（对应 DEC-17…30，共 14 项裁决） |
 | DEC-31 | 2026-09-21 | Q-13 按建议 A：V1 **禁止 APP 自建线程**（WAMR 线程/共享内存特性编译期不启用；ts_api_v1 不提供创建导入——"能力不存在"而非运行时配额）；并发 = 事件模型 + 语言内协作式并发 + APP 间 SMP 并行；预留 manifest v2 `threads` 字段（V1 不实现） | owner 原文："可以了我们现在开始开发把吧……"（"可以了"视为对 Q-13 建议 A 与人工检查三项的确认——如有误请 owner 纠正，本行即改）。**同批确认**：C-1 HLD v0.2.x / C-2 LLD v0.2.x 批次 / C-3 规范套件批准生效（tag `std-v1`）；M0 开工授权；开发环境 = `D:\Software\project\zephyrproject`（深查结论见 AGENTS.md 当前状态） |
 | DEC-32 | 2026-09-21 | **Agent 运行平台仅 Linux**（Windows 不支持——修订 DEC-20 宿主范围，移出 Windows PC）；**开发环境整体迁移至 WSL2**（Ubuntu 24.04：仓库 `~/tessera` + Zephyr 工作区 `~/zephyrproject`）；Windows 侧 zephyr 环境复原至 owner 原状（main 检出） | owner 原文："既然如此我希望请你复原我在windows上的zephyr环境，然后将我们整个project迁移至wsl，并记录，当前我们的agent不支持在windows下运行只做linux支持。" 环境迁移记录见 `docs/dev-environment.md` |
+| DEC-33 | 2026-09-22 | **Agent 基座 = pi（earendil-works/pi，MIT）作进程内库内核** + 官方 MCP TS SDK 2.x 门面 + 自研 Tessera 工具集（TypeScript，Node ≥22）；**架构必须为多域 Agent 预留**（未来引入 PCB AI Agent 开发、外壳/结构件开发等多种流程自动化）；**北极星目标：平台应用于机器人或 Galatea 项目时能完全自动化地"自己生产自己"** | owner 原文："Q-14：建议采用PI进行构建，同时需要为未来我们引入PCB AI Agent开发，外壳/结构件开发等多种流程的自动化预留，最终目标是该项目应用于机器人或我们的D:\Software\project\Galatea项目时能够完全自动化的自己生产自己。" 落地约束（Agent HLD 输入）：① V1 范围不变——固件域是第一个工具域；② 平台层（会话编排/任务管理/审计）与域工具集解耦，新域 = 新增工具包不改平台；③ 跨域组合走 MCP（DEC-34 双层天然支持：域 agent 互为 MCP server/client，可被上层编排 agent 驱动）；④ 北极星为方向约束，不扩大 V1 交付范围 |
+| DEC-34 | 2026-09-22 | **MCP 工具面 = 双层**：原子工具层必开（build/simulate/package/sign/deploy/provision/query…——"Agent 无豁免"检查与可测性落点，人类与成品 agent 均可直接调用）+ 高层任务工具层 V1 先 2-3 个（develop_app 等，DEC-12 能力链交付形态）；全部长任务工具按 **MCP Tasks extension** 句柄化（taskId/ttlMs/pollIntervalMs + 轮询/订阅，旧客户端同步回落）；工具面增删 = Agent 特有 review 门 | owner 原文："Q-15：认可双层选择。" 事实依据 R3 §4.6/§7；具体工具清单在 Agent HLD 定稿（走门 ③ 公共 API 变更） |
 
 ## 二、问题登记（Q）
 
-### 问题批次（Agent 轨道呈递，2026-09-22；**当前待裁：Q-14 / Q-15 / Q-16**）
+### 问题批次（Agent 轨道呈递，2026-09-22；**当前待裁：Q-16**——Q-14/Q-15 已裁 → DEC-33/34）
 
 #### Q-14 · Tessera Agent 基座选型（2026-09-22 呈递，owner 指令触发）
 
-- **状态**：**待裁**。
+- **状态**：**已裁 → DEC-33**（2026-09-22：按建议 A 采用 pi；owner 附加北极星约束——多域 Agent 预留 + 最终"自己生产自己"）。
 - **背景**：DEC-12（Agent = MCP server，封装"模块 API + 模拟器 + 构建工具链"，LLM 用户自选，PC 侧）、DEC-11（产出 = 业务 APP **与** 硬件配置）、DEC-13（模拟 = native_sim + 外设桩）、DEC-32（宿主仅 Linux）已定 Agent 的形态边界；能力链 = 需求分析 → 软件设计 → 编程开发 → 模拟测试 → 部署。owner 2026-09-22 指令：**Agent 核心基于现有 agent/框架**（点名 OpenCode、pi）**且必须可封装为 MCP server 被其他 Agent 调用**——自研循环被排除为主路线，需裁决基座选什么。调研事实（`docs/research/R3-agent-foundation.md`，2026-09-22 实查）：生态重大变化（OpenCode 迁库 anomalyco；pi 迁库 earendil-works 并公司化、Armin Ronacher 深度加入；MCP 治权移交 Linux Foundation AAIF，spec 现行版 2026-07-28）；**没有任何候选原生支持"自身暴露为 MCP server"——该外壳一律用官方 MCP SDK 自建**（各方案共同的固定工作量，差异只在壳与核心之间隔几层）；硬伤出局组：Claude Agent SDK（运行时闭源二进制 + 仅 Anthropic 协议模型，违反提供者无关）、Gemini CLI（锁 Google 系模型）、Crush（FSL 许可证含竞争限制）、Aider（2026-02 起停更 + 结对编辑器架构非 agent 运行时）、Amazon Q CLI（已归档）。
 - **通俗解释**：**基座** = 现成的 agent 运行时（LLM 循环 + 工具调用 + 会话管理 + 文件编辑工具都做好了），我们只挂 Tessera 专用工具（构建/仿真/打包签名/部署）再封一层 MCP 壳。**嵌入两型**：库（agent 循环跑在我们自己进程里，单进程，封装薄、控制力强）vs 服务/子进程（基座独立运行，我们经 HTTP/JSON 驱动，两进程，封装厚）。**候选名对照**：OpenCode = 当前最流行开源 coding agent（原 sst 现 anomalyco，MIT，v1.18.x，208k stars，周更）；pi = "AI agent 工具箱"（原 badlogic 现 earendil-works，MIT，v0.87.x，108k stars，主打可拆开当库用）；goose = Block 的 MCP-first agent（Apache-2.0，Rust，v1.29.x，扩展体系=MCP server）。**"被封装为 MCP"** 指 server 侧（别人经 MCP 调我们），与 client 侧（agent 用别人的 MCP 工具）是两回事——前者都要自建。
 - **选项**：A. **pi 作核心（进程内库：`createAgentSession`/`Agent` 类）+ 官方 MCP TS SDK 2.x 门面 + 自研 Tessera 工具集**（TypeScript，R3 方案 A）；B. **OpenCode 作核心（`opencode serve` + @opencode-ai/sdk 驱动）+ MCP 桥**（TypeScript，双进程，R3 方案 B）；C. **goose 作核心（headless/daemon 驱动）+ MCP 桥**（R3 方案 C）；D. **PydanticAI v2 + FastMCP v4 自建循环**（Python，R3 方案 D——唯一官方支持 agent 双向 MCP 的框架线，但会话/编辑工具/上下文全自建）；E. Claude Agent SDK + LiteLLM 代理双底层（违反硬-1 提供者无关，仅保底参考）。
@@ -59,20 +61,33 @@
 
 #### Q-15 · MCP 工具面形态（对外暴露粒度，2026-09-22 呈递）
 
-- **状态**：**待裁**。
+- **状态**：**已裁 → DEC-34**（2026-09-22：双层）。
 - **背景**：DEC-12 定 Agent = MCP server，但对外暴露什么粒度未定——这决定"其他 Agent 调用 Tessera Agent"时的职责分界。上层调用方（ZCode/Claude Code/Cursor/goose…）本身是强 agent：若只给原子工具，"智能"在调用方；若给高层任务工具，Tessera Agent 内部（其 LLM 由用户在 Agent 侧配置）跑完整能力链后交付。工具面变更属 Agent 特有 review 门（FOUNDING_PROMPT §6 / AGENTS.md），首次定型须 owner 裁决。另实测各 MCP 客户端超时仅 7~60s，而完整开发链分钟~小时级——长工具必须按 **MCP Tasks extension**（2026-07-28 spec 转正：`tools/call` 立即返回任务句柄 taskId/ttlMs/pollIntervalMs，客户端轮询或订阅通知，旧客户端回落同步路径）设计。
 - **通俗解释**：**原子工具** = 一个动作一个工具（构建固件/跑仿真/打包签名/部署……），像一组 API，调用方自己编排；**高层任务工具** = 一句话交任务（"开发一个温控 APP"），Tessera Agent 内部跑需求分析→设计→编程→模拟后交付产物，像外包；**双层** = 两种都开。
 - **选项**：① 仅原子层（约 10-15 个：workspace/build/simulate/package/sign/deploy/provision/query-status/get-audit…）；② 仅高层任务层（2-4 个：develop_app/design_hw/deploy_package）；③ 双层——原子必开 + V1 先 2-3 个高层任务工具。
 - **建议**：③。原子层是"Agent 无豁免"与可测性的落点（每步产物可单独检查/重放，人类也可直接用 MCP 客户端调用，还是成品 coding agent 作前端的天然接口）；高层层是 DEC-12 能力链的交付形态（调用方省心）；全部长工具统一按 Tasks 句柄化。
 - **影响**：agent/ 的 MCP server 工具注册结构与文档；高层工具的进度报告语义；后续每次工具面增删均走 review 门。
 
-#### Q-16 · ACP 二级人机接口（V1 范围，2026-09-22 呈递）
+#### Q-16 · ACP 二级人机接口（V1 范围，2026-09-22 呈递；同日 owner 问询触发补呈详解）
 
-- **状态**：**待裁**。
-- **背景**：ACP（Agent Client Protocol，Zed+JetBrains 共治，v1 stable）= 编辑器驱动 agent 的标准协议，与 MCP 互补（ACP = 客户端↔agent 的编辑器集成；MCP = agent↔工具）；主要 coding agent 均已支持（goose/OpenCode/Gemini 原生，pi 经社区适配器 svkozak/pi-acp）。若 Tessera Agent 附带 ACP 接口，owner 可直接在 Zed/JetBrains 里人肉驱动同一个 Agent（调试/演示体验好）。
-- **选项**：A. V1 不做，仅架构预留（MCP 门面与 agent 核心解耦，后补适配器成本低）；B. V1 附带 ACP 适配。
-- **建议**：A。V1 主合同是 MCP（DEC-12）；pi 侧有社区适配器先例，解耦到位后补不贵。
-- **影响**：选 A 几乎无额外成本（解耦本就是应做的架构）；选 B 则 agent/ 增一个适配模块与测试面。
+- **状态**：**待裁**（owner："请你详细讲解这个二级人机接口的作用于现在计划的实现方式我来定夺"）。
+- **背景**：ACP（Agent Client Protocol，Zed+JetBrains 共治，v1 stable / v2 draft）= "agent 客户端"与"agent"之间的标准协议，与 MCP 互补（ACP = 客户端 ↔ agent 的人机集成；MCP = agent ↔ 工具/被其他 AI 调用）；主要 coding agent 均已支持（goose/OpenCode/Gemini 原生；pi 经社区适配器 svkozak/pi-acp）。
+- **通俗讲解（2026-09-22 补呈）**：
+  - **ACP 是什么**：类比 LSP——LSP 让任何编辑器能接任何语言服务器，ACP 让任何"agent 客户端"能接任何 agent。传输 = JSON-RPC over stdio：客户端（编辑器）把 agent 作为**子进程**启动，双方交换结构化消息。
+  - **它解决的问题**：每个 coding agent 各有自己的 CLI/TUI，人类想在编辑器里用 agent，就得"每个编辑器 × 每个 agent"逐对写集成。ACP 统一了消息集——**agent 汇报**："我要读这个文件 / 我要跑这条命令 / 我改了这些文件（diff）/ 这个操作需要批准 / 任务进行到哪"；**客户端负责渲染**：对话窗、diff 视图、权限弹窗、进度条。编辑器实现一次 ACP 就能接所有 ACP agent；agent 实现一次 ACP 就能被所有客户端驱动。
+  - **对 Tessera Agent 的作用（有/无对比）**：
+    - **无 ACP（现状计划）**：与 Agent 交互两条路——① MCP 客户端（ZCode/Claude Desktop/Cursor 等）调它的 MCP 工具，交互对象是**另一个 AI**，owner 看到的是工具调用日志；② 我们若自带 CLI，则是纯文本日志界面。
+    - **有 ACP**：owner 在 Zed/JetBrains 里**对话式人肉驱动同一个 Agent**——实时看到它每一步调了什么工具、每个文件的 diff、逐条批准/拒绝权限请求。同一个 agent 核心、两种前端：MCP 面向 AI 调用方，ACP 面向人类。
+    - **延伸价值**：调试/演示体验质变（agent 行为可视化，排查"它为什么这么做"不再翻日志）；不绑定任何特定 MCP 客户端；未来 PCB/结构件域 agent（DEC-33）同样可挂 ACP 让工程师人肉介入——多域预留的自然延伸。
+  - **实现方式（本计划中的形态）**：
+    - **位置**：tessera-agent 单进程内，ACP 适配模块与 MCP 门面**平级**，都坐在"会话编排层"之上（架构预留点即在此：编排层不绑定单一传输，加一种前端 = 加一个适配模块）。
+    - **数据流**：适配模块订阅 pi 会话事件（`subscribe`：消息/工具调用/diff）→ 翻译成 ACP 通知下发编辑器；编辑器里的用户输入 → `prompt()`/`steer()`；权限应答（允许/拒绝）→ `beforeToolCall` 钩子的放行/拒绝——与"Agent 无豁免"检查链共用同一闸口。
+    - **进程模型**：编辑器把 tessera-agent 作为子进程拉起（stdio 上跑 JSON-RPC）；与 MCP 门面（独立长驻进程）互不干扰，同一份会话/工具实现。
+    - **pi 侧先例**：官方 pi-acp 已移出 monorepo，现行社区适配器 svkozak/pi-acp = 桥接 `pi --mode rpc`（JSONL over stdio）——证明"pi 会话 ↔ ACP 消息"的翻译模式可行；我们是在自己进程内直接挂会话层做同样的事（少一层 RPC）。
+    - **成本/风险**：适配模块约数百行 TS + 一组会话翻译测试；ACP v2 尚在 draft（v1 stable），接口仍有演进——**后补者天然吸收协议演进成本**，这是建议 V1 不做的理由之一。
+- **选项**：A. V1 不做，仅架构预留（会话编排层与传输解耦，后补适配模块即可启用）；B. V1 即附带 ACP 适配（Zed/JetBrains 从第一天可人肉驱动 Tessera Agent）。
+- **建议**：A。V1 主合同是 MCP（DEC-12）；ACP 是人机体验增强、不影响能力面；解耦到位后补成本低；v2 draft 期的协议演进由后补者吸收。
+- **影响**：A 几乎零额外成本（解耦本就是应做架构，仅要求 HLD 明确编排层/传输边界）；B 增一个适配模块与测试面，换来 V1 期间的可视化调试体验。
 
 ### 问题批次（design 阶段呈递；Q-01…Q-13 均已裁）
 
@@ -232,3 +247,4 @@
 - 2026-09-21 · **impl 阶段启动**：Q-13 → **DEC-31**；owner 指令"可以了，开始开发"一并确认 **C-1 HLD / C-2 LLD / C-3 规范套件批准生效（tag `std-v1`）**；M0 开工，开发环境 = `D:\Software\project\zephyrproject`。
 - 2026-09-21 · **DEC-32**：Agent 仅支持 Linux（修订 DEC-20，Windows 宿主移出）；开发环境整体迁 **WSL2 Ubuntu 24.04**（仓库 `~/tessera`、工作区 `~/zephyrproject`），Windows zephyr 环境复原；记录于 `docs/dev-environment.md`。
 - 2026-09-22 · **Agent 轨道启动**（owner 指令）：R3 基座选型调研落盘（`docs/research/R3-agent-foundation.md` v1.0，三路并行实查）；登记待裁 **Q-14**（Agent 基座选型，建议 A：pi 库内核 + 官方 MCP TS SDK 门面）/ **Q-15**（MCP 工具面形态，建议双层）/ **Q-16**（ACP 二级接口，建议 V1 不做）。
+- 2026-09-22 · **裁决批次 5（Agent 轨道首批）**：Q-14 → **DEC-33**（pi 基座 + 多域 Agent 预留 + 北极星"应用于机器人/Galatea 时完全自动化自己生产自己"）、Q-15 → **DEC-34**（双层 MCP 工具面 + 长任务 Tasks 句柄化）；Q-16 按 owner 要求补呈详解（作用 + 实现方式）后**仍待裁**。tag `dec-33-34`。
