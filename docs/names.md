@@ -33,6 +33,7 @@
 | Q-16 | ACP 二级人机接口 V1 范围（详解已补呈：作用 + 实现方式） | R3 | 已裁 → DEC-35 |
 | Q-17 | Agent 交互栈确认（①MCP 维持+实现纪律 ②长任务机制细化 ③Skills 分发 ④A2A 预留） | R4（owner 质疑触发，2026-09-22） | 已裁 → DEC-36 |
 | Q-18 | Agent 实现语言（A：TS 维持 / B：Python 宿主+pi RPC / C：Python 自研 / D：Rust） | owner 问询（2026-09-22） | 已裁 → DEC-37 |
+| Q-19 | Agent design 批次默认值与配置清单（13 项，随 HLD/LLD 批次呈递） | design/HLD-agent v0.1 批次 | 待裁 |
 
 ## 2. 任务与里程碑
 
@@ -44,6 +45,7 @@
 | R3 | Agent 基座选型调研（coding agent / 框架 / MCP 封装） | owner 指令（2026-09-22） | v1.0 落盘，随 Q-14/Q-15/Q-16 呈递待裁 |
 | R4 | Agent 交互与接入方式调研（协议/实践/趋势） | owner 指令（2026-09-22，质疑 MCP 选型触发） | v1.0 落盘，随 Q-16 重呈 + Q-17 新登记待裁 |
 | R5 | Agent Python 栈 HLD 级核验（PydanticAI/FastMCP/TSAP 签名栈/zenoh-python） | owner 指令（2026-09-22，Q-18 涟漪审查"有调整的地方需要重新research"） | v1.0 落盘，供 Agent HLD 与 design-review-02 使用 |
+| MA0…MA3 | Agent 轨道里程碑（骨架/网关+核心+fw 工具/模拟器+TSAP/部署+skills+高层链） | design/HLD-agent.md §7 | 待启动（依赖见 HLD §7） |
 | M0 | west 工作区 + native_sim 空模块构建 + CI 骨架 | FOUNDING_PROMPT §7 | **本地全绿（2026-09-21，WSL：构建+twister 运行级+pytest）**；仅余 GitHub 远端推送（CI 上线） |
 | M1 | ts-core + ts-safety（安全层最小闭环） | HLD §7 | 待启动（规格已生效） |
 | M2 | ts-hal + ts-appmgr + WAMR 集成（拆 M2a：store/TSAP/slot；M2b：hal/权限/WAMR） | HLD §7 | 待启动（规格已生效） |
@@ -127,6 +129,13 @@
 | TS_FAIL_* | 故障原因码族（u32：TS_FAIL_SRC_<<16｜细因，LLD-00 §2.1） | LLD 提案 |
 | ts_ctx_t | APP 调用者不透明上下文（防伪造映射，LLD-00 §3.1） | LLD 提案 |
 | ts_periph_kind_t | 外设描述符类别枚举（含 TS_PK_ADC，DR-13） | LLD 提案 |
+| HLD-agent / LLD-A00…A07 | Agent 轨道设计文档族（A00 公共/A01 网关/A02 核心/A03 固件工具/A04 模拟器/A05 TSAP/A06 部署/A07 skills+平台） | design/HLD-agent.md v0.1 批次 | v0.1 待 owner 确认（C-4/C-5） |
+| TA_E_* | Agent 错误码族（TaError 结构化异常，LLD-A00 §1） | LLD-A00 提案 |
+| sys_* / task_* / fw_* / sim_* / tsap_* / deploy_* / app_* | Agent MCP 工具名族（原子层 19 + 高层 2，双层工具面 DEC-34；增删 = review 门） | LLD-A01 §2 | 提案（随 C-5/Q-19） |
+| DomainPack | 域工具包接口（工具集+skills+策略+校验器+部署器；固件域 = 首个实现，多域预留核心） | design/HLD-agent.md §6.1 / LLD-A07 §3 | 提案 |
+| Frontend / PeerTransport | 会话编排层传输抽象（ACP 预留缝，DEC-35）/ A2A 对等接入缝（DEC-36④ 记录点） | LLD-A02 §1 / LLD-A07 §4 | 提案（V1 仅接口预留） |
+| SessionOrchestrator / TaskRegistry | 会话编排器（A02）/ 长任务句柄注册表（A00，对齐 Tasks V2 语义） | LLD-A02/A00 | 提案 |
+| TsapManifestV1 / PlanDto / AppConfigDto | Agent 侧结构化产物模型（manifest 镜像 / 开发计划 / 硬件配置） | LLD-A05 §2 / LLD-A02 §4 | 提案 |
 
 ## 修订记录
 
@@ -149,3 +158,4 @@
 - 2026-09-22 · 登记待裁 Q-18（Agent 实现语言，owner 问询触发）。
 - 2026-09-22 · Q-18 建议修订登记：PydanticAI + FastMCP 升为推荐（选项 C）；OpenHands 存档登记。
 - 2026-09-22 · **裁决批次 7 登记**：DEC-37（Q-18：C 全 Python）、tag `dec-37`；pi 转存档（未选用，B1 备选留档）；新增 PydanticAI/FastMCP、TSAP Python 签名栈、eclipse-zenoh、R5、DR-18…23；Vercel AI SDK 存档。
+- 2026-09-22 · **Agent design 批次登记**：HLD-agent/LLD-A00…A07、Q-19（默认值 13 项）、MA0…MA3、TA_E_*/工具名族/DomainPack/Frontend/PeerTransport/SessionOrchestrator/TaskRegistry/TsapManifestV1 等标识符族；C-4/C-5 呈递。

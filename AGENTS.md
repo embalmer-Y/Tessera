@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-09-22（七） · Agent design 批次交付（owner 指令"开始进行HLD以及LLD"）：`design/HLD-agent.md` v0.1 + `LLD-A00…A07` v0.1 共 9 份；呈递 Q-19（默认值 13 项）+ C-4（HLD 确认）/ C-5（LLD 确认）——停在 review 门**
+  - 架构要点：全 Python 单进程（DEC-37）；分层 = 门面（A01 FastMCP stdio）/ 会话编排（A02 PydanticAI + 审批闸三层强制）/ 域工具（A03…A06 固件域 = 首个 DomainPack）/ 公共（A00）；双层工具面 = 原子 19 + 高层 2（app_develop/app_deploy）；长任务统一句柄+轮询（DEC-36②）；ACP/A2A/多域均为接口级预留缝（DEC-33/35/36 记录点落位）。
+  - 里程碑：MA0（骨架+DR-18/19 补节）→ MA1（网关/编排/审批/fw 工具）→ MA2（模拟器+TSAP，依赖固件 M1/M2a）→ MA3（部署+skills+高层链，依赖固件 M3a）。
+  - 未决对齐项：APP 下发通道 wire 协议（待固件 M2a/M3a）、L4 重放入口协议（待固件 M1）、manifest 字段镜像（待 M2a）。
+  - 待 owner：**Q-19 裁决 + C-4/C-5 确认** → MA0 开工；固件主线并行不变（GitHub 远端 → M1）。
 - **2026-09-22（六） · 裁决批次 7（tag `dec-37`）：DEC-37（Q-18：C——Agent 全 Python：PydanticAI + FastMCP + 自建编码工具集，修订 DEC-33 基座条款，北极星沿用）+ 涟漪审查完成（design-review-02：**固件设计套件零改动**）+ R5 HLD 级核验落盘——Agent 轨道待裁 Q 再度清零，HLD 输入齐备**
   - 涟漪审查（`design/design-review-02-agent-python-ripple.md`，DR-18…23 全处置）：固件设计套件（HLD+8 LLD）**零 TS/Node/pi 触点、零改动**——Agent↔固件合同均为格式/协议（TSAP/zenoh/prov/sys 面），语言无关；规范套件 coding.md 原文即假设 agent/=Python（一致而非冲突）；待补两节 = versioning.md Python 依赖钉版（DR-18）+ dev-environment.md agent venv（DR-19），均在 agent 骨架批次完成。
   - R5（`docs/research/R5-agent-python-stack.md`）要点：**审批闸超预期**（PydanticAI Hooks：wrap_tool_execute/ApprovalRequired/requires_approval = pi beforeToolCall 超集 + FastMCP Middleware 第二层）；agent 嵌入 MCP server 为官方正名模式；FastMCP 4 单部署覆盖全 spec 版本（2024-11-05…2026-07-28）；**TSAP 签名栈** = cbor2(canonical)+pycose+cryptography（pycose 停滞 → 单键 phdr 纪律 + DIY fallback 双验）；**zenoh-python** = eclipse-zenoh 1.10.1 同步 API（asyncio 需线程包裹），三方同 minor 钉版（router/zenoh-python/zenoh-pico），**Zenoh 2.0 计划 2026 H2 = 联合升级风险，牵动 M3a**。

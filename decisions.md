@@ -51,7 +51,32 @@
 
 ## 二、问题登记（Q）
 
-### 问题批次（Agent 轨道呈递，2026-09-22；**Q-14…Q-18 均已裁 → DEC-33…37，待裁清零**）
+### 问题批次（Agent 轨道呈递，2026-09-22；**当前待裁：Q-19 + C-4/C-5 文档确认**——Q-14…Q-18 已裁 → DEC-33…37）
+
+#### Q-19 · Agent design 批次默认值与配置清单（2026-09-22 随 HLD/LLD 批次呈递）
+
+- **状态**：**待裁**。
+- **背景**：Agent 设计批次（`design/HLD-agent.md` v0.1 + `design/LLD-A00…A07` v0.1，共 9 份，DEC-33…37 的设计展开 + R3/R4/R5 事实落点）为可实施规格，需落一批工程默认值（依赖钉版/超时/限额/策略/工具链）；依军规 2"无 Q 不落盘"集中登记，设计文档内全部以〔Q-19 提案 n〕标注，裁决前不进代码常量。
+- **选项**：A. 本清单批量裁决（逐项可例外，同 Q-10 先例）；B. 每项独立 Q（决策成本高）。
+- **建议**：A。批准后即成为 agent/ 代码常量出处（`# 来源: Q-19`），实测偏差按行修订本表不另开 Q（除非语义变化）。
+
+| # | 常量 | 提案值 | 推导 / 越界后果 |
+|---|---|---|---|
+| 1 | Python 依赖钉版 | `pydantic-ai-slim[openai,anthropic,google,mcp]` 2.x 钉 minor；`fastmcp` 4.x；`cbor2==6.1.4`；`pycose==1.1.0`；`cryptography>=42`；`eclipse-zenoh==1.10.1`（**三方同 minor**，DR-22）；`pytest-json-report` | R5 §6 定案 + DR-21/22 纪律；浮动 = 供应链与行为漂移 |
+| 2 | MCP 传输 V1 | **stdio only**（Streamable HTTP 为配置位预留不启用） | DEC-36① 最保守路径；远端启用另立 Q |
+| 3 | 结构化输出重试预算 | output retries = 3 | ModelRetry 默认 1 偏紧；过大会放大 token 成本 |
+| 4 | 超时族 | 长任务 TTL 30 min；审批等待 10 min；deploy_discover 10 s；子进程默认 120 s；fw_build/fw_twister 30 min | CI 构建经验 + Claude Code 2 min 后台化/Codex 600 s 客户端现实；过短误杀、过长占位 |
+| 5 | 任务日志环形缓冲 | 1000 行/任务 | 排障够用 + 内存有界；溢出标记截断 |
+| 6 | 会话并发 / token 预算 | 2 / 100k（超限失败并提示切分） | V1 单客户端场景；过大会话质量下降且贵 |
+| 7 | 审批 token 与 confirm 策略 | token 经宿主环境变量注入；confirm 类 V1 会话内直行（config 可收紧为挂起，**不可放宽 strict**） | 防 MCP 客户端代批；收紧自由度保留给部署方 |
+| 8 | 审计保留 | V1 全量落盘不滚动 | 审计必成（无豁免链）；磁盘代价接受（单机开发场景） |
+| 9 | 输出截断 | 单行 4 KiB / 单次工具返回 64 KiB | 客户端 10k token 警告线下留裕量；截断必标记 |
+| 10 | 限流 | 30 工具调用/min/客户端 | 防失控循环（doom-loop 类）兜底 |
+| 11 | lint 工具链 | ruff（含 asyncio 阻塞调用检查规则） | Python 生态事实标准；军规 10"lint 通过才算完成"落点 |
+| 12 | sim_run 确定性 | 内建双跑比对，determinism 字段必出 | 合同 9 同构的最直接机械验证 |
+| 13 | skill 同步检查 | 权威文档变更后 PR 检查脚本（skill 与源文档一致性） | 防 skill 双写真相漂移 |
+
+- **影响**：MA0 起全部 agent/ 代码常量与 CI 配置出处；与 DEC-36/37 的纪律联动（钉版/截断/审批）。
 
 #### Q-14 · Tessera Agent 基座选型（2026-09-22 呈递，owner 指令触发）
 
@@ -291,3 +316,4 @@
 - 2026-09-22 · 登记待裁 **Q-18**（Agent 实现语言：TS 维持 / Python 宿主+pi RPC / 全自研，owner 问询"可否改为 python 或 rust"触发；建议 A 维持，B 为可接受变体）。
 - 2026-09-22 · **Q-18 建议修订**（owner 澄清动因"完全不熟 Node"）：改推 **C（PydanticAI + FastMCP 全 Python）**，B 细化为 B1 备选（pi 子进程经 MCP 回接）；补核验 PydanticAI 事实（Ollama 本地支持、原生 Temporal 持久执行）；Python 版图应答入 Q-18 条目。
 - 2026-09-22 · **裁决批次 7**：Q-18 → **DEC-37**（全 Python：PydanticAI + FastMCP + 自建编码工具集；修订 DEC-33 基座条款，北极星与落地约束沿用）。同批启动：**Q-18 涟漪审查**（design 全量 review，结论留档 `design/design-review-02-agent-python-ripple.md`）+ **R5 补充核验**（PydanticAI/FastMCP HLD 级事实、TSAP Python 签名栈、zenoh-python）。tag `dec-37`。
+- 2026-09-22 · **Agent design 批次交付**（owner 指令"开始进行HLD以及LLD"）：`design/HLD-agent.md` v0.1 + `LLD-A00…A07` v0.1（9 份）；登记待裁 **Q-19**（默认值清单 13 项）+ 呈递 **C-4**（HLD 确认）/ **C-5**（LLD 批次确认）。
