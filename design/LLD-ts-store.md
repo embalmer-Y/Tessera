@@ -95,3 +95,4 @@ ts_res_t ts_store_slot_hash (uint8_t slot, uint8_t sha[32]);   /* 供安装校�
 
 - v0.1 · 2026-09-20：首版（design review-01 DR-01/17 处置新增）。
 - v0.1.1 · 2026-09-21：裁决同步——DEC-20/21/23/27/30 出处收敛（SC-02）。
+- v0.2 · 2026-09-22：M2a 实现收敛留痕——① §2 native_sim 后端实现为 **RAM 静态数组 + 0xFF 抹除语义**（`ts_store_test_reset()` 模拟掉电后全新镜像；"宿主文件"跨进程持久化非 M2a 测试所需，留真实掉电场景一并接真机 flash 后端）；② §4 prov CBOR 解码 = **固定 schema 确定性子集实现**（definite-length 专用，任何超集拒绝——不引入通用 CBOR 依赖），schema v1 键序定稿：v/node_id/cube_id/routers/pk0/pk1/cred/pwr_ma/estop；③ 内部分区多字节整数 = **小端**（与 TSAP 容器大端互不相关，见 LLD-ts-appmgr §2）；④ noinit fresh 语义实现 = 读到有效留痕即 fresh=false。

@@ -77,3 +77,4 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 - v0.2 · 2026-09-20：review-01——slot 经 ts-store（DR-01）、mailbox 串行化与卸载停止语义（DR-14）、APP 状态不持久化声明（DR-15）。
 - v0.2.1 · 2026-09-21：裁决同步——DEC-27 每板堆配置；出处标注收敛（SC-02）。
 - v0.2.2 · 2026-09-21：owner 问询线程模型——§5 增 APP 线程限制（禁自建线程/编译期禁用/三层限制机制），登记 Q-13。
+- v0.2.3 · 2026-09-22：M2a 定稿——§2 TAPP/TSAP v1 容器头**16 字节**：magic(4)+fmt_ver u16+manifest_len u32+wasm_len u32+rsv u16（尾部预留）；**多字节整数一律大端**（网络序，与 CBOR/COSE 生态一致；内部分区小端互不相关）。头解析（含边界自洽）已落 include/ts/tsap.h（M2a），COSE 验签仍属 §2/M2b。

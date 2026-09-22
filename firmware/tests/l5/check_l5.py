@@ -2,13 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 """L5 安全合同机械检查（docs/std/testing.md §3；CI 独立 job，一票否决）。
 
-五项检查：
+六项检查：
   1. 唯一写路径：Zephyr 输出驱动调用只允许出现在 ts-safety driver_dispatch.c。
   2. 三安全态注册完备：ts_out_ch_t 初始化块必须含 .poweron/.linkloss/.fault。
   3. 禁用模式：框架源码（module+app）禁未播种随机/墙钟；k_uptime 只允许在 time.c。
   4. 常量出处：可调常量（限值/超时/尺寸类 #define TS_*）须有 DEC/Q/DR/推导 类出处标注。
   5. estop 路径：ts_safety_force_all_fault 函数体与 driver_dispatch.c 内禁
      分配/队列/锁/协议栈/睡眠符号。
+  6. prov 零写：prov.c 不含任何后端写调用（合同 10；LLD-ts-store §8 扩展位，
+     写通道在 prov_test.c/烧录工具）。
 
 已知边界（登记于 M1 交付报告）：检查 2 对宏展开的通道描述符不生效（如测试的
 REPLAY_CH 宏）——宏体内字段由检查 4 的出处纪律与 code review 兜底。
@@ -145,6 +147,19 @@ def check_5_estop_path() -> list[str]:
     return bad
 
 
+def check_6_prov_no_write() -> list[str]:
+    """LLD-ts-store §8 扩展位：prov.c 零写调用（合同 10——写通道仅烧录期）。"""
+    prov_c = MODULE_SRC / "store" / "prov.c"
+    if not prov_c.exists():
+        return []
+    write_re = re.compile(r"\bts_store_backend\s*\.\s*write|\bts_store_prov_write|\.write\s*\(")
+    bad = []
+    for i, line in enumerate(prov_c.read_text(encoding="utf-8").splitlines(), 1):
+        if write_re.search(line) and not line.strip().startswith("*") and not line.strip().startswith("/*"):
+            bad.append(f"[6] prov.c 含写调用: prov.c:{i}:{line.strip()}")
+    return bad
+
+
 def main() -> int:
     violations: list[str] = []
     all_c = c_files([FW / "module", FW / "app", FW / "tests"])
@@ -153,13 +168,14 @@ def main() -> int:
     violations += check_3_forbidden_patterns()
     violations += check_4_constant_provenance()
     violations += check_5_estop_path()
+    violations += check_6_prov_no_write()
 
     if violations:
         print("L5 FAILED（安全合同机械检查，testing.md §3）:")
         for v in violations:
             print("  " + v)
         return 1
-    print("L5 OK: 5/5 机械检查通过（唯一写路径/三态完备/禁用模式/常量出处/estop 路径）")
+    print("L5 OK: 6/6 机械检查通过（唯一写路径/三态完备/禁用模式/常量出处/estop 路径/prov 零写）")
     return 0
 
 

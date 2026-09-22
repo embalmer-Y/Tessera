@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-09-22（十二） · M2a 交付：ts-store（分区/meta 掉电安全/prov 只读/noinit/slot+SHA）+ TSAP v1 格式定稿——本地全绿（twister 5/5 配置 19 用例 / L5 6/6 / app 构建 / pytest×2 / 编码）；GitHub 远端按 owner 指示暂时搁置**
+  - 交付物：`include/ts/{store.h,tsap.h}` + `src/store/{part,meta,prov,prov_test,noinit,slot,sha256}.c` + Kconfig（META_MAX=256/SLOT_SIZE 可配）；`firmware/tests/store`（7 用例：meta 撕裂恢复与双损、prov CBOR 解析+坏数据拒绝、slot 读写边界+整槽哈希、"abc" SHA 向量、noinit fresh、TSAP 头解析）；L5 扩展第 6 项（prov.c 零写——写通道隔离在 prov_test.c）。
+  - 定稿与收敛留痕（LLD v0.2 已登记）：TSAP v1 头 16 字节（magic/ver/manifest_len/wasm_len/rsv）**大端**；内部分区**小端**；native_sim 后端 = RAM+reset 钩子（文件形态跨进程持久化留真机阶段）；prov CBOR = 固定 schema 确定性子集解码；**SHA-256 K[36] 常量笔误（0x650a7353→54）经素数生成对拍捕获并修复**，三组宿主向量对齐 hashlib。
+  - 状态注记：GitHub 远端 **owner 指示暂时搁置**（2026-09-22）——CI 上线延后，本地全绿为里程碑判据（同 M0/M1/MA0/MA1 惯例）。
+  - 下一单元（project-plan §7）：**MA2**（模拟器 sim_* + TSAP 打包签名 tsap_*——依赖齐备：M1 L4 接口 ✓ + M2a TSAP 定稿 ✓）；随后 M2b。
 - **2026-09-22（十一） · M1 自检完成（IR-01 estop 清除死锁修复等，`design/impl-review-m1.md`，owner"review检查后继续"授权）+ MA1 交付：MCP 网关/任务句柄/审批闸/预算压缩/fw_* 工具——本地全绿（ruff ✓ / pytest 26/26 ✓ / FastMCP 客户端实测 ✓ / fw_build 句柄化实测 ✓）**
   - MA1 交付物：A00（errors/limits+ContextBudget/tasks+TaskRegistry/audit/proc 纪律）、A01（FastMCP 装配 build_app + sys_*/task_* + 审批呈现 token 防代批 + 限流）、A02 MA1 核心（gated_tool 审批闸=工具包装层、PolicyTable 只可收紧、PlanDto、maybe_compress 70% 压缩）、A03（fw_workspace_status/build/twister/pytest + extra_args 白名单）；CLI `tessera-agent serve`（stdio，DEC-38 #2）。
   - 实测留痕：fw_build @ native_sim 经 MCP 句柄轮询至 completed（106 步构建/142 行日志）；审批流端到端（挂起→pending 呈现→错 token 拒→对 token 放行）；fw_pytest 真实子进程句柄化进单测。

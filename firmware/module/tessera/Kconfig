@@ -65,4 +65,34 @@ config TS_SAFETY_AUDIT_DEPTH
 
 endif # TS_SAFETY
 
+config TS_STORE
+	bool "ts-store: partitions / power-loss-safe meta / read-only prov / noinit / slots"
+	depends on TS_CORE
+	default y
+	help
+	  design/LLD-ts-store.md (M2a). native_sim backend = host files
+	  (CONFIG_TS_STORE_SIM_DIR); real-board flash backend lands with board bring-up.
+
+if TS_STORE
+
+config TS_STORE_META_MAX
+	int "Meta record max size (bytes)"
+	default 256
+	help
+	  Source: DEC-27 (LLD-ts-store §7).
+
+config TS_STORE_SLOT_SIZE
+	int "APP slot partition size (bytes)"
+	default 262144
+	help
+	  Source: DEC-23 (slot sizes are per-board configurable; native_sim baseline).
+
+config TS_STORE_SIM_DIR
+	string "native_sim backend directory (host files)"
+	default "tessera_store"
+	help
+	  One file per partition under this relative directory (resettable in tests).
+
+endif # TS_STORE
+
 endmenu

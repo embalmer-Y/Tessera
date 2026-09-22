@@ -19,3 +19,16 @@ zephyr_library_sources_ifdef(CONFIG_TS_SAFETY
   src/safety/force.c
   src/safety/driver_dispatch.c
 )
+
+zephyr_library_sources_ifdef(CONFIG_TS_STORE
+  src/store/part.c
+  src/store/meta.c
+  src/store/prov.c
+  src/store/noinit.c
+  src/store/slot.c
+  src/store/sha256.c
+)
+
+zephyr_library_sources_ifdef(CONFIG_TS_TEST
+  src/store/prov_test.c
+)

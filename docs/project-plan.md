@@ -18,7 +18,7 @@
 |---|---|---|---|
 | **M0** 环境/骨架/CI/LICENSE | west 工作区 + native_sim 模块构建 + CI 骨架 + LICENSE | **本地全绿**（WSL：构建 + twister 运行级 + pytest）；余 = GitHub 远端推送（owner 待办 §5） | 推送 + CI 绿（tag `m0`） |
 | **M1** | ts-core + ts-safety + L5 机械检查脚本 + **L4 重放框架雏形**（MA2 的接口依赖，见 §4） | **本地全绿（2026-09-22，DEC-39 后开工）**——退出 review 门已呈报；CI 上线随远端 | HLD §7 M1 DoD |
-| **M2a** | ts-store + TSAP 格式定稿 + slot（A05 manifest 镜像依赖） | 待启动 | HLD §7 |
+| **M2a** | ts-store + TSAP 格式定稿 + slot（A05 manifest 镜像依赖） | **本地全绿（2026-09-22）**——twister 5/5 配置（新增 framework.store）；TSAP v1 定稿（16B 头/大端）；L5 增第 6 项（prov 零写） | HLD §7 |
 | **M2b** | ts-hal 权限（ts_perm_v1）+ WAMR 宿主 + 样例 APP | 待启动 | HLD §7 |
 | **M3a** | ts-net（zenoh-pico；发现/key/sys 命令——A06 对齐依赖） | 待启动 | HLD §7 |
 | **M3b** | ts-power + ts-periph（外设桩——A04 深度仿真依赖）+ 集成重放 | 待启动 | HLD §7 |

@@ -54,6 +54,11 @@
 | ApprovalBroker / sys_pending_approvals / sys_approve | 审批代理与呈现（token 防代批，DEC-38 #7） | agent/tessera_agent/gateway/approvals.py | 已实现（MA1） |
 | gated_tool / PolicyTable / PlanDto | 会话审批闸（工具包装层，等效 wrap_tool_execute）/类别策略表/结构化产物 DTO（LLD-A02） | agent/tessera_agent/core/session.py | 已实现（MA1；PydanticAI 原生 Hooks 可后替） |
 | build_app / AppContext / run_server | FastMCP 网关装配与 stdio 入口（LLD-A01） | agent/tessera_agent/gateway/server.py | 已实现（MA1） |
+| ts-store API 族（ts_store_init/meta_write/meta_read/prov_load/prov/noinit_put/noinit_get/slot_write/slot_read/slot_hash） | 存储抽象公共 API（LLD-ts-store §2-6；M2a 实现） | firmware/module/tessera/include/ts/store.h | 已实现（M2a） |
+| ts_prov_t / ts_store_part_t / ts_store_test_reset / ts_store_prov_write_test | prov schema v1 数据模型 / 分区枚举 / 测试钩子（含烧录注入通道） | include/ts/store.h + src/store/ | 已实现（M2a） |
+| tsap.h / tsap_view_t / TSAP_MAGIC / TSAP_HEADER_SIZE | TSAP v1 容器格式定稿（16 字节头/大端；M2a，DEC-21） | include/ts/tsap.h | 已实现（M2a） |
+| ts_sha256 / ts_sha256_ctx_t | 自包含 SHA-256（slot 安装校验摘要；M2a，宿主向量对拍 hashlib 验证） | src/store/sha256.c | 已实现（M2a） |
+| framework.store | M2a twister 用例（meta 撕裂/prov 校验/slot+sha 向量/noinit/tsap 头） | firmware/tests/store | 已实现（M2a 全绿） |
 | project-plan | 统一项目开发计划（双轨 M 系 + MA 系，DEC-39 授权） | docs/project-plan.md | v1.0 生效 |
 | M0 | west 工作区 + native_sim 空模块构建 + CI 骨架 | FOUNDING_PROMPT §7 | **本地全绿（2026-09-21，WSL：构建+twister 运行级+pytest）**；仅余 GitHub 远端推送（CI 上线） |
 | M1 | ts-core + ts-safety（安全层最小闭环） | HLD §7 | **本地全绿（2026-09-22）：twister 4/4 配置 12 用例 + L5 5/5 + pytest；M1 退出 review 门已呈报** |
