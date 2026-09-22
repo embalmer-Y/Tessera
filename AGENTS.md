@@ -6,6 +6,13 @@
 
 ## 1. 当前状态
 
+- **2026-09-22（一） · Agent 轨道启动：R3 基座选型调研完成（`docs/research/R3-agent-foundation.md` v1.0，三路并行实查）；呈递 Q-14/Q-15/Q-16 待 owner 裁决；固件主线（GitHub 远端 → M1）不变**
+  - owner 指令（2026-09-22）：Agent 核心基于现有 agent/框架（点名 OpenCode、pi），且必须可封装为 MCP server 被其他 Agent 调用；先做一轮 research。
+  - 调研要点（实查 2026-09-22）：生态三项重大变化——OpenCode 迁库 **anomalyco**、pi 迁库 **earendil-works** 并公司化（Armin Ronacher 深度加入）、MCP 治权移交 Linux Foundation AAIF（spec 现行 2026-07-28，Tasks 长任务扩展转正）；**无候选原生自带"暴露为 MCP server"，外壳一律自建（官方 MCP SDK）**；出局组：Claude Agent SDK（闭源运行时+Anthropic 模型锁定）/ Gemini CLI（锁 Google）/ Crush（FSL）/ Aider（停更）/ Amazon Q CLI（已归档）。
+  - 呈递（decisions.md §二）：**Q-14** 基座选型——建议 **A：pi 库内核（进程内）+ 官方 MCP TS SDK 2.x 门面 + 自研 Tessera 工具集（TypeScript）**，备选 B OpenCode / C goose / D PydanticAI 自建；**Q-15** MCP 工具面——建议双层（原子必开 + V1 少量高层任务工具，长工具按 Tasks 句柄化）；**Q-16** ACP 二级接口——建议 V1 不做仅预留。
+  - Agent 设计（HLD/LLD）待 Q-14…16 裁决后另起会话；本会话在 Windows 侧发起、经 UNC 写入 WSL 权威仓库（DEC-32 纪律未破坏）。
+  - 待办不变：GitHub 远端（DEC-24，M0 完整退出）；M1（ts-core + ts-safety + L5 脚本 + L4 重放雏形）。
+  - 备注：WSL 仓库补打缺失 tag `dec-32`（clone 时未携带，指向 7933239，军规 5 补正）。
 - **2026-09-21（六） · DEC-32：开发环境整体迁 WSL 完成，Windows 复原完成；M0 本地验证全绿（native_sim 构建 + twister 运行级 1/1 passed + pytest）；唯一余项 = GitHub 远端（CI 上线）**
   - 环境事实源：`docs/dev-environment.md`（目录规范 `~/project/{tessera,zephyrproject,logs}`、清单、教训、Windows 复原记录）。
   - M0 终态：west 工作区 ✓（WSL，v4.4.0 钉版）/ native_sim 构建 ✓ / twister 运行级 ✓（`framework.smoke` 1/1 passed——**含 CONFIG_TS_MODULE 模块接线断言**）/ pytest ✓ / CI 骨架 ✓（yaml 就绪，待远端推送）/ LICENSE ✓。

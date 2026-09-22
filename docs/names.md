@@ -23,6 +23,9 @@
 | Q-11 | design review-01 语义批次 | design-review-01.md | 已裁 → DEC-29/30 |
 | Q-12 | CI 平台与远端仓库托管（M0 前置） | 开发就绪度评估（2026-09-20） | 已裁 → DEC-24 |
 | Q-13 | APP 线程模型与并发限制（禁自建线程/编译期禁用/三层机制） | owner 问询（2026-09-21） | 已裁 → DEC-31 |
+| Q-14 | Agent 基座选型（A：pi 库内核 / B：OpenCode / C：goose / D：PydanticAI 自建） | R3（owner 指令 2026-09-22） | 待裁 |
+| Q-15 | MCP 工具面形态（原子层 / 高层任务层 / 双层） | R3 | 待裁 |
+| Q-16 | ACP 二级人机接口 V1 范围 | R3 | 待裁 |
 
 ## 2. 任务与里程碑
 
@@ -31,6 +34,7 @@
 | K1 | 仓库初始化（骨架 + git + AGENTS.md + decisions.md 录入） | FOUNDING_PROMPT §7 | 2026-09-19 完成，待 review |
 | R1 | APP 运行时调研（wasm3/WAMR vs LLEXT vs 脚本类等） | FOUNDING_PROMPT §7 | 进行中（初步笔记已落盘） |
 | R2 | 数据面协议选型调研 | FOUNDING_PROMPT §7 | 进行中（初步笔记已落盘） |
+| R3 | Agent 基座选型调研（coding agent / 框架 / MCP 封装） | owner 指令（2026-09-22） | v1.0 落盘，随 Q-14/Q-15/Q-16 呈递待裁 |
 | M0 | west 工作区 + native_sim 空模块构建 + CI 骨架 | FOUNDING_PROMPT §7 | **本地全绿（2026-09-21，WSL：构建+twister 运行级+pytest）**；仅余 GitHub 远端推送（CI 上线） |
 | M1 | ts-core + ts-safety（安全层最小闭环） | HLD §7 | 待启动（规格已生效） |
 | M2 | ts-hal + ts-appmgr + WAMR 集成（拆 M2a：store/TSAP/slot；M2b：hal/权限/WAMR） | HLD §7 | 待启动（规格已生效） |
@@ -67,6 +71,15 @@
 | router 宿主平台 | zenohd router 部署面：**Linux PC**、ARM64 Linux 工业/机器人主板（DEC-20；DEC-32 修订：Windows 移出） | 生效 |
 | LLEXT | Zephyr 在树可加载 ELF 子系统（实验性）；R1 候选 B，未被选用；如未来作框架内部机制须另立 Q | 存档（未选用） |
 | wasm3 | WASM 解释器（MIT，最低维护期）；R1 候选 A1，未被选用 | 存档（未选用） |
+| OpenCode | 开源 coding agent（anomalyco/opencode，原 sst/opencode；MIT；v1.18.x）；R3 候选 B | R3 呈递（待裁） |
+| pi | AI agent 工具箱（earendil-works/pi，原 badlogic/pi-mono；MIT；v0.87.x；库嵌入一等）；R3 候选 A（**建议**） | R3 呈递（待裁） |
+| goose | Block 开源 agent（block/goose，Apache-2.0，Rust，扩展体系=MCP server）；R3 候选 C | R3 呈递（待裁） |
+| Codex CLI | OpenAI 开源 coding agent（Apache-2.0，app-server 形态）；R3 备查 | 存档（未选用，R3） |
+| Claude Agent SDK / Gemini CLI / Crush / Aider / Amazon Q CLI | R3 出局组（闭源运行时+模型锁定 / 锁 Google / FSL 许可证 / 停更+非 agent 架构 / 已归档） | 存档（R3 排除） |
+| Vercel AI SDK / PydanticAI / FastMCP | R3 自建循环框架线（方案 D 相关底座） | R3 记录 |
+| ACP | Agent Client Protocol（Zed+JetBrains 共治，v1 stable；编辑器↔agent 标准协议，与 MCP 互补）；Q-16 对象 | 待裁（Q-16） |
+| A2A | Agent2Agent 协议（Linux Foundation，v1.0.1；agent 对等协作） | watch item |
+| MCP Tasks extension | MCP 长任务扩展（2026-07-28 spec 转正：任务句柄+轮询+订阅通知）；Agent 长工具设计基线 | R3 设计输入 |
 
 ## 5. 模块名 / API 名 / 文件格式名
 
@@ -107,3 +120,4 @@
 - 2026-09-21 · 裁决批次 4 登记：DEC-30、tag `dec-30`——**Q-01…Q-12 全部裁毕（DEC-17…30）**；仅余 C-1/C-2/C-3 文档确认。
 - 2026-09-21 · DEC-32 登记（tag `dec-32`）：Agent 仅 Linux、环境迁 WSL（`docs/dev-environment.md` 建立为环境事实源）；M0 本地全绿。
 - 2026-09-21 · 登记 Q-13（APP 线程模型，owner 问询触发）。
+- 2026-09-22 · R3 登记：任务行 R3、待裁 Q-14/Q-15/Q-16（Agent 轨道）；外部名 OpenCode/pi/goose/Codex CLI/出局组/框架线/ACP/A2A/MCP Tasks extension。
