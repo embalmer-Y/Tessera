@@ -1,6 +1,6 @@
 # R3 · Tessera Agent 基座选型调研（agent 运行时 / 框架 / MCP 封装）
 
-> **状态**：v1.0.1 · 2026-09-22 · research 阶段产出（阶段白名单内）· **Q-14/Q-15 已裁 → DEC-33/34**（pi 基座 + 多域预留北极星；双层 MCP 工具面）；Q-16（ACP）补呈详解后仍待裁（`decisions.md` §二）。
+> **状态**：v1.0.2 · 2026-09-22 · research 阶段产出（阶段白名单内）· **Q-14/Q-15 已裁 → DEC-33/34**（pi 基座 + 多域预留北极星；双层 MCP 工具面）；Q-16（ACP）补呈详解后仍待裁（`decisions.md` §二）。§4.6 长任务结论已被 R4 实现级细化（Tasks extension 客户端采用为零 → 自定义句柄+轮询），以 R4 为准。
 > **任务来源**：owner 2026-09-22 指令——"我想请你先进行zephyr AI开发设计测试嵌入式程序的Agent的research和design工作，该Agent核心基于Opencode或PI Agent或者其他现有Agent或框架为基础进行设计，该Agent也要能够被封装为MCP被其他Agent调用，请你先进行一轮Resarch收集信息，调研我们选择什么方案是最适合我们的。"
 > **核验方式**：3 个并行调研子代理经 WebSearch / WebFetch / GitHub API 于 **2026-09-22 实查**（非记忆复述）；关键来源清单见 §8，未能核验项以 ⚠️ 标注。
 
@@ -196,3 +196,4 @@ owner 本次指令增加两项约束：① **Agent 核心不自研循环**，基
 
 - v1.0 · 2026-09-22：初版。3 路并行调研（OpenCode/pi 深查；goose/Crush/Aider/Claude Agent SDK/Codex/Gemini/Amazon Q；MCP/ACP/A2A/框架生态）汇总成文；Q-14/Q-15/Q-16 呈递。
 - v1.0.1 · 2026-09-22：裁决登记——Q-14 → **DEC-33**（pi 基座；owner 附加北极星：多域 Agent 预留 + "自己生产自己"）；Q-15 → **DEC-34**（双层工具面）；Q-16 补呈详解（作用 + 实现方式，decisions.md §二）后仍待裁。
+- v1.0.2 · 2026-09-22：R4（`R4-agent-interaction.md`）对本报告 §4.6 长任务结论作**实现级细化**——Tasks extension 客户端采用为零，落地改为自定义句柄+轮询工具（语义对齐 Tasks V2），见 R4 §3.2/§5 与 Q-17②。

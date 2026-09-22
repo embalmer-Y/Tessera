@@ -48,7 +48,7 @@
 
 ## 二、问题登记（Q）
 
-### 问题批次（Agent 轨道呈递，2026-09-22；**当前待裁：Q-16**——Q-14/Q-15 已裁 → DEC-33/34）
+### 问题批次（Agent 轨道呈递，2026-09-22；**当前待裁：Q-16 / Q-17**——Q-14/Q-15 已裁 → DEC-33/34）
 
 #### Q-14 · Tessera Agent 基座选型（2026-09-22 呈递，owner 指令触发）
 
@@ -88,6 +88,24 @@
 - **选项**：A. V1 不做，仅架构预留（会话编排层与传输解耦，后补适配模块即可启用）；B. V1 即附带 ACP 适配（Zed/JetBrains 从第一天可人肉驱动 Tessera Agent）。
 - **建议**：A。V1 主合同是 MCP（DEC-12）；ACP 是人机体验增强、不影响能力面；解耦到位后补成本低；v2 draft 期的协议演进由后补者吸收。
 - **影响**：A 几乎零额外成本（解耦本就是应做架构，仅要求 HLD 明确编排层/传输边界）；B 增一个适配模块与测试面，换来 V1 期间的可视化调试体验。
+- **R4 证据补强（2026-09-22 重呈）**：Zed ACP 客户端已达 **80+**（JetBrains 官方内建、VS Code 系经扩展、各聊天软件桥），agent 侧 30+，另有 ACP Registry；v2 draft（2026-07-20）演进中（摆脱 turn 模型、结构化 diff），官方建议生产不默认开 v2。**命名陷阱**：Q-16 对象是 Zed/JetBrains 的 ACP（编辑器↔agent）；IBM 的同名 Agent Communication Protocol（agent↔agent）已于 2025-08 并入 A2A 消亡，勿混淆。建议不变：A（V1 不做仅预留）。
+
+#### Q-17 · Tessera Agent 交互栈确认（2026-09-22 呈递，R4 结论）
+
+- **状态**：**待裁**。
+- **背景**：owner 指出 DEC-12 的 MCP 选择基于其既有知识、未必最新最前沿，指令第二轮调研（R4，`docs/research/R4-agent-interaction.md`）。R4 结论：**MCP 不但没过时，反而刚完成现代化大版本（2026-07-28 stateless 断代）并已捐入 Linux Foundation AAIF 中立治理**；协议战争已收敛为分层栈（MCP+A2A v1.0+AGENTS.md 同伞 AAIF；Agent Skills 成能力分发开放标准；无颠覆者）。但 2026-07-28 断代 + 客户端现实差异要求实现纪律更新，另有 Skills 分发一项新增建议——涉及选型与对 DEC-34 的实现级细化，按门 ① 呈递。
+- **通俗解释**：
+  - **AAIF / open agentic stack**：Linux Foundation 旗下基金会（2025-12 成立），Anthropic 捐 MCP、OpenAI 捐 AGENTS.md、Google 系 A2A 2026-08 入会——三大件同伞，事实上的"agent 互操作标准栈"；R4 判定协议层无颠覆者，押注该栈 = 押注主流。
+  - **stateless-first**：2026-07-28 起 MCP 协议去会话化（服务器不保存连接状态、能力随每次请求携带）——新 server 从第一天按此设计，同时兼容旧客户端（以 2025-11-25 语义为回归基线）。
+  - **长任务现实**：官方 Tasks extension 虽转正但**尚无客户端支持**（实测惯例 = 工具立即返回任务号 + 独立查询工具轮询；Claude Code 超 2 分钟自动转后台、Codex 硬超时 600s）——立即返回是唯一安全模式。
+  - **Agent Skills**：SKILL.md 目录格式的"领域能力包"开放标准（Anthropic 2025-12 开放，45+ 工具支持，**pi 内核原生支持**）——把固件域知识（构建流程/军规/TSAP/命名空间）打包分发，任何 agent 拿到即懂我们的工具链；学术基准 IoT-SkillsBench（378 次真机实验）证明专家 skills 使嵌入式 agent 成功率接近满分。
+- **选项（4 子项，可整体"按建议"或逐项例外）**：
+  - ① **对外合同维持 MCP 唯一**（DEC-12 不变）：stdio 起步 + Streamable HTTP 预留；实现纪律 = stateless-first（对齐 2026-07-28）+ 2025-11-25 兼容基线回归 + 规避弃用特性（Roots/Sampling/Logging/SSE/elicitation 依赖，"需更多信息"建模为工具结构化返回）。
+  - ② **长任务机制细化**（DEC-34 实现细节修订）：不依赖 Tasks extension（客户端采用为零），落地为**自定义任务句柄 + status/log 轮询工具**；内部语义对齐 Tasks V2（tasks/get/update/cancel），官方普及后平滑切换。
+  - ③ **领域能力分发采用 Agent Skills 开放标准**：V1 随 agent 附最小固件域 skill 集；文档型知识可选配套 docs MCP server（Espressif 官方先例，解决模型训练截止问题）。
+  - ④ **多域组合模式**：默认 = 上层编排 + 域 agent 各自 MCP 面（agents-as-tools，2026 生产主流）；**A2A v1.0 仅预留**（跨主体/长周期对等场景，如 Galatea 规模）；AGENTS.md 维持现状（已 AAIF 标准）。watch：agentgateway（部署治理）、MCP roadmap 的 agent 身份/委托线。
+- **建议**：①②③④ 全部采纳。①④ 为确认与预留（零新增成本）；② 是 R4 发现的现实约束修正（不采纳则长工具在真实客户端上必超时）；③ 新增但低成本高收益（pi 原生支持 + 学术佐证 + 解决训练截止痛点）。
+- **影响**：Agent HLD 交互层规格（stateless 设计/句柄式返回/弃用规避清单）；agent/ 增 skills 目录与最小 skill 集；后续上线时 MCP Registry 占名（工程事项，不另开 Q）。
 
 ### 问题批次（design 阶段呈递；Q-01…Q-13 均已裁）
 
@@ -248,3 +266,4 @@
 - 2026-09-21 · **DEC-32**：Agent 仅支持 Linux（修订 DEC-20，Windows 宿主移出）；开发环境整体迁 **WSL2 Ubuntu 24.04**（仓库 `~/tessera`、工作区 `~/zephyrproject`），Windows zephyr 环境复原；记录于 `docs/dev-environment.md`。
 - 2026-09-22 · **Agent 轨道启动**（owner 指令）：R3 基座选型调研落盘（`docs/research/R3-agent-foundation.md` v1.0，三路并行实查）；登记待裁 **Q-14**（Agent 基座选型，建议 A：pi 库内核 + 官方 MCP TS SDK 门面）/ **Q-15**（MCP 工具面形态，建议双层）/ **Q-16**（ACP 二级接口，建议 V1 不做）。
 - 2026-09-22 · **裁决批次 5（Agent 轨道首批）**：Q-14 → **DEC-33**（pi 基座 + 多域 Agent 预留 + 北极星"应用于机器人/Galatea 时完全自动化自己生产自己"）、Q-15 → **DEC-34**（双层 MCP 工具面 + 长任务 Tasks 句柄化）；Q-16 按 owner 要求补呈详解（作用 + 实现方式）后**仍待裁**。tag `dec-33-34`。
+- 2026-09-22 · **R4 交互与接入方式调研**（owner 质疑 MCP 选型触发，`docs/research/R4-agent-interaction.md` v1.0）：MCP 确认为前沿正确选择（协议格局已收敛为 AAIF open agentic stack）；登记待裁 **Q-17**（交互栈确认 4 子项：MCP 维持+实现纪律 / 长任务机制细化 / Skills 分发 / A2A 预留）；**Q-16 重呈**（R4 证据补强）。
