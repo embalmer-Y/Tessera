@@ -121,6 +121,10 @@
   - D. **Rust**：pi 不可用；goose crate 无稳定公共 API（R3 ⚠️未核验其承诺）；MCP Rust SDK（rmcp，goose 所用）成熟度低于 TS/Python Tier-1；基本等于全自研——工程量最大、迭代最慢。
 - **建议**：**A 维持**（DEC-33 理由仍然成立：pi 进程内嵌入是决定性优势，语言是基座的从属选择；固件 Python 工具链经子进程复用的成本已评估可接受——west/twister 本就是 CLI 优先设计）。若 owner 更看重**与固件 Python 工具链同生态**或团队 Python 熟悉度，**B 是可接受变体**（保留基座决策，仅语言层修订；且强制点移入工具内部反而更硬——闸在产物必经路径上）。C/D 不建议。
 - **影响**：选 A 无变化；选 B → DEC-33 语言条款修订（TypeScript → Python 宿主 + pi RPC），agent/ 结构 = FastMCP/官方 Py SDK 门面 + pi 子进程管理器 + JS 小扩展（进程内闸）+ Python 工具集，Agent HLD 按此展开；选 C/D → 基座决策重开（须重新走门 ⑤ 技术栈变更）。
+- **owner 动因澄清与建议修订（2026-09-22）**：owner 原文——"主要原因在于我对node完全不熟悉，是否有基于Python的Agent框架可以使用？"——**owner 对全部自研代码的 review 可读性成为一等约束**，重新评估。
+- **Python 框架版图（应答 owner 问询）**：① **PydanticAI v2**（MIT，pydantic 公司，极活跃）= 最适合的 Python agent 框架：类型安全工具调用与结构化输出（可强制 agent 产出经校验的 plan/硬件配置——恰合本项目纪律）、多提供者（含本地 **OllamaModel**）、**原生 Temporal 持久执行**（每步事件日志、故障后恢复/重放——契合审计与确定性重放需求）、官方支持 agent 嵌入 MCP server（与 FastMCP 协同，R3 实查为唯一双向 MCP 框架线）；② OpenAI Agents SDK（0.x，OpenAI 优先）；③ Strands（AWS，MCP-first SDK）；④ smolagents（HF，轻量）；⑤ CrewAI/AG2/LangGraph = 编排框架，过重。**关键事实：Python 生态没有健康的"成品 coding agent 内核"**——aider 停更且为结对编辑器架构（R3 出局）；OpenHands 是平台非嵌入库；pi/OpenCode/goose 均非 Python。Python 路线的固有代价 = 自建文件编辑/shell 工具与会话日志（V1 评估为有界工作量：本项目强纪律工作流对"自由编码"依赖度低，编码工具只需 read/write/apply_patch/exec 四件）。
+- **建议修订（2026-09-22，替代原建议 A）**：改推 **C（PydanticAI + FastMCP 全 Python）**——owner 约束（完全不熟 Node）使"全部自研代码可 review"的权重高于 pi 内核便利；单 Python 进程（无 RPC 跳数、无任何 JS）；类型化输出与持久执行是正收益。**B 细化为 B1 备选**：Python FastMCP 门面+工具 + pi 子进程，工具经 pi-mcp-adapter 以 MCP 回接（自研代码仍全 Python，pi 为原封二进制依赖）——若 HLD 复核发现自建编码工具面风险超预期再启用。A 降为"无语言约束时的技术最优"；D 维持不建议。
+- **影响（修订后）**：选 C → DEC-33 基座条款修订（pi 库内核 → **PydanticAI 框架 + 自建最小编码工具集**，语言 = Python，仍满足 owner"基于现有 Agent 或框架"原始指令——"或框架"明文在列）；agent/ = 单 Python 进程（FastMCP 门面 + PydanticAI agent 循环 + 自建工具集 + skills 分发）；HLD 须复核自建三项工作量清单（编码工具/会话日志/上下文管理）。
 
 ### 问题批次（design 阶段呈递；Q-01…Q-13 均已裁）
 
@@ -284,3 +288,4 @@
 - 2026-09-22 · **R4 交互与接入方式调研**（owner 质疑 MCP 选型触发，`docs/research/R4-agent-interaction.md` v1.0）：MCP 确认为前沿正确选择（协议格局已收敛为 AAIF open agentic stack）；登记待裁 **Q-17**（交互栈确认 4 子项：MCP 维持+实现纪律 / 长任务机制细化 / Skills 分发 / A2A 预留）；**Q-16 重呈**（R4 证据补强）。
 - 2026-09-22 · **裁决批次 6（Agent 轨道交互栈）**：Q-16 → **DEC-35**（ACP：V1 不做仅预留）、Q-17 → **DEC-36**（交互栈 4 子项全采纳 + A2A 预留显式登记，owner 特别要求）。tag `dec-35-36`。**Agent 轨道待裁 Q 清零**——research 阶段落定，下一交付单元 = Agent design（HLD）。
 - 2026-09-22 · 登记待裁 **Q-18**（Agent 实现语言：TS 维持 / Python 宿主+pi RPC / 全自研，owner 问询"可否改为 python 或 rust"触发；建议 A 维持，B 为可接受变体）。
+- 2026-09-22 · **Q-18 建议修订**（owner 澄清动因"完全不熟 Node"）：改推 **C（PydanticAI + FastMCP 全 Python）**，B 细化为 B1 备选（pi 子进程经 MCP 回接）；补核验 PydanticAI 事实（Ollama 本地支持、原生 Temporal 持久执行）；Python 版图应答入 Q-18 条目。

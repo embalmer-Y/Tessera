@@ -6,10 +6,10 @@
 
 ## 1. 当前状态
 
-- **2026-09-22（五） · 登记待裁 Q-18（Agent 实现语言：TS 维持 / Python 宿主+pi RPC / 自研，owner 问询"可否改为 python 或 rust 开发"触发）**
-  - 关键耦合：pi 基座只有 TS 库形态（DEC-33 的"进程内库+beforeToolCall 钩子"两优势依赖同语言）；换语言 = pi 降级为 RPC 子进程（B）或换基座（C/D）。MCP 门面三语言均 Tier-1 可行。
-  - 建议：A 维持 TS；B（Python 宿主 + pi RPC，保留基座、与固件 Python 工具链同生态）为可接受变体；C/D 不建议。详见 decisions.md §二 Q-18。
-  - Agent HLD 待 Q-18 落定后启动；固件主线不变。
+- **2026-09-22（五） · 登记待裁 Q-18（Agent 实现语言：TS 维持 / Python 宿主+pi RPC / 自研，owner 问询"可否改为 python 或 rust 开发"触发）；同日 owner 澄清动因（完全不熟 Node）→ 建议修订为 C（PydanticAI + FastMCP 全 Python），B1 备选**
+  - 关键事实：pi 只有 TS 库形态（A=进程内库最优但 owner 不可 review）；**Python 生态无健康成品 coding agent 内核**（aider 停更/OpenHands 非库/pi·OpenCode·goose 均非 Python）→ C = PydanticAI v2（MIT、类型化输出、Ollama 本地、原生 Temporal 持久执行、官方 agent 嵌入 MCP server）+ FastMCP 门面 + 自建最小编码工具集（read/write/apply_patch/exec 四件）。
+  - 修订后建议：**C**（全 Python 单进程、owner 可 review 全部自研代码）；B1 备选（Python 门面 + pi 子进程经 pi-mcp-adapter 回接）；A = 无语言约束时的技术最优；D（Rust）不建议。
+  - Agent HLD 待 Q-18 裁决后按对应形态启动；固件主线不变。
 - **2026-09-22（四） · 裁决批次 6（tag `dec-35-36`）：DEC-35（Q-16：ACP V1 不做仅预留）+ DEC-36（Q-17：交互栈 4 子项全采纳，A2A v1.0 预留显式登记）——Agent 轨道待裁 Q 清零，research 阶段落定**
   - 交互栈定案（DEC-36）：MCP 唯一对外合同（stateless-first 对齐 2026-07-28 + 2025-11-25 兼容基线回归 + 弃用特性规避）；长任务 = 自定义任务句柄 + status/log 轮询工具（语义对齐 Tasks V2，细化 DEC-34）；领域能力分发 = Agent Skills（SKILL.md，V1 附最小固件域 skill 集）；多域组合默认 = 上层编排 + 域 agent 各自 MCP 面；**A2A v1.0 预留**（owner 要求显式记录：DEC-36 + names.md A2A 行 + Agent HLD 架构预留节——agent 身份/Agent Card/对等任务委托接入缝；Galatea 规模/跨主体对等场景启用）。
   - ACP（DEC-35）：V1 不做，仅架构预留（会话编排层与传输解耦；后补适配模块即启用 Zed/JetBrains 人肉驱动）。

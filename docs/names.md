@@ -83,7 +83,8 @@
 | goose | Block 开源 agent（block/goose，Apache-2.0，Rust，扩展体系=MCP server）；R3 候选 C | R3 呈递（待裁） |
 | Codex CLI | OpenAI 开源 coding agent（Apache-2.0，app-server 形态）；R3 备查 | 存档（未选用，R3） |
 | Claude Agent SDK / Gemini CLI / Crush / Aider / Amazon Q CLI | R3 出局组（闭源运行时+模型锁定 / 锁 Google / FSL 许可证 / 停更+非 agent 架构 / 已归档） | 存档（R3 排除） |
-| Vercel AI SDK / PydanticAI / FastMCP | R3 自建循环框架线（方案 D 相关底座） | R3 记录 |
+| Vercel AI SDK / PydanticAI / FastMCP | R3 自建循环框架线（方案 D 相关底座）；**Q-18 修订后 PydanticAI + FastMCP 为推荐基座（选项 C）** | Q-18 候选 C（待裁） |
+| OpenHands | Python 全栈自主 agent 平台（web 形态，非嵌入库）——Q-18 Python 版图排查结论：非内核候选 | 存档（不选用） |
 | ACP | Agent Client Protocol（**Zed/JetBrains** 共治，v1 stable / v2 draft；编辑器↔agent 标准协议，客户端 80+）。**命名陷阱**：与 IBM 的同名 Agent Communication Protocol（agent↔agent，2025-08 已并入 A2A）不同物 | 生效（DEC-35：V1 不做，架构预留） |
 | A2A | Agent2Agent 协议（Google→Linux Foundation，v1.0.1；2026-08-17 入 AAIF；Azure/AWS/GCloud 产品级采用）；agent 对等协作，与 MCP 互补。**预留记录（owner 要求，DEC-36④）**：跨主体/长周期对等场景（如 Galatea 规模）启用；Agent HLD 须落架构预留节（agent 身份/Agent Card/对等任务委托接入缝） | 生效（DEC-36 预留） |
 | AAIF | Agentic AI Foundation（Linux Foundation，2025-12-09 成立；MCP/AGENTS.md/A2A 治理伞 = "open agentic stack"） | R4 事实 |
@@ -141,3 +142,4 @@
 - 2026-09-22 · R4 登记：任务行 R4、待裁 Q-17（交互栈确认）；外部名 AAIF/Agent Skills/MCP Registry/AGENTS.md/Zephyr MCP 子系统/ESP-IDF Tools MCP/IoT-SkillsBench/Quilter Project Speedrun/新协议判定组；ACP/A2A 行更新（命名陷阱、AAIF 归属）。
 - 2026-09-22 · **裁决批次 6 登记**：DEC-35（ACP 预留）、DEC-36（交互栈定案 + **A2A 预留显式记录**）、tag `dec-35-36`；Q-16/Q-17 转已裁——**Agent 轨道待裁 Q 清零**。
 - 2026-09-22 · 登记待裁 Q-18（Agent 实现语言，owner 问询触发）。
+- 2026-09-22 · Q-18 建议修订登记：PydanticAI + FastMCP 升为推荐（选项 C）；OpenHands 存档登记。
