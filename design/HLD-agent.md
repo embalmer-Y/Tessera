@@ -122,7 +122,7 @@ Frontend 抽象：会话编排层不绑定传输——V1 唯一实现 = MCP 门�
 
 ## 9. V1 范围裁剪清单（超出即另立 Q）
 
-不做：Streamable HTTP 远程门面（stdio only）；Temporal/FastMCP-tasks（自建句柄）；ACP/A2A 实现（预留缝）；多域 DomainPack（接口预留）；多客户端并发会话〔Q-19 提案 6〕；上下文自动压缩（超预算即失败并提示切分）；docs MCP server（后置可选）；MCP Registry 上架（MA3 后工程事项）。
+不做：Streamable HTTP 远程门面（stdio only）；Temporal/FastMCP-tasks（自建句柄）；ACP/A2A 实现（预留缝）；多域 DomainPack（接口预留）；多客户端并发会话（上限 2，DEC-38）；docs MCP server（后置可选）；MCP Registry 上架（MA3 后工程事项）。**上下文压缩 V1 即支持**（DEC-38 修订：动态预算 + 阈值 70%，见 LLD-A02 §2）。
 
 ## 10. 未决依赖与呈递
 
@@ -133,3 +133,4 @@ Frontend 抽象：会话编排层不绑定传输——V1 唯一实现 = MCP 门�
 ## 修订记录
 
 - v0.1 · 2026-09-22：初版（owner 指令启动 Agent design；输入 DEC-33…37 + R3/R4/R5；Q-19/C-4/C-5 呈递）。
+- v0.1.1 · 2026-09-22：Q-19 → DEC-38 同步——§9 裁剪清单移除"不做上下文压缩"（改为 V1 支持，动态预算+阈值 70%）；会话并发上限出处标注 DEC-38。

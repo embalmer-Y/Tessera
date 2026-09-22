@@ -48,6 +48,7 @@
 | DEC-35 | 2026-09-22 | **ACP 二级人机接口：V1 不做，仅架构预留**——会话编排层与传输解耦（Agent HLD 须明确该边界），后补 ACP 适配模块即可启用 Zed/JetBrains 人肉驱动 | owner 原文："Q-16 · ACP 人机接口（此前详解已呈，补 R4 证据后重呈）：我们进行预留。V1 不做。" 对象 = Zed/JetBrains 的 Agent Client Protocol（与已并入 A2A 的 IBM 同名 ACP 区分，names.md 已登记命名陷阱） |
 | DEC-36 | 2026-09-22 | **Q-17 四子项全部采纳（Agent 交互栈定案）**：① 对外合同 = **MCP 唯一**（DEC-12 维持；stdio 起步 + Streamable HTTP 预留；实现纪律 = stateless-first 对齐 spec 2026-07-28 + 2025-11-25 兼容基线回归 + 规避弃用特性 Roots/Sampling/Logging/SSE/elicitation 依赖，"需更多信息"建模为工具结构化返回）；② 长任务 = **自定义任务句柄 + status/log 轮询工具**（语义对齐 Tasks V2 tasks/get/update/cancel，官方普及后平滑切换——细化 DEC-34 实现机制）；③ 领域能力分发 = **Agent Skills 开放标准**（SKILL.md；V1 随 agent 附最小固件域 skill 集；docs MCP server 可选后置）；④ 多域组合默认 = **上层编排 + 域 agent 各自 MCP 面**；**A2A v1.0 明确预留**（跨主体/长周期对等场景——如 Galatea 规模——时启用） | owner 原文："Q-17 · 交互栈确认：全部采纳，但要记录A2A的预留。" **A2A 预留记录点（owner 特别要求）**：本 DEC + `docs/names.md` A2A 行（生效·预留）+ Agent HLD 架构预留节（agent 身份/Agent Card/对等任务委托的接入缝）。watch 项：agentgateway（部署治理）、MCP roadmap agent 身份/委托线（DPoP/WIF/ID-JAG） |
 | DEC-37 | 2026-09-22 | **Q-18 裁定 C：Agent 实现 = 全 Python（PydanticAI v2 + FastMCP 门面 + 自建最小编码工具集）**——修订 DEC-33 基座条款（pi 库内核 → Python 框架 + 自建循环；实现语言 TypeScript → Python）；DEC-33 北极星与落地约束（多域预留 / 平台层解耦 / 跨域组合走 MCP / V1 范围不变）**全部沿用**；owner 动因 = 完全不熟 Node，全部自研代码必须 owner 可 review | owner 原文："Q-18：C，同时请你完整review一边之前的design是否需要进行一定的调整。有调整的地方需要重新research。" 派生修订：① DEC-36③ Skills 加载从"pi 原生支持"改为**自建 skill loader**（对外分发形态不变）；② beforeToolCall 等效闸 = PydanticAI 工具包装/中间件（R5 核验落点）；③ Agent 侧 TSAP 打包签名（DEC-21）与 zenoh 客户端封装（DEC-18 备注⑥）改用 Python 栈（R5 核验 cbor2/COSE-Sign1/ed25519/zenoh-python）；④ Q-18 涟漪审查见 `design/design-review-02-agent-python-ripple.md`（固件设计套件零改动结论留档） |
+| DEC-38 | 2026-09-22 | **Q-19 裁定：13 项中 11 项按建议值（#1-5、#7-8、#10-13，见 Q-19 表）；#6/#9 修订**——**#6 会话上下文**：① 上下文压缩 **V1 即支持**（非后置）；② 上下文预算**随模型配置动态调整**（取模型 context window，不再固定 100k）；③ 默认压缩阈值 **70%**（达窗口 70% 触发：保留系统提示/skills 注入/近期轮次 + 远段摘要，压缩后仍超限才任务失败）；④ **最低要求值：模型 context window ≥ 32k tokens**（低于 = 配置错误，拒绝启动——系统提示+skills+工具 schema+最小工作集约需 20k）。**#9 输出截断**：截断限额**随动态上下文预算缩放**（单次工具返回上限 = 预算×5% 折算字节 ≈4 字符/token），**最低要求值：单次 ≥16 KiB、单行 ≥2 KiB**（单行 = max(2 KiB, 单次/16)） | owner 原文："我下面只列出不接受建议值的裁定项：6. 会话压缩需要在V1即被支持，同时预算上下文需要动态根据模型配置动态调整。默认压缩阈值70%，上下文预算需要设置最低要求值。9输出截断也需要按照动态上下文配置动态调整，但需要设置最低要求值。" 落地数值（32k / 5% / 16KiB / 2KiB）为 owner 授权 design 定的具体数（"需要设置最低要求值"），登记于本 DEC 作代码常量出处，偏差按 Q-19 惯例按行修订；设计文档同步：HLD §9 裁剪清单、LLD-A00 §5、LLD-A01 §4、LLD-A02 §2/§6 |
 
 ## 二、问题登记（Q）
 
@@ -55,7 +56,7 @@
 
 #### Q-19 · Agent design 批次默认值与配置清单（2026-09-22 随 HLD/LLD 批次呈递）
 
-- **状态**：**待裁**。
+- **状态**：**已裁 → DEC-38**（2026-09-22：11 项按建议；#6/#9 owner 修订——压缩 V1 即支持/动态预算/阈值 70%/最低 32k；截断动态化/最低 16KiB+2KiB）。
 - **背景**：Agent 设计批次（`design/HLD-agent.md` v0.1 + `design/LLD-A00…A07` v0.1，共 9 份，DEC-33…37 的设计展开 + R3/R4/R5 事实落点）为可实施规格，需落一批工程默认值（依赖钉版/超时/限额/策略/工具链）；依军规 2"无 Q 不落盘"集中登记，设计文档内全部以〔Q-19 提案 n〕标注，裁决前不进代码常量。
 - **选项**：A. 本清单批量裁决（逐项可例外，同 Q-10 先例）；B. 每项独立 Q（决策成本高）。
 - **建议**：A。批准后即成为 agent/ 代码常量出处（`# 来源: Q-19`），实测偏差按行修订本表不另开 Q（除非语义变化）。
@@ -67,10 +68,10 @@
 | 3 | 结构化输出重试预算 | output retries = 3 | ModelRetry 默认 1 偏紧；过大会放大 token 成本 |
 | 4 | 超时族 | 长任务 TTL 30 min；审批等待 10 min；deploy_discover 10 s；子进程默认 120 s；fw_build/fw_twister 30 min | CI 构建经验 + Claude Code 2 min 后台化/Codex 600 s 客户端现实；过短误杀、过长占位 |
 | 5 | 任务日志环形缓冲 | 1000 行/任务 | 排障够用 + 内存有界；溢出标记截断 |
-| 6 | 会话并发 / token 预算 | 2 / 100k（超限失败并提示切分） | V1 单客户端场景；过大会话质量下降且贵 |
+| 6 | 会话并发 / 上下文预算 | 并发 2；预算**动态**（取模型 context window，窗口 ≥32k 为最低要求，低于拒绝启动）；**压缩 V1 支持**：达窗口 70% 触发（保留系统提示/skills/近期轮次+远段摘要），压缩后仍超才失败 | **DEC-38 修订**（owner：压缩 V1 即支持 + 动态预算 + 阈值 70% + 最低要求值） |
 | 7 | 审批 token 与 confirm 策略 | token 经宿主环境变量注入；confirm 类 V1 会话内直行（config 可收紧为挂起，**不可放宽 strict**） | 防 MCP 客户端代批；收紧自由度保留给部署方 |
 | 8 | 审计保留 | V1 全量落盘不滚动 | 审计必成（无豁免链）；磁盘代价接受（单机开发场景） |
-| 9 | 输出截断 | 单行 4 KiB / 单次工具返回 64 KiB | 客户端 10k token 警告线下留裕量；截断必标记 |
+| 9 | 输出截断 | **动态**：单次工具返回上限 = 上下文预算 ×5% 折算字节（≈4 字符/token）；**最低要求值：单次 ≥16 KiB、单行 ≥2 KiB**（单行 = max(2 KiB, 单次/16)） | **DEC-38 修订**（owner：随动态上下文调整 + 最低要求值）；截断必标记 |
 | 10 | 限流 | 30 工具调用/min/客户端 | 防失控循环（doom-loop 类）兜底 |
 | 11 | lint 工具链 | ruff（含 asyncio 阻塞调用检查规则） | Python 生态事实标准；军规 10"lint 通过才算完成"落点 |
 | 12 | sim_run 确定性 | 内建双跑比对，determinism 字段必出 | 合同 9 同构的最直接机械验证 |
@@ -317,3 +318,4 @@
 - 2026-09-22 · **Q-18 建议修订**（owner 澄清动因"完全不熟 Node"）：改推 **C（PydanticAI + FastMCP 全 Python）**，B 细化为 B1 备选（pi 子进程经 MCP 回接）；补核验 PydanticAI 事实（Ollama 本地支持、原生 Temporal 持久执行）；Python 版图应答入 Q-18 条目。
 - 2026-09-22 · **裁决批次 7**：Q-18 → **DEC-37**（全 Python：PydanticAI + FastMCP + 自建编码工具集；修订 DEC-33 基座条款，北极星与落地约束沿用）。同批启动：**Q-18 涟漪审查**（design 全量 review，结论留档 `design/design-review-02-agent-python-ripple.md`）+ **R5 补充核验**（PydanticAI/FastMCP HLD 级事实、TSAP Python 签名栈、zenoh-python）。tag `dec-37`。
 - 2026-09-22 · **Agent design 批次交付**（owner 指令"开始进行HLD以及LLD"）：`design/HLD-agent.md` v0.1 + `LLD-A00…A07` v0.1（9 份）；登记待裁 **Q-19**（默认值清单 13 项）+ 呈递 **C-4**（HLD 确认）/ **C-5**（LLD 批次确认）。
+- 2026-09-22 · **裁决批次 8**：Q-19 → **DEC-38**（11 项按建议；#6 上下文压缩 V1 即支持+动态预算+阈值 70%+最低 32k；#9 截断动态化+最低 16KiB/2KiB）；设计文档同步（HLD §9 / LLD-A00 §5 / LLD-A01 §4 / LLD-A02 §2/§6）。tag `dec-38`。**C-4/C-5 仍待 owner 确认**。

@@ -49,7 +49,7 @@
 
 ## 4. 中间件栈（FastMCP Middleware，server 侧第二层闸）
 
-顺序：Audit（工具流写入）→ Policy（参数白名单复核，兜底 A02 闸）→ RateLimit〔Q-19 提案 10：默认 30 调用/min/客户端〕→ Tool 执行 → OutputLimit（64 KiB 截断）。
+顺序：Audit（工具流写入）→ Policy（参数白名单复核，兜底 A02 闸）→ RateLimit〔Q-19 提案 10：默认 30 调用/min/客户端〕→ Tool 执行 → OutputLimit（**动态上限**：DEC-38 公式，见 A00 §5）。
 审批呈现：agent 会话内 ApprovalRequired 挂起时，A01 同步暴露 `sys_pending_approvals`；`sys_approve` 需 **approval token**（宿主启动时环境变量注入〔Q-19 提案 7〕，防止其他 MCP 客户端代批）；等待超时〔Q-19 提案 4：10 min〕自动 deny。
 
 ## 5. 错误与兼容
@@ -68,4 +68,9 @@
 
 ## 7. 未决依赖
 
-- Q-19 提案 1/2/4/7/10；A02（高层工具的会话驱动）；A03…A06（原子工具实现）；工具面增删 = review 门（DEC-34）。
+- DEC-38（提案 1/2/4/7/10 常量出处）；A02（高层工具的会话驱动）；A03…A06（原子工具实现）；工具面增删 = review 门（DEC-34）。
+
+## 修订记录
+
+- v0.1 · 2026-09-22：初版。
+- v0.1.1 · 2026-09-22：DEC-38 同步——§4 OutputLimit 改动态上限引用（A00 §5 公式）。
