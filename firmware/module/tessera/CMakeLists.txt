@@ -32,3 +32,14 @@ zephyr_library_sources_ifdef(CONFIG_TS_STORE
 zephyr_library_sources_ifdef(CONFIG_TS_TEST
   src/store/prov_test.c
 )
+
+zephyr_library_sources_ifdef(CONFIG_TS_HAL
+  src/hal/perm.c
+  src/hal/api.c
+  src/hal/input.c
+)
+
+zephyr_library_sources_ifdef(CONFIG_TS_APPMGR
+  src/appmgr/pkg.c
+  src/appmgr/slot.c
+)

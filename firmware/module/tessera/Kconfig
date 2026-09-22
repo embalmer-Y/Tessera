@@ -95,4 +95,34 @@ config TS_STORE_SIM_DIR
 
 endif # TS_STORE
 
+config TS_HAL
+	bool "ts-hal: board-independent peripheral API + permission enforcement"
+	depends on TS_SAFETY
+	default y
+	help
+	  design/LLD-ts-hal.md (M2b). ts_perm_v1 grammar + ts_api_v1 + input monitor.
+
+if TS_HAL
+
+config TS_HAL_MAX_INSTANCES
+	int "Max peripheral instances"
+	default 24
+	help
+	  Source: DEC-27 #7 (LLD-ts-hal §6).
+
+config TS_HAL_INPUT_POLL_MS
+	int "Input poll period in ms"
+	default 100
+	help
+	  Source: DEC-27 #14 (LLD-ts-hal §6, DR-02).
+
+endif # TS_HAL
+
+config TS_APPMGR
+	bool "ts-appmgr: APP lifecycle / package / slot / WAMR host"
+	depends on TS_STORE
+	default y
+	help
+	  design/LLD-ts-appmgr.md (M2b). WAMR runtime binding = M2b.2.
+
 endmenu
