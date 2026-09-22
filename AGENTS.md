@@ -6,7 +6,12 @@
 
 ## 1. 当前状态
 
-- **2026-09-22（十三） · MA2 交付：A05 TSAP 打包签名（manifest 镜像 canonical CBOR + COSE_Sign1 双实现互验 + 无签名不产出 + 密钥纪律）+ A04 模拟器（场景 schema v1 + L4 重放直接二进制执行 + 双跑确定性 + 期望评估 + timeline_digest）——本地全绿（pytest 33 通过 + E2E 1 实证 + ruff + L5 6/6 + 仓库 pytest）**
+- **2026-09-23（一） · M2b 交付：ts-hal 权限层（ts_perm_v1 文法/位图/越权留痕/ts_api_v1 写路径经安全层）+ ts-appmgr 包安装链（TSAP 解析/slot 写入/meta 原子切换/回滚与隔离状态机）——本地全绿（twister 7/7 配置 25 用例 100% / L5 6/6 / app 构建 / pytest×2）；WAMR 运行时绑定登记 M2b.2（需网络拉 WAMR 源码 + wasm 工具链）**
+  - 修复留痕：① perm.c `end = start` 累积 bug（"3-1" 解析为 31 而非 1——范围尾段须独立从 0 解析）；② 回滚计数检查 `>=` 语义与测试循环对齐（3 次成功 + 第 4 次隔离）；③ ztest setup 函数位置（第 3 参非第 2 参）。
+  - 交付物：`include/ts/{hal.h,appmgr.h}` + `src/hal/{perm,api,input}.c` + `src/appmgr/{pkg,slot}.c` + Kconfig（HAL_MAX_INSTANCES=24/INPUT_POLL_MS=100）+ CMake + `firmware/tests/{hal,appmgr}`（10+5 用例）。
+  - **M2b.2 待交付**（需网络）：WAMR 源码拉取 + cmake 集成 + fast 解释器配置（DEC-25）+ 符号装配硬边界 + wasm 样例 APP（需 wasm32 工具链）。
+  - 下一单元（project-plan §7）：**M3a**（ts-net zenoh-pico——不依赖 WAMR，可并行）或 M2b.2（网络可用时）。
+- **2026-09-22（十三） · MA2 交付：A05 TSAP 打包签名 + A04 模拟器——本地全绿（pytest 33+E2E / ruff / L5 6/6）**
   - 关键修复链（如实留痕）：**pycose 1.1.0 × cbor2 6.x 兼容缺口三处**（数组→tuple / 空 map→frozendict / decode 只认 list）——绕过实现于 cose.py（R5 风险实证 + DR-21 双实现互验的价值证明）；DIY wire 层 uhdr 空 map 修正（RFC 9052：Sig_structure 第三段 = external_aad b"" ≠ wire uhdr map）；sim E2E 放弃 twister 产物路由（成功实例被清理）→ **直接构建并执行重放测试二进制**（M1 定稿接口原意：stdout JSONL + 退出码）。
   - 网关新增 5 工具：sim_validate_scenario / sim_run（句柄）/ tsap_keygen（私钥 0600 不回显）/ tsap_package（句柄）/ tsap_verify；工具面 = 原子 19 中的 16 已上线（余 deploy_* 4 个待 MA3——注：19 含 deploy 4）。
   - 下一单元（project-plan §7）：**M2b**（ts-hal 权限 ts_perm_v1 + WAMR 宿主 + 符号装配 + 样例 APP）。
