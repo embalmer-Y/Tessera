@@ -6,6 +6,12 @@
 
 ## 1. 当前状态
 
+- **2026-09-23（七） · 裁决批次 10（参考项目借鉴批次）：Q-20→DEC-40 / Q-21→DEC-41 / Q-22→DEC-42；Q-20 附 zenoh 可靠性实查（owner 条件指令触发）——设计同步 LLD-ts-net v0.3.1 / LLD-A06 v0.2.1；实现批次 = MA3 开工前**
+  - **zenoh 可靠性调研结论**（DEC-40 留档，zenoh-pico 1.10.1 钉版实查）：TCP/TLS 链路传输层可靠有序、UDP 尽力而为且无重传；QoS 旋钮（congestion/priority/reliability）均非投递保证（reliability 属 unstable 门控未启用）；**query 无重试无去重**——"命令已执行、回执未达、调用方重发"的应用层重复必须由应用层幂等承载（端到端论证）→ idem 采纳。
+  - **DEC-40 附加约束**：命令面链路必须 TCP/TLS（prov router_locators[0] 校验 tcp//tls/ 前缀，UDP 拒用于命令面）；固件拒绝 `to > 5000ms`（断链窗口 6000ms − 余量）。
+  - **DEC-41**：V1 单租约（acquire/release/get；TTL 10s=断链窗口×1.5+余量；续期幂等；estop-clear/只读豁免；不联动安全态）；写命令准入挂钩随 M2b.2。
+  - **DEC-42**：事件/遥测 `{"ver":1,"kind":…}` 信封 + kind 注册表唯一权威；消费端未知 kind 透传不解析；与 DEC-40 信封 v2 **同批切换**（MA3 前一次破坏一次到位）。
+  - 待办：DEC-40/41/42 实现批次（cmd.c 信封+幂等缓存 / lease.c / pub.c 信封 + 测试 + l3_client 同步）= MA3 开工前；is_up 任务自省随同批。
 - **2026-09-23（六） · 参考项目借鉴 design 优化批次：owner 提供 NeuroLink/MatrixMechanic 前作并指令优化 design——`LLD-ts-net` v0.3 + `LLD-A06` v0.2 落盘；呈递待裁 Q-20/21/22（命令信封 v2 / 控制租约 / 事件遥测版本化信封，均建议 A）**
   - LLD-ts-net v0.3：新增 **§0 演进原则**（命令面 fail-closed 不变；观测面 ver+kind 信封前向兼容；演进不走"跳过未知键"）+ §2 传输健康定义（`zp_read/lease_task_is_running` 自省——M3a.2 已知短板收口，**已定稿实现项无需裁决**）+ §4.2 信封 v2〔Q-20〕+ §4.4 kind 注册表 + §4.5 控制租约〔Q-21〕+ §5 事件/遥测信封〔Q-22〕与 zenoh QoS 映射。
   - LLD-A06 v0.2：deploy_push_app 传输定稿方向（zenoh query 分块 2-4KB + **upload→verify→activate 分步对齐固件安装链** + 断点续传）；push_prov 补固件定稿键序生成纪律（M3a-L3 实证）；deploy 全程租约闭环。

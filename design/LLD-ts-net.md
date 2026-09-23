@@ -1,7 +1,7 @@
-# LLD · ts-net v0.3
+# LLD · ts-net v0.3.1
 
-> **状态**：v0.3 修订（2026-09-23，参考项目借鉴批次——owner 提供 NeuroLink/MatrixMechanic，指令"优化现有 design"触发；未裁决语义以〔Q-xx 提案〕标注）。上位：HLD §3.5；公共约定 `LLD-00-common.md`。
-> **职责**：zenoh-pico 会话管理、命名空间构造、命令-回执分发、遥测/事件发布、心跳监视（断链判定）、控制租约〔Q-21 提案〕。
+> **状态**：v0.3.1（2026-09-23 裁决同步——Q-20→DEC-40 / Q-21→DEC-41 / Q-22→DEC-42，含 zenoh 可靠性调研衍生约束）。上位：HLD §3.5；公共约定 `LLD-00-common.md`。
+> **职责**：zenoh-pico 会话管理、命名空间构造、命令-回执分发、遥测/事件发布、心跳监视（断链判定）、控制租约（DEC-41）。
 > **合同关联**：合同 3（断链 fail-safe 判定源）、8（本地独立生效——判定不依赖外部确认）、9（rx 串行化）、10（命令准入/留痕）。
 > **外部依赖**：zenoh-pico 1.10.1（钉版，DR-22；上游零源码补丁，接线要点见 docs/dev-environment.md §7/§8）。
 
@@ -18,9 +18,9 @@
 src/net/
   session.c    会话建立/重连（client 角色〔DEC-20〕；native_sim 默认 udp/localhost〔DEC-27〕）
   keyspace.c   key 构造与资源映射（tessera/<node>/<cube>/…）
-  cmd.c        query 服务端：命令分发表 + 回执 + 信封 v2〔Q-20 提案〕
-  lease.c      控制租约〔Q-21 提案〕：acquire/release/TTL 过期
-  pub.c        遥测/事件/心跳发布（缓冲与合流 + 版本化信封〔Q-22 提案〕）
+  cmd.c        query 服务端：命令分发表 + 回执 + 信封 v2（DEC-40）
+  lease.c      控制租约（DEC-41）：acquire/release/TTL 过期
+  pub.c        遥测/事件/心跳发布（缓冲与合流 + 版本化信封（DEC-42））
   linkmon.c    心跳监视 → ts_safety_set_link
   cbor_min.c   确定性子集 CBOR 编解码（M3a.2 已实现）
 ```
@@ -51,16 +51,18 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 
 - 请求：定体 map`{"op": tstr, "args"?: {"confirm"?: tstr, "time_ms"?: uint}}`；回执：map`{"status": int, "data": …}`；未知 op/key、op/key 不匹配、非法 CBOR = 显式拒绝回执（不留静默）。
 
-### 4.2 命令信封 v2〔Q-20 提案——NeuroLink 请求信封借鉴〕
+### 4.2 命令信封 v2（DEC-40；NeuroLink 请求信封借鉴）
 
 - 请求：`{"ver": 1, "kind": 1, "rid": tstr≤16, "src": tstr≤24, "op": tstr, "args": {…, "idem"?: tstr≤16, "to"?: uint}}`
 - 回执：`{"ver": 1, "kind": 16, "rid": <原样回带>, "status": int, "data": …}`
 - 语义：
   - **request_id（rid）**：回执回带——调用方关联/审计归因（合同 10 对外留痕的调用方标识）；
-  - **幂等键（idem，可选）**：固件侧最近 4 项 idem→回执缓存（定容 LRU），同键重复请求**回放回执不重执行**——网络超时重发安全；
-  - **带内超时（to，可选）**：命令执行上界；上界必须 < 断链判定上界〔DEC-22 联动，LLD 原文档级约束的机制化〕；
+  - **幂等键（idem，可选）**：固件侧最近 4 项 idem→回执缓存（定容 LRU，`CONFIG_TS_NET_IDEM_CACHE`），同键重复请求**回放回执不重执行**——网络超时重发安全；
+  - **带内超时（to，可选）**：命令执行上界；**固件拒绝 to > 5000ms**（断链窗口 6000ms〔DEC-22〕− 余量；出处 DEC-40）；
   - **source（src）**：调用方身份，进审计 payload。
-- v1/v2 共存策略：固件按首键判别（"op" 首 = v1；"ver" 首 = v2）；v2 采纳则 v1 进入弃用期（fw semver 次+1 移除）。
+- v1/v2 共存策略：固件按首键判别（"op" 首 = v1；"ver" 首 = v2）；v1 进入弃用期（fw semver 次+1 移除）。
+- **zenoh 可靠性调研留档（DEC-40，2026-09-23 实查 zenoh-pico 1.10.1）**：① TCP/TLS 链路传输层可靠有序，UDP unicast 尽力而为且 zenoh 无重传；② QoS 旋钮（congestion_control/priority/reliability）均非投递保证（reliability 属 unstable 门控）；③ query 无重试无去重——"命令已执行、回执未达、调用方重发"的应用层重复由 idem 承载（端到端论证）。
+- **命令面链路约束（DEC-40）**：命令/回执链路必须 TCP 或 TLS——prov `router_locators[0]` 形态校验 `tcp/`/`tls/` 前缀（UDP locator 拒绝用于命令面）；UDP 仅限 scouting/遥测可选路径。
 
 ### 4.3 sys 命令面（v1，DR-03；授权 DEC-30①）——注册者为框架自身，标记 `host_only`
 
@@ -72,7 +74,7 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 | get-audit | 安全审计环形导出（含溢出丢弃计数，DR-07；V1 最新 6 条/次，分片游标随信封 v2） |
 | set-time | 设置墙钟（**仅数据字段**，合同 9；DR-08） |
 | estop-clear | 清除 SAFE_FAULT（参数须带确认令牌 `confirm="estop"`；调用 ts_safety_clear_fault） |
-| lease-acquire / lease-release / lease-get | 控制租约面〔Q-21 提案，见 §4.5〕 |
+| lease-acquire / lease-release / lease-get | 控制租约面（DEC-41，见 §4.5） |
 
 ### 4.4 kind 注册表（唯一权威；Agent 侧 keys.py 镜像）
 
@@ -83,19 +85,19 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 | 32-95 | 事件 | 32+TS_EVT_ID（与 core.h ts_evt_id_t 对齐；64-95 预留） |
 | 96-127 | 遥测 | 96 = 输出实例快照 |
 
-### 4.5 控制租约〔Q-21 提案——NeuroLink lease_manager 借鉴〕
+### 4.5 控制租约（DEC-41；NeuroLink lease_manager 借鉴）
 
 - **问题**：多方（多个 Agent/工具/人工面板）并发命令同一 cube 时的输出控制权仲裁；当前无仲裁。
-- **V1 形态（建议）**：单租约——`sys/lease-acquire {holder}` → `{lease_id, expires_at_ms}`；TTL 默认 10s〔Q-21 提案值：≈断链窗口 6s（DEC-22）×1.5+余量〕；持有者周期续期（re-acquire 幂等）；`lease-release` 主动归还；TTL 到期自动失效（控制方崩溃 = 天然失权）。
+- **V1 形态（DEC-41）**：单租约——`sys/lease-acquire {holder}` → `{lease_id, expires_at_ms}`；TTL 默认 10s〔DEC-41：≈断链窗口 6s（DEC-22）×1.5+余量〕；持有者周期续期（re-acquire 幂等）；`lease-release` 主动归还；TTL 到期自动失效（控制方崩溃 = 天然失权）。
 - **准入挂钩**：写类命令（未来 hal 写/app 命令，M2b.2 面）须持有有效租约；sys 面只读族与 estop-clear **豁免**（estop 安全路径不受租约约束——合同 5 优先）。挂钩实现随 M2b.2 命令面接入。
-- **与安全态的关系（建议）**：租约**只管命令准入，不联动安全态**——输出安全态唯一判定源仍是 linkmon/estop（合同 3/5 单源纪律）；租约全部失效 ≠ 输出进安全态。
+- **与安全态的关系（DEC-41）**：租约**只管命令准入，不联动安全态**——输出安全态唯一判定源仍是 linkmon/estop（合同 3/5 单源纪律）；租约全部失效 ≠ 输出进安全态。
 - 不做（V1）：多资源粒度、优先级抢占（NeuroLink 全形态）——单 cube 单控制方的现实负载下无需求，留 V2。
 
 ## 5. 发布（pub.c）
 
 - 遥测：实例值变化（commit 审计缓冲消费）与周期快照〔DEC-27：200ms〕合流；缓冲深度〔DEC-27：8〕满则丢最旧并计数；**DOWN 期发布直接丢弃并计数**（不排队重放——防上电风暴与不确定时序）。
 - 事件：TS_EVT_* 选择性外发（estop 后补发、安全态迁移、越权留痕——合同 5/10 对外可见面）。
-- **信封 v1〔Q-22 提案〕**：事件 payload = `{"ver":1, "kind":32+evt_id, "t_ms", "wall_ms", …}`；遥测 payload = `{"ver":1, "kind":96, "value_u", "wall_ms", …}`。消费端（host/Agent）对未知 kind **透传存储不解析**（§0 前向兼容落点）；固件产生端只产注册表内 kind。
+- **信封 v1（DEC-42）**：事件 payload = `{"ver":1, "kind":32+evt_id, "t_ms", "wall_ms", …}`；遥测 payload = `{"ver":1, "kind":96, "value_u", "wall_ms", …}`。消费端（host/Agent）对未知 kind **透传存储不解析**（§0 前向兼容落点）；固件产生端只产注册表内 kind。
 - 优先级映射（v0.3 登记，实现随 zenoh publish options）：安全事件（estop/安全态迁移/越权）= zenoh congestion block + 高优先级；遥测 = drop——参考 MatrixMechanic priority 位思想，用 zenoh 原生 QoS 承接（不自造位域）。
 
 ## 6. 心跳监视（linkmon.c）——合同 3 判定源
@@ -113,8 +115,8 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 | CONFIG_TS_NET_HB_RECOVER | 2 | 恢复滞回 |
 | CONFIG_TS_NET_TELEM_INTERVAL_MS | 200 | 周期快照 |
 | CONFIG_TS_NET_PUBQ_DEPTH | 8 | 发布缓冲 |
-| CONFIG_TS_NET_LEASE_TTL_MS〔Q-21〕 | 10000 | 租约 TTL（≈断链窗口×1.5+余量） |
-| CONFIG_TS_NET_IDEM_CACHE | 4 | 幂等回执缓存深度〔Q-20〕 |
+| CONFIG_TS_NET_LEASE_TTL_MS | 10000 | 租约 TTL（DEC-41：≈断链窗口×1.5+余量） |
+| CONFIG_TS_NET_IDEM_CACHE | 4 | 幂等回执缓存深度（DEC-40） |
 
 ## 8. 测试要点
 
@@ -125,9 +127,9 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 
 ## 9. 未决依赖
 
-- **Q-20 命令信封 v2 / Q-21 控制租约 / Q-22 事件遥测信封**（本批呈递）——裁定后进实现（建议批次：随 MA3 deploy 链）。
+- Q-20/21/22 已裁 → DEC-40/41/42（2026-09-23）；**实现批次 = MA3 开工前**（信封 v2 与事件/遥测信封同批切换；租约机制 + deploy 消费）。
 - is_up 任务自省（§2）为已定稿实现项（无需裁决）。
-- DEC-20/22/26/27/30 已裁；M2b.2 = 写命令面（租约准入挂钩时机）。
+- DEC-20/22/26/27/30/40/41/42 已裁；M2b.2 = 写命令面（租约准入挂钩时机）。
 
 ## 修订记录
 
@@ -135,3 +137,4 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 - v0.2 · 2026-09-20：review-01——keyspace 补 hb/sys 构造器（DR-12）；§4 补 sys 命令面（DR-03，深化批次）。
 - v0.2.1 · 2026-09-21：裁决同步——DEC-20/22/30 出处收敛（SC-02）。
 - v0.3 · 2026-09-23：参考项目借鉴批次（owner 提供 NeuroLink/MatrixMechanic）——新增 §0 演进原则（fail-closed 不变 + ver/kind 信封演进）；§2 传输健康定义（zp 任务自省，M3a.2 短板收口）；§4.2 命令信封 v2〔Q-20〕；§4.4 kind 注册表；§4.5 控制租约〔Q-21〕；§5 事件/遥测信封与 zenoh QoS 映射〔Q-22〕；§7 Kconfig 增补；M3a.1/M3a.2/L3 实现状态对齐（§8）。
+- v0.3.1 · 2026-09-23：裁决同步（DEC-40/41/42）——§4.2 增 zenoh 可靠性调研留档 + 命令面链路 TCP/TLS 约束 + to>5000ms 拒绝；提案标记全部转 DEC 出处；§9 实现批次定为 MA3 前。

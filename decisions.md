@@ -53,19 +53,21 @@
 
 ## 二、问题登记（Q）
 
-### 问题批次（参考项目借鉴 design 优化，2026-09-23 呈递；owner 提供 NeuroLink/MatrixMechanic 前作并指令"优化现有 design"——设计修订已落 `design/LLD-ts-net.md` v0.3 / `LLD-A06` v0.2，以下三项语义**待裁**）
+### 问题批次（参考项目借鉴 design 优化，2026-09-23 呈递并同日裁定 → DEC-40/41/42；owner 提供 NeuroLink/MatrixMechanic 前作并指令"优化现有 design"，设计修订落 `design/LLD-ts-net.md` v0.3 / `LLD-A06` v0.2）
 
 #### Q-20 · 命令信封 v2（rid/幂等键/带内超时/调用方身份）
 
-- **状态**：**待裁**（2026-09-23 呈递）。
+- **状态**：**已裁 → DEC-40**（2026-09-23 owner 条件指令：先调研 zenoh 可靠性——调研实查结论 = zenoh 无端到端恰好一次执行保证（TCP 仅传输层可靠；query 无重试无去重；reliability 旋钮 unstable 门控），按建议方案 A 采纳 + 两项调研衍生约束：命令面链路必须 TCP/TLS、固件拒绝 to>5000ms）。
 - **背景**：现行 sys 命令请求仅 `{op, args}`（M3a.2 已实现，v1）——① 网络超时后调用方重发会**二次执行**（重试不安全）；② 回执无调用方关联（审计归因缺身份）；③ LLD 早已要求"命令超时上界 < 断链判定上界"〔DEC-22〕但无机制承载。NeuroLink（owner 前作）的请求信封（request_id/idempotency_key/timeout_ms/source）实证了同一问题的解法。
 - **选项**：A. 完整容封 v2（详见 LLD-ts-net §4.2：`{ver,kind,rid,src,op,args{idem?,to?}}`；固件侧 4 项幂等回执缓存 LRU；v1/v2 按首键判别共存，v1 进弃用期）；B. 最小改（仅加 rid/to，不做幂等缓存——重试仍不安全）；C. 维持 v1。
-- **建议**：**A**。幂等性是 deploy 类长链路（MA3 分块推送 + 重试）的正确性前提；缓存 4 项定容，内存代价可忽略。
-- **影响**：cmd.c 请求解析扩展 + 幂等缓存；Agent `keys.py` 镜像信封构造；estop-clear 令牌语义不变。
+- **建议**：**A**（已采纳）。幂等性是 deploy 类长链路（MA3 分块推送 + 重试）的正确性前提；缓存 4 项定容，内存代价可忽略。
+- **影响**：cmd.c 请求解析扩展 + 幂等缓存；Agent `keys.py` 镜像信封构造；estop-clear 令牌语义不变；命令面 locator 形态校验（tcp//tls/ 前缀）。
+
+**DEC-40 调研留档**（zenoh-pico 1.10.1 钉版实查）：① 传输层可靠性取决于链路——TCP/TLS 可靠有序，UDP unicast 尽力而为且 zenoh 无重传（全库无 retransmission 实现）；② QoS 旋钮非投递保证——congestion_control（DROP/BLOCK）为本端队列策略、priority 为排序、publisher/subscriber 的 reliability 字段 `#ifdef Z_FEATURE_UNSTABLE_API` 门控且文档自注 unstable（未启用）；③ query 仅客户端超时（默认 10000ms）无重试无去重——**关键失效模式**：命令已执行、回执因会话中断/延迟未达 → 调用方超时重发 → 应用层二次执行（端到端论证/两将军问题——恰好一次必须由应用层幂等承载）。
 
 #### Q-21 · 控制租约（多方并发命令的准入仲裁）
 
-- **状态**：**待裁**（2026-09-23 呈递）。
+- **状态**：**已裁 → DEC-41**（2026-09-23 owner："Q-21:采纳建议方案"——方案 A 采纳：V1 单租约 + TTL 10s + 续期幂等 + estop-clear/只读豁免 + 不联动安全态；写命令准入挂钩随 M2b.2；Kconfig `TS_NET_LEASE_TTL_MS=10000`）。
 - **背景**：当前任何 host 侧命令直接执行，无控制权仲裁——多方（多个 Agent/工具/人工面板）并发操作同一 cube 时输出指令可交错。NeuroLink 的 lease_manager（resource+TTL 过期+优先级抢占）实证了该面的形态；TTL 过期天然处理控制方崩溃失权。
 - **选项**：A. V1 单租约（`sys/lease-acquire/release/get`；TTL 默认 10s〔≈断链窗口 6s×1.5+余量〕；续期 = re-acquire 幂等；**写类命令须持租约**（挂钩随 M2b.2 写命令面），只读与 estop-clear 豁免——合同 5 优先；**不联动安全态**——安全态唯一判定源仍是 linkmon/estop，单源纪律）；B. NeuroLink 全形态（多资源粒度 + 优先级抢占）；C. 不做（多方并发靠 Agent 侧自律）。
 - **建议**：**A**。单 cube 单控制方的现实负载不需要资源粒度与抢占；B 的复杂度留 V2 按需。
@@ -73,7 +75,7 @@
 
 #### Q-22 · 事件/遥测版本化信封（固件→host 前向兼容）
 
-- **状态**：**待裁**（2026-09-23 呈递）。
+- **状态**：**已裁 → DEC-42**（2026-09-23 owner："Q-22：采纳建议方案"——方案 A 采纳：`{"ver":1,"kind":…}` 信封 + kind 注册表唯一权威（LLD-ts-net §4.4）+ 消费端未知 kind 透传不解析；与 DEC-40 信封 v2 同批切换〔MA3 前〕）。
 - **背景**：固件→host 方向的遥测/事件 payload 迟早演进（加字段/加事件类型）。MatrixMechanic（owner 前作）的 TLV"未知块跳过"与 NeuroLink 的 `{schema_version, message_kind}` 信封是两种解法；Tessera 确定性纪律下跳过未知键弱化机械验证，版本化信封的边界显式且可断言（LLD-ts-net §0 演进原则）。
 - **选项**：A. 信封 v1（事件 `{"ver":1,"kind":32+evt_id,"t_ms","wall_ms",…}`、遥测 `{"ver":1,"kind":96,…}`；消费端未知 kind 透传存储不解析；kind 分级注册表 = LLD-ts-net §4.4 唯一权威，Agent keys.py 镜像）；B. 裸 TLV 跳过未知键（MatrixMechanic 原形态）；C. 维持裸 payload 演进靠 fw semver 整体升版。
 - **建议**：**A**。命令面 fail-closed 不变 + 观测面前向兼容的"方向不对称"是本批收敛的核心原则；B 与确定性验证相斥。
@@ -348,3 +350,4 @@
 - 2026-09-22 · **裁决批次 8**：Q-19 → **DEC-38**（11 项按建议；#6 上下文压缩 V1 即支持+动态预算+阈值 70%+最低 32k；#9 截断动态化+最低 16KiB/2KiB）；设计文档同步（HLD §9 / LLD-A00 §5 / LLD-A01 §4 / LLD-A02 §2/§6）。tag `dec-38`。**C-4/C-5 仍待 owner 确认**。
 - 2026-09-22 · **裁决批次 9 / Agent design 阶段退出**：C-4/C-5 确认 → **DEC-39**；统一项目计划建立（`docs/project-plan.md`，固件 M 系 + Agent MA 系双轨）；**MA0 开工**。tag `dec-39`。
 - 2026-09-23 · **参考项目借鉴批次**（owner 提供 NeuroLink/MatrixMechanic 前作，指令"结合参考项目优化现有 design"）：设计修订落盘 LLD-ts-net v0.3（演进原则/传输健康 zp 任务自省〔已定稿项〕/kind 注册表）+ LLD-A06 v0.2（deploy 分块传输 2-4KB + upload/verify/activate 分步安装 + 断点续传定稿方向）；登记待裁 **Q-20**（命令信封 v2：rid/幂等/带内超时/身份，建议 A）/ **Q-21**（控制租约：单租约+TTL+不联动安全态，建议 A）/ **Q-22**（事件遥测版本化信封：ver+kind 前向兼容，建议 A）。
+- 2026-09-23 · **裁决批次 10（参考项目借鉴批次）**：Q-20 → **DEC-40**（owner 条件指令触发 zenoh 可靠性实查——结论无端到端恰好一次保证〔TCP 仅传输层/query 无重试无去重/reliability 旋钮 unstable〕→ 方案 A 采纳 + 命令面链路 TCP/TLS 约束 + 固件拒绝 to>5000ms）；Q-21 → **DEC-41**（方案 A：V1 单租约+TTL 10s+estop/只读豁免+不联动安全态）；Q-22 → **DEC-42**（方案 A：ver+kind 信封+注册表，与 DEC-40 同批切换）。设计同步 LLD-ts-net v0.3.1 / LLD-A06 v0.2.1。实现批次 = MA3 开工前。
