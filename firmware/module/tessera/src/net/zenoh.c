@@ -30,7 +30,8 @@ static void drop_query(void *ctx)
 static void on_query(const z_loaned_query_t *query, void *ctx)
 {
 	ARG_UNUSED(ctx);
-	/* key = tessera/<n>/<c>/<suffix>——剥前缀后须以 "/cmd" 结尾 */
+	/* 两种命令面：…/<uid>/cmd（实例命令，M2b.2+）与 …/sys/<cmd>（sys 面，
+	 * LLD-ts-net §3/§4）——按 key 形态剥前缀取分发后缀 */
 	z_view_string_t vs;
 	const z_loaned_keyexpr_t *qk = z_query_keyexpr(query);
 
@@ -41,15 +42,21 @@ static void on_query(const z_loaned_query_t *query, void *ctx)
 	size_t klen = z_string_len(z_loan(vs));
 	size_t plen = strlen(ts_net_prefix);
 
-	if (klen <= plen + 4 || strncmp(k, ts_net_prefix, plen) != 0 ||
-	    strcmp(k + klen - 4, "/cmd") != 0) {
-		return; /* 非 cmd 命名空间：不回执（客户端侧超时可见） */
+	if (klen <= plen + 1 || strncmp(k, ts_net_prefix, plen) != 0) {
+		return; /* 非 cube 命名空间：不回执（客户端侧超时可见） */
 	}
-	/* suffix = k + plen + 1 … klen - 4（"sys/get-info" 或 "<uid>"） */
 	static char suffix[64];
-	size_t slen = klen - 4 - (plen + 1);
+	size_t slen;
+	bool is_sys = (klen > plen + 5 && strncmp(k + plen, "/sys/", 5) == 0);
 
-	if (slen >= sizeof(suffix)) {
+	if (is_sys) {
+		slen = klen - (plen + 1); /* "sys/<cmd>" */
+	} else if (klen > plen + 4 && strcmp(k + klen - 4, "/cmd") == 0) {
+		slen = klen - 4 - (plen + 1); /* "<uid>" */
+	} else {
+		return;
+	}
+	if (slen == 0 || slen >= sizeof(suffix)) {
 		return;
 	}
 	memcpy(suffix, k + plen + 1, slen);
@@ -99,17 +106,23 @@ static ts_res_t zenoh_open(void)
 	z_owned_config_t cfg;
 
 	if (z_config_default(&cfg) != Z_OK) {
+		printk("[ts-net] zenoh_open: config_default FAIL\n");
 		return TS_E_IO;
 	}
 	if (zp_config_insert(z_loan_mut(cfg), Z_CONFIG_CONNECT_KEY, loc) != Z_OK) {
+		printk("[ts-net] zenoh_open: insert loc=%s FAIL\n", loc);
 		z_drop(z_move(cfg));
 		return TS_E_IO;
 	}
-	if (z_open(&zs, z_move(cfg), NULL) != Z_OK) {
+	z_result_t or = z_open(&zs, z_move(cfg), NULL);
+
+	if (or != Z_OK) {
+		printk("[ts-net] zenoh_open: z_open rc=%d loc=%s\n", (int)or, loc);
 		z_drop(z_move(zs)); /* 归零 owned 句柄，允许重试 open */
 		return TS_E_IO;
 	}
 	opened = true;
+	printk("[ts-net] zenoh_open: CONNECTED loc=%s\n", loc);
 
 	/* queryable：cube 前缀下 ** 通配（** 只能作尾段——回调内过滤 "/cmd"） */
 	z_owned_keyexpr_t qk;

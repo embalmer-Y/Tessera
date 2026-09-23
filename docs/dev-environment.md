@@ -88,17 +88,31 @@ python3.12 -m venv ~/project/agent-venv
    - `cmake -S ~/project/zephyrproject/zenoh-pico -B <tmpdir>` 生成 `<tmpdir>/include/zenoh-pico/config.h`
    - 剥离 feature 宏区后落位（feature 宏由 Kconfig→zephyr_compile_definitions 供给，避免重定义）：`sed '/^#define Z_FEATURE_/d; /^#cmakedefine Z_FEATURE_/d' <tmpdir>/include/zenoh-pico/config.h > ~/project/zephyrproject/zenoh-pico/include/zenoh-pico/config.h`
 3. 构建接线：`-DZEPHYR_EXTRA_MODULES="<tessera module>;<zenoh-pico>"` + `firmware/tests/net/overlay-zenoh.conf`（EXTRA_CONF_FILE）。**关键项 `CONFIG_POSIX_API=y`**——zenoh-pico Zephyr 平台层直引 `<netdb.h>/<sys/socket.h>`，host libc 下与 Zephyr net_ip.h 结构冲突，必须经 POSIX API 解析。
-4. 升级纪律：三方（zenohd router / eclipse-zenoh Python / zenoh-pico）联合升级 + 全量回归（DR-22；Zenoh 2.0 watch）。
+4. **checkout 补丁清单（1.10.1，升级时复核上游是否已修）**：
+   - `src/net/primitives.c`：`_z_undeclare_queryable` 的 `#else` 分支笔误 `sub->_zn` → `qle->_zn`（仅 Z_FEATURE_SESSION_CHECK=0/QUERYABLE 组合编译到）。
+   - `src/system/zephyr/system.c`：`_z_task_init` 的 `pthread_attr_setstack`（Zephyr 无实现，POSIX stub 返回 EINVAL）→ 改 `pthread_attr_setstacksize`（堆分配）。
+   - `include/zenoh-pico/config.h`（生成件）：追加**非 Kconfig 管辖** feature 缺省 24 项（cmake 默认值；上游 Zephyr 模块 Kconfig 映射不完整，如 `Z_FEATURE_UNICAST_TRANSPORT` 无映射即恒 0 → TCP 全桩化报 -103）；其中 `Z_FEATURE_TCP_NODELAY` 改 0（Zephyr zsock 无此项，setsockopt 返回 EINVAL）。
+5. 升级纪律：三方（zenohd router / eclipse-zenoh Python / zenoh-pico）联合升级 + 全量回归（DR-22；Zenoh 2.0 watch）。
 
-## 8. L3 端到端前置（native_sim ↔ zenohd router；M3a.2 登记，待 owner）
+## 8. L3 端到端联调（已达成 2026-09-23；复跑方法）
 
-L3（LLD-ts-net §8）= native_sim 固件经真实 zenoh 会话对 PC 侧 router 完成发现/命令/回执/心跳。前置两件，均超出当前用户权限，**待 owner 一并处置**：
+**结果：PASS**（LLD-ts-net §8-L3 三验证点全绿：发现〔hb+telemetry 到达〕/ 命令-回执〔sys get-info·get-link·get-safety status=0；estop-clear 错令牌=TS_E_PARAM〕/ 心跳保持与断链判定〔hb-host 持续→link_up+通道 ACTIVE；停发 10s>6 周期→link_up=0+通道 SAFE_LINKLOSS〕）。
 
-1. **TAP 网卡（需 sudo，密码交互）**：native_sim 网络出 host 的唯一路径 = `ETH_NATIVE_POSIX` + TAP。Zephyr 自带脚本 `zephyr/scripts/net-setup.sh -i zeth`（创建 tap0 + NAT 规则）。当前 WSL sudo 需密码 → 无法无人值守执行。
-2. **zenohd router 安装（用户态可行）**：GitHub eclipse-zenoh/zenoh release 下载 1.10.x zenohd 二进制（与 DR-22 三方同 minor 对齐）至 `~/project/tools/`；或 `cargo install`（重）。可在 L3 会话内自行完成，无需 owner。
+复跑步骤：
+1. TAP（每次 WSL 重启后，需 sudo）：`sudo ip tuntap add dev zeth mode tap user emb && sudo ip link set zeth up && sudo ip addr add 192.0.2.2/24 dev zeth`
+2. router：`(setsid nohup ~/project/tools/zenohd --listen tcp/0.0.0.0:7447 > ~/project/logs/zenohd.log 2>&1 < /dev/null &)`（zenohd v1.10.1 已装 `~/project/tools/`）
+3. 固件：`west build -p -b native_sim firmware/l3app -d <build> -- -DZEPHYR_EXTRA_MODULES="<tessera module>;<zenoh-pico>"` 后运行 `<build>/zephyr/zephyr.exe --eth-if=zeth`
+4. 客户端：`~/project/agent-venv/bin/python firmware/l3app/l3_client.py`（输出 JSON，result=PASS；退出码 0）
+
+**Zephyr 4.4 + zenoh-pico 联调要点（踩坑留痕，均已在 l3app/prj.conf 注释）**：
+- 以太驱动 `ETH_NATIVE_POSIX` 已更名 `ETH_NATIVE_TAP`；native_sim 运行参数为 `--eth-if=zeth`（非 `--tap`）。
+- `CONFIG_DNS_RESOLVER=y`——zenoh-pico Zephyr 平台 TCP 解析走 getaddrinfo（数字地址亦经解析器，缺则连接前即败）。
+- **pthread 动态栈依赖链**：`THREAD_STACK_INFO` → `DYNAMIC_THREAD` → `DYNAMIC_THREAD_ALLOC`（缺 THREAD_STACK_INFO 则 DYNAMIC_THREAD 被静默丢弃 → pthread_create 恒 EINVAL）；默认动态栈 1024 过小 → `DYNAMIC_THREAD_STACK_SIZE=8192`。
+- **POSIX 对象静态池**：`MAX_PTHREAD_MUTEX_COUNT`/`MAX_PTHREAD_COND_COUNT` 默认 5——zenoh 会话互斥量即超限（ENOMEM→连锁 EINVAL）；提至 16；`POSIX_THREAD_THREADS_MAX` 5→8。
+- zenoh 会话堆：官方例程档位以上（实测 192K）。
 
 ## 修订记录
 
-- v1.2 · 2026-09-23：§8 L3 端到端前置登记（TAP 需 owner sudo；zenohd 用户态安装）。
+- v1.2 · 2026-09-23：§7 补丁清单 + §8 L3 端到端达成（PASS）与复跑方法（TAP 需 sudo；zenohd v1.10.1 @ ~/project/tools）。
 - v1.1 · 2026-09-23：§5-5 教训（`=` 后 `~` 不展开）+ §7 zenoh-pico 接入（1.10.1 钉版 / config.h 生成缺口 / POSIX_API 关键项）。
 - v1.0 · 2026-09-21：建立（WSL 迁移完成 + Windows 复原 + 验证结果：native_sim 构建 ✓、twister 运行级 1/1 passed ✓、pytest ✓）。

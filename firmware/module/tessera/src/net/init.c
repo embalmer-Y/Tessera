@@ -7,6 +7,7 @@
 #include <ts/net.h>
 #include <ts/store.h>
 #include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
 #include "internal.h"
 
 #ifdef CONFIG_TS_NET_ZENOH
@@ -23,6 +24,7 @@ static void net_tick(struct k_work *work)
 	(void)ts_net_session_poll(now);
 	ts_net_linkmon_tick(now);
 	ts_net_pub_telem(now);
+	ts_net_pubq_flush(); /* 周期冲刷（CONNECTED 持续期；DOWN 期 pubq 自弃） */
 	k_work_reschedule_for_queue(&k_sys_work_q, d,
 				     K_MSEC(CONFIG_TS_NET_TELEM_INTERVAL_MS));
 }
@@ -41,15 +43,14 @@ ts_res_t ts_net_init(void)
 	 * 缺省（网络面保持 DOWN = 安全侧；生产板 boot 强校验随板级里程碑收紧）。 */
 	const char *node = "n-dev";
 	const char *cube = "c-dev";
+	ts_res_t plr = ts_store_prov_load();
+	const ts_prov_t *prov = ts_store_prov();
 
-	if (ts_store_prov_load() == TS_OK) {
-		const ts_prov_t *prov = ts_store_prov();
-
-		if (prov->cube_id[0] != '\0') {
-			node = prov->node_id[0] != '\0' ? prov->node_id : prov->cube_id;
-			cube = prov->cube_id;
-		}
+	if (plr == TS_OK && prov->cube_id[0] != '\0') {
+		node = prov->node_id[0] != '\0' ? prov->node_id : prov->cube_id;
+		cube = prov->cube_id;
 	}
+	printk("[ts-net] init prov_load=%d node=%s cube=%s\n", (int)plr, node, cube);
 	(void)ts_net_set_ids(node, cube);
 
 	/* sys 命令表注册（host_only；表满 = 装配错误，如实返回） */

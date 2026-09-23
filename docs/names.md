@@ -159,6 +159,7 @@
 | framework.net | ts-net L1/L2 用例（key/退避/pubq/会话/linkmon→safety 集成） | firmware/tests/net | 已实现（M3a.1 全绿） |
 | ts-net M3a.2 族（ts_net_cmd_{register,dispatch}/ts_net_cmd_sys_init/ts_net_pub_{init,telem}/ts_net_init/cbor_min 内部族）+ ts_net_cmd_args_t | sys 命令面（host_only 7 项，DEC-30①/DR-03）+ 遥测/事件发布 + boot 接线 | include/ts/net.h + src/net/{cmd,pub,init,cbor_min}.c | 已实现（M3a.2） |
 | ts_safety_summary / ts_time_wall_{set,ms} / ts_value_encode（公共化） | 安全汇总观测 / 墙钟数据字段（DR-08）/ 规范单字编码（审计遥测统一口径） | include/ts/{safety,core}.h | 已实现（M3a.2，sys 命令面支撑） |
+| l3app / l3_client.py | L3 联调镜像与客户端（native_sim↔zenohd 真实会话；prov 手工定稿键序烧入；复跑方法 dev-env §8） | firmware/l3app | 已实现（L3 PASS 2026-09-23） |
 | HLD-agent / LLD-A00…A07 | Agent 轨道设计文档族（A00 公共/A01 网关/A02 核心/A03 固件工具/A04 模拟器/A05 TSAP/A06 部署/A07 skills+平台） | design/HLD-agent.md v0.1 批次 | v0.1 待 owner 确认（C-4/C-5） |
 | TA_E_* | Agent 错误码族（TaError 结构化异常，LLD-A00 §1） | LLD-A00 提案 |
 | sys_* / task_* / fw_* / sim_* / tsap_* / deploy_* / app_* | Agent MCP 工具名族（原子层 19 + 高层 2，双层工具面 DEC-34；增删 = review 门） | LLD-A01 §2 | 提案（随 C-5/Q-19） |

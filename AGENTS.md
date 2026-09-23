@@ -6,6 +6,13 @@
 
 ## 1. 当前状态
 
+- **2026-09-23（五） · L3 端到端达成（owner 提供 sudo 凭据解锁）：native_sim 固件 ↔ zenohd 1.10.1 真实 zenoh 会话——三验证点 PASS（发现 / sys 命令-回执 / 心跳保持与断链→SAFE_LINKLOSS）；M3a 完整退出（M3a.1+M3a.2+L3）；回归全绿（twister 33 用例 / L5 6/6 / pytest）**
+  - 联调链：TAP zeth（sudo 建立，host=192.0.2.2）+ zenohd（用户态 `~/project/tools/`，DR-22 对齐 1.10.1）+ `firmware/l3app`（prov 定稿键序烧入 + 静态 IP + zenoh 绑定）+ `l3_client.py`（eclipse-zenoh 断言）。复跑方法 = dev-environment.md §8。
+  - **五层问题攻克留痕**（dev-env §7-4/§8）：① 上游 `_z_undeclare_queryable` 笔误（单行补丁）；② 上游 Kconfig↔feature 映射不完整（`Z_FEATURE_UNICAST_TRANSPORT` 等恒 0 → TCP 桩化 -103；补 24 项缺省）；③ `DNS_RESOLVER` 缺失（getaddrinfo 路径）；④ pthread 动态栈依赖链 `THREAD_STACK_INFO→DYNAMIC_THREAD→ALLOC`（缺首项静默丢弃 → create 恒 EINVAL）；⑤ POSIX 互斥量池 5 恒不足（ENOMEM→连锁 EINVAL，提 16）。
+  - **框架侧两处功能性修复**：init.c net_tick 补周期 `pubq_flush`（原仅建链时冲刷——遥测只入队不发送）；zenoh.c 查询回调补 `…/sys/<cmd>` 键形态分派（原仅过滤 `…/cmd` 尾段 → sys 面无回执）。
+  - 另修：l3app prov blob 手工转录错位（165≠155B，程序化重生成）；Zephyr 4.4 `ETH_NATIVE_TAP` 更名与 `--eth-if` 参数。
+  - sudo 凭据已入会话记忆（owner 授权仅本项目；禁入仓库）。
+  - 下一单元（project-plan §7）：**MA3**（zenoh 部署工具 + skills + app_develop/app_deploy 高层链）或 M3b（ts-power + ts-periph + 集成重放）。
 - **2026-09-23（四） · M3a.2 交付：sys 命令面（host-only 7 项，DEC-30①）+ 遥测/事件发布 + boot net_init 接线 + zenoh queryable/订阅——本地全绿（twister 8/8 配置 33 用例 / L5 6/6 / app 构建 / pytest / 编码 0）；zenoh 真实绑定扩展（queryable+hb-host 订阅）编译链接绿；L3 端到端登记 owner 环境项（TAP sudo）**
   - 交付物：`src/net/{cbor_min,cmd,pub,init}.c` + zenoh.c 扩展 + safety/core 支撑 API（`ts_safety_summary`、`ts_time_wall_{set,ms}`、`ts_value_encode` 公共化）+ boot 表尾追 `net_init`（CONFIG_TS_NET 门控，步骤计数 4→5，core 规格守卫测试同步）+ Kconfig `TS_FW_VERSION` + tests/net 增至 7 用例（**syscmd 矩阵**：7 命令全路径含 estop-clear 令牌拒绝/set-time 墙钟/垃圾 CBOR 拒绝；**遥测快照+事件路由**：DOWN 丢弃→CONNECTED flush→实例 event key）。
   - 命令面语义：请求/回执 = 定体最小 CBOR（对齐 prov.c 确定性子集纪律）；未知 key/op、op/key 不匹配 → TS_E_NOTFOUND 回执（不留静默）；get-budget 如实报 TS_E_NOTFOUND（ts-power = M3b）；estop-clear 硬令牌 `confirm="estop"`。
