@@ -8,7 +8,8 @@
 
 - **2026-09-23（五） · L3 端到端达成（owner 提供 sudo 凭据解锁）：native_sim 固件 ↔ zenohd 1.10.1 真实 zenoh 会话——三验证点 PASS（发现 / sys 命令-回执 / 心跳保持与断链→SAFE_LINKLOSS）；M3a 完整退出（M3a.1+M3a.2+L3）；回归全绿（twister 33 用例 / L5 6/6 / pytest）**
   - 联调链：TAP zeth（sudo 建立，host=192.0.2.2）+ zenohd（用户态 `~/project/tools/`，DR-22 对齐 1.10.1）+ `firmware/l3app`（prov 定稿键序烧入 + 静态 IP + zenoh 绑定）+ `l3_client.py`（eclipse-zenoh 断言）。复跑方法 = dev-environment.md §8。
-  - **五层问题攻克留痕**（dev-env §7-4/§8）：① 上游 `_z_undeclare_queryable` 笔误（单行补丁）；② 上游 Kconfig↔feature 映射不完整（`Z_FEATURE_UNICAST_TRANSPORT` 等恒 0 → TCP 桩化 -103；补 24 项缺省）；③ `DNS_RESOLVER` 缺失（getaddrinfo 路径）；④ pthread 动态栈依赖链 `THREAD_STACK_INFO→DYNAMIC_THREAD→ALLOC`（缺首项静默丢弃 → create 恒 EINVAL）；⑤ POSIX 互斥量池 5 恒不足（ENOMEM→连锁 EINVAL，提 16）。
+  - **五层问题攻克留痕**（dev-env §7-4/§8）：① 上游 Kconfig↔feature 映射不完整（`Z_FEATURE_UNICAST_TRANSPORT` 等恒 0 → TCP 桩化 -103；生成 config.h 补缺省）；② `DNS_RESOLVER` 缺失（getaddrinfo 路径）；③ pthread 动态栈依赖链 `THREAD_STACK_INFO→DYNAMIC_THREAD→ALLOC`（缺首项静默丢弃 → create 恒 EINVAL）；④ POSIX 互斥量/条件变量池默认 5 恒不足（ENOMEM→连锁 EINVAL，提 16）；⑤ zenoh 会话堆与线程数档位（192K / 8）。
+  - **复核纠正（owner 质询触发，2026-09-23 同日）**：曾登记的两处 zenoh-pico 源码补丁经撤销实验（revert→重建→L3 复测 PASS）证明**均非必要**——当时 EINVAL 真因是上述配置链，setstacksize 补丁属误诊（grep 未穷尽 `lib/posix/options/` 子目录，Zephyr 4.4 实有 `pthread_attr_setstack` 实现）。**checkout 现对上游零源码修改**，唯一非上游文件 = 生成的 config.h（上游 Zephyr 模块不执行生成步骤）；教训登记 dev-env §5-6。
   - **框架侧两处功能性修复**：init.c net_tick 补周期 `pubq_flush`（原仅建链时冲刷——遥测只入队不发送）；zenoh.c 查询回调补 `…/sys/<cmd>` 键形态分派（原仅过滤 `…/cmd` 尾段 → sys 面无回执）。
   - 另修：l3app prov blob 手工转录错位（165≠155B，程序化重生成）；Zephyr 4.4 `ETH_NATIVE_TAP` 更名与 `--eth-if` 参数。
   - sudo 凭据已入会话记忆（owner 授权仅本项目；禁入仓库）。

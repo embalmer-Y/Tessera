@@ -75,6 +75,7 @@ python3.12 -m venv ~/project/agent-venv
 3. **WSL /tmp 是 tmpfs**：VM 重启即清——日志一律写 `~/project/logs`。
 4. **west update 网络失败先查代理**：本机 GitHub 需代理 127.0.0.1:7897（owner 提供）；apt/pip 用国内镜像免代理。
 5. **bash 不展开 `=` 后的 `~`**：`--extra-args=ZEPHYR_EXTRA_MODULES=~/...` 会把字面 `~` 传给 CMake（报 not a valid zephyr module）——一律用绝对路径或 `$HOME`。
+6. **库源码"缺失实现"断言必须穷尽子目录再下结论**：曾以 `grep -rln pthread_attr_setstack zephyr/lib/posix/*.c`（顶层）误断 Zephyr 无实现，打了不必要的补丁——实现在 `lib/posix/options/pthread.c`。结论前用 `git grep`（全树）复核；对第三方库的每个补丁先做撤销实验（revert→重建→复测）确认必要性。
 
 ## 6. 会话规范（此后所有开发会话）
 
@@ -88,10 +89,7 @@ python3.12 -m venv ~/project/agent-venv
    - `cmake -S ~/project/zephyrproject/zenoh-pico -B <tmpdir>` 生成 `<tmpdir>/include/zenoh-pico/config.h`
    - 剥离 feature 宏区后落位（feature 宏由 Kconfig→zephyr_compile_definitions 供给，避免重定义）：`sed '/^#define Z_FEATURE_/d; /^#cmakedefine Z_FEATURE_/d' <tmpdir>/include/zenoh-pico/config.h > ~/project/zephyrproject/zenoh-pico/include/zenoh-pico/config.h`
 3. 构建接线：`-DZEPHYR_EXTRA_MODULES="<tessera module>;<zenoh-pico>"` + `firmware/tests/net/overlay-zenoh.conf`（EXTRA_CONF_FILE）。**关键项 `CONFIG_POSIX_API=y`**——zenoh-pico Zephyr 平台层直引 `<netdb.h>/<sys/socket.h>`，host libc 下与 Zephyr net_ip.h 结构冲突，必须经 POSIX API 解析。
-4. **checkout 补丁清单（1.10.1，升级时复核上游是否已修）**：
-   - `src/net/primitives.c`：`_z_undeclare_queryable` 的 `#else` 分支笔误 `sub->_zn` → `qle->_zn`（仅 Z_FEATURE_SESSION_CHECK=0/QUERYABLE 组合编译到）。
-   - `src/system/zephyr/system.c`：`_z_task_init` 的 `pthread_attr_setstack`（Zephyr 无实现，POSIX stub 返回 EINVAL）→ 改 `pthread_attr_setstacksize`（堆分配）。
-   - `include/zenoh-pico/config.h`（生成件）：追加**非 Kconfig 管辖** feature 缺省 24 项（cmake 默认值；上游 Zephyr 模块 Kconfig 映射不完整，如 `Z_FEATURE_UNICAST_TRANSPORT` 无映射即恒 0 → TCP 全桩化报 -103）；其中 `Z_FEATURE_TCP_NODELAY` 改 0（Zephyr zsock 无此项，setsockopt 返回 EINVAL）。
+4. **源码补丁：无（2026-09-23 复核定稿）**。checkout 对上游保持零修改，唯一非上游文件 = `include/zenoh-pico/config.h`（**生成件**，§7-2 产物；其 Zephyr 模块集成缺口只是"不执行生成步骤"，非源码缺陷）。此前登记过的两处补丁（primitives.c 笔误 / system.c setstacksize）经撤销实验证明均非必要——当时的 EINVAL 真因是 §8 的配置链（DNS_RESOLVER/pthread 动态栈/POSIX 池），setstacksize 补丁属误诊（教训见 §5-6）。已知无害上游笔误备忘：`_z_undeclare_queryable` 的 `#else` 分支 `sub->_zn` 应为 `qle->_zn`（仅 Z_FEATURE_SESSION_CHECK=0 时编译到；cmake 缺省=1 不触发——升级换配置时留意）。
 5. 升级纪律：三方（zenohd router / eclipse-zenoh Python / zenoh-pico）联合升级 + 全量回归（DR-22；Zenoh 2.0 watch）。
 
 ## 8. L3 端到端联调（已达成 2026-09-23；复跑方法）
