@@ -53,6 +53,32 @@
 
 ## 二、问题登记（Q）
 
+### 问题批次（参考项目借鉴 design 优化，2026-09-23 呈递；owner 提供 NeuroLink/MatrixMechanic 前作并指令"优化现有 design"——设计修订已落 `design/LLD-ts-net.md` v0.3 / `LLD-A06` v0.2，以下三项语义**待裁**）
+
+#### Q-20 · 命令信封 v2（rid/幂等键/带内超时/调用方身份）
+
+- **状态**：**待裁**（2026-09-23 呈递）。
+- **背景**：现行 sys 命令请求仅 `{op, args}`（M3a.2 已实现，v1）——① 网络超时后调用方重发会**二次执行**（重试不安全）；② 回执无调用方关联（审计归因缺身份）；③ LLD 早已要求"命令超时上界 < 断链判定上界"〔DEC-22〕但无机制承载。NeuroLink（owner 前作）的请求信封（request_id/idempotency_key/timeout_ms/source）实证了同一问题的解法。
+- **选项**：A. 完整容封 v2（详见 LLD-ts-net §4.2：`{ver,kind,rid,src,op,args{idem?,to?}}`；固件侧 4 项幂等回执缓存 LRU；v1/v2 按首键判别共存，v1 进弃用期）；B. 最小改（仅加 rid/to，不做幂等缓存——重试仍不安全）；C. 维持 v1。
+- **建议**：**A**。幂等性是 deploy 类长链路（MA3 分块推送 + 重试）的正确性前提；缓存 4 项定容，内存代价可忽略。
+- **影响**：cmd.c 请求解析扩展 + 幂等缓存；Agent `keys.py` 镜像信封构造；estop-clear 令牌语义不变。
+
+#### Q-21 · 控制租约（多方并发命令的准入仲裁）
+
+- **状态**：**待裁**（2026-09-23 呈递）。
+- **背景**：当前任何 host 侧命令直接执行，无控制权仲裁——多方（多个 Agent/工具/人工面板）并发操作同一 cube 时输出指令可交错。NeuroLink 的 lease_manager（resource+TTL 过期+优先级抢占）实证了该面的形态；TTL 过期天然处理控制方崩溃失权。
+- **选项**：A. V1 单租约（`sys/lease-acquire/release/get`；TTL 默认 10s〔≈断链窗口 6s×1.5+余量〕；续期 = re-acquire 幂等；**写类命令须持租约**（挂钩随 M2b.2 写命令面），只读与 estop-clear 豁免——合同 5 优先；**不联动安全态**——安全态唯一判定源仍是 linkmon/estop，单源纪律）；B. NeuroLink 全形态（多资源粒度 + 优先级抢占）；C. 不做（多方并发靠 Agent 侧自律）。
+- **建议**：**A**。单 cube 单控制方的现实负载不需要资源粒度与抢占；B 的复杂度留 V2 按需。
+- **影响**：ts-net 新增 lease.c + sys 命令族三项；MA3 deploy_push_* 全程 acquire/续期/release；Kconfig `TS_NET_LEASE_TTL_MS`。
+
+#### Q-22 · 事件/遥测版本化信封（固件→host 前向兼容）
+
+- **状态**：**待裁**（2026-09-23 呈递）。
+- **背景**：固件→host 方向的遥测/事件 payload 迟早演进（加字段/加事件类型）。MatrixMechanic（owner 前作）的 TLV"未知块跳过"与 NeuroLink 的 `{schema_version, message_kind}` 信封是两种解法；Tessera 确定性纪律下跳过未知键弱化机械验证，版本化信封的边界显式且可断言（LLD-ts-net §0 演进原则）。
+- **选项**：A. 信封 v1（事件 `{"ver":1,"kind":32+evt_id,"t_ms","wall_ms",…}`、遥测 `{"ver":1,"kind":96,…}`；消费端未知 kind 透传存储不解析；kind 分级注册表 = LLD-ts-net §4.4 唯一权威，Agent keys.py 镜像）；B. 裸 TLV 跳过未知键（MatrixMechanic 原形态）；C. 维持裸 payload 演进靠 fw semver 整体升版。
+- **建议**：**A**。命令面 fail-closed 不变 + 观测面前向兼容的"方向不对称"是本批收敛的核心原则；B 与确定性验证相斥。
+- **影响**：pub.c payload 加信封（破坏性——消费端同步升版，随 Q-20 同批切换即可，两者都在 MA3 前落地）；kind 注册表进 names.md。
+
 ### 问题批次（Agent 轨道呈递，2026-09-22；**Q-14…Q-19 均已裁 → DEC-33…38；C-4/C-5 已确认 → DEC-39——待裁清零，impl 阶段（MA0 起）**）
 
 #### Q-19 · Agent design 批次默认值与配置清单（2026-09-22 随 HLD/LLD 批次呈递）
@@ -321,3 +347,4 @@
 - 2026-09-22 · **Agent design 批次交付**（owner 指令"开始进行HLD以及LLD"）：`design/HLD-agent.md` v0.1 + `LLD-A00…A07` v0.1（9 份）；登记待裁 **Q-19**（默认值清单 13 项）+ 呈递 **C-4**（HLD 确认）/ **C-5**（LLD 批次确认）。
 - 2026-09-22 · **裁决批次 8**：Q-19 → **DEC-38**（11 项按建议；#6 上下文压缩 V1 即支持+动态预算+阈值 70%+最低 32k；#9 截断动态化+最低 16KiB/2KiB）；设计文档同步（HLD §9 / LLD-A00 §5 / LLD-A01 §4 / LLD-A02 §2/§6）。tag `dec-38`。**C-4/C-5 仍待 owner 确认**。
 - 2026-09-22 · **裁决批次 9 / Agent design 阶段退出**：C-4/C-5 确认 → **DEC-39**；统一项目计划建立（`docs/project-plan.md`，固件 M 系 + Agent MA 系双轨）；**MA0 开工**。tag `dec-39`。
+- 2026-09-23 · **参考项目借鉴批次**（owner 提供 NeuroLink/MatrixMechanic 前作，指令"结合参考项目优化现有 design"）：设计修订落盘 LLD-ts-net v0.3（演进原则/传输健康 zp 任务自省〔已定稿项〕/kind 注册表）+ LLD-A06 v0.2（deploy 分块传输 2-4KB + upload/verify/activate 分步安装 + 断点续传定稿方向）；登记待裁 **Q-20**（命令信封 v2：rid/幂等/带内超时/身份，建议 A）/ **Q-21**（控制租约：单租约+TTL+不联动安全态，建议 A）/ **Q-22**（事件遥测版本化信封：ver+kind 前向兼容，建议 A）。

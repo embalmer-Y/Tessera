@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-09-23（六） · 参考项目借鉴 design 优化批次：owner 提供 NeuroLink/MatrixMechanic 前作并指令优化 design——`LLD-ts-net` v0.3 + `LLD-A06` v0.2 落盘；呈递待裁 Q-20/21/22（命令信封 v2 / 控制租约 / 事件遥测版本化信封，均建议 A）**
+  - LLD-ts-net v0.3：新增 **§0 演进原则**（命令面 fail-closed 不变；观测面 ver+kind 信封前向兼容；演进不走"跳过未知键"）+ §2 传输健康定义（`zp_read/lease_task_is_running` 自省——M3a.2 已知短板收口，**已定稿实现项无需裁决**）+ §4.2 信封 v2〔Q-20〕+ §4.4 kind 注册表 + §4.5 控制租约〔Q-21〕+ §5 事件/遥测信封〔Q-22〕与 zenoh QoS 映射。
+  - LLD-A06 v0.2：deploy_push_app 传输定稿方向（zenoh query 分块 2-4KB + **upload→verify→activate 分步对齐固件安装链** + 断点续传）；push_prov 补固件定稿键序生成纪律（M3a-L3 实证）；deploy 全程租约闭环。
+  - 直接采纳（不走 Q）：is_up 任务自省（随下个实现单元）；deploy 分块档位（NeuroLink 实证 1-4KB）；closure 引用计数生命周期手法。
+  - **待 owner**：Q-20/21/22 裁决（建议时机 = MA3 deploy 链开工前，信封 v2 与 Q-22 同批切换）。
 - **2026-09-23（五） · L3 端到端达成（owner 提供 sudo 凭据解锁）：native_sim 固件 ↔ zenohd 1.10.1 真实 zenoh 会话——三验证点 PASS（发现 / sys 命令-回执 / 心跳保持与断链→SAFE_LINKLOSS）；M3a 完整退出（M3a.1+M3a.2+L3）；回归全绿（twister 33 用例 / L5 6/6 / pytest）**
   - 联调链：TAP zeth（sudo 建立，host=192.0.2.2）+ zenohd（用户态 `~/project/tools/`，DR-22 对齐 1.10.1）+ `firmware/l3app`（prov 定稿键序烧入 + 静态 IP + zenoh 绑定）+ `l3_client.py`（eclipse-zenoh 断言）。复跑方法 = dev-environment.md §8。
   - **五层问题攻克留痕**（dev-env §7-4/§8）：① 上游 Kconfig↔feature 映射不完整（`Z_FEATURE_UNICAST_TRANSPORT` 等恒 0 → TCP 桩化 -103；生成 config.h 补缺省）；② `DNS_RESOLVER` 缺失（getaddrinfo 路径）；③ pthread 动态栈依赖链 `THREAD_STACK_INFO→DYNAMIC_THREAD→ALLOC`（缺首项静默丢弃 → create 恒 EINVAL）；④ POSIX 互斥量/条件变量池默认 5 恒不足（ENOMEM→连锁 EINVAL，提 16）；⑤ zenoh 会话堆与线程数档位（192K / 8）。
