@@ -90,7 +90,15 @@ python3.12 -m venv ~/project/agent-venv
 3. 构建接线：`-DZEPHYR_EXTRA_MODULES="<tessera module>;<zenoh-pico>"` + `firmware/tests/net/overlay-zenoh.conf`（EXTRA_CONF_FILE）。**关键项 `CONFIG_POSIX_API=y`**——zenoh-pico Zephyr 平台层直引 `<netdb.h>/<sys/socket.h>`，host libc 下与 Zephyr net_ip.h 结构冲突，必须经 POSIX API 解析。
 4. 升级纪律：三方（zenohd router / eclipse-zenoh Python / zenoh-pico）联合升级 + 全量回归（DR-22；Zenoh 2.0 watch）。
 
+## 8. L3 端到端前置（native_sim ↔ zenohd router；M3a.2 登记，待 owner）
+
+L3（LLD-ts-net §8）= native_sim 固件经真实 zenoh 会话对 PC 侧 router 完成发现/命令/回执/心跳。前置两件，均超出当前用户权限，**待 owner 一并处置**：
+
+1. **TAP 网卡（需 sudo，密码交互）**：native_sim 网络出 host 的唯一路径 = `ETH_NATIVE_POSIX` + TAP。Zephyr 自带脚本 `zephyr/scripts/net-setup.sh -i zeth`（创建 tap0 + NAT 规则）。当前 WSL sudo 需密码 → 无法无人值守执行。
+2. **zenohd router 安装（用户态可行）**：GitHub eclipse-zenoh/zenoh release 下载 1.10.x zenohd 二进制（与 DR-22 三方同 minor 对齐）至 `~/project/tools/`；或 `cargo install`（重）。可在 L3 会话内自行完成，无需 owner。
+
 ## 修订记录
 
+- v1.2 · 2026-09-23：§8 L3 端到端前置登记（TAP 需 owner sudo；zenohd 用户态安装）。
 - v1.1 · 2026-09-23：§5-5 教训（`=` 后 `~` 不展开）+ §7 zenoh-pico 接入（1.10.1 钉版 / config.h 生成缺口 / POSIX_API 关键项）。
 - v1.0 · 2026-09-21：建立（WSL 迁移完成 + Windows 复原 + 验证结果：native_sim 构建 ✓、twister 运行级 1/1 passed ✓、pytest ✓）。

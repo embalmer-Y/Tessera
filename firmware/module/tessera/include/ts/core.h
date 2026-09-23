@@ -25,6 +25,13 @@ typedef struct {
 /** [any] 唯一时间源（k_uptime_get 封装）；测试构建可绑定虚拟时钟。 */
 uint64_t ts_time_ms(void);
 
+/** [thread] 墙钟（数据字段专用：遥测/审计时间戳，DR-08）——仅影响数据字段，
+ * 控制路径一律用 ts_time_ms（合同 9 确定性；sys 命令 set-time 落点）。 */
+void ts_time_wall_set(uint64_t epoch_ms);
+
+/** [any] 墙钟读取（未设置返回 0）。 */
+uint64_t ts_time_wall_ms(void);
+
 /** 仅 CONFIG_TS_TEST 构建：L4 虚拟时钟注入（NULL 恢复真实源）。 */
 #ifdef CONFIG_TS_TEST
 void ts_time_test_bind(const ts_time_source_t *src);
@@ -120,7 +127,11 @@ typedef struct {
  * （M2/M3 各里程碑按序补 periph/hal/store/net/appmgr 步骤），不可调换既有次序。
  * 来源: 结构性数值（步骤计数随里程碑追加更新，HLD §4.4）
  */
-#define TS_BOOT_STEP_COUNT 4 /* M1: estop/poweron/wdt/core；后续里程碑尾部追加 */
+#if defined(CONFIG_TS_NET)
+#define TS_BOOT_STEP_COUNT 5 /* M1 四步 + net_init（M3a.2 尾部追加）；来源: HLD §4.4 */
+#else
+#define TS_BOOT_STEP_COUNT 4 /* M1: estop/poweron/wdt/core；来源: 结构性数值（HLD §4.4） */
+#endif
 extern const ts_boot_step_t ts_boot_steps[TS_BOOT_STEP_COUNT];
 
 /** [thread] 固定顺序执行；任一步失败 → ts_safety_system_fail(TS_FAIL_BOOT(idx))

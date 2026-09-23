@@ -29,3 +29,22 @@ uint64_t ts_time_ms(void)
 	return now_default();
 }
 #endif
+
+/* ---- 墙钟（数据字段专用，DR-08；合同 9 控制路径禁用）--------------------- */
+
+static uint64_t wall_epoch_base; /* set 时刻的墙钟值 */
+static uint64_t wall_mono_base;  /* set 时刻的单调值 */
+
+void ts_time_wall_set(uint64_t epoch_ms)
+{
+	wall_mono_base = ts_time_ms();
+	wall_epoch_base = epoch_ms;
+}
+
+uint64_t ts_time_wall_ms(void)
+{
+	if (wall_epoch_base == 0 && wall_mono_base == 0) {
+		return 0; /* 未设置（合法数据态：调用方自行判 0） */
+	}
+	return wall_epoch_base + (ts_time_ms() - wall_mono_base);
+}

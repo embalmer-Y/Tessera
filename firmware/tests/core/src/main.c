@@ -142,12 +142,22 @@ ZTEST(framework_core, test_wdt_math_and_failover)
 
 ZTEST(framework_core, test_boot_step_order_is_spec)
 {
-	/* 顺序是规格（HLD §4.4）：数组既有次序不可调换——此测试是守卫 */
+	/* 顺序是规格（HLD §4.4）：数组既有次序不可调换——此测试是守卫。
+	 * M3a.2 起 net_init 尾部追加（CONFIG_TS_NET）；步骤计数 = 4 + 1。 */
 	static const char *const expected[] = {
 		"estop_gpio", "safety_poweron", "wdt_start", "core_init",
+#if defined(CONFIG_TS_NET)
+		"net_init",
+#endif
 	};
 
-	zassert_equal(TS_BOOT_STEP_COUNT, 4, "M1 step count");
+	zassert_equal(TS_BOOT_STEP_COUNT,
+#if defined(CONFIG_TS_NET)
+		      5,
+#else
+		      4,
+#endif
+		      "step count = M1 四步 + net");
 	for (int i = 0; i < TS_BOOT_STEP_COUNT; i++) {
 		zassert_ok(strcmp(ts_boot_steps[i].name, expected[i]),
 			   "boot step order changed at %d", i);

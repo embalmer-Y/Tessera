@@ -53,6 +53,7 @@ typedef enum {
 	TS_ST_ACTIVE,
 	TS_ST_SAFE_LINKLOSS,
 	TS_ST_SAFE_FAULT,
+	TS_CH_STATE_COUNT,
 } ts_ch_state_t;
 
 /** [thread] init 期 + 外设注册期；三态缺一/越限/uid 撞名 → TS_E_PARAM（注册即失败，
@@ -70,6 +71,29 @@ ts_res_t ts_safety_readback(const char *uid, ts_out_value_t *out);
 
 /** [any] 通道当前安全态（观测点：重放比对/遥测）。 */
 ts_res_t ts_safety_channel_state(const char *uid, ts_ch_state_t *out);
+
+/** ts_out_value_t 的规范单字编码（审计/遥测统一口径；b→0/1，
+ * pwr→en<<31|ma&0x7FFFFFFF，其余取 .u）。 */
+static inline uint32_t ts_value_encode(ts_ch_kind_t k, ts_out_value_t v)
+{
+	switch (k) {
+	case TS_CH_GPIO:
+		return v.b ? 1U : 0U;
+	case TS_CH_POWER:
+		return (v.pwr.en ? 1U << 31 : 0U) | (v.pwr.ma & 0x7FFFFFFFU);
+	default:
+		return v.u;
+	}
+}
+
+/** 汇总观测（sys 命令 get-safety / 遥测，M3a.2）：按态计数 + 注册总数。 */
+typedef struct {
+	uint16_t by_state[TS_CH_STATE_COUNT];
+	uint16_t channels;
+} ts_safety_summary_t;
+
+/** [thread] 汇总快照（注册表遍历，无锁读——观测面容忍微撕裂）。 */
+ts_res_t ts_safety_summary(ts_safety_summary_t *out);
 
 /* ---- estop 与 fail-safe 直达（LLD-ts-safety §5）——合同 5/8 --------------- */
 

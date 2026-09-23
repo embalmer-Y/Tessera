@@ -2,15 +2,88 @@
 /* zenoh-pico 传输实现（CONFIG_TS_NET_ZENOH；钉版 1.10.1，DR-22 三方同 minor）。
  * 副作用边界：z_* 调用全部收敛于本文件（传输缝纪律，LLD-ts-net §1）。
  * locator 来自 prov.router_locators[0]（DEC-20 client 角色）；缺省回退
- * udp/127.0.0.1:7447（native_sim 基线，DEC-27）。 */
+ * udp/127.0.0.1:7447（native_sim 基线，DEC-27）。
+ * M3a.2：建链时接线 queryable（cube 前缀尾通配声明 + 回调内过滤 cmd 尾段
+ * → ts_net_cmd_dispatch）与 hb-host 订阅（→ ts_net_linkmon_hb_host）。 */
+#include <stdio.h>
 #include <string.h>
 #include <zenoh-pico.h>
+#include <ts/core.h>
 #include <ts/net.h>
 #include <ts/store.h>
 #include "internal.h"
 
+#define RESP_MAX 512 /* sys 命令回执预算（get-audit 最坏编码内） */
+
 static z_owned_session_t zs;
 static bool opened;
+static z_owned_queryable_t zq;
+static z_owned_subscriber_t zsub;
+
+/* ---- 回调（zenoh 内部线程上下文；直落框架确定性分发）--------------------- */
+
+static void drop_query(void *ctx)
+{
+	ARG_UNUSED(ctx);
+}
+
+static void on_query(const z_loaned_query_t *query, void *ctx)
+{
+	ARG_UNUSED(ctx);
+	/* key = tessera/<n>/<c>/<suffix>——剥前缀后须以 "/cmd" 结尾 */
+	z_view_string_t vs;
+	const z_loaned_keyexpr_t *qk = z_query_keyexpr(query);
+
+	if (z_keyexpr_as_view_string(qk, &vs) != Z_OK) {
+		return;
+	}
+	const char *k = z_string_data(z_loan(vs));
+	size_t klen = z_string_len(z_loan(vs));
+	size_t plen = strlen(ts_net_prefix);
+
+	if (klen <= plen + 4 || strncmp(k, ts_net_prefix, plen) != 0 ||
+	    strcmp(k + klen - 4, "/cmd") != 0) {
+		return; /* 非 cmd 命名空间：不回执（客户端侧超时可见） */
+	}
+	/* suffix = k + plen + 1 … klen - 4（"sys/get-info" 或 "<uid>"） */
+	static char suffix[64];
+	size_t slen = klen - 4 - (plen + 1);
+
+	if (slen >= sizeof(suffix)) {
+		return;
+	}
+	memcpy(suffix, k + plen + 1, slen);
+	suffix[slen] = '\0';
+
+	const z_loaned_bytes_t *pl = z_query_payload(query);
+	z_bytes_reader_t rd = z_bytes_get_reader(pl);
+	uint8_t req[128];
+	size_t rlen = z_bytes_reader_read(&rd, req, sizeof(req));
+
+	static uint8_t resp[RESP_MAX];
+	size_t resp_len = 0;
+
+	(void)ts_net_cmd_dispatch(suffix, req, (uint32_t)rlen, resp, sizeof(resp),
+				  &resp_len);
+	/* 回执（reply key = 查询 key 原样回显；编码失败 = 空回执可观测） */
+	z_owned_bytes_t out;
+
+	if (z_bytes_from_static_buf(&out, resp, resp_len) == Z_OK) {
+		z_query_reply_options_t ro;
+
+		z_query_reply_options_default(&ro);
+		(void)z_query_reply(query, qk, z_move(out), &ro);
+	}
+}
+
+static void on_sample(const z_loaned_sample_t *sample, void *ctx)
+{
+	ARG_UNUSED(ctx);
+	/* 仅 hb-host 订阅在册；到达即视为 host 心跳（DR-12，合同 8 本地判定） */
+	ts_net_linkmon_hb_host(ts_time_ms());
+}
+
+/* ---- 传输实现 ------------------------------------------------------------ */
 
 static ts_res_t zenoh_open(void)
 {
@@ -37,12 +110,54 @@ static ts_res_t zenoh_open(void)
 		return TS_E_IO;
 	}
 	opened = true;
+
+	/* queryable：cube 前缀下 ** 通配（** 只能作尾段——回调内过滤 "/cmd"） */
+	z_owned_keyexpr_t qk;
+	char qkey[80];
+	int qw = snprintf(qkey, sizeof(qkey), "%s/**", ts_net_prefix);
+
+	if (qw < 0 || (size_t)qw >= sizeof(qkey) ||
+	    z_keyexpr_from_str(&qk, qkey) != Z_OK) {
+		goto fail;
+	}
+	z_owned_closure_query_t qclos;
+
+	z_closure_query(&qclos, on_query, drop_query, NULL);
+	if (z_declare_queryable(z_loan(zs), &zq, z_loan(qk), z_move(qclos), NULL) != Z_OK) {
+		z_drop(z_move(qk));
+		goto fail;
+	}
+	z_drop(z_move(qk));
+
+	/* 订阅 host 心跳 …/sys/hb-host（DR-12） */
+	z_owned_keyexpr_t hk;
+	char hkey[80];
+	int hw = snprintf(hkey, sizeof(hkey), "%s/sys/hb-host", ts_net_prefix);
+
+	if (hw < 0 || (size_t)hw >= sizeof(hkey) ||
+	    z_keyexpr_from_str(&hk, hkey) != Z_OK) {
+		goto fail;
+	}
+	z_owned_closure_sample_t sclos;
+
+	z_closure_sample(&sclos, on_sample, NULL, NULL);
+	if (z_declare_subscriber(z_loan(zs), &zsub, z_loan(hk), z_move(sclos), NULL) != Z_OK) {
+		z_drop(z_move(hk));
+		goto fail;
+	}
+	z_drop(z_move(hk));
 	return TS_OK;
+fail:
+	z_drop(z_move(zs));
+	opened = false;
+	return TS_E_IO;
 }
 
 static void zenoh_close(void)
 {
 	if (opened) {
+		z_undeclare_subscriber(z_move(zsub));
+		z_undeclare_queryable(z_move(zq));
 		z_drop(z_move(zs));
 		opened = false;
 	}
@@ -72,7 +187,7 @@ static ts_res_t zenoh_publish(const char *key, const uint8_t *payload, uint32_t 
 
 static bool zenoh_is_up(void)
 {
-	/* V1：会话存活位（读写失败驱动的细粒度检测随 M3a.2 keepalive 接入） */
+	/* V1：会话存活位（读写失败驱动的细粒度检测随 keepalive 接入） */
 	return opened;
 }
 

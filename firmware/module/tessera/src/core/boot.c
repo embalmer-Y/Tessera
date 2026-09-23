@@ -6,6 +6,10 @@
 #include <ts/safety.h>
 #include <zephyr/kernel.h>
 
+#if defined(CONFIG_TS_NET)
+#include <ts/net.h>
+#endif
+
 /* 事件 payload 类型（core.h 侧集中定义于本文件上方 include；此处仅实现） */
 
 static ts_res_t step_estop_gpio(void)
@@ -34,15 +38,28 @@ static ts_res_t step_core_init(void)
 	return TS_OK;
 }
 
+#if defined(CONFIG_TS_NET)
+static ts_res_t step_net_init(void)
+{
+	/* ts-net 接线（M3a.2）：ids/pub/命令表 + （CONFIG_TS_NET_ZENOH）传输绑定
+	 * 与周期驱动。prov 缺失 → 开发缺省 ids 且网络面保持 DOWN（安全侧）；
+	 * 事件订阅满员（装配错误）→ 如实失败（合同 6 fail-safe）。 */
+	return ts_net_init();
+}
+#endif
+
 /*
  * 顺序 = HLD §4.4（规格，不可调换；只允许尾部追加）：
- * estop GPIO → 全通道 SAFE_POWERON → WDT 启动 → core →（后续里程碑追加）。
+ * estop GPIO → 全通道 SAFE_POWERON → WDT 启动 → core → net（M3a.2 追加）。
  */
 const ts_boot_step_t ts_boot_steps[TS_BOOT_STEP_COUNT] = {
 	{"estop_gpio", step_estop_gpio},
 	{"safety_poweron", step_safety_poweron},
 	{"wdt_start", step_wdt_start},
 	{"core_init", step_core_init},
+#if defined(CONFIG_TS_NET)
+	{"net_init", step_net_init},
+#endif
 };
 
 FUNC_NORETURN void ts_core_boot(void)

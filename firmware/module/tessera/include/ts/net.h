@@ -75,6 +75,47 @@ void ts_net_linkmon_hb_host(uint64_t now_ms);
 bool ts_net_link_up(void); /* 当前判定（喂 ts_safety_set_link 的同一状态） */
 uint32_t ts_net_linkmon_hb_seq(void); /* 已发心跳序号（payload 内容源） */
 
+/* ---- 命令面（LLD §4；sys 命令表 host_only——DEC-30①/DR-03）--------------- */
+
+/* 命令处理器：args 为解码后的固定参数集（V1 sys 面）；resp 写入回执 data 段
+ * （CBOR 编码，写入字节数经 *resp_len 返回）。返回值 = 回执 status。 */
+typedef struct {
+	char confirm[16]; /* estop-clear 确认令牌 */
+	bool has_time_ms;
+	uint64_t time_ms; /* set-time 墙钟数据字段（DR-08） */
+} ts_net_cmd_args_t;
+
+typedef ts_res_t (*ts_net_cmd_fn)(const ts_net_cmd_args_t *args,
+				  uint8_t *resp, size_t cap, size_t *resp_len);
+
+/* 注册命令（key 后缀如 "sys/get-info"；容量 8，满 = TS_E_NOMEM）。
+ * V1 仅框架 init 期注册（sys 面 host_only）；APP 侧注册随 msg 类（M2b.2）。 */
+ts_res_t ts_net_cmd_register(const char *suffix, ts_net_cmd_fn fn);
+
+/* 分发一条命令（zenoh query 回调 / 测试直调）：req = 定体 CBOR map{op, args?}；
+ * 回执 = map{"status": int, "data": <按命令>}。未知 op/key = TS_E_NOTFOUND
+ * 回执（不留静默）；req 非法 = TS_E_PARAM 回执。 */
+ts_res_t ts_net_cmd_dispatch(const char *key_suffix, const uint8_t *req, uint32_t req_len,
+			     uint8_t *resp, size_t cap, size_t *resp_len);
+
+/* ---- 发布面（LLD §5：遥测快照 + 事件外发）------------------------------- */
+
+/* 事件订阅注册（SAFE_STATE_CHANGED/PERM_DENIED/INPUT_CHANGED/ESTOP → pubq；
+ * idempotent，容量受事件总线 MAX_SUBS 限制）。 */
+ts_res_t ts_net_pub_init(void);
+
+/* 周期遥测快照（init 周期驱动/测试直调）：遍历输出实例 → readback →
+ * 各自 telemetry key 入 pubq（经 pubq 语义尽力而为）。 */
+void ts_net_pub_telem(uint64_t now_ms);
+
+/* ---- 初始化（boot 步骤接线；LLD §2/§6）---------------------------------- */
+
+/* ids ← prov（V1 单立方体 node = cube，DEC-26；prov 缺失/损坏 → 开发缺省
+ * "n-dev"/"c-dev" 且网络面保持 DOWN——缺 prov 的安全效应 = 无链路 = 安全侧；
+ * 生产板 boot 期强校验随板级里程碑收紧）。CONFIG_TS_NET_ZENOH 时绑定真实
+ * 传输并启动 sysworkq 周期驱动（session_poll + linkmon_tick + pub_telem）。 */
+ts_res_t ts_net_init(void);
+
 /* ---- 测试钩子（仅 CONFIG_TS_TEST）---------------------------------------- */
 #ifdef CONFIG_TS_TEST
 /* 全量复位（session/pubq/linkmon 状态 + 摘除传输注入）；不触碰 safety 注册表 */

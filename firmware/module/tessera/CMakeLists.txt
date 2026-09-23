@@ -49,6 +49,10 @@ zephyr_library_sources_ifdef(CONFIG_TS_NET
   src/net/pubq.c
   src/net/session.c
   src/net/linkmon.c
+  src/net/cbor_min.c
+  src/net/cmd.c
+  src/net/pub.c
+  src/net/init.c
 )
 
 zephyr_library_sources_ifdef(CONFIG_TS_NET_ZENOH

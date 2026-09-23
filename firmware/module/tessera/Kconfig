@@ -137,6 +137,13 @@ config TS_NET
 
 if TS_NET
 
+config TS_FW_VERSION
+	string "Firmware version string (sys get-info; versioning.md §5)"
+	default "dev"
+	help
+	  Release builds inject git describe at build time (versioning.md §5);
+	  dev builds show "dev" (provenance: build stamp discipline).
+
 config TS_NET_HB_PERIOD_MS
 	int "Heartbeat period in ms (cube send + host monitor basis)"
 	default 1000

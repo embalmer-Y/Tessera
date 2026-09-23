@@ -33,18 +33,7 @@ extern atomic_t ts_link_up;     /* 全局链路标志（LLD §3） */
 /** estop 补发宣布位复位（clear_fault 调用；IR-01） */
 void ts_safety_estop_announce_reset(void);
 
-/* ts_out_value_t 的规范单字编码（审计/记录统一用；b→0/1，pwr→en<<31|ma&0x7FFFFFFF） */
-static inline uint32_t ts_value_encode(ts_ch_kind_t k, ts_out_value_t v)
-{
-	switch (k) {
-	case TS_CH_GPIO:
-		return v.b ? 1U : 0U;
-	case TS_CH_POWER:
-		return (v.pwr.en ? 1U << 31 : 0U) | (v.pwr.ma & 0x7FFFFFFFU);
-	default:
-		return v.u;
-	}
-}
+/* ts_value_encode 已提升为公共 API（safety.h）——审计/遥测统一口径 */
 
 /* 查找槽下标；未注册返回 -1 */
 static inline int ts_ch_find(const char *uid)

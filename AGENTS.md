@@ -6,6 +6,12 @@
 
 ## 1. 当前状态
 
+- **2026-09-23（四） · M3a.2 交付：sys 命令面（host-only 7 项，DEC-30①）+ 遥测/事件发布 + boot net_init 接线 + zenoh queryable/订阅——本地全绿（twister 8/8 配置 33 用例 / L5 6/6 / app 构建 / pytest / 编码 0）；zenoh 真实绑定扩展（queryable+hb-host 订阅）编译链接绿；L3 端到端登记 owner 环境项（TAP sudo）**
+  - 交付物：`src/net/{cbor_min,cmd,pub,init}.c` + zenoh.c 扩展 + safety/core 支撑 API（`ts_safety_summary`、`ts_time_wall_{set,ms}`、`ts_value_encode` 公共化）+ boot 表尾追 `net_init`（CONFIG_TS_NET 门控，步骤计数 4→5，core 规格守卫测试同步）+ Kconfig `TS_FW_VERSION` + tests/net 增至 7 用例（**syscmd 矩阵**：7 命令全路径含 estop-clear 令牌拒绝/set-time 墙钟/垃圾 CBOR 拒绝；**遥测快照+事件路由**：DOWN 丢弃→CONNECTED flush→实例 event key）。
+  - 命令面语义：请求/回执 = 定体最小 CBOR（对齐 prov.c 确定性子集纪律）；未知 key/op、op/key 不匹配 → TS_E_NOTFOUND 回执（不留静默）；get-budget 如实报 TS_E_NOTFOUND（ts-power = M3b）；estop-clear 硬令牌 `confirm="estop"`。
+  - 关键修复（首跑暴露）：**cbor_min 编码器 additional-info 映射错误**（4/8 字节应 26/27，误为 27/31=不定长标记）——u64 值域全坏，set-time/遥测墙钟路径捕获。
+  - 遗留登记：L3 端到端（dev-env §8：TAP 需 owner sudo；zenohd 用户态可自装）；audit 导出 = 最新 6 条/次（回执定容，分片游标留 M3b+）；prov 缺失开发缺省 ids 的生产收紧留板级里程碑。
+  - 下一单元（project-plan §7）：**MA3**（zenoh 部署工具 + skills + 高层任务链 app_develop/app_deploy——A06 对齐依赖已就绪）或 M3b（ts-power + ts-periph + 集成重放）。
 - **2026-09-23（三） · M3a.1 交付：ts-net 传输缝 + keyspace/pubq/session/linkmon + zenoh-pico 1.10.1 钉版接线——本地全绿（twister 8/8 配置 31 用例 / L5 6/6 / app 构建 / 编码 0）；zenoh 真实绑定（CONFIG_TS_NET_ZENOH）经 overlay 构建编译链接绿**
   - 交付物：`include/ts/net.h` + `src/net/{keyspace,pubq,session,linkmon,zenoh}.c` + internal.h + Kconfig（TS_NET 族：HB_PERIOD 1000/MISS 6/RECOVER 2/PUBQ 8，DEC-22/27）+ `firmware/tests/net`（5 用例：key 构造与截断/退避表/pubq DOWN 丢弃与满溢/会话建链-退避-掉线/**linkmon→safety 断链-恢复集成**）。
   - 传输缝纪律（对齐 ts-store backend 先例）：z_* 副作用全部收敛于 zenoh.c；逻辑层（linkmon/pubq/session）确定性可测（合同 9）。

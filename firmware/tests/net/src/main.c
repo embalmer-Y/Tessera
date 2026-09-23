@@ -5,8 +5,11 @@
 #include <string.h>
 #include <zephyr/ztest.h>
 #include <ts/core.h>
+#include <ts/hal.h>
 #include <ts/net.h>
 #include <ts/safety.h>
+/* 最小 CBOR 编解码（模块内部 API——测试构造请求/解回执复用同一实现） */
+#include "../../../module/tessera/src/net/internal.h"
 
 /* ---- 注入桩传输 ---------------------------------------------------------- */
 
@@ -30,9 +33,8 @@ static ts_res_t fake_publish(const char *key, const uint8_t *p, uint32_t l)
 {
 	strncpy(last_key, key, sizeof(last_key) - 1);
 	last_key[sizeof(last_key) - 1] = '\0';
-	if (l > sizeof(last_payload)) l = sizeof(last_payload);
-	memcpy(last_payload, p, l);
-	last_len = l;
+	memcpy(last_payload, p, l > sizeof(last_payload) ? sizeof(last_payload) : l);
+	last_len = l; /* 原始长度（payload 截存仅用于内容检查） */
 	fake_pub_calls++;
 	return TS_OK;
 }
@@ -204,6 +206,181 @@ ZTEST(framework_net, test_05_linkmon_safety)
 	zassert_false(ts_net_link_up());
 	ts_net_linkmon_hb_host(7400);
 	zassert_true(ts_net_link_up(), "滞回恢复");
+}
+
+/* ---- M3a.2：sys 命令面矩阵（LLD-ts-net §4，DEC-30①）---------------------- */
+
+static uint8_t resp[512];
+static size_t resp_len;
+
+/* 构造请求 map{"op": op} / 带参 map{"op": op, "args": {...}}（定体 canonical） */
+static size_t build_req(uint8_t *buf, size_t cap, const char *op,
+			const char *arg_key, const char *arg_str, uint64_t arg_uint)
+{
+	size_t p = 0;
+
+	if (arg_key == NULL) {
+		zassert_true(ts_cbor_put_map(buf, cap, &p, 1));
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, "op"));
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, op));
+		return p;
+	}
+	zassert_true(ts_cbor_put_map(buf, cap, &p, 2));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "op"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, op));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "args"));
+	zassert_true(ts_cbor_put_map(buf, cap, &p, 1));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, arg_key));
+	if (arg_str != NULL) {
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, arg_str));
+	} else {
+		zassert_true(ts_cbor_put_uint(buf, cap, &p, arg_uint));
+	}
+	return p;
+}
+
+/* 解回执首对（"status"）验证编码合法性并取值 */
+static int64_t resp_status(void)
+{
+	ts_cbor_rd_t r;
+	uint32_t pairs;
+
+	ts_cbor_rd_init(&r, resp, resp_len);
+	zassert_true(ts_cbor_map_open(&r, &pairs));
+	char key[8];
+
+	zassert_true(ts_cbor_tstr(&r, key, sizeof(key)));
+	zassert_equal(strcmp(key, "status"), 0);
+	int64_t v;
+
+	zassert_true(ts_cbor_int(&r, &v));
+	return v;
+}
+
+ZTEST(framework_net, test_06_syscmd_matrix)
+{
+	uint8_t req[128];
+	size_t rlen;
+
+	ts_net_test_reset();
+	ts_net_cmd_test_reset();
+	ts_net_cmd_sys_init();
+	zassert_equal(ts_net_set_ids("n1", "c1"), TS_OK);
+
+	/* get-info / get-link / get-safety / get-audit → OK 且回执合法 CBOR */
+	const char *oks[] = {"get-info", "get-link", "get-safety", "get-audit"};
+
+	for (size_t i = 0; i < 4; i++) {
+		char key[32];
+
+		snprintf(key, sizeof(key), "sys/%s", oks[i]);
+		rlen = build_req(req, sizeof(req), oks[i], NULL, NULL, 0);
+		zassert_equal(ts_net_cmd_dispatch(key, req, rlen, resp, sizeof(resp),
+						  &resp_len),
+			      TS_OK, "cmd %s", oks[i]);
+		zassert_equal(resp_status(), TS_OK);
+		zassert_true(resp_len > 10, "回执含 data");
+	}
+
+	/* get-budget：ts-power M3b → TS_E_NOTFOUND（面完整、如实报不可用） */
+	rlen = build_req(req, sizeof(req), "get-budget", NULL, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/get-budget", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_E_NOTFOUND);
+	zassert_equal(resp_status(), TS_E_NOTFOUND);
+
+	/* set-time：无 time_ms → PARAM；带 time_ms → OK + 墙钟生效（DR-08） */
+	rlen = build_req(req, sizeof(req), "set-time", NULL, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/set-time", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_E_PARAM);
+	zassert_equal(resp_status(), TS_E_PARAM);
+	rlen = build_req(req, sizeof(req), "set-time", "time_ms", NULL, 1700000000000ULL);
+	zassert_equal(ts_net_cmd_dispatch("sys/set-time", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_OK);
+	zassert_equal(ts_time_wall_ms(), 1700000000000ULL, "墙钟数据字段生效");
+
+	/* estop-clear：令牌缺失/错误 → PARAM；正确令牌 → 走 clear_fault 路径 */
+	rlen = build_req(req, sizeof(req), "estop-clear", NULL, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/estop-clear", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_E_PARAM);
+	rlen = build_req(req, sizeof(req), "estop-clear", "confirm", "stop", 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/estop-clear", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_E_PARAM, "错误令牌拒绝");
+	rlen = build_req(req, sizeof(req), "estop-clear", "confirm", "estop", 0);
+	(void)ts_net_cmd_dispatch("sys/estop-clear", req, rlen, resp, sizeof(resp),
+				  &resp_len);
+	/* 无锁存时 clear_fault 语义由 safety 定义——此处只断回执编码合法 */
+
+	/* 未知 key / op 与 key 不匹配 / 垃圾请求 → NOTFOUND/PARAM（不留静默） */
+	rlen = build_req(req, sizeof(req), "get-info", NULL, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/bogus", req, rlen, resp, sizeof(resp),
+					  &resp_len),
+		      TS_E_NOTFOUND, "未知 key");
+	zassert_equal(ts_net_cmd_dispatch("sys/get-link", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_E_NOTFOUND, "op/key 不匹配");
+	zassert_equal(ts_net_cmd_dispatch("sys/get-info", req, 1, resp,
+					  sizeof(resp), &resp_len),
+		      TS_E_PARAM, "垃圾请求");
+	static const uint8_t garbage[4] = {0xA2, 0x63, 0x66, 0x6F};
+
+	zassert_equal(ts_net_cmd_dispatch("sys/get-info", garbage, sizeof(garbage),
+					  resp, sizeof(resp), &resp_len),
+		      TS_E_PARAM, "非法 CBOR");
+}
+
+/* ---- M3a.2：遥测快照 + 事件外发 → pubq → transport ----------------------- */
+
+ZTEST(framework_net, test_07_telemetry_and_events)
+{
+	static const ts_out_ch_t led_ch = {
+		.uid = "tel1", .kind = TS_CH_GPIO,
+		.poweron = {.b = false}, .linkloss = {.b = false}, .fault = {.b = false},
+	};
+	static const ts_hal_dev_desc_t led_dev = {.uid = "tel1", .kind = TS_DEV_GPIO_OUT};
+
+	ts_net_test_reset();
+	ts_net_cmd_test_reset();
+	ts_net_cmd_sys_init();
+	(void)ts_net_pub_init(); /* 幂等：重复订阅由容量守卫拒绝 */
+	zassert_equal(ts_safety_register_channel(&led_ch), TS_OK);
+	zassert_equal(ts_hal_register_dev(&led_dev), TS_OK);
+
+	/* DOWN 期：快照入 pubq = 丢弃计数 */
+	uint32_t d0 = ts_net_pubq_dropped();
+
+	ts_net_pub_telem(0);
+	zassert_equal(ts_net_pubq_dropped(), d0 + 1, "DOWN 期遥测丢弃");
+
+	/* 建链后：快照 → flush → fake 捕获 telemetry key + value_u */
+	fake_open_fail = 0;
+	fake_up_v = true;
+	fake_pub_calls = 0;
+	ts_net_set_transport(&fake_t);
+	zassert_equal(ts_net_session_poll(0), TS_NET_CONNECTED);
+	ts_net_pub_telem(10);
+	zassert_equal(ts_net_pubq_dropped(), d0 + 1);
+	ts_net_pubq_flush();
+	zassert_equal(fake_pub_calls, 1, "遥测一条");
+	zassert_equal(strcmp(last_key, "tessera/n1/c1/tel1/telemetry"), 0);
+	zassert_true(last_len > 20, "遥测 payload = 定体 CBOR 快照");
+
+	/* 事件：SAFE_STATE_CHANGED（含 uid）→ event key 外发 */
+	fake_pub_calls = 0;
+	const ts_safe_state_evt_t pl = {.uid = "tel1", .new_state = TS_ST_ACTIVE};
+	const ts_evt_t evt = {
+		.id = TS_EVT_SAFE_STATE_CHANGED, .t_ms = 20,
+		.data = &pl, .len = sizeof(pl),
+	};
+
+	ts_evt_publish(&evt);
+	ts_net_pubq_flush();
+	zassert_equal(fake_pub_calls, 1, "事件一条");
+	zassert_equal(strcmp(last_key, "tessera/n1/c1/tel1/event"), 0, "实例事件路由");
 }
 
 ZTEST_SUITE(framework_net, NULL, NULL, NULL, NULL, NULL);

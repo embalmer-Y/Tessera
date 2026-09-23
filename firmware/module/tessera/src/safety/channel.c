@@ -142,3 +142,18 @@ ts_res_t ts_safety_channel_state(const char *uid, ts_ch_state_t *out)
 	*out = ts_ch_table[i].state;
 	return TS_OK;
 }
+
+ts_res_t ts_safety_summary(ts_safety_summary_t *out)
+{
+	if (out == NULL) {
+		return TS_E_PARAM;
+	}
+	memset(out, 0, sizeof(*out));
+	for (size_t i = 0; i < ts_ch_count; i++) {
+		if (ts_ch_table[i].state < TS_CH_STATE_COUNT) {
+			out->by_state[ts_ch_table[i].state]++;
+		}
+	}
+	out->channels = (uint16_t)ts_ch_count;
+	return TS_OK;
+}
