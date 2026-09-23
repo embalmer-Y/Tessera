@@ -160,8 +160,10 @@
 | ts-net M3a.2 族（ts_net_cmd_{register,dispatch}/ts_net_cmd_sys_init/ts_net_pub_{init,telem}/ts_net_init/cbor_min 内部族）+ ts_net_cmd_args_t | sys 命令面（host_only 7 项，DEC-30①/DR-03）+ 遥测/事件发布 + boot 接线 | include/ts/net.h + src/net/{cmd,pub,init,cbor_min}.c | 已实现（M3a.2） |
 | ts_safety_summary / ts_time_wall_{set,ms} / ts_value_encode（公共化） | 安全汇总观测 / 墙钟数据字段（DR-08）/ 规范单字编码（审计遥测统一口径） | include/ts/{safety,core}.h | 已实现（M3a.2，sys 命令面支撑） |
 | l3app / l3_client.py | L3 联调镜像与客户端（native_sim↔zenohd 真实会话；prov 手工定稿键序烧入；复跑方法 dev-env §8） | firmware/l3app | 已实现（L3 PASS 2026-09-23） |
-| 命令信封 v2（ver/kind/rid/src/idem/to）+ kind 注册表（请求 1-15/回执 16-31/事件 32-95/遥测 96-127） | ts-net 命令面演进信封与消息类型编号（NeuroLink 借鉴） | design/LLD-ts-net.md §4.2/§4.4 | 已裁（DEC-40/42，实现批次 MA3 前） |
-| ts_net lease 族（sys/lease-{acquire,release,get} + CONFIG_TS_NET_LEASE_TTL_MS + lease.c） | 控制租约：多方并发命令准入仲裁（NeuroLink lease_manager 借鉴；TTL 失权；不联动安全态） | design/LLD-ts-net.md §4.5 | 已裁（DEC-41，实现批次 MA3 前） |
+| 命令信封 v2（ver/kind/rid/src/idem/to）+ kind 注册表（请求 1-15/回执 16-31/事件 32-95/遥测 96-127） | ts-net 命令面演进信封与消息类型编号（NeuroLink 借鉴）；v1 弃用期 | design/LLD-ts-net.md §4.2/§4.4 + src/net/cmd.c | 已实现（DEC-40/42，2026-09-23 批） |
+| ts_net lease 族（sys/lease-{acquire,release,get} + ts_net_lease_{acquire,release,get,held_by} + CONFIG_TS_NET_LEASE_TTL_MS） | 控制租约：多方并发命令准入仲裁（NeuroLink lease_manager 借鉴；惰性过期；lease_id 单调；不联动安全态） | design/LLD-ts-net.md §4.5 + src/net/lease.c | 已实现（DEC-41，2026-09-23 批；M2b.2 写命令挂钩点 = ts_net_lease_held_by） |
+| ts_net_qos_t（TS_NET_QOS_{BESTEFFORT,SAFETY}）+ ts_net_pubq_push_qos + transport.publish(qos) | 发布服务类穿透 pubq→传输（DEC-42 QoS 映射：安全事件 BLOCK+REAL_TIME，遥测/心跳缺省 DROP+DATA） | include/ts/net.h + src/net/{pubq,zenoh}.c | 已实现（DEC-42，2026-09-23 批） |
+| 遥测 payload 键 dev（原 kind 改名）+ 事件 payload kind=32+evt_id | DEC-42 信封落地键名（消费端 Agent keys.py 镜像出处） | design/LLD-ts-net.md §5 + src/net/pub.c | 已实现（2026-09-23 批，消费端随批同步） |
 | NeuroLink / MatrixMechanic | owner 前作参考项目（zenoh 上层协议 / TLV 私有协议；借鉴不照搬，采纳走门③） | github embalmer-Y；WSL 克隆 ~/project/logs/tmp/ref/ | 参考存档（2026-09-23） |
 | HLD-agent / LLD-A00…A07 | Agent 轨道设计文档族（A00 公共/A01 网关/A02 核心/A03 固件工具/A04 模拟器/A05 TSAP/A06 部署/A07 skills+平台） | design/HLD-agent.md v0.1 批次 | v0.1 待 owner 确认（C-4/C-5） |
 | TA_E_* | Agent 错误码族（TaError 结构化异常，LLD-A00 §1） | LLD-A00 提案 |

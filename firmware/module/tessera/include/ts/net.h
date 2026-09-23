@@ -25,11 +25,19 @@ typedef enum {
 
 /* ---- 传输缝 --------------------------------------------------------------- */
 
+/* 发布服务类（DEC-42 QoS 映射）：安全事件 = 阻塞式高优先级；遥测/心跳 = 丢弃式。
+ * 语义由传输实现承接（zenoh：congestion_control + priority）；非投递保证。 */
+typedef enum {
+	TS_NET_QOS_BESTEFFORT = 0,
+	TS_NET_QOS_SAFETY = 1,
+} ts_net_qos_t;
+
 typedef struct ts_net_transport {
 	ts_res_t (*open)(void); /* 建链（locator 自 prov 或测试注入） */
 	void (*close)(void);
 	/* 发布一行（DOWN 期不应被调用；失败由调用方按 pubq 语义丢弃计数） */
-	ts_res_t (*publish)(const char *key, const uint8_t *payload, uint32_t len);
+	ts_res_t (*publish)(const char *key, const uint8_t *payload, uint32_t len,
+			    ts_net_qos_t qos);
 	bool (*is_up)(void);
 } ts_net_transport_t;
 
@@ -62,6 +70,9 @@ ts_net_state_t ts_net_session_poll(uint64_t now_ms);
 /* 入队（CONNECTED 时可直接发送）；DOWN 期 = 直接丢弃并计数（防上电风暴）；
  * 队满 = 丢最旧并计数。key/payload 超容量 → TS_E_PARAM。 */
 ts_res_t ts_net_pubq_push(const char *key, const uint8_t *payload, uint32_t len);
+/* 显式服务类入队（DEC-42）：安全事件走阻塞式高优先级；push = BESTEFFORT 缺省。 */
+ts_res_t ts_net_pubq_push_qos(const char *key, const uint8_t *payload, uint32_t len,
+			      ts_net_qos_t qos);
 uint32_t ts_net_pubq_dropped(void); /* 累计丢弃（含 DOWN 期丢与溢出丢） */
 void ts_net_pubq_flush(void);       /* 经 transport 逐条发送（发送后清出） */
 
@@ -83,18 +94,25 @@ typedef struct {
 	char confirm[16]; /* estop-clear 确认令牌 */
 	bool has_time_ms;
 	uint64_t time_ms; /* set-time 墙钟数据字段（DR-08） */
+	bool has_holder;
+	char holder[24];  /* 控制租约持有者标识（DEC-41） */
 } ts_net_cmd_args_t;
 
 typedef ts_res_t (*ts_net_cmd_fn)(const ts_net_cmd_args_t *args,
 				  uint8_t *resp, size_t cap, size_t *resp_len);
 
-/* 注册命令（key 后缀如 "sys/get-info"；容量 8，满 = TS_E_NOMEM）。
- * V1 仅框架 init 期注册（sys 面 host_only）；APP 侧注册随 msg 类（M2b.2）。 */
+/* 注册命令（key 后缀如 "sys/get-info"；容量 12，满 = TS_E_NOMEM——
+ * 7 项基础 sys + 3 项租约（DEC-41）+ 余量）。V1 仅框架 init 期注册（sys 面
+ * host_only）；APP 侧注册随 msg 类（M2b.2）。 */
 ts_res_t ts_net_cmd_register(const char *suffix, ts_net_cmd_fn fn);
 
-/* 分发一条命令（zenoh query 回调 / 测试直调）：req = 定体 CBOR map{op, args?}；
- * 回执 = map{"status": int, "data": <按命令>}。未知 op/key = TS_E_NOTFOUND
- * 回执（不留静默）；req 非法 = TS_E_PARAM 回执。 */
+/* 分发一条命令（zenoh query 回调 / 测试直调）。请求两种形态（DEC-40）：
+ *   v1：map{"op", "args"?}（弃用期，回执 = map{"status", "data"}）；
+ *   v2：map{"ver":1,"kind":1,"rid","src","op","args"?{"idem"?,"to"?}}，
+ *        回执 = map{"ver":1,"kind":16,"rid"<回带>,"status","data"}。
+ * 按首键判别（"op"=v1 / "ver"=v2）；未知键/超集 = TS_E_PARAM 回执（fail-closed）。
+ * idem 命中 = 回放缓存回执不重执行（DEC-40，深度 CONFIG_TS_NET_IDEM_CACHE LRU）；
+ * to > 5000ms = TS_E_PARAM（断链窗口 6000ms − 余量，DEC-40）。 */
 ts_res_t ts_net_cmd_dispatch(const char *key_suffix, const uint8_t *req, uint32_t req_len,
 			     uint8_t *resp, size_t cap, size_t *resp_len);
 

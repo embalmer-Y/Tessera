@@ -17,7 +17,27 @@ extern const ts_net_transport_t *ts_net_transport;
 /* cmd.c：sys 命令表注册（init 期一次；host_only——DEC-30①） */
 void ts_net_cmd_sys_init(void);
 #ifdef CONFIG_TS_TEST
-void ts_net_cmd_test_reset(void); /* 表清空（测试隔离） */
+void ts_net_cmd_test_reset(void); /* 表 + 幂等缓存清空（测试隔离） */
+#endif
+
+/* ---- lease.c：控制租约（DEC-41）--------------------------------------------
+ * V1 单租约；TTL = CONFIG_TS_NET_LEASE_TTL_MS（默认 10s）；惰性过期（访问时
+ * 判定，无定时器——确定性）；只管命令准入，不联动安全态（单源纪律）。 */
+#define TS_NET_LEASE_HOLDER_MAX 24 /* 与 ts_net_cmd_args_t.holder 同宽 */
+/* 获取/续期：无有效租约 → 授予新 id；同持有者 → 续期（幂等，id 不变）；
+ * 他人持有 → TS_E_STATE（*id 与 *expires_at_ms 回填当前租约供拒绝回执）。
+ * now_ms 显式传入（虚拟时钟确定性）；lease_id 从 1 起单调递增不复用。 */
+ts_res_t ts_net_lease_acquire(const char *holder, uint64_t now_ms,
+			      uint32_t *id, uint64_t *expires_at_ms);
+/* 归还（幂等）：无有效租约 = TS_OK；他人持有 = TS_E_STATE。 */
+ts_res_t ts_net_lease_release(const char *holder, uint64_t now_ms);
+/* 快照（出参可 NULL）：valid = 有效租约在册且未过期。 */
+void ts_net_lease_get(uint64_t now_ms, bool *valid, char *holder, size_t holder_cap,
+		      uint32_t *id, uint64_t *expires_at_ms);
+/* 准入判定（M2b.2 写命令面挂钩点；V1 sys 面只读族与 estop-clear 豁免）。 */
+bool ts_net_lease_held_by(const char *holder, uint64_t now_ms);
+#ifdef CONFIG_TS_TEST
+void ts_net_lease_test_reset(void); /* 租约状态 + id 计数器清零（测试隔离） */
 #endif
 
 /* ---- cbor_min：确定性子集编解码（cmd 请求/回执 + pub payload）-------------

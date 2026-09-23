@@ -2,9 +2,12 @@
 /* zenoh-pico 传输实现（CONFIG_TS_NET_ZENOH；钉版 1.10.1，DR-22 三方同 minor）。
  * 副作用边界：z_* 调用全部收敛于本文件（传输缝纪律，LLD-ts-net §1）。
  * locator 来自 prov.router_locators[0]（DEC-20 client 角色）；缺省回退
- * udp/127.0.0.1:7447（native_sim 基线，DEC-27）。
+ * tcp/127.0.0.1:7447（native_sim 基线，DEC-27；DEC-40 起缺省亦走 TCP）。
  * M3a.2：建链时接线 queryable（cube 前缀尾通配声明 + 回调内过滤 cmd 尾段
- * → ts_net_cmd_dispatch）与 hb-host 订阅（→ ts_net_linkmon_hb_host）。 */
+ * → ts_net_cmd_dispatch）与 hb-host 订阅（→ ts_net_linkmon_hb_host）。
+ * DEC-40 批：locator 形态校验（命令面链路必须 TCP/TLS——UDP 拒绝）；is_up =
+ * zp 任务活性自省（会话在而任务死 = 半死态，LLD §2）；publish 承接 QoS
+ * 映射（DEC-42：安全事件 = BLOCK + REAL_TIME，缺省 = DROP + DATA）。 */
 #include <stdio.h>
 #include <string.h>
 #include <zenoh-pico.h>
@@ -92,16 +95,30 @@ static void on_sample(const z_loaned_sample_t *sample, void *ctx)
 
 /* ---- 传输实现 ------------------------------------------------------------ */
 
+/* 命令面链路约束（DEC-40）：TCP/TLS 前缀之外的 locator（如 udp/）拒绝建链
+ * ——UDP 仅限 scouting/遥测可选路径；zenoh query 无重传，命令-回执链路的
+ * 传输层可靠性由 TCP/TLS 承载。 */
+static bool locator_cmd_face_ok(const char *loc)
+{
+	return strncmp(loc, "tcp/", 4) == 0 || strncmp(loc, "tls/", 4) == 0;
+}
+
 static ts_res_t zenoh_open(void)
 {
 	if (opened) {
 		return TS_OK;
 	}
 	const ts_prov_t *prov = ts_store_prov();
-	/* prov 未加载/未烧录时取默认（集成联调 M3a.2 接 boot 编排后收紧） */
+	/* prov 未加载/未烧录时取默认（缺省亦 TCP——DEC-40 命令面链路约束） */
 	const char *loc = (prov->router_locators[0][0] != '\0')
 				  ? prov->router_locators[0]
-				  : "udp/127.0.0.1:7447";
+				  : "tcp/127.0.0.1:7447";
+
+	if (!locator_cmd_face_ok(loc)) {
+		printk("[ts-net] zenoh_open: locator %s rejected (DEC-40: tcp//tls/ only)\n",
+		       loc);
+		return TS_E_PARAM;
+	}
 
 	z_owned_config_t cfg;
 
@@ -176,7 +193,8 @@ static void zenoh_close(void)
 	}
 }
 
-static ts_res_t zenoh_publish(const char *key, const uint8_t *payload, uint32_t len)
+static ts_res_t zenoh_publish(const char *key, const uint8_t *payload, uint32_t len,
+			      ts_net_qos_t qos)
 {
 	if (!opened) {
 		return TS_E_STATE;
@@ -192,7 +210,15 @@ static ts_res_t zenoh_publish(const char *key, const uint8_t *payload, uint32_t 
 		z_drop(z_move(ke));
 		return TS_E_IO;
 	}
-	z_result_t r = z_put(z_loan(zs), z_loan(ke), z_move(pl), NULL);
+	z_put_options_t opt;
+
+	z_put_options_default(&opt);
+	if (qos == TS_NET_QOS_SAFETY) {
+		/* DEC-42 QoS 映射：安全事件阻塞式（不丢）+ 高优先级 lane */
+		opt.congestion_control = Z_CONGESTION_CONTROL_BLOCK;
+		opt.priority = Z_PRIORITY_REAL_TIME;
+	}
+	z_result_t r = z_put(z_loan(zs), z_loan(ke), z_move(pl), &opt);
 
 	z_drop(z_move(ke));
 	return (r == Z_OK) ? TS_OK : TS_E_IO;
@@ -200,8 +226,17 @@ static ts_res_t zenoh_publish(const char *key, const uint8_t *payload, uint32_t 
 
 static bool zenoh_is_up(void)
 {
-	/* V1：会话存活位（读写失败驱动的细粒度检测随 keepalive 接入） */
-	return opened;
+	if (!opened) {
+		return false;
+	}
+#if defined(Z_FEATURE_MULTI_THREAD) && Z_FEATURE_MULTI_THREAD == 1
+	/* 传输健康定义（LLD §2 定稿）：会话在而读写/租期任务已死 = 半死态 →
+	 * 判 DOWN（session_poll 走 close+重连）。上游自省接口（标注 deprecated
+	 * 仅指任务不再需手动启动，活性探测语义仍有效）。 */
+	return zp_read_task_is_running(z_loan(zs)) && zp_lease_task_is_running(z_loan(zs));
+#else
+	return true; /* 单线程构建退化：opened 即活（无后台任务可自省） */
+#endif
 }
 
 const ts_net_transport_t ts_net_zenoh_transport = {

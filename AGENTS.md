@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-09-23（八） · DEC-40/41/42 实现批次落地（owner 指令"按计划继续开发"）：信封 v2 + 幂等缓存 + 控制租约 + 事件/遥测信封 + QoS 映射 + is_up 自省——twister 8/8（35 用例）/ L5 6/6 / pytest / L3 五验证点全 PASS；"MA3 开工前"收口完成**
+  - 实现：cmd.c 信封 v2（首键判别 v1/v2 共存、rid 回带、4 项 idem LRU 回放不重执行、to>5000ms 拒绝、idem-op 一致性防御）+ lease.c（单租约/惰性过期/lease_id 单调/sys lease-{acquire,release,get}）+ pub.c ver+kind 信封（事件 32+evt_id、遥测 96；遥测键 kind→**dev** 改名随批）+ ts_net_qos_t 穿透 pubq→zenoh（安全事件 BLOCK+REAL_TIME）+ zenoh.c is_up=**zp 任务自省**与 locator **TCP/TLS 校验**（缺省 locator udp→tcp 收敛）。
+  - L3 复跑 PASS（dev-environment §8 v1.3，五验证点：发现〔信封〕/命令〔v1+v2〕/幂等/租约/断链+事件信封 kind=37）；twister framework.net 增 test_08/09。
+  - 遗留挂钩：M2b.2 写命令面租约准入（ts_net_lease_held_by）；v1 请求弃用期收敛随下一 fw semver。
+  - 下一单元（project-plan §7 序）：**MA3**（Agent 部署工具链，消费本批信封/租约/分块协议——LLD-A06 v0.2.1 规格）或 M3b（ts-power+ts-periph+集成重放），待 owner 点向。
 - **2026-09-23（七） · 裁决批次 10（参考项目借鉴批次）：Q-20→DEC-40 / Q-21→DEC-41 / Q-22→DEC-42；Q-20 附 zenoh 可靠性实查（owner 条件指令触发）——设计同步 LLD-ts-net v0.3.1 / LLD-A06 v0.2.1；实现批次 = MA3 开工前**
   - **zenoh 可靠性调研结论**（DEC-40 留档，zenoh-pico 1.10.1 钉版实查）：TCP/TLS 链路传输层可靠有序、UDP 尽力而为且无重传；QoS 旋钮（congestion/priority/reliability）均非投递保证（reliability 属 unstable 门控未启用）；**query 无重试无去重**——"命令已执行、回执未达、调用方重发"的应用层重复必须由应用层幂等承载（端到端论证）→ idem 采纳。
   - **DEC-40 附加约束**：命令面链路必须 TCP/TLS（prov router_locators[0] 校验 tcp//tls/ 前缀，UDP 拒用于命令面）；固件拒绝 `to > 5000ms`（断链窗口 6000ms − 余量）。

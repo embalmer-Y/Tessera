@@ -51,6 +51,7 @@ zephyr_library_sources_ifdef(CONFIG_TS_NET
   src/net/linkmon.c
   src/net/cbor_min.c
   src/net/cmd.c
+  src/net/lease.c
   src/net/pub.c
   src/net/init.c
 )

@@ -94,7 +94,7 @@ python3.12 -m venv ~/project/agent-venv
 
 ## 8. L3 端到端联调（已达成 2026-09-23；复跑方法）
 
-**结果：PASS**（LLD-ts-net §8-L3 三验证点全绿：发现〔hb+telemetry 到达〕/ 命令-回执〔sys get-info·get-link·get-safety status=0；estop-clear 错令牌=TS_E_PARAM〕/ 心跳保持与断链判定〔hb-host 持续→link_up+通道 ACTIVE；停发 10s>6 周期→link_up=0+通道 SAFE_LINKLOSS〕）。
+**结果：PASS（2026-09-23 复跑，DEC-40/41/42 批扩展为五验证点）**：① 发现〔hb+telemetry 到达，遥测信封 ver=1/kind=96〕/ ② 命令-回执〔v1 共存 + v2 rid 回带 kind=16；estop-clear 错令牌=TS_E_PARAM〕/ ③ 幂等〔同 idem 回放原回执不重执行；to=6000 拒绝〕/ ④ 租约全生命周期〔续期同 id；他人获取/代还=TS_E_STATE(-4) 归因回填；本人归还 OK〕/ ⑤ 心跳保持与断链判定〔hb-host 持续→link_up+通道 ACTIVE；停发 10s>6 周期→link_up=0+通道 SAFE_LINKLOSS；迁移事件信封 kind=37〕。
 
 复跑步骤：
 1. TAP（每次 WSL 重启后，需 sudo）：`sudo ip tuntap add dev zeth mode tap user emb && sudo ip link set zeth up && sudo ip addr add 192.0.2.2/24 dev zeth`
@@ -112,5 +112,6 @@ python3.12 -m venv ~/project/agent-venv
 ## 修订记录
 
 - v1.2 · 2026-09-23：§7 补丁清单 + §8 L3 端到端达成（PASS）与复跑方法（TAP 需 sudo；zenohd v1.10.1 @ ~/project/tools）。
+- v1.3 · 2026-09-23：§8 L3 扩展为五验证点（DEC-40/41/42 实现批次：v2 信封/幂等/to 拒绝/租约/事件信封）复跑 PASS；缺省回退 locator udp→tcp（DEC-40 命令面链路约束——zenohd 缺省监听兼容）。
 - v1.1 · 2026-09-23：§5-5 教训（`=` 后 `~` 不展开）+ §7 zenoh-pico 接入（1.10.1 钉版 / config.h 生成缺口 / POSIX_API 关键项）。
 - v1.0 · 2026-09-21：建立（WSL 迁移完成 + Windows 复原 + 验证结果：native_sim 构建 ✓、twister 运行级 1/1 passed ✓、pytest ✓）。

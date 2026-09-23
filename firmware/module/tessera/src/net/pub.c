@@ -2,7 +2,11 @@
 /* 发布面（LLD-ts-net §5）：遥测周期快照 + 事件选择性外发 → pubq（尽力而为，
  * 不阻塞控制路径）。DOWN 期丢弃/满丢最旧由 pubq 统一语义处理。
  * 事件外发 = 合同 5（estop 事后补发可见）/合同 10（越权留痕对外可见）的
- * 观测面；只观测不改值（不影响任何控制路径——合同 3）。 */
+ * 观测面；只观测不改值（不影响任何控制路径——合同 3）。
+ * 信封 v1（DEC-42）：事件 = map{ver:1, kind:32+evt_id, t_ms, wall_ms, …}；
+ * 遥测 = map{ver:1, kind:96, dev, value_u, wall_ms}；kind 注册表唯一权威 =
+ * LLD-ts-net §4.4（Agent keys.py 镜像）。QoS 映射（DEC-42）：安全事件
+ * （estop/安全态迁移/越权）= 阻塞式高优先级；其余与遥测 = 丢弃式尽力而为。 */
 #include <string.h>
 #include <ts/core.h>
 #include <ts/hal.h>
@@ -11,10 +15,28 @@
 #include <zephyr/kernel.h>
 #include "internal.h"
 
+/* kind 注册表区间断言（LLD §4.4：事件 32-95，32+TS_EVT_ID） */
+BUILD_ASSERT(32 + TS_EVT_ID_COUNT - 1 <= 95, "evt kind overflow: 32+id must stay <=95");
+
+#define KIND_EVT_BASE 32
+#define KIND_TELEMETRY 96
+
 /* ---- 事件订阅 → pubq ------------------------------------------------------ */
 
-static void push_evt_jsonlike(ts_evt_id_t id, uint64_t t_ms, const char *uid_key_suffix,
-			      const uint8_t *extra, size_t extra_len)
+static ts_net_qos_t evt_qos(ts_evt_id_t id)
+{
+	switch (id) {
+	case TS_EVT_ESTOP:
+	case TS_EVT_SAFE_STATE_CHANGED:
+	case TS_EVT_PERM_DENIED:
+		return TS_NET_QOS_SAFETY; /* DEC-42 QoS 映射 */
+	default:
+		return TS_NET_QOS_BESTEFFORT;
+	}
+}
+
+static void push_evt(ts_evt_id_t id, uint64_t t_ms, const char *uid_key_suffix,
+		     const uint8_t *extra, size_t extra_len)
 {
 	char key[64];
 	int kw = ts_net_key_evt(key, sizeof(key), uid_key_suffix);
@@ -25,12 +47,14 @@ static void push_evt_jsonlike(ts_evt_id_t id, uint64_t t_ms, const char *uid_key
 			return;
 		}
 	}
-	/* payload = map{id, t_ms, wall_ms, detail?} */
-	uint8_t buf[48];
+	/* payload = map{ver, kind=32+id, t_ms, wall_ms, extra?}（DEC-42） */
+	uint8_t buf[64];
 	size_t p = 0;
-	bool ok = ts_cbor_put_map(buf, sizeof(buf), &p, extra ? 4 : 3) &&
-		  ts_cbor_put_tstr(buf, sizeof(buf), &p, "id") &&
-		  ts_cbor_put_uint(buf, sizeof(buf), &p, (uint64_t)id) &&
+	bool ok = ts_cbor_put_map(buf, sizeof(buf), &p, extra ? 5 : 4) &&
+		  ts_cbor_put_tstr(buf, sizeof(buf), &p, "ver") &&
+		  ts_cbor_put_uint(buf, sizeof(buf), &p, 1) &&
+		  ts_cbor_put_tstr(buf, sizeof(buf), &p, "kind") &&
+		  ts_cbor_put_uint(buf, sizeof(buf), &p, KIND_EVT_BASE + (uint32_t)id) &&
 		  ts_cbor_put_tstr(buf, sizeof(buf), &p, "t_ms") &&
 		  ts_cbor_put_uint(buf, sizeof(buf), &p, t_ms) &&
 		  ts_cbor_put_tstr(buf, sizeof(buf), &p, "wall_ms") &&
@@ -42,7 +66,7 @@ static void push_evt_jsonlike(ts_evt_id_t id, uint64_t t_ms, const char *uid_key
 		p += extra_len;
 	}
 	if (ok) {
-		(void)ts_net_pubq_push(key, buf, (uint32_t)p);
+		(void)ts_net_pubq_push_qos(key, buf, (uint32_t)p, evt_qos(id));
 	}
 }
 
@@ -51,7 +75,7 @@ static void on_evt(const ts_evt_t *evt, void *user)
 	ARG_UNUSED(user);
 	switch (evt->id) {
 	case TS_EVT_ESTOP: /* 事后补发观测（合同 5；estop 动作本身不经总线） */
-		push_evt_jsonlike(evt->id, evt->t_ms, "sys", NULL, 0);
+		push_evt(evt->id, evt->t_ms, "sys", NULL, 0);
 		break;
 	case TS_EVT_SAFE_STATE_CHANGED: {
 		/* payload: ts_safe_state_evt_t（safety.h——uid + 新态） */
@@ -61,15 +85,15 @@ static void on_evt(const ts_evt_t *evt, void *user)
 
 		if (ts_cbor_put_tstr(extra, sizeof(extra), &p, "state") &&
 		    ts_cbor_put_uint(extra, sizeof(extra), &p, (uint64_t)pl->new_state)) {
-			push_evt_jsonlike(evt->id, evt->t_ms, pl->uid, extra, p);
+			push_evt(evt->id, evt->t_ms, pl->uid, extra, p);
 		}
 		break;
 	}
 	case TS_EVT_PERM_DENIED: /* 合同 10 留痕外发 */
 	case TS_EVT_INPUT_CHANGED: /* DR-02 输入变化 */
 	default:
-		/* 通用：id + t_ms（detail 原始结构非稳定编码，不外发——防架构相关字节） */
-		push_evt_jsonlike(evt->id, evt->t_ms, "sys", NULL, 0);
+		/* 通用：ver/kind/t_ms（detail 原始结构非稳定编码，不外发——防架构相关字节） */
+		push_evt(evt->id, evt->t_ms, "sys", NULL, 0);
 		break;
 	}
 }
@@ -130,11 +154,16 @@ void ts_net_pub_telem(uint64_t now_ms)
 		if (ts_safety_readback(d->uid, &v) != TS_OK) {
 			continue; /* hal 实例未必都有 safety 通道（如电源桩） */
 		}
-		uint8_t buf[40];
+		/* payload = map{ver, kind:96, dev, value_u, wall_ms}（DEC-42） */
+		uint8_t buf[64];
 		size_t p = 0;
 
-		if (!ts_cbor_put_map(buf, sizeof(buf), &p, 3) ||
+		if (!ts_cbor_put_map(buf, sizeof(buf), &p, 5) ||
+		    !ts_cbor_put_tstr(buf, sizeof(buf), &p, "ver") ||
+		    !ts_cbor_put_uint(buf, sizeof(buf), &p, 1) ||
 		    !ts_cbor_put_tstr(buf, sizeof(buf), &p, "kind") ||
+		    !ts_cbor_put_uint(buf, sizeof(buf), &p, KIND_TELEMETRY) ||
+		    !ts_cbor_put_tstr(buf, sizeof(buf), &p, "dev") ||
 		    !ts_cbor_put_uint(buf, sizeof(buf), &p, (uint64_t)d->kind) ||
 		    !ts_cbor_put_tstr(buf, sizeof(buf), &p, "value_u") ||
 		    !ts_cbor_put_uint(buf, sizeof(buf), &p, ts_value_encode(ck, v)) ||
@@ -146,7 +175,7 @@ void ts_net_pub_telem(uint64_t now_ms)
 		int kw = ts_net_key_tel(key, sizeof(key), d->uid);
 
 		if (kw > 0 && (size_t)kw < sizeof(key)) {
-			(void)ts_net_pubq_push(key, buf, (uint32_t)p);
+			(void)ts_net_pubq_push(key, buf, (uint32_t)p); /* 遥测 = 尽力而为缺省 */
 		}
 	}
 }

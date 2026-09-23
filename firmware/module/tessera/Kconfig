@@ -174,6 +174,20 @@ config TS_NET_TELEM_INTERVAL_MS
 	help
 	  Source: DEC-27. Consumed by telemetry merge (M3a.2).
 
+config TS_NET_LEASE_TTL_MS
+	int "Control lease TTL in ms (lazy expiry on access)"
+	default 10000
+	help
+	  Source: DEC-41 (~link-loss window 6s x1.5 + margin). Lease gates
+	  command admission only; never couples to safety states.
+
+config TS_NET_IDEM_CACHE
+	int "Idempotent reply cache depth (fixed LRU)"
+	default 4
+	help
+	  Source: DEC-40. Same idem replays the cached reply without
+	  re-executing the command (safe retry after network timeout).
+
 config TS_NET_ZENOH
 	bool "zenoh-pico transport binding (pin 1.10.1, DR-22)"
 	depends on TS_NET && ZENOH_PICO

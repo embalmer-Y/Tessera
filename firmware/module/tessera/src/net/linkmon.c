@@ -62,7 +62,9 @@ void ts_net_linkmon_tick(uint64_t now_ms)
 		int kw = ts_net_key_hb(key, sizeof(key), false);
 
 		if (kw > 0 && (size_t)kw < sizeof(key)) {
-			(void)ts_net_transport->publish(key, p, sizeof(p));
+			/* 心跳 = 遥测类尽力而为（DEC-42 QoS 缺省） */
+			(void)ts_net_transport->publish(key, p, sizeof(p),
+							TS_NET_QOS_BESTEFFORT);
 		}
 	}
 	/* 判定侧：host 心跳超时（elapsed > limit × period）→ 断链 */

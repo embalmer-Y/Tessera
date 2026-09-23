@@ -7,19 +7,26 @@
 #include "internal.h"
 
 #define KEY_MAX     64
-#define PAYLOAD_MAX 48
+#define PAYLOAD_MAX 64 /* DEC-42 信封最坏编码（事件含 extra ≈ 60B） */
 #define DEPTH       CONFIG_TS_NET_PUBQ_DEPTH
 
 struct pubq_entry {
 	char key[KEY_MAX];
 	uint8_t payload[PAYLOAD_MAX];
 	uint32_t len;
+	ts_net_qos_t qos;
 };
 
 static struct pubq_entry q[DEPTH];
 static uint32_t head, count, dropped;
 
 ts_res_t ts_net_pubq_push(const char *key, const uint8_t *payload, uint32_t len)
+{
+	return ts_net_pubq_push_qos(key, payload, len, TS_NET_QOS_BESTEFFORT);
+}
+
+ts_res_t ts_net_pubq_push_qos(const char *key, const uint8_t *payload, uint32_t len,
+			      ts_net_qos_t qos)
 {
 	if (key == NULL || payload == NULL || key[0] == '\0' || len == 0) {
 		return TS_E_PARAM;
@@ -41,6 +48,7 @@ ts_res_t ts_net_pubq_push(const char *key, const uint8_t *payload, uint32_t len)
 	strcpy(e->key, key);
 	memcpy(e->payload, payload, len);
 	e->len = len;
+	e->qos = qos;
 	count++;
 	return TS_OK;
 }
@@ -53,7 +61,7 @@ void ts_net_pubq_flush(void)
 	while (count > 0) {
 		struct pubq_entry *e = &q[head];
 
-		if (ts_net_transport->publish(e->key, e->payload, e->len) != TS_OK) {
+		if (ts_net_transport->publish(e->key, e->payload, e->len, e->qos) != TS_OK) {
 			dropped++; /* 发送失败丢弃（尽力而为语义） */
 		}
 		head = (head + 1) % DEPTH;

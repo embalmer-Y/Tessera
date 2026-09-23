@@ -18,8 +18,9 @@ static int fake_close_calls;
 static int fake_pub_calls;
 static bool fake_up_v;
 static char last_key[64];
-static uint8_t last_payload[8];
+static uint8_t last_payload[64];
 static uint32_t last_len;
+static ts_net_qos_t last_qos;
 
 static ts_res_t fake_open(void)
 {
@@ -29,12 +30,14 @@ static void fake_close(void)
 {
 	fake_close_calls++;
 }
-static ts_res_t fake_publish(const char *key, const uint8_t *p, uint32_t l)
+static ts_res_t fake_publish(const char *key, const uint8_t *p, uint32_t l,
+			     ts_net_qos_t qos)
 {
 	strncpy(last_key, key, sizeof(last_key) - 1);
 	last_key[sizeof(last_key) - 1] = '\0';
 	memcpy(last_payload, p, l > sizeof(last_payload) ? sizeof(last_payload) : l);
 	last_len = l; /* 原始长度（payload 截存仅用于内容检查） */
+	last_qos = qos;
 	fake_pub_calls++;
 	return TS_OK;
 }
@@ -369,6 +372,25 @@ ZTEST(framework_net, test_07_telemetry_and_events)
 	zassert_equal(strcmp(last_key, "tessera/n1/c1/tel1/telemetry"), 0);
 	zassert_true(last_len > 20, "遥测 payload = 定体 CBOR 快照");
 
+	/* 信封 v1（DEC-42）：map{ver:1, kind:96, dev, value_u, wall_ms} 全 uint 值 */
+	{
+		ts_cbor_rd_t r;
+		uint32_t pairs;
+		char k[8];
+		uint64_t ver = 0, kind = 0, dev = 0;
+
+		ts_cbor_rd_init(&r, last_payload, last_len);
+		zassert_true(ts_cbor_map_open(&r, &pairs));
+		zassert_equal(pairs, 5);
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "ver") == 0);
+		zassert_true(ts_cbor_uint(&r, &ver) && ver == 1);
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "kind") == 0);
+		zassert_true(ts_cbor_uint(&r, &kind) && kind == 96, "遥测 kind=96（§4.4）");
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "dev") == 0);
+		zassert_true(ts_cbor_uint(&r, &dev) && dev == (uint64_t)TS_DEV_GPIO_OUT);
+		zassert_equal(last_qos, TS_NET_QOS_BESTEFFORT, "遥测 = 丢弃式缺省");
+	}
+
 	/* 事件：SAFE_STATE_CHANGED（含 uid）→ event key 外发 */
 	fake_pub_calls = 0;
 	const ts_safe_state_evt_t pl = {.uid = "tel1", .new_state = TS_ST_ACTIVE};
@@ -381,6 +403,300 @@ ZTEST(framework_net, test_07_telemetry_and_events)
 	ts_net_pubq_flush();
 	zassert_equal(fake_pub_calls, 1, "事件一条");
 	zassert_equal(strcmp(last_key, "tessera/n1/c1/tel1/event"), 0, "实例事件路由");
+	/* 信封（DEC-42）：kind = 32+evt_id；安全事件 = 阻塞式高优先级 QoS */
+	{
+		ts_cbor_rd_t r;
+		uint32_t pairs;
+		char k[8];
+		uint64_t ver = 0, kind = 0;
+
+		ts_cbor_rd_init(&r, last_payload, last_len);
+		zassert_true(ts_cbor_map_open(&r, &pairs));
+		zassert_equal(pairs, 5);
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "ver") == 0);
+		zassert_true(ts_cbor_uint(&r, &ver) && ver == 1);
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "kind") == 0);
+		zassert_true(ts_cbor_uint(&r, &kind));
+		zassert_equal(kind, (uint64_t)(32 + (int)TS_EVT_SAFE_STATE_CHANGED),
+			      "事件 kind = 32+evt_id（§4.4）");
+		zassert_equal(last_qos, TS_NET_QOS_SAFETY, "安全事件 = 阻塞式高优先级");
+	}
+}
+
+/* ---- DEC-40 批：命令信封 v2 + 幂等回执缓存 -------------------------------- */
+
+/* v2 请求 map{ver:1, kind:1, rid, src:"t-agent", op, args?{arg1?, idem?, to?}} */
+static size_t build_req_v2(uint8_t *buf, size_t cap, const char *op, const char *rid,
+			   const char *arg1k, const char *arg1s, uint64_t arg1u,
+			   const char *idem, bool has_to, uint32_t to)
+{
+	bool has_args = arg1k != NULL || idem != NULL || has_to;
+	uint32_t apairs = (arg1k ? 1u : 0u) + (idem ? 1u : 0u) + (has_to ? 1u : 0u);
+	size_t p = 0;
+
+	zassert_true(ts_cbor_put_map(buf, cap, &p, 5 + (has_args ? 1 : 0)));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "ver"));
+	zassert_true(ts_cbor_put_uint(buf, cap, &p, 1));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "kind"));
+	zassert_true(ts_cbor_put_uint(buf, cap, &p, 1));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "rid"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, rid));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "src"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "t-agent"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "op"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, op));
+	if (has_args) {
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, "args"));
+		zassert_true(ts_cbor_put_map(buf, cap, &p, apairs));
+		if (arg1k != NULL) {
+			zassert_true(ts_cbor_put_tstr(buf, cap, &p, arg1k));
+			if (arg1s != NULL) {
+				zassert_true(ts_cbor_put_tstr(buf, cap, &p, arg1s));
+			} else {
+				zassert_true(ts_cbor_put_uint(buf, cap, &p, arg1u));
+			}
+		}
+		if (idem != NULL) {
+			zassert_true(ts_cbor_put_tstr(buf, cap, &p, "idem"));
+			zassert_true(ts_cbor_put_tstr(buf, cap, &p, idem));
+		}
+		if (has_to) {
+			zassert_true(ts_cbor_put_tstr(buf, cap, &p, "to"));
+			zassert_true(ts_cbor_put_uint(buf, cap, &p, to));
+		}
+	}
+	return p;
+}
+
+/* 解 v2 回执 map{ver,kind,rid,status,data}：验证信封头 + rid 回带，取 status */
+static int64_t resp2_status(const char *expect_rid)
+{
+	ts_cbor_rd_t r;
+	uint32_t pairs;
+	char k[8], rid[24];
+	uint64_t u;
+	int64_t st;
+
+	ts_cbor_rd_init(&r, resp, resp_len);
+	zassert_true(ts_cbor_map_open(&r, &pairs));
+	zassert_equal(pairs, 5, "v2 回执五对");
+	zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "ver") == 0);
+	zassert_true(ts_cbor_uint(&r, &u) && u == 1);
+	zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "kind") == 0);
+	zassert_true(ts_cbor_uint(&r, &u) && u == 16, "回执 kind=16（§4.4）");
+	zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "rid") == 0);
+	zassert_true(ts_cbor_tstr(&r, rid, sizeof(rid)));
+	zassert_equal(strcmp(rid, expect_rid), 0, "rid 原样回带");
+	zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "status") == 0);
+	zassert_true(ts_cbor_int(&r, &st));
+	return st;
+}
+
+ZTEST(framework_net, test_08_env_v2_idem)
+{
+	uint8_t req[192];
+	uint8_t first[512];
+	size_t flen;
+	size_t rlen;
+
+	ts_net_test_reset();
+	ts_net_cmd_test_reset();
+	ts_net_cmd_sys_init();
+
+	/* v2 基础：rid 回带 + kind 16 + status 语义 */
+	rlen = build_req_v2(req, sizeof(req), "get-info", "rid-1", NULL, NULL, 0,
+			    NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/get-info", req, rlen, resp, sizeof(resp),
+					  &resp_len), TS_OK);
+	zassert_equal(resp2_status("rid-1"), TS_OK);
+
+	/* v1 共存（首键判别）：v1 回执仍两对 {status,data}——弃用期不破坏 */
+	rlen = build_req(req, sizeof(req), "get-info", NULL, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/get-info", req, rlen, resp, sizeof(resp),
+					  &resp_len), TS_OK);
+	zassert_equal(resp_status(), TS_OK);
+
+	/* v2 fail-closed：缺 src / kind!=1 / 未知信封键 = PARAM */
+	size_t p = 0;
+
+	zassert_true(ts_cbor_put_map(req, sizeof(req), &p, 4));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "ver"));
+	zassert_true(ts_cbor_put_uint(req, sizeof(req), &p, 1));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "kind"));
+	zassert_true(ts_cbor_put_uint(req, sizeof(req), &p, 1));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "rid"));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "r"));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "op"));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "get-info"));
+	zassert_equal(ts_net_cmd_dispatch("sys/get-info", req, p, resp, sizeof(resp),
+					  &resp_len), TS_E_PARAM, "缺 src 拒绝");
+
+	rlen = build_req_v2(req, sizeof(req), "get-info", "rid-k", NULL, NULL, 0,
+			    NULL, false, 0);
+	/* 手改 kind 值（map hdr 1B + "ver" 4B + 1B + "kind" 5B → 值偏移 = 11） */
+	req[11] = 2; /* kind=2（未注册的请求 kind） */
+	zassert_equal(ts_net_cmd_dispatch("sys/get-info", req, rlen, resp, sizeof(resp),
+					  &resp_len), TS_E_PARAM, "kind!=1 拒绝");
+	req[11] = 1; /* 还原 */
+
+	p = 0;
+	zassert_true(ts_cbor_put_map(req, sizeof(req), &p, 6));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "ver"));
+	zassert_true(ts_cbor_put_uint(req, sizeof(req), &p, 1));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "kind"));
+	zassert_true(ts_cbor_put_uint(req, sizeof(req), &p, 1));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "rid"));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "r"));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "src"));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "t"));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "op"));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "get-info"));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "bogus"));
+	zassert_true(ts_cbor_put_uint(req, sizeof(req), &p, 1));
+	zassert_equal(ts_net_cmd_dispatch("sys/get-info", req, p, resp, sizeof(resp),
+					  &resp_len), TS_E_PARAM, "未知信封键拒绝");
+
+	/* to 边界（DEC-40）：5000 OK；5001 拒 */
+	rlen = build_req_v2(req, sizeof(req), "get-info", "rid-t", NULL, NULL, 0,
+			    NULL, true, 5000);
+	zassert_equal(ts_net_cmd_dispatch("sys/get-info", req, rlen, resp, sizeof(resp),
+					  &resp_len), TS_OK, "to=5000 上界内");
+	rlen = build_req_v2(req, sizeof(req), "get-info", "rid-t", NULL, NULL, 0,
+			    NULL, true, 5001);
+	zassert_equal(ts_net_cmd_dispatch("sys/get-info", req, rlen, resp, sizeof(resp),
+					  &resp_len), TS_E_PARAM, "to>5000 拒绝");
+	zassert_equal(resp2_status("rid-t"), TS_E_PARAM, "拒绝回执仍是 v2 信封");
+
+	/* 幂等（DEC-40）：同 idem 重发 = 原样回执，不重执行 */
+	rlen = build_req_v2(req, sizeof(req), "set-time", "rid-a", "time_ms", NULL,
+			    111111ULL, "idem-a", false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/set-time", req, rlen, resp, sizeof(resp),
+					  &resp_len), TS_OK);
+	memcpy(first, resp, resp_len);
+	flen = resp_len;
+	zassert_equal(ts_time_wall_ms(), 111111ULL, "首次执行生效");
+	rlen = build_req_v2(req, sizeof(req), "set-time", "rid-b", "time_ms", NULL,
+			    222222ULL, "idem-a", false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/set-time", req, rlen, resp, sizeof(resp),
+					  &resp_len), TS_OK);
+	zassert_equal(resp_len, flen);
+	zassert_equal(memcmp(first, resp, flen), 0, "回放 = 字节级原样回执");
+	zassert_equal(ts_time_wall_ms(), 111111ULL, "未重执行（墙钟不变）");
+
+	/* idem 与 op 不匹配（调用方键管理错误）→ PARAM */
+	rlen = build_req_v2(req, sizeof(req), "get-info", "rid-c", NULL, NULL, 0,
+			    "idem-a", false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/get-info", req, rlen, resp, sizeof(resp),
+					  &resp_len), TS_E_PARAM, "idem/op mismatch");
+
+	/* LRU 驱逐（深度 CONFIG_TS_NET_IDEM_CACHE=4）：填 b/c/d/e → a 被驱逐重执行 */
+	const char *fill[] = {"idem-b", "idem-c", "idem-d"};
+
+	for (int i = 0; i < 3; i++) {
+		rlen = build_req_v2(req, sizeof(req), "set-time", "rid-f", "time_ms",
+				    NULL, 500 + (uint64_t)i, fill[i], false, 0);
+		(void)ts_net_cmd_dispatch("sys/set-time", req, rlen, resp, sizeof(resp),
+					  &resp_len);
+	}
+	rlen = build_req_v2(req, sizeof(req), "set-time", "rid-f", "time_ms", NULL,
+			    999ULL, "idem-e", false, 0);
+	(void)ts_net_cmd_dispatch("sys/set-time", req, rlen, resp, sizeof(resp),
+				  &resp_len); /* 第 5 项 → 驱逐最旧 idem-a */
+	rlen = build_req_v2(req, sizeof(req), "set-time", "rid-g", "time_ms", NULL,
+			    333333ULL, "idem-a", false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/set-time", req, rlen, resp, sizeof(resp),
+					  &resp_len), TS_OK);
+	zassert_equal(ts_time_wall_ms(), 333333ULL, "驱逐后同 idem = 重新执行");
+}
+
+/* ---- DEC-41 批：控制租约生命周期 ------------------------------------------ */
+
+ZTEST(framework_net, test_09_lease)
+{
+	ts_net_test_reset();
+	ts_net_cmd_test_reset();
+	ts_net_cmd_sys_init();
+	ts_net_lease_test_reset();
+
+	const uint32_t ttl = CONFIG_TS_NET_LEASE_TTL_MS;
+	uint32_t id = 0;
+	uint64_t exp = 0;
+	bool valid = false;
+	char holder[TS_NET_LEASE_HOLDER_MAX];
+	uint32_t gid = 0;
+	uint64_t gexp = 0;
+
+	/* 空态：get → invalid；release 幂等 OK */
+	ts_net_lease_get(0, &valid, holder, sizeof(holder), &gid, &gexp);
+	zassert_false(valid);
+	zassert_equal(gid, 0);
+	zassert_equal(ts_net_lease_release("a", 0), TS_OK, "无租约释放 = 幂等空操作");
+
+	/* 获取：id 从 1 起，TTL 自 now 顺延 */
+	zassert_equal(ts_net_lease_acquire("agent-a", 1000, &id, &exp), TS_OK);
+	zassert_equal(id, 1);
+	zassert_equal(exp, 1000 + ttl);
+	zassert_true(ts_net_lease_held_by("agent-a", 1500));
+	zassert_false(ts_net_lease_held_by("agent-b", 1500));
+
+	/* 续期幂等：同 holder → id 不变，窗口自 now 顺延 */
+	zassert_equal(ts_net_lease_acquire("agent-a", 5000, &id, &exp), TS_OK);
+	zassert_equal(id, 1, "续期不换 id");
+	zassert_equal(exp, 5000 + ttl);
+
+	/* 他人获取 → STATE（回填当前租约） */
+	zassert_equal(ts_net_lease_acquire("agent-b", 6000, &id, &exp), TS_E_STATE);
+	zassert_equal(id, 1);
+	zassert_equal(exp, 5000 + ttl, "拒绝回执回填当前租约");
+
+	/* 惰性过期：now == expires 即失效；过期后再获取 → 新 id（不复用） */
+	zassert_false(ts_net_lease_held_by("agent-a", 5000 + ttl));
+	zassert_equal(ts_net_lease_acquire("agent-b", 5000 + ttl + 1, &id, &exp), TS_OK);
+	zassert_equal(id, 2, "过期后新授予 id 递增");
+
+	/* 代还拒绝；本人归还 OK；重复归还幂等 */
+	zassert_equal(ts_net_lease_release("agent-a", 5000 + ttl + 2), TS_E_STATE);
+	zassert_equal(ts_net_lease_release("agent-b", 5000 + ttl + 3), TS_OK);
+	zassert_equal(ts_net_lease_release("agent-b", 5000 + ttl + 4), TS_OK);
+	ts_net_lease_get(5000 + ttl + 5, &valid, holder, sizeof(holder), &gid, &gexp);
+	zassert_false(valid);
+
+	/* 参数域：空/超长 holder 拒绝 */
+	zassert_equal(ts_net_lease_acquire(NULL, 0, NULL, NULL), TS_E_PARAM);
+	zassert_equal(ts_net_lease_acquire("", 0, NULL, NULL), TS_E_PARAM);
+	zassert_equal(ts_net_lease_acquire("holder-of-24-chars-xxxxx", 0, NULL, NULL),
+		      TS_E_PARAM, "超长 holder 拒绝");
+
+	/* 命令面全链（v2 信封）：acquire → get → 他人 release 拒 → 本人 release */
+	uint8_t req[192];
+	size_t rlen = build_req_v2(req, sizeof(req), "lease-acquire", "rid-l1",
+				   "holder", "panel-1", 0, NULL, false, 0);
+
+	zassert_equal(ts_net_cmd_dispatch("sys/lease-acquire", req, rlen, resp,
+					  sizeof(resp), &resp_len), TS_OK);
+	zassert_equal(resp2_status("rid-l1"), TS_OK);
+
+	rlen = build_req_v2(req, sizeof(req), "lease-get", "rid-l2", NULL, NULL, 0,
+			    NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/lease-get", req, rlen, resp, sizeof(resp),
+					  &resp_len), TS_OK);
+	zassert_equal(resp2_status("rid-l2"), TS_OK);
+
+	rlen = build_req_v2(req, sizeof(req), "lease-release", "rid-l3",
+			   "holder", "someone-else", 0, NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/lease-release", req, rlen, resp,
+					  sizeof(resp), &resp_len), TS_E_STATE,
+		      "他人代还拒绝");
+	rlen = build_req_v2(req, sizeof(req), "lease-release", "rid-l4",
+			   "holder", "panel-1", 0, NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/lease-release", req, rlen, resp,
+					  sizeof(resp), &resp_len), TS_OK);
+
+	/* lease-acquire 缺 holder → PARAM（fail-closed） */
+	rlen = build_req_v2(req, sizeof(req), "lease-acquire", "rid-l5", NULL, NULL, 0,
+			    NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/lease-acquire", req, rlen, resp,
+					  sizeof(resp), &resp_len), TS_E_PARAM);
 }
 
 ZTEST_SUITE(framework_net, NULL, NULL, NULL, NULL, NULL);
