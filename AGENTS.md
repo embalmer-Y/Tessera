@@ -6,6 +6,13 @@
 
 ## 1. 当前状态
 
+- **2026-09-25（十） · MA3.2 交付——**MA3 里程碑退出**：A07 skills（4 skill + loader 渐进披露 + SOURCES.lock 同步守卫）+ 平台/域拆分（DomainPack + 导入图测试）+ 高层链 app_develop/app_deploy + A2A/ACP 接缝；Agent pytest 58 用例 + ruff 全绿**
+  - skills：`agent/skills/{tessera-workflow,tessera-build,tessera-tsap,tessera-safety}`（从权威文档派生）+ `skills/loader.py`（渐进披露：一览入系统提示，全文经 `skill_read`）+ `sync_check.py`（Q-19 #13：源文档摘要锁 + pytest 守卫 + CLI `--update`）。
+  - 架构：`platform.py`（assemble + sys_*/task_*/skill_read + DomainPack 协议——**不 import 域模块**，AST 导入图测试守卫）/ `domain/firmware.py`（FirmwareDomainPack：14 域工具 + skills/policy/validators/deployer 声明）/ `gateway/compose.py`（组合根）/ `server.py`（兼容层，旧导入路径不变）。
+  - 高层链（DEC-34）：`app_develop`（PydanticAI 编排：skills 注入 + DevelopOutcome 结构化产物 retries=3 → manifest 硬校验 → tsap 打包+复验；**wasm 产物边界 = M2b.2**）/ `app_deploy`（复验→发现定位→分块部署→确认，strict）。测试用 FunctionModel 剧本 + FakeCube，不依赖 LLM/网络。
+  - 接缝：`core/peer.py`（PeerTransport〔A2A，DEC-36④〕/Frontend〔ACP，DEC-35〕Protocol + McpFrontend 冒烟）。
+  - 例外登记：push_prov 随维护模式语义后批（LLD-A06 §6）；MA3 退出标准（spec→TSAP→部署仿真立方体）MA3.1 已实证 + MA3.2 高层链补齐。
+  - 下一单元（plan §7 序）：**M3b**（ts-power + ts-periph + 集成重放）或 M2b.2（WAMR + wasm 工具链，需网络），待 owner 点向。
 - **2026-09-25（九） · MA3.1 交付（owner 指令"继续按照计划进行开发"）：固件部署命令面 + Agent 部署工具链 + E2E——spec→TSAP 包→部署到仿真立方体 全链 PASS；twister 8/8（37 用例）/L5 6/6/固件 pytest/Agent pytest 44+ruff 全绿**
   - 固件：`ts_appmgr_stage_{begin,chunk,verify,activate}`（pkg.c 分步化，install 复用同链）+ sys 命令 `app-begin/app-chunk/app-verify/app-activate/get-app`（**写类 gated = 仅 v2 信封 + 租约持有者 = src**——DEC-41 准入挂钩首个落点）+ cbor_min bstr 解码（ts_cbor_bstr_ref，零拷贝引用）+ `CONFIG_TS_NET_APP_CHUNK_MAX`（2048/4096）+ get-info 自报 node/cube + on_query 通配 key 具体化（发现机制：`tessera/*/*/sys/get-info`，身份以载荷为准）。
   - Agent：`tools_net/keys.py`（key/kind 镜像 + 信封 v2 构造/回执解析）+ `zenoh_service.py`（专属线程桥）+ `deploy.py`（discover/status/push_app：tsap_verify 强制复验→租约闭环→分块 idem 重试→upload/verify/activate→get-app 确认）；MCP 工具 `deploy_discover/deploy_status/deploy_push_app`（push_app = strict 审批 + 句柄）。

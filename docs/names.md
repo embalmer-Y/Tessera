@@ -167,6 +167,10 @@
 | ts-appmgr 分步安装族（ts_appmgr_stage_{begin,chunk,verify,activate}）+ sys/app-{begin,chunk,verify,activate}/get-app + ts_cbor_bstr_ref + CONFIG_TS_NET_APP_CHUNK_MAX | 远程部署面固件侧（LLD-A06 §3；upload→verify→activate；写类命令 gated = v2+租约） | include/ts/{appmgr,net}.h + src/{appmgr/pkg.c,net/cmd.c} | 已实现（MA3.1） |
 | Agent deploy 族（tools_net/{keys,zenoh_service,deploy}.py：envelope/parse_reply/kind 镜像 + ZenohService 线程桥 + discover/status/push_app；MCP 工具 deploy_{discover,status,push_app}） | Agent 部署工具链（LLD-A06 §1-3；分块分步推送 + 租约闭环 + idem 重试 + tsap_verify 强制复验） | agent/tessera_agent/tools_net + gateway/server.py | 已实现（MA3.1） |
 | FakeCube / test_deploy_e2e.py（TESSERA_E2E_DEPLOY=1 门控） | 部署面单测语义桩与 E2E（MA3 退出标准断言：confirmed/slot 切换/容器自洽） | agent/tests | 已实现（MA3.1） |
+| A07 skills 族（agent/skills/{tessera-workflow,tessera-build,tessera-tsap,tessera-safety}/SKILL.md + SkillRef/loader + skill_read 工具 + SOURCES.lock + sync_check） | 域知识包与渐进披露（开放标准目录；派生纪律 = 源文档摘要锁 + pytest 守卫，Q-19 #13/DEC-38 #13） | agent/skills + tessera_agent/skills | 已实现（MA3.2） |
+| 平台/域拆分（platform.py：DomainPack/DomainPackBase/MountAPI/assemble + compose.py 组合根 + domain/firmware.py：FirmwareDomainPack/FirmwareDeployer/validate_tsap_manifest） | 多域预留架构（DEC-33：平台不 import 域——导入图测试守卫）；固件域 14 工具 + skills/policy/validators/deployer 声明 | agent/tessera_agent/{platform,domain} | 已实现（MA3.2） |
+| app_chain 族（DevelopOutcome/app_develop/app_deploy MCP 工具） | DEC-34 高层链：spec→计划/manifest（结构化校验）→TSAP 打包复验；包→复验→发现定位→分块部署→确认（S5）；wasm 产物边界 = M2b.2 | agent/tessera_agent/domain/app_chain.py | 已实现（MA3.2） |
+| PeerTransport / Frontend / McpFrontend（core/peer.py） | A2A（DEC-36④）/ACP（DEC-35）接入缝——V1 仅协议 + 打桩冒烟 | agent/tessera_agent/core/peer.py | 已预留（MA3.2，实现属未来 Q） |
 | NeuroLink / MatrixMechanic | owner 前作参考项目（zenoh 上层协议 / TLV 私有协议；借鉴不照搬，采纳走门③） | github embalmer-Y；WSL 克隆 ~/project/logs/tmp/ref/ | 参考存档（2026-09-23） |
 | HLD-agent / LLD-A00…A07 | Agent 轨道设计文档族（A00 公共/A01 网关/A02 核心/A03 固件工具/A04 模拟器/A05 TSAP/A06 部署/A07 skills+平台） | design/HLD-agent.md v0.1 批次 | v0.1 待 owner 确认（C-4/C-5） |
 | TA_E_* | Agent 错误码族（TaError 结构化异常，LLD-A00 §1） | LLD-A00 提案 |

@@ -1,4 +1,4 @@
-# LLD-A07 · Skills 与平台层（多域预留）· v0.1 草案
+# LLD-A07 · Skills 与平台层（多域预留）· v0.1.1（MA3.2 已实现）
 
 > **上游**：HLD-agent §2/A07、§6（多域/北极星）；决策 DEC-36③（Agent Skills 分发；DEC-37 修订为自建 loader）、DEC-36④（A2A 预留）、DEC-35（ACP 预留）、DEC-33（北极星）。
 
@@ -53,6 +53,14 @@ DomainPack（协议级接口，固件域 = 首个实现）
 - DomainPack：注册表装配（平台不 import 域的架构测试——import 图断言）；策略表只收紧断言。
 - 接口缝：PeerTransport/Frontend 打桩替换可运行（编译级+冒烟）。
 
-## 8. 未决依赖
+## 8. 未决依赖（MA3.2 后更新）
+
+- §1-§5 **已实现（2026-09-25，MA3.2）**：loader（`agent/skills/*/SKILL.md` 4 项 + 渐进披露 + `skill_read` 平台工具）；同步检查（`skills/sync_check.py` + `SOURCES.lock`——Q-19 #13 落地，pytest 守卫 `test_sync_check_clean_on_repo` + CLI `--update`）；DomainPack 拆分（`platform.py` = assemble/AppContext/MountAPI/DomainPackBase + **导入图测试**；`domain/firmware.py` = 14 域工具 + skills/policy/validators/deployer 声明；`gateway/compose.py` = 组合根；`gateway/server.py` = 兼容层）；高层链 `app_develop/app_deploy`（`domain/app_chain.py`）；A2A/ACP 接缝（`core/peer.py`：PeerTransport/Frontend Protocol + McpFrontend）。
+- app_develop V1 边界：wasm 产物由调用方提供（wasm 工具链 = M2b.2）；编排会话 = PydanticAI（结构化产物 DevelopOutcome + retries=3〔DEC-38 #3〕+ skills 渐进披露注入 + 激活快照入结果/日志）。
+- §6 docs 知识服务维持后置（触发条件另立 Q）。
 
 - Q-19 提案 13；固件域各 LLD（工具实现方）；skill 内容提炼源（AGENTS.md/LLD 固件侧）随其版本演进。
+
+## 修订记录
+
+- v0.1.1 · 2026-09-25：MA3.2 实现批次——§8 落地状态（loader/sync_check/DomainPack 拆分/高层链/接缝）；测试 = test_skills/test_platform_domain/test_app_chain（58 用例 + ruff 全绿）。
