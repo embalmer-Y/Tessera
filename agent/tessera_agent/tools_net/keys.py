@@ -19,6 +19,7 @@ KIND_SYS_REQUEST = 1    # 请求区间 1-15：1 = sys 命令（op 分流）
 KIND_CMD_REPLY = 16     # 回执区间 16-31：16 = 命令回执
 KIND_EVT_BASE = 32      # 事件区间 32-95：32 + TS_EVT_ID
 KIND_TELEMETRY = 96     # 遥测区间 96-127：96 = 输出实例快照
+KIND_TELEMETRY_POWER = 97  # 功率预算快照（M3b，LLD-ts-net 4.4 镜像）
 
 # 信封身份缺省（审计归因 src，DEC-40）
 DEFAULT_SRC = "tessera-agent"

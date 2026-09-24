@@ -23,6 +23,9 @@ static char last_key[64];
 static uint8_t last_payload[64];
 static uint32_t last_len;
 static ts_net_qos_t last_qos;
+static char prev_key[64];
+static uint8_t prev_payload[64];
+static uint32_t prev_len;
 
 static ts_res_t fake_open(void)
 {
@@ -35,10 +38,13 @@ static void fake_close(void)
 static ts_res_t fake_publish(const char *key, const uint8_t *p, uint32_t l,
 			     ts_net_qos_t qos)
 {
+	strcpy(prev_key, last_key);
+	memcpy(prev_payload, last_payload, sizeof(prev_payload));
+	prev_len = last_len;
 	strncpy(last_key, key, sizeof(last_key) - 1);
 	last_key[sizeof(last_key) - 1] = '\0';
 	memcpy(last_payload, p, l > sizeof(last_payload) ? sizeof(last_payload) : l);
-	last_len = l; /* 原始长度（payload 截存仅用于内容检查） */
+	last_len = l;
 	last_qos = qos;
 	fake_pub_calls++;
 	return TS_OK;
@@ -287,12 +293,12 @@ ZTEST(framework_net, test_06_syscmd_matrix)
 		zassert_true(resp_len > 10, "回执含 data");
 	}
 
-	/* get-budget：ts-power M3b → TS_E_NOTFOUND（面完整、如实报不可用） */
+	/* get-budget：M3b 实装 → OK（预算快照字段；prov 未载 → budget=0 安全侧） */
 	rlen = build_req(req, sizeof(req), "get-budget", NULL, NULL, 0);
 	zassert_equal(ts_net_cmd_dispatch("sys/get-budget", req, rlen, resp,
 					  sizeof(resp), &resp_len),
-		      TS_E_NOTFOUND);
-	zassert_equal(resp_status(), TS_E_NOTFOUND);
+		      TS_OK);
+	zassert_equal(resp_status(), TS_OK);
 
 	/* set-time：无 time_ms → PARAM；带 time_ms → OK + 墙钟生效（DR-08） */
 	rlen = build_req(req, sizeof(req), "set-time", NULL, NULL, 0);
@@ -355,11 +361,11 @@ ZTEST(framework_net, test_07_telemetry_and_events)
 	zassert_equal(ts_safety_register_channel(&led_ch), TS_OK);
 	zassert_equal(ts_hal_register_dev(&led_dev), TS_OK);
 
-	/* DOWN 期：快照入 pubq = 丢弃计数 */
+	/* DOWN 期：快照入 pubq = 丢弃计数（输出快照 + 预算记录两条，M3b） */
 	uint32_t d0 = ts_net_pubq_dropped();
 
 	ts_net_pub_telem(0);
-	zassert_equal(ts_net_pubq_dropped(), d0 + 1, "DOWN 期遥测丢弃");
+	zassert_equal(ts_net_pubq_dropped(), d0 + 2, "DOWN 期丢弃 = 输出快照 + 预算记录");
 
 	/* 建链后：快照 → flush → fake 捕获 telemetry key + value_u */
 	fake_open_fail = 0;
@@ -368,11 +374,14 @@ ZTEST(framework_net, test_07_telemetry_and_events)
 	ts_net_set_transport(&fake_t);
 	zassert_equal(ts_net_session_poll(0), TS_NET_CONNECTED);
 	ts_net_pub_telem(10);
-	zassert_equal(ts_net_pubq_dropped(), d0 + 1);
+	zassert_equal(ts_net_pubq_dropped(), d0 + 2);
 	ts_net_pubq_flush();
-	zassert_equal(fake_pub_calls, 1, "遥测一条");
-	zassert_equal(strcmp(last_key, "tessera/n1/c1/tel1/telemetry"), 0);
-	zassert_true(last_len > 20, "遥测 payload = 定体 CBOR 快照");
+	zassert_equal(fake_pub_calls, 2, "输出快照 + 预算记录两条");
+	zassert_equal(strcmp(prev_key, "tessera/n1/c1/tel1/telemetry"), 0,
+		      "实例遥测 key（前一条）");
+	zassert_equal(strcmp(last_key, "tessera/n1/c1/sys/power"), 0,
+		      "预算记录 key（M3b kind 97）");
+	zassert_true(prev_len > 20, "遥测 payload = 定体 CBOR 快照");
 
 	/* 信封 v1（DEC-42）：map{ver:1, kind:96, dev, value_u, wall_ms} 全 uint 值 */
 	{
@@ -381,7 +390,7 @@ ZTEST(framework_net, test_07_telemetry_and_events)
 		char k[8];
 		uint64_t ver = 0, kind = 0, dev = 0;
 
-		ts_cbor_rd_init(&r, last_payload, last_len);
+		ts_cbor_rd_init(&r, prev_payload, prev_len);
 		zassert_true(ts_cbor_map_open(&r, &pairs));
 		zassert_equal(pairs, 5);
 		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "ver") == 0);
@@ -391,6 +400,28 @@ ZTEST(framework_net, test_07_telemetry_and_events)
 		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "dev") == 0);
 		zassert_true(ts_cbor_uint(&r, &dev) && dev == (uint64_t)TS_DEV_GPIO_OUT);
 		zassert_equal(last_qos, TS_NET_QOS_BESTEFFORT, "遥测 = 丢弃式缺省");
+	}
+
+	/* 预算记录信封（kind 97，M3b）：ver/kind + budget_ma/used_ma/peak_ma/wall */
+	{
+		ts_cbor_rd_t r;
+		uint32_t pairs;
+		char k[12];
+		uint64_t u;
+		uint32_t kind = 0;
+
+		ts_cbor_rd_init(&r, last_payload, last_len);
+		zassert_true(ts_cbor_map_open(&r, &pairs));
+		zassert_equal(pairs, 6);
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "ver") == 0);
+		zassert_true(ts_cbor_uint(&r, &u) && u == 1);
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "kind") == 0);
+		zassert_true(ts_cbor_uint(&r, &u));
+		kind = (uint32_t)u;
+		zassert_equal(kind, 97, "预算 kind=97（§4.4 遥测区间）");
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "budget_ma") == 0);
+		zassert_true(ts_cbor_uint(&r, &u));
+		zassert_equal(u, 0, "prov 未载 = 预算 0（安全侧）");
 	}
 
 	/* 事件：SAFE_STATE_CHANGED（含 uid）→ event key 外发 */

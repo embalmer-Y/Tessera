@@ -107,6 +107,18 @@ void ts_safety_system_fail(uint32_t reason);
 /** [thread] ts-net 专用链路判定（经 sysworkq 串行化迁移；带滞回，M3 细化）。 */
 void ts_safety_set_link(bool up);
 
+/* ---- 单通道故障/恢复（M3b，LLD-ts-periph §3 DETACH 语义的机制面）---------
+ * 物理不在场 = 故障态：detach 强制单通道 fault（不置全局 estop 锁存）；
+ * attach 恢复 = 上电态重放（全局 forced 锁存期拒绝恢复）。 */
+ts_res_t ts_safety_force_channel_fault(const char *uid);
+ts_res_t ts_safety_channel_recover(const char *uid);
+
+#ifdef CONFIG_TS_TEST
+/* 通道表/锁存/链路全清（测试隔离——模块级 test_reset 级联的显式起点；
+ * 生产不可达）。 */
+void ts_safety_test_reset(void);
+#endif
+
 /** [thread] 仅 sys:estop-clear 命令可达（host-only + 确认令牌，DEC-30①）。
  * M1：直调仅供测试；M3 起 net 命令面为唯一运行期入口。forced 标志不复位前拒绝。 */
 ts_res_t ts_safety_clear_fault(void);

@@ -110,6 +110,55 @@ void ts_safety_set_link(bool up)
 	}
 }
 
+#ifdef CONFIG_TS_TEST
+void ts_safety_test_reset(void)
+{
+	memset(ts_ch_table, 0, sizeof(ts_ch_table));
+	ts_ch_count = 0;
+	atomic_set(&ts_forced, 0);
+	atomic_set(&ts_forced_at, 0);
+	atomic_set(&ts_link_up, 0);
+	ts_safety_estop_announce_reset();
+}
+#endif
+
+ts_res_t ts_safety_force_channel_fault(const char *uid)
+{
+	int i = ts_ch_find(uid);
+
+	if (i < 0) {
+		return TS_E_NOTFOUND;
+	}
+	struct ts_ch_slot *s = &ts_ch_table[i];
+
+	/* 与 force_all_fault 同语义但单通道；不置全局 forced（estop 专用锁存） */
+	ts_drivers[s->desc->kind].write(s->desc, &s->desc->fault);
+	s->shadow = s->desc->fault;
+	s->have_last = false;
+	set_state(i, TS_ST_SAFE_FAULT);
+	return TS_OK;
+}
+
+ts_res_t ts_safety_channel_recover(const char *uid)
+{
+	int i = ts_ch_find(uid);
+
+	if (i < 0) {
+		return TS_E_NOTFOUND;
+	}
+	if (atomic_get(&ts_forced) != 0) {
+		return TS_E_STATE; /* estop/system_fail 锁存期不得单通道恢复 */
+	}
+	struct ts_ch_slot *s = &ts_ch_table[i];
+
+	/* 物理重附 = 重新上电语义：回 poweron 值；链路已立 → ACTIVE */
+	ts_drivers[s->desc->kind].write(s->desc, &s->desc->poweron);
+	s->shadow = s->desc->poweron;
+	s->have_last = false;
+	set_state(i, atomic_get(&ts_link_up) ? TS_ST_ACTIVE : TS_ST_SAFE_POWERON);
+	return TS_OK;
+}
+
 ts_res_t ts_safety_clear_fault(void)
 {
 	/* IR-01 修复（M1 自检）：clear_fault 是 estop 锁存的**唯一释放路径**

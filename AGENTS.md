@@ -6,6 +6,12 @@
 
 ## 1. 当前状态
 
+- **2026-09-25（十一） · M3b 交付并退出：ts-power + ts-periph + 集成重放——twister 10/10（44 用例）/L5 6/6/pytest/zenoh overlay 全绿；固件轨 M0…M3b 全部完成，余 M2b.2（WAMR，需网络）与板级移植（前置 Zephyr SDK）**
+  - ts-power：供电槽（组装通道描述符随槽记录**静态存储**——safety 注册表存指针，栈上组装即悬垂〔本批自检修复〕）；预算 = prov `power_budget_ma` 只读（缺省 0 = 拒绝，安全侧）+ readback 记账（单源）+ 峰值 + `TS_EVT_POWER_BUDGET`；`sys/get-budget` 实装；遥测 **kind 97** 预算快照（`…/sys/power`，keys.py 镜像同步）。
+  - ts-periph：描述符职责链（GPIO/PWM→safety；POWER→ts-power 槽；ADC→仅 hal 输入侧〔DR-13〕；safe.uid 单源校验）+ 插拔（DETACH→**单通道 SAFE_FAULT**/ATTACH→上电态重放——机制面 = `ts_safety_force_channel_fault/channel_recover` 新公共 API；estop 锁存期恢复拒绝）。
+  - 集成重放：replay 套件增 M3b 场景（供电预算数学 + 插拔 → 写轨迹/事件计数 golden，虚拟时钟确定性）；`ts_safety_test_reset`（测试隔离——槽存储复用的自碰撞由此根治）。
+  - 测试：framework.power 3 用例（预算边界/限流/上电与断链态/权限门）+ framework.periph 3 用例（职责链/插拔/estop 锁存交互）。
+  - 下一单元：**M2b.2**（WAMR + wasm 工具链 + 写命令租约挂钩，需网络）或**板级移植**（ESP32-S3 起，前置 Zephyr SDK for Linux）——待 owner 点向与条件就绪。
 - **2026-09-25（十） · MA3.2 交付——**MA3 里程碑退出**：A07 skills（4 skill + loader 渐进披露 + SOURCES.lock 同步守卫）+ 平台/域拆分（DomainPack + 导入图测试）+ 高层链 app_develop/app_deploy + A2A/ACP 接缝；Agent pytest 58 用例 + ruff 全绿**
   - skills：`agent/skills/{tessera-workflow,tessera-build,tessera-tsap,tessera-safety}`（从权威文档派生）+ `skills/loader.py`（渐进披露：一览入系统提示，全文经 `skill_read`）+ `sync_check.py`（Q-19 #13：源文档摘要锁 + pytest 守卫 + CLI `--update`）。
   - 架构：`platform.py`（assemble + sys_*/task_*/skill_read + DomainPack 协议——**不 import 域模块**，AST 导入图测试守卫）/ `domain/firmware.py`（FirmwareDomainPack：14 域工具 + skills/policy/validators/deployer 声明）/ `gateway/compose.py`（组合根）/ `server.py`（兼容层，旧导入路径不变）。

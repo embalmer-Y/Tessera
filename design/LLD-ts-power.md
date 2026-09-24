@@ -1,6 +1,6 @@
-# LLD · ts-power v0.1 草案
+# LLD · ts-power v0.2（M3b 已实现）
 
-> **状态**：v0.1 草案，随 LLD 批次待 owner review。上位：HLD §3.6；公共约定 `LLD-00-common.md`。
+> **状态**：v0.2（2026-09-25 M3b 实现批次落地；twister framework.power 3 用例 + replay 集成场景全绿）。上位：HLD §3.6；公共约定 `LLD-00-common.md`。
 > **职责**：受控供电——供电槽开关、限流、功率预算上报（DEC-03：供电视同输出，走同一安全合同）。
 > **合同关联**：合同 7（纳入 1–6 同一合同）、1（供电通道三安全态必声明）、2（开关必经 ts-safety 唯一出口）。
 
@@ -50,7 +50,10 @@ ts_res_t ts_power_request(ts_ctx_t c, uint8_t slot, bool on, uint32_t ma);  /* t
 - L2：断链→供电槽进 linkloss 态（按声明值）；恢复。
 - L4：开关轨迹 + 预算遥测序列 golden。
 
-## 7. 未决依赖
+## 7. 未决依赖（M3b 后更新）
+
+- **已实现（2026-09-25）**：slots.c + budget.c（src/power/）；预算总额 = prov `power_budget_ma` 只读（未加载/未配置 = 0 → 一切供电请求拒绝，缺省即安全侧）；记账 = 各槽 readback Σ（读回权威单源）；峰值跟踪；`TS_EVT_POWER_BUDGET` 超预算拒绝外发；`sys/get-budget` 实装；遥测 kind 97 预算快照（…/sys/power）。
+- 实现细节定稿：组装通道描述符随槽记录静态存储（safety 注册表存指针）；`ts_power_request` 权限裁决 = TS_PERM_CLASS_POWER/SET；测试注入 `ts_power_test_set_budget`（prod 不可达）。
 
 - DEC-23（分区布局）、DEC-27（槽容量）已裁；无未决。
 
@@ -58,3 +61,4 @@ ts_res_t ts_power_request(ts_ctx_t c, uint8_t slot, bool on, uint32_t ma);  /* t
 
 - v0.1 · 2026-09-20：首版草案。
 - v0.1.1 · 2026-09-21：裁决同步——出处标注收敛（SC-02）。
+- v0.2 · 2026-09-25：M3b 实现批次——§7 落地状态；prov 只读预算语义（缺省 0 = 安全侧）与静态存储细节定稿。

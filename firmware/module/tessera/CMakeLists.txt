@@ -59,3 +59,13 @@ zephyr_library_sources_ifdef(CONFIG_TS_NET
 zephyr_library_sources_ifdef(CONFIG_TS_NET_ZENOH
   src/net/zenoh.c
 )
+
+zephyr_library_sources_ifdef(CONFIG_TS_POWER
+  src/power/slots.c
+  src/power/budget.c
+)
+
+zephyr_library_sources_ifdef(CONFIG_TS_PERIPH
+  src/periph/desc.c
+  src/periph/hotplug.c
+)

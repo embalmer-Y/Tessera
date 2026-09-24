@@ -17,6 +17,7 @@
 #include <ts/core.h>
 #include <ts/hal.h>
 #include <ts/net.h>
+#include <ts/power.h>
 #include <ts/safety.h>
 #include <ts/store.h>
 #include <zephyr/kernel.h>
@@ -138,17 +139,35 @@ static ts_res_t cmd_get_safety(const ts_net_cmd_args_t *a, uint8_t *r, size_t ca
 
 static ts_res_t cmd_get_budget(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
 {
-	/* ts-power = M3b；命令面先行注册（表完整），实现落地前如实报不可用 */
+	/* ts-power 预算快照（M3b 实装；LLD-ts-power §3——prov 只读总额） */
 	ARG_UNUSED(a);
 	size_t p = 0;
+#ifdef CONFIG_TS_POWER
+	ts_power_budget_t b;
 
+	ts_power_budget_snapshot(&b);
+	if (!ts_cbor_put_map(r, cap, &p, 4) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "budget_ma") ||
+	    !ts_cbor_put_uint(r, cap, &p, b.budget_ma) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "used_ma") ||
+	    !ts_cbor_put_uint(r, cap, &p, b.used_ma) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "peak_ma") ||
+	    !ts_cbor_put_uint(r, cap, &p, b.peak_ma) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "slots") ||
+	    !ts_cbor_put_uint(r, cap, &p, b.slots)) {
+		return TS_E_IO;
+	}
+	*n = p;
+	return TS_OK;
+#else
 	if (!ts_cbor_put_map(r, cap, &p, 1) ||
 	    !ts_cbor_put_tstr(r, cap, &p, "note") ||
-	    !ts_cbor_put_tstr(r, cap, &p, "ts-power lands with M3b")) {
+	    !ts_cbor_put_tstr(r, cap, &p, "ts-power disabled")) {
 		return TS_E_IO;
 	}
 	*n = p;
 	return TS_E_NOTFOUND;
+#endif
 }
 
 #define AUDIT_EXPORT_MAX 6 /* DR-07：单次导出条数上限（回执定容内最坏编码预算） */

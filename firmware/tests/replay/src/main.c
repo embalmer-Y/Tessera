@@ -13,6 +13,9 @@
 #include <string.h>
 #include <zephyr/ztest.h>
 #include <ts/core.h>
+#include <ts/hal.h>
+#include <ts/periph.h>
+#include <ts/power.h>
 #include <ts/safety.h>
 
 static uint64_t virt_now;
@@ -136,6 +139,114 @@ ZTEST(framework_replay, test_deterministic_replay)
 		printk("{\"t_ms\":%llu,\"ch\":\"%s\",\"value_u\":%u}\n",
 		       (unsigned long long)wa[i].t_ms, ch_a.uid, wa[i].value_u);
 	}
+	ts_time_test_bind(NULL);
+}
+
+/* ---- M3b 集成重放：供电预算 + 插拔 → 写轨迹/事件 golden（合同 9）-------- */
+
+static int integ_budget_evt, integ_detach_evt, integ_attach_evt;
+
+static void integ_evt_cb(const ts_evt_t *e, void *u)
+{
+	ARG_UNUSED(u);
+	switch (e->id) {
+	case TS_EVT_POWER_BUDGET:
+		integ_budget_evt++;
+		break;
+	case TS_EVT_PERIPH_DETACH:
+		integ_detach_evt++;
+		break;
+	case TS_EVT_PERIPH_ATTACH:
+		integ_attach_evt++;
+		break;
+	default:
+		break;
+	}
+}
+
+/* 场景（虚拟时钟推进，规格推导 golden）：
+ *   t=300 链路确立；t=310 pwr0 请求 150mA（写 enc(on,150)）
+ *   t=320 pwr1 请求 200mA → 预算超（150+200>300）拒绝（无写）
+ *   t=330 pwr0 关断（写 enc(off,0)）；t=340 DETACH → fault 写（off,0）
+ *   t=350 ATTACH → 恢复 poweron 重放（off，poweron_on=false） */
+ZTEST(framework_replay, test_m3b_power_hotplug_integration)
+{
+	static const ts_periph_desc_t pwr0 = {
+		.uid = "ip0", .kind = TS_PK_POWER,
+		.safe = {.uid = "ip0", .kind = TS_CH_POWER,
+			 .poweron = {.pwr = {false, 0}},
+			 .linkloss = {.pwr = {false, 0}},
+			 .fault = {.pwr = {false, 0}},
+			 .limits = {.current_limit_ma = 250}},
+	};
+	static const ts_periph_desc_t pwr1 = {
+		.uid = "ip1", .kind = TS_PK_POWER,
+		.safe = {.uid = "ip1", .kind = TS_CH_POWER,
+			 .poweron = {.pwr = {false, 0}},
+			 .linkloss = {.pwr = {false, 0}},
+			 .fault = {.pwr = {false, 0}},
+			 .limits = {.current_limit_ma = 250}},
+	};
+	ts_perm_table_t t;
+	ts_ctx_t ctx;
+
+	ts_time_test_bind(&virt_src);
+	virt_now = 0;
+	ts_safety_test_reset();
+	ts_power_test_reset();
+	ts_periph_test_reset();
+	ts_perm_table_init(&t);
+	zassert_equal(ts_perm_parse("power:set:0-1", &t), TS_OK);
+	zassert_equal(ts_hal_bind_context(&ctx, 5, &t), TS_OK);
+	zassert_equal(ts_periph_register(&pwr0), TS_OK);
+	zassert_equal(ts_periph_register(&pwr1), TS_OK);
+	zassert_equal(ts_evt_subscribe(TS_EVT_POWER_BUDGET, integ_evt_cb, NULL), TS_OK);
+	zassert_equal(ts_evt_subscribe(TS_EVT_PERIPH_DETACH, integ_evt_cb, NULL), TS_OK);
+	zassert_equal(ts_evt_subscribe(TS_EVT_PERIPH_ATTACH, integ_evt_cb, NULL), TS_OK);
+	ts_power_test_set_budget(300);
+	integ_budget_evt = integ_detach_evt = integ_attach_evt = 0;
+
+	virt_now = 300;
+	ts_safety_set_link(true);
+	virt_now = 310;
+	zassert_equal(ts_power_request(ctx, 0, true, 150), TS_OK);
+	virt_now = 320;
+	zassert_equal(ts_power_request(ctx, 1, true, 200), TS_E_RANGE, "预算超拒绝");
+	virt_now = 330;
+	zassert_equal(ts_power_request(ctx, 0, false, 0), TS_OK);
+	virt_now = 340;
+	zassert_equal(ts_periph_detach("ip0"), TS_OK);
+	virt_now = 350;
+	zassert_equal(ts_periph_attach("ip0"), TS_OK);
+
+	/* golden：ip0 写轨迹（规格推导——预算数学 + 三态值） */
+	ts_write_rec_t w[8];
+	size_t n = ts_driversim_writes("ip0", w, 8);
+	const uint32_t ON150 = (1U << 31) | 150;
+	const uint32_t OFF0 = 0;
+
+	zassert_equal(n, 4, "ip0 write count");
+	const uint32_t want_v[4] = {ON150, OFF0, OFF0, OFF0};
+	const uint64_t want_t[4] = {310, 330, 340, 350};
+	for (size_t i = 0; i < n && i < 4; i++) {
+		zassert_equal(w[i].value_u, want_v[i], "integ golden v at %u", (unsigned)i);
+		zassert_equal(w[i].t_ms, want_t[i], "integ golden t at %u", (unsigned)i);
+	}
+	/* ip1 零写（预算拒绝不留物理痕迹） */
+	zassert_equal(ts_driversim_writes("ip1", w, 8), 0);
+
+	/* 事件计数 golden */
+	zassert_equal(integ_budget_evt, 1, "超预算事件恰一次");
+	zassert_equal(integ_detach_evt, 1);
+	zassert_equal(integ_attach_evt, 1);
+
+	/* 预算快照终态：used=0（全关/重附 poweron=off），峰值 150 */
+	ts_power_budget_t b;
+
+	ts_power_budget_snapshot(&b);
+	zassert_equal(b.used_ma, 0);
+	zassert_equal(b.peak_ma, 150);
+	zassert_equal(b.slots, 2);
 	ts_time_test_bind(NULL);
 }
 

@@ -195,6 +195,43 @@ config TS_NET_APP_CHUNK_MAX
 	  Source: LLD-A06 3 (2KB default, 4KB ceiling from NeuroLink field data).
 	  Also sizes the zenoh query request buffer (chunk + envelope margin).
 
+config TS_POWER
+	bool "ts-power: controlled power slots / current limiting / power budget"
+	depends on TS_HAL
+	default y
+	help
+	  design/LLD-ts-power.md (M3b). Power is output (DEC-03): switching
+	  goes through ts_safety_commit only; budget total is read-only from
+	  provisioning (contract 10).
+
+if TS_POWER
+
+config TS_POWER_MAX_SLOTS
+	int "Power slot registry capacity"
+	default 4
+	help
+	  Source: DEC-27 (LLD-ts-power 5).
+
+endif # TS_POWER
+
+config TS_PERIPH
+	bool "ts-periph: peripheral descriptors + hotplug events"
+	depends on TS_HAL
+	default y
+	help
+	  design/LLD-ts-periph.md (M3b). Logical-uid vs dt_spec decoupling
+	  (DEC-04/DEC-14); DETACH drives channel SAFE_FAULT.
+
+if TS_PERIPH
+
+config TS_PERIPH_MAX_DESCS
+	int "Peripheral descriptor capacity"
+	default 24
+	help
+	  Source: DEC-27 (aligned with TS_HAL_MAX_INSTANCES).
+
+endif # TS_PERIPH
+
 config TS_NET_ZENOH
 	bool "zenoh-pico transport binding (pin 1.10.1, DR-22)"
 	depends on TS_NET && ZENOH_PICO

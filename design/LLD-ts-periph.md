@@ -1,6 +1,6 @@
-# LLD · ts-periph v0.1 草案
+# LLD · ts-periph v0.3（M3b 已实现）
 
-> **状态**：v0.1 草案，随 LLD 批次待 owner review。上位：HLD §3.6；公共约定 `LLD-00-common.md`。
+> **状态**：v0.3（2026-09-25 M3b 实现批次落地；twister framework.periph 3 用例全绿）。上位：HLD §3.6；公共约定 `LLD-00-common.md`。
 > **职责**：外设描述符管理与插拔事件、逻辑名→硬件资源绑定（可插拔外设的框架侧落点；DEC-02 跨立方体编址的间接层）。
 > **合同关联**：合同 1/10（描述符携带三安全态与安全参数，注册期冻结）；DEC-14（板差异隔离于此层）。
 
@@ -59,7 +59,10 @@ ts_res_t ts_periph_register(const ts_periph_desc_t *d);  /* init 步骤 5 批量
 - L3：桩外设全类读写 + key 映射一致性（uid ↔ `tessera/.../<class>/<inst>`）。
 - L4：插拔事件序列进 golden。
 
-## 7. 未决依赖
+## 7. 未决依赖（M3b 后更新）
+
+- **已实现（2026-09-25）**：desc.c（注册职责链：GPIO/PWM → safety 通道；POWER → ts-power 槽；ADC → 仅 ts-hal 输入侧〔DR-13〕）+ hotplug.c（ATTACH/DETACH 事件 payload = ts_periph_evt_t{uid,kind}；DETACH → 单通道 SAFE_FAULT，ATTACH → 上电态重放——机制面 = ts_safety_force_channel_fault/ts_safety_channel_recover 新公共 API）。
+- Q-07（跨立方体编址预留）：uid 已是逻辑名，`<cube>:<uid>` 扩展留逻辑节点 HLD。
 
 - Q-07（跨立方体编址预留边界）、Q-10（描述符容量）。
 
@@ -68,3 +71,4 @@ ts_res_t ts_periph_register(const ts_periph_desc_t *d);  /* init 步骤 5 批量
 - v0.1 · 2026-09-20：首版草案。
 - v0.2 · 2026-09-20：review-01——kind 枚举独立为 ts_periph_kind_t（含 ADC，DR-13）。
 - v0.2.1 · 2026-09-21：裁决同步——出处标注收敛为 DEC 编号（SC-02）。
+- v0.3 · 2026-09-25：M3b 实现批次——§7 落地状态；DETACH 机制面（safety 单通道 fault/recover API）与 safe.uid 单源校验定稿。

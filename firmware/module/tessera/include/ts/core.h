@@ -103,6 +103,19 @@ typedef struct {
 	uint32_t last_feed;
 } ts_wdt_warn_evt_t; /* TS_EVT_WDT_WARN payload */
 
+/* TS_EVT_PERIPH_ATTACH/DETACH payload（M3b，LLD-ts-periph §3） */
+typedef struct {
+	const char *uid; /* 逻辑名（注册期冻结） */
+	uint8_t kind;    /* ts_periph_kind_t 值（core 不引 periph 头——u8 传输） */
+} ts_periph_evt_t;
+
+/* TS_EVT_POWER_BUDGET payload（M3b，LLD-ts-power §3：超预算拒绝外发） */
+typedef struct {
+	uint32_t requested_ma;
+	uint32_t used_ma;
+	uint32_t budget_ma;
+} ts_pwr_budget_evt_t;
+
 /** [thread] init 期注册喂狗源（period_ms 出处 DEC-22/27 语义：各子系统周期）。 */
 ts_res_t ts_wdt_register(ts_wdt_src_t src, uint32_t period_ms);
 

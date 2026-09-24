@@ -11,6 +11,7 @@
 #include <ts/core.h>
 #include <ts/hal.h>
 #include <ts/net.h>
+#include <ts/power.h>
 #include <ts/safety.h>
 #include <zephyr/kernel.h>
 #include "internal.h"
@@ -178,4 +179,34 @@ void ts_net_pub_telem(uint64_t now_ms)
 			(void)ts_net_pubq_push(key, buf, (uint32_t)p); /* 遥测 = 尽力而为缺省 */
 		}
 	}
+#ifdef CONFIG_TS_POWER
+	/* 功率预算快照（kind 97——遥测区间分配，LLD-ts-net §4.4；M3b） */
+	{
+		ts_power_budget_t b;
+		uint8_t buf[72];
+		size_t p = 0;
+
+		ts_power_budget_snapshot(&b);
+		if (ts_cbor_put_map(buf, sizeof(buf), &p, 6) &&
+		    ts_cbor_put_tstr(buf, sizeof(buf), &p, "ver") &&
+		    ts_cbor_put_uint(buf, sizeof(buf), &p, 1) &&
+		    ts_cbor_put_tstr(buf, sizeof(buf), &p, "kind") &&
+		    ts_cbor_put_uint(buf, sizeof(buf), &p, 97) &&
+		    ts_cbor_put_tstr(buf, sizeof(buf), &p, "budget_ma") &&
+		    ts_cbor_put_uint(buf, sizeof(buf), &p, b.budget_ma) &&
+		    ts_cbor_put_tstr(buf, sizeof(buf), &p, "used_ma") &&
+		    ts_cbor_put_uint(buf, sizeof(buf), &p, b.used_ma) &&
+		    ts_cbor_put_tstr(buf, sizeof(buf), &p, "peak_ma") &&
+		    ts_cbor_put_uint(buf, sizeof(buf), &p, b.peak_ma) &&
+		    ts_cbor_put_tstr(buf, sizeof(buf), &p, "wall_ms") &&
+		    ts_cbor_put_uint(buf, sizeof(buf), &p, ts_time_wall_ms())) {
+			char key[64];
+			int kw = ts_net_key_sys(key, sizeof(key), "power");
+
+			if (kw > 0 && (size_t)kw < sizeof(key)) {
+				(void)ts_net_pubq_push(key, buf, (uint32_t)p);
+			}
+		}
+	}
+#endif
 }
