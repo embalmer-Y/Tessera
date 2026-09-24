@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import functools
 import json
 import secrets
@@ -26,6 +27,8 @@ from tessera_agent.common.limits import ContextBudget
 from tessera_agent.common.tasks import TaskRegistry
 from tessera_agent.gateway.approvals import ApprovalBroker
 from tessera_agent.tools_fw import tools as fw
+from tessera_agent.tools_net import deploy as net_deploy
+from tessera_agent.tools_net.zenoh_service import ZenohService
 from tessera_agent.tools_sim import runner as sim_runner
 from tessera_agent.tools_sim.scenario import scenario_validate
 from tessera_agent.tools_tsap import tools as tsap_tools
@@ -281,6 +284,71 @@ def build_app(ctx: AppContext) -> FastMCP:
     async def tsap_verify(package_path: str, pub_key_path: str) -> dict:
         """TSAP 包全量反向验证（容器头 + COSE 双实现 + manifest 解码）。"""
         return tsap_tools.tsap_verify(package_path, pub_key_path)
+
+    # ---- deploy_*（MA3.1，LLD-A06；同步 zenoh 面经 to_thread 桥接）---------
+    @mcp.tool
+    @audited("deploy_discover")
+    async def deploy_discover(timeout_s: float = 10.0) -> dict:
+        """发现 router 侧在线 cube（通配 query get-info；超时默认 10s，DEC-38 #4）。"""
+        def work() -> dict:
+            with ZenohService(ctx.cfg.router_locator, query_timeout_s=timeout_s) as svc:
+                return {"cubes": net_deploy.discover(svc, timeout_s=timeout_s)}
+
+        return await asyncio.to_thread(work)
+
+    @mcp.tool
+    @audited("deploy_status")
+    async def deploy_status(node: str, cube: str) -> dict:
+        """组合快照：get-info/get-link/get-safety/get-app（部署前核验依据）。"""
+        def work() -> dict:
+            with ZenohService(ctx.cfg.router_locator) as svc:
+                return net_deploy.status(svc, node, cube)
+
+        return await asyncio.to_thread(work)
+
+    @mcp.tool
+    @audited("deploy_push_app")
+    async def deploy_push_app(
+        node: str,
+        cube: str,
+        package_path: str,
+        pub_key_path: str,
+        holder: str = "tessera-agent",
+        chunk_size: int = net_deploy.CHUNK_DEFAULT,
+    ) -> dict:
+        """TSAP 包分块部署到 cube（strict：挂起宿主审批；长任务句柄）。
+
+        硬点（工具内强制，不可跳过）：tsap_verify 复验 → 租约闭环（acquire/
+        续期/release）→ 2KB 分块（idem 重试安全）→ upload/verify/activate 分步
+        → get-app 确认回读。失败留于当前步（重试从断点续传）。"""
+        args = {
+            "node": node, "cube": cube, "package_path": package_path,
+            "pub_key_path": pub_key_path, "holder": holder, "chunk_size": chunk_size,
+        }
+
+        async def body(task) -> dict:
+            log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
+            approval = ctx.approvals.request(
+                "deploy_push_app",
+                args,
+                reason="strict 类：远程安装 APP（写 inactive slot + meta 切换）",
+            )
+            task.state = "input_required"
+            try:
+                await ctx.approvals.wait(approval)
+            finally:
+                task.state = "working"
+
+            def work() -> dict:
+                with ZenohService(ctx.cfg.router_locator) as svc:
+                    return net_deploy.push_app(
+                        svc, node, cube, package_path, pub_key_path,
+                        holder=holder, chunk_size=chunk_size, log_fn=log,
+                    )
+
+            return await asyncio.to_thread(work)
+
+        return await spawn("deploy_push_app", args, body)
 
     return mcp
 

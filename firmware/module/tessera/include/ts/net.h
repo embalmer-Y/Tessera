@@ -96,6 +96,14 @@ typedef struct {
 	uint64_t time_ms; /* set-time 墙钟数据字段（DR-08） */
 	bool has_holder;
 	char holder[24];  /* 控制租约持有者标识（DEC-41） */
+	bool has_total;
+	uint32_t total;    /* app-begin：包总长（LLD-A06 §3） */
+	bool has_offset;
+	uint32_t offset;   /* app-chunk：槽内偏移 */
+	/* app-chunk 数据（零拷贝引用——指向请求缓冲内部，生存期 = handler 调用域；
+	 * 长度上限 CONFIG_TS_NET_APP_CHUNK_MAX） */
+	const uint8_t *chunk;
+	uint32_t chunk_len;
 } ts_net_cmd_args_t;
 
 typedef ts_res_t (*ts_net_cmd_fn)(const ts_net_cmd_args_t *args,

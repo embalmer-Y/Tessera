@@ -43,6 +43,72 @@ static void on_query(const z_loaned_query_t *query, void *ctx)
 	}
 	const char *k = z_string_data(z_loan(vs));
 	size_t klen = z_string_len(z_loan(vs));
+
+	/* 通配 query（发现类，MA3.1）：zenoh-pico 无 keyexpr 改写，回调收到原始
+	 * 通配 key（形如 "tessera" + 两段单星 + "sys" 段形态）——按本 cube 前缀
+	 * 具体化：node/cube 两段为单星时以自身代入，字面段必须与本 cube 一致；
+	 * 深层通配（第三段起含星号）与形态外 key 不回执（客户端超时可见）。 */
+	static char ckey[96];
+
+	if (memchr(k, '*', klen) != NULL) {
+		size_t plen = strlen(ts_net_prefix);
+
+		if (plen < 10 || klen < 10 ||
+		    strncmp(k, "tessera/", 8) != 0 ||
+		    strncmp(ts_net_prefix, "tessera/", 8) != 0) {
+			return;
+		}
+		/* 两把 key 的 chunk 边界：q = 查询，p = 本 cube 前缀 */
+		size_t qc1 = 8, qc1e = qc1, qc2, qc2e;
+
+		while (qc1e < klen && k[qc1e] != '/') {
+			qc1e++;
+		}
+		qc2 = qc1e + 1;
+		qc2e = qc2;
+		while (qc2e < klen && k[qc2e] != '/') {
+			qc2e++;
+		}
+		if (qc1e >= klen || qc2e >= klen) {
+			return; /* 段数不足（< node/cube/rest 三段） */
+		}
+		size_t rest = qc2e + 1;
+
+		if (memchr(k + rest, '*', klen - rest) != NULL) {
+			return; /* 深层通配：不猜语义 */
+		}
+		size_t pc1 = 8, pc1e = pc1;
+
+		while (pc1e < plen && ts_net_prefix[pc1e] != '/') {
+			pc1e++;
+		}
+		/* chunk1（node）：'*' → 自身；否则须字面一致 */
+		bool c1_star = (qc1e - qc1 == 1 && k[qc1] == '*');
+		size_t c1_len = c1_star ? pc1e - pc1 : qc1e - qc1;
+
+		if (!c1_star &&
+		    (pc1e - pc1 != c1_len ||
+		     strncmp(k + qc1, ts_net_prefix + pc1, c1_len) != 0)) {
+			return;
+		}
+		/* chunk2（cube）：同上 */
+		bool c2_star = (qc2e - qc2 == 1 && k[qc2] == '*');
+		size_t c2_len = c2_star ? plen - (pc1e + 1) : qc2e - qc2;
+
+		if (!c2_star &&
+		    (plen - (pc1e + 1) != c2_len ||
+		     strncmp(k + qc2, ts_net_prefix + pc1e + 1, c2_len) != 0)) {
+			return;
+		}
+		if ((size_t)snprintf(ckey, sizeof(ckey), "tessera/%.*s/%.*s/%.*s",
+				     (int)c1_len, c1_star ? ts_net_prefix + pc1 : k + qc1,
+				     (int)c2_len, c2_star ? ts_net_prefix + pc1e + 1 : k + qc2,
+				     (int)(klen - rest), k + rest) >= sizeof(ckey)) {
+			return;
+		}
+		k = ckey;
+		klen = strlen(ckey);
+	}
 	size_t plen = strlen(ts_net_prefix);
 
 	if (klen <= plen + 1 || strncmp(k, ts_net_prefix, plen) != 0) {
@@ -67,7 +133,9 @@ static void on_query(const z_loaned_query_t *query, void *ctx)
 
 	const z_loaned_bytes_t *pl = z_query_payload(query);
 	z_bytes_reader_t rd = z_bytes_get_reader(pl);
-	uint8_t req[128];
+	/* 部署面请求上限 = 块上限 + 信封余量（MA3.1，LLD-A06 §3）；分发回调
+	 * 串行（单 query 任务线程），静态缓冲与既有纪律一致 */
+	static uint8_t req[CONFIG_TS_NET_APP_CHUNK_MAX + 512];
 	size_t rlen = z_bytes_reader_read(&rd, req, sizeof(req));
 
 	static uint8_t resp[RESP_MAX];

@@ -188,6 +188,13 @@ config TS_NET_IDEM_CACHE
 	  Source: DEC-40. Same idem replays the cached reply without
 	  re-executing the command (safe retry after network timeout).
 
+config TS_NET_APP_CHUNK_MAX
+	int "Max app-chunk payload bytes (deploy upload)"
+	default 2048
+	help
+	  Source: LLD-A06 3 (2KB default, 4KB ceiling from NeuroLink field data).
+	  Also sizes the zenoh query request buffer (chunk + envelope margin).
+
 config TS_NET_ZENOH
 	bool "zenoh-pico transport binding (pin 1.10.1, DR-22)"
 	depends on TS_NET && ZENOH_PICO

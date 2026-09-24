@@ -54,6 +54,7 @@ void ts_cbor_rd_init(ts_cbor_rd_t *r, const uint8_t *buf, size_t len);
 bool ts_cbor_map_open(ts_cbor_rd_t *r, uint32_t *pairs);
 bool ts_cbor_array_open(ts_cbor_rd_t *r, uint32_t *items);
 bool ts_cbor_tstr(ts_cbor_rd_t *r, char *out, size_t cap);
+bool ts_cbor_bstr_ref(ts_cbor_rd_t *r, const uint8_t **out, uint32_t *len);
 bool ts_cbor_uint(ts_cbor_rd_t *r, uint64_t *out);
 bool ts_cbor_int(ts_cbor_rd_t *r, int64_t *out);
 bool ts_cbor_bool(ts_cbor_rd_t *r, bool *out);

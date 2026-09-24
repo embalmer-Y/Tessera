@@ -164,6 +164,9 @@
 | ts_net lease 族（sys/lease-{acquire,release,get} + ts_net_lease_{acquire,release,get,held_by} + CONFIG_TS_NET_LEASE_TTL_MS） | 控制租约：多方并发命令准入仲裁（NeuroLink lease_manager 借鉴；惰性过期；lease_id 单调；不联动安全态） | design/LLD-ts-net.md §4.5 + src/net/lease.c | 已实现（DEC-41，2026-09-23 批；M2b.2 写命令挂钩点 = ts_net_lease_held_by） |
 | ts_net_qos_t（TS_NET_QOS_{BESTEFFORT,SAFETY}）+ ts_net_pubq_push_qos + transport.publish(qos) | 发布服务类穿透 pubq→传输（DEC-42 QoS 映射：安全事件 BLOCK+REAL_TIME，遥测/心跳缺省 DROP+DATA） | include/ts/net.h + src/net/{pubq,zenoh}.c | 已实现（DEC-42，2026-09-23 批） |
 | 遥测 payload 键 dev（原 kind 改名）+ 事件 payload kind=32+evt_id | DEC-42 信封落地键名（消费端 Agent keys.py 镜像出处） | design/LLD-ts-net.md §5 + src/net/pub.c | 已实现（2026-09-23 批，消费端随批同步） |
+| ts-appmgr 分步安装族（ts_appmgr_stage_{begin,chunk,verify,activate}）+ sys/app-{begin,chunk,verify,activate}/get-app + ts_cbor_bstr_ref + CONFIG_TS_NET_APP_CHUNK_MAX | 远程部署面固件侧（LLD-A06 §3；upload→verify→activate；写类命令 gated = v2+租约） | include/ts/{appmgr,net}.h + src/{appmgr/pkg.c,net/cmd.c} | 已实现（MA3.1） |
+| Agent deploy 族（tools_net/{keys,zenoh_service,deploy}.py：envelope/parse_reply/kind 镜像 + ZenohService 线程桥 + discover/status/push_app；MCP 工具 deploy_{discover,status,push_app}） | Agent 部署工具链（LLD-A06 §1-3；分块分步推送 + 租约闭环 + idem 重试 + tsap_verify 强制复验） | agent/tessera_agent/tools_net + gateway/server.py | 已实现（MA3.1） |
+| FakeCube / test_deploy_e2e.py（TESSERA_E2E_DEPLOY=1 门控） | 部署面单测语义桩与 E2E（MA3 退出标准断言：confirmed/slot 切换/容器自洽） | agent/tests | 已实现（MA3.1） |
 | NeuroLink / MatrixMechanic | owner 前作参考项目（zenoh 上层协议 / TLV 私有协议；借鉴不照搬，采纳走门③） | github embalmer-Y；WSL 克隆 ~/project/logs/tmp/ref/ | 参考存档（2026-09-23） |
 | HLD-agent / LLD-A00…A07 | Agent 轨道设计文档族（A00 公共/A01 网关/A02 核心/A03 固件工具/A04 模拟器/A05 TSAP/A06 部署/A07 skills+平台） | design/HLD-agent.md v0.1 批次 | v0.1 待 owner 确认（C-4/C-5） |
 | TA_E_* | Agent 错误码族（TaError 结构化异常，LLD-A00 §1） | LLD-A00 提案 |

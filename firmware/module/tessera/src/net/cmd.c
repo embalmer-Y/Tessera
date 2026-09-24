@@ -13,14 +13,16 @@
  * 上下文：zenoh 回调线程或测试直调（分发串行），幂等缓存无锁。 */
 #include <stdio.h>
 #include <string.h>
+#include <ts/appmgr.h>
 #include <ts/core.h>
 #include <ts/hal.h>
 #include <ts/net.h>
 #include <ts/safety.h>
+#include <ts/store.h>
 #include <zephyr/kernel.h>
 #include "internal.h"
 
-#define CMD_TABLE_MAX  12 /* 7 基础 sys + 3 租约（DEC-41）+ 余量 */
+#define CMD_TABLE_MAX  16 /* 7 基础 sys + 3 租约（DEC-41）+ 5 部署面（MA3.1）+ 余量 */
 #define RESP_DATA_MAX  384 /* data 暂存上限（回执总预算 512 内扣除头） */
 #define REQ_TO_MAX_MS  5000 /* 带内超时上界（DEC-40：断链窗口 6000 − 余量） */
 #define RID_MAX        16
@@ -28,11 +30,12 @@
 #define IDEM_KEY_MAX   16
 #define IDEM_REPLY_MAX 512 /* = zenoh 回执预算（RESP_MAX），缓存回放原样字节 */
 #define ARG_PAIRS_V1   3
-#define ARG_PAIRS_V2   4
+#define ARG_PAIRS_V2   5
 
 struct cmd_slot {
 	const char *suffix; /* 如 "sys/get-info"（静态字面量，零拷贝） */
 	ts_net_cmd_fn fn;
+	bool gated; /* 写类（DEC-41）：仅 v2 信封 + 租约持有者 = src 可执行 */
 	bool used;
 };
 static struct cmd_slot table[CMD_TABLE_MAX];
@@ -42,13 +45,42 @@ static struct cmd_slot table[CMD_TABLE_MAX];
 static ts_res_t cmd_get_info(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
 {
 	ARG_UNUSED(a);
+	/* 身份自报（MA3.1：通配发现的回执 key 为查询通配形态，身份以载荷为准）：
+	 * 自 ts_net_prefix 提取 node/cube 两段。 */
+	char node[24] = "";
+	char cube[24] = "";
+	size_t plen = strlen(ts_net_prefix);
+
+	if (plen > 8 && strncmp(ts_net_prefix, "tessera/", 8) == 0) {
+		size_t c1 = 8, c1e = c1, c2, c2e;
+
+		while (c1e < plen && ts_net_prefix[c1e] != '/') {
+			c1e++;
+		}
+		c2 = c1e + 1;
+		c2e = c2;
+		while (c2e < plen && ts_net_prefix[c2e] != '/') {
+			c2e++;
+		}
+		size_t nl = c1e - c1;
+		size_t cl = (c2e > c2) ? (c2e - c2) : (plen - c2);
+
+		if (nl < sizeof(node) && cl < sizeof(cube)) {
+			memcpy(node, ts_net_prefix + c1, nl);
+			memcpy(cube, ts_net_prefix + c2, cl);
+		}
+	}
 	size_t p = 0;
 
-	if (!ts_cbor_put_map(r, cap, &p, 3) ||
+	if (!ts_cbor_put_map(r, cap, &p, 5) ||
 	    !ts_cbor_put_tstr(r, cap, &p, "fw") ||
 	    !ts_cbor_put_tstr(r, cap, &p, CONFIG_TS_FW_VERSION) ||
 	    !ts_cbor_put_tstr(r, cap, &p, "board") ||
 	    !ts_cbor_put_tstr(r, cap, &p, CONFIG_BOARD) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "node") ||
+	    !ts_cbor_put_tstr(r, cap, &p, node) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "cube") ||
+	    !ts_cbor_put_tstr(r, cap, &p, cube) ||
 	    !ts_cbor_put_tstr(r, cap, &p, "wall_ms") ||
 	    !ts_cbor_put_uint(r, cap, &p, ts_time_wall_ms())) {
 		return TS_E_IO;
@@ -314,6 +346,140 @@ static ts_res_t cmd_lease_get(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap
 	return TS_OK;
 }
 
+/* ---- sys 命令实现：远程部署面（MA3.1，LLD-A06 §3；gated = v2+租约）------ */
+
+static ts_res_t cmd_app_begin(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
+{
+	size_t p = 0;
+
+	if (!a->has_total) {
+		if (ts_cbor_put_map(r, cap, &p, 1) && ts_cbor_put_tstr(r, cap, &p, "need") &&
+		    ts_cbor_put_tstr(r, cap, &p, "total")) {
+			*n = p;
+		}
+		return TS_E_PARAM;
+	}
+	uint8_t slot = 0;
+	ts_res_t res = ts_appmgr_stage_begin(a->total, &slot);
+
+	if (res != TS_OK) {
+		return res; /* 尺寸非法：PARAM（data 空，status 已达） */
+	}
+	if (!ts_cbor_put_map(r, cap, &p, 2) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "slot") ||
+	    !ts_cbor_put_uint(r, cap, &p, slot) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "total") ||
+	    !ts_cbor_put_uint(r, cap, &p, a->total)) {
+		return TS_E_IO;
+	}
+	*n = p;
+	return TS_OK;
+}
+
+static ts_res_t cmd_app_chunk(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
+{
+	size_t p = 0;
+
+	if (!a->has_offset || a->chunk == NULL || a->chunk_len == 0) {
+		if (ts_cbor_put_map(r, cap, &p, 1) && ts_cbor_put_tstr(r, cap, &p, "need") &&
+		    ts_cbor_put_tstr(r, cap, &p, "offset+data")) {
+			*n = p;
+		}
+		return TS_E_PARAM;
+	}
+	uint32_t hw = 0;
+	ts_res_t res = ts_appmgr_stage_chunk(a->offset, a->chunk, a->chunk_len, &hw);
+
+	if (res != TS_OK) {
+		return res;
+	}
+	if (!ts_cbor_put_map(r, cap, &p, 2) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "written") ||
+	    !ts_cbor_put_uint(r, cap, &p, a->chunk_len) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "high_water") ||
+	    !ts_cbor_put_uint(r, cap, &p, hw)) {
+		return TS_E_IO;
+	}
+	*n = p;
+	return TS_OK;
+}
+
+static ts_res_t cmd_app_verify(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
+{
+	ARG_UNUSED(a);
+	/* 根公钥自 prov（合同 10 只读面；pk0 = 首根钥） */
+	const ts_prov_t *prov = ts_store_prov();
+	uint32_t ml = 0, wl = 0, co = 0;
+	ts_res_t res = ts_appmgr_stage_verify(prov->root_pubkeys[0], &ml, &wl, &co);
+
+	if (res != TS_OK) {
+		return res;
+	}
+	size_t p = 0;
+
+	if (!ts_cbor_put_map(r, cap, &p, 3) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "manifest_len") ||
+	    !ts_cbor_put_uint(r, cap, &p, ml) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "wasm_len") ||
+	    !ts_cbor_put_uint(r, cap, &p, wl) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "cose_off") ||
+	    !ts_cbor_put_uint(r, cap, &p, co)) {
+		return TS_E_IO;
+	}
+	*n = p;
+	return TS_OK;
+}
+
+static ts_res_t cmd_app_activate(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
+{
+	ARG_UNUSED(a);
+	ts_app_info_t info;
+	ts_res_t res = ts_appmgr_stage_activate(&info);
+
+	if (res != TS_OK) {
+		return res;
+	}
+	size_t p = 0;
+
+	if (!ts_cbor_put_map(r, cap, &p, 3) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "state") ||
+	    !ts_cbor_put_uint(r, cap, &p, (uint64_t)info.state) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "active_slot") ||
+	    !ts_cbor_put_uint(r, cap, &p, info.active_slot) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "rollback_count") ||
+	    !ts_cbor_put_uint(r, cap, &p, info.rollback_count)) {
+		return TS_E_IO;
+	}
+	*n = p;
+	return TS_OK;
+}
+
+static ts_res_t cmd_get_app(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
+{
+	ARG_UNUSED(a);
+	ts_app_info_t info;
+	ts_res_t res = ts_appmgr_get_info(&info);
+
+	if (res != TS_OK) {
+		return res;
+	}
+	size_t p = 0;
+
+	if (!ts_cbor_put_map(r, cap, &p, 4) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "state") ||
+	    !ts_cbor_put_uint(r, cap, &p, (uint64_t)info.state) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "active_slot") ||
+	    !ts_cbor_put_uint(r, cap, &p, info.active_slot) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "rollback_count") ||
+	    !ts_cbor_put_uint(r, cap, &p, info.rollback_count) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "app_id") ||
+	    !ts_cbor_put_tstr(r, cap, &p, info.app_id[0] != '\0' ? info.app_id : "")) {
+		return TS_E_IO;
+	}
+	*n = p;
+	return TS_OK;
+}
+
 /* ---- 注册与分发 ---------------------------------------------------------- */
 
 ts_res_t ts_net_cmd_register(const char *suffix, ts_net_cmd_fn fn)
@@ -330,6 +496,7 @@ ts_res_t ts_net_cmd_register(const char *suffix, ts_net_cmd_fn fn)
 		if (!table[i].used) {
 			table[i].suffix = suffix;
 			table[i].fn = fn;
+			table[i].gated = false; /* 公共注册面 = 未门控（gated 属 sys 内部装配） */
 			table[i].used = true;
 			return TS_OK;
 		}
@@ -337,11 +504,11 @@ ts_res_t ts_net_cmd_register(const char *suffix, ts_net_cmd_fn fn)
 	return TS_E_NOMEM;
 }
 
-static ts_net_cmd_fn find_cmd(const char *suffix)
+static struct cmd_slot *find_cmd(const char *suffix)
 {
 	for (int i = 0; i < CMD_TABLE_MAX; i++) {
 		if (table[i].used && strcmp(table[i].suffix, suffix) == 0) {
-			return table[i].fn;
+			return &table[i];
 		}
 	}
 	return NULL;
@@ -387,6 +554,29 @@ static bool parse_args_body(ts_cbor_rd_t *r, uint32_t pairs, struct req_env *e)
 				return false;
 			}
 			e->args.has_holder = true;
+		} else if (e->v2 && strcmp(akey, "total") == 0) {
+			uint64_t v;
+
+			if (!ts_cbor_uint(r, &v) || v > UINT32_MAX) {
+				return false;
+			}
+			e->args.total = (uint32_t)v;
+			e->args.has_total = true;
+		} else if (e->v2 && strcmp(akey, "offset") == 0) {
+			uint64_t v;
+
+			if (!ts_cbor_uint(r, &v) || v > UINT32_MAX) {
+				return false;
+			}
+			e->args.offset = (uint32_t)v;
+			e->args.has_offset = true;
+		} else if (e->v2 && strcmp(akey, "data") == 0) {
+			/* bstr 零拷贝引用（生存期 = 分发调用域）；块长上限 =
+			 * CONFIG_TS_NET_APP_CHUNK_MAX（LLD-A06 §3：默认 2048/上限 4096） */
+			if (!ts_cbor_bstr_ref(r, &e->args.chunk, &e->args.chunk_len) ||
+			    e->args.chunk_len > CONFIG_TS_NET_APP_CHUNK_MAX) {
+				return false;
+			}
 		} else if (e->v2 && strcmp(akey, "idem") == 0) {
 			if (!ts_cbor_tstr(r, e->idem, sizeof(e->idem))) {
 				return false;
@@ -634,9 +824,9 @@ ts_res_t ts_net_cmd_dispatch(const char *key_suffix, const uint8_t *req, uint32_
 		return TS_E_PARAM;
 	}
 	*resp_len = 0;
-	ts_net_cmd_fn fn = find_cmd(key_suffix);
+	struct cmd_slot *slot = find_cmd(key_suffix);
 
-	if (fn == NULL) {
+	if (slot == NULL) {
 		struct req_env e = {0};
 
 		return encode_err(resp, cap, resp_len, &e, TS_E_NOTFOUND, "unknown key");
@@ -684,9 +874,21 @@ ts_res_t ts_net_cmd_dispatch(const char *key_suffix, const uint8_t *req, uint32_
 	    strcmp(key_suffix, expect) != 0) {
 		return encode_err(resp, cap, resp_len, &e, TS_E_NOTFOUND, "op/key mismatch");
 	}
+	/* 写类命令门控（DEC-41 准入挂钩首个落点——部署面）：仅 v2 信封（v1 无
+	 * src 身份）且当前租约持有者 = src。只读族与 estop-clear 豁免不变。 */
+	if (slot->gated) {
+		if (!e.v2) {
+			return encode_err(resp, cap, resp_len, &e, TS_E_PARAM,
+					  "v2 envelope required");
+		}
+		if (!ts_net_lease_held_by(e.src, ts_time_ms())) {
+			return encode_err(resp, cap, resp_len, &e, TS_E_STATE,
+					  "lease required");
+		}
+	}
 	static uint8_t data_scratch[RESP_DATA_MAX]; /* 分发上下文串行（传输回调/测试） */
 	size_t data_len = 0;
-	ts_res_t status = fn(&e.args, data_scratch, sizeof(data_scratch), &data_len);
+	ts_res_t status = slot->fn(&e.args, data_scratch, sizeof(data_scratch), &data_len);
 
 	if (status == TS_E_IO || data_len + 64 > cap) {
 		return encode_err(resp, cap, resp_len, &e, TS_E_IO, "resp overflow");
@@ -704,24 +906,32 @@ ts_res_t ts_net_cmd_dispatch(const char *key_suffix, const uint8_t *req, uint32_
 
 void ts_net_cmd_sys_init(void)
 {
-	/* sys 命令表（LLD §4；host_only——本函数仅框架 init 调用） */
+	/* sys 命令表（LLD §4；host_only——本函数仅框架 init 调用）。
+	 * gated = 写类（v2 信封 + 租约持有者 = src 才执行，DEC-41）。 */
 	static const struct {
 		const char *suffix;
 		ts_net_cmd_fn fn;
+		bool gated;
 	} sys_cmds[] = {
-		{"sys/get-info", cmd_get_info},
-		{"sys/get-link", cmd_get_link},
-		{"sys/get-safety", cmd_get_safety},
-		{"sys/get-budget", cmd_get_budget},
-		{"sys/get-audit", cmd_get_audit},
-		{"sys/set-time", cmd_set_time},
-		{"sys/estop-clear", cmd_estop_clear},
-		{"sys/lease-acquire", cmd_lease_acquire},
-		{"sys/lease-release", cmd_lease_release},
-		{"sys/lease-get", cmd_lease_get},
+		{"sys/get-info", cmd_get_info, false},
+		{"sys/get-link", cmd_get_link, false},
+		{"sys/get-safety", cmd_get_safety, false},
+		{"sys/get-budget", cmd_get_budget, false},
+		{"sys/get-audit", cmd_get_audit, false},
+		{"sys/set-time", cmd_set_time, false},
+		{"sys/estop-clear", cmd_estop_clear, false},
+		{"sys/lease-acquire", cmd_lease_acquire, false},
+		{"sys/lease-release", cmd_lease_release, false},
+		{"sys/lease-get", cmd_lease_get, false},
+		{"sys/app-begin", cmd_app_begin, true},
+		{"sys/app-chunk", cmd_app_chunk, true},
+		{"sys/app-verify", cmd_app_verify, true},
+		{"sys/app-activate", cmd_app_activate, true},
+		{"sys/get-app", cmd_get_app, false},
 	};
 	for (size_t i = 0; i < sizeof(sys_cmds) / sizeof(sys_cmds[0]); i++) {
 		(void)ts_net_cmd_register(sys_cmds[i].suffix, sys_cmds[i].fn);
+		table[i].gated = sys_cmds[i].gated; /* 公共注册面之后补装配位 */
 	}
 }
 

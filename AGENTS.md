@@ -6,6 +6,12 @@
 
 ## 1. 当前状态
 
+- **2026-09-25（九） · MA3.1 交付（owner 指令"继续按照计划进行开发"）：固件部署命令面 + Agent 部署工具链 + E2E——spec→TSAP 包→部署到仿真立方体 全链 PASS；twister 8/8（37 用例）/L5 6/6/固件 pytest/Agent pytest 44+ruff 全绿**
+  - 固件：`ts_appmgr_stage_{begin,chunk,verify,activate}`（pkg.c 分步化，install 复用同链）+ sys 命令 `app-begin/app-chunk/app-verify/app-activate/get-app`（**写类 gated = 仅 v2 信封 + 租约持有者 = src**——DEC-41 准入挂钩首个落点）+ cbor_min bstr 解码（ts_cbor_bstr_ref，零拷贝引用）+ `CONFIG_TS_NET_APP_CHUNK_MAX`（2048/4096）+ get-info 自报 node/cube + on_query 通配 key 具体化（发现机制：`tessera/*/*/sys/get-info`，身份以载荷为准）。
+  - Agent：`tools_net/keys.py`（key/kind 镜像 + 信封 v2 构造/回执解析）+ `zenoh_service.py`（专属线程桥）+ `deploy.py`（discover/status/push_app：tsap_verify 强制复验→租约闭环→分块 idem 重试→upload/verify/activate→get-app 确认）；MCP 工具 `deploy_discover/deploy_status/deploy_push_app`（push_app = strict 审批 + 句柄）。
+  - 测试：FakeCube 语义桩 10 用例（分块重组/租约闭环/幂等重试/篡改拒绝/事实对拍失败）+ E2E 门控测试（`TESSERA_E2E_DEPLOY=1`，dev-env §8 v1.4）。
+  - **MA3.2 待启动**：A07 skills loader + 4 skill + DomainPack + 高层链 app_develop/app_deploy（消费本批工具）；push_prov 随维护模式语义（M2b.2/板级）。
+  - 教训留痕：TAP 重建使已附着固件 fd 失效（须重启固件，dev-env §8）；tsap 包 exports 必含 health_ping。
 - **2026-09-23（八） · DEC-40/41/42 实现批次落地（owner 指令"按计划继续开发"）：信封 v2 + 幂等缓存 + 控制租约 + 事件/遥测信封 + QoS 映射 + is_up 自省——twister 8/8（35 用例）/ L5 6/6 / pytest / L3 五验证点全 PASS；"MA3 开工前"收口完成**
   - 实现：cmd.c 信封 v2（首键判别 v1/v2 共存、rid 回带、4 项 idem LRU 回放不重执行、to>5000ms 拒绝、idem-op 一致性防御）+ lease.c（单租约/惰性过期/lease_id 单调/sys lease-{acquire,release,get}）+ pub.c ver+kind 信封（事件 32+evt_id、遥测 96；遥测键 kind→**dev** 改名随批）+ ts_net_qos_t 穿透 pubq→zenoh（安全事件 BLOCK+REAL_TIME）+ zenoh.c is_up=**zp 任务自省**与 locator **TCP/TLS 校验**（缺省 locator udp→tcp 收敛）。
   - L3 复跑 PASS（dev-environment §8 v1.3，五验证点：发现〔信封〕/命令〔v1+v2〕/幂等/租约/断链+事件信封 kind=37）；twister framework.net 增 test_08/09。

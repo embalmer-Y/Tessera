@@ -1,4 +1,4 @@
-# LLD · ts-net v0.3.2
+# LLD · ts-net v0.3.3
 
 > **状态**：v0.3.2（2026-09-23 DEC-40/41/42 实现批次落地：信封 v2 + 幂等缓存 + 控制租约 + 事件/遥测信封 + QoS 映射 + is_up 任务自省；twister/L5/L3 全绿）。上位：HLD §3.5；公共约定 `LLD-00-common.md`。
 > **职责**：zenoh-pico 会话管理、命名空间构造、命令-回执分发、遥测/事件发布、心跳监视（断链判定）、控制租约（DEC-41）。
@@ -69,13 +69,15 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 
 | key（…/sys/ 下） | 语义 |
 |---|---|
-| get-info | 固件版本/板/构建（`git describe`，versioning.md §5） |
+| get-info | 固件版本/板/构建 + **node/cube 自报**（MA3.1：通配发现的身份以载荷为准） |
 | get-link / get-safety | 链路与通道安全态汇总（读 ts-safety shadow） |
 | get-budget | 功率预算/用量（ts-power，M3b 落地） |
 | get-audit | 安全审计环形导出（含溢出丢弃计数，DR-07；V1 最新 6 条/次，分片游标随信封 v2） |
 | set-time | 设置墙钟（**仅数据字段**，合同 9；DR-08） |
 | estop-clear | 清除 SAFE_FAULT（参数须带确认令牌 `confirm="estop"`；调用 ts_safety_clear_fault） |
 | lease-acquire / lease-release / lease-get | 控制租约面（DEC-41，见 §4.5） |
+| app-begin / app-chunk / app-verify / app-activate | 远程部署面（MA3.1，LLD-A06 §3；**gated：仅 v2 信封 + 租约持有者 = src**——DEC-41 写类准入首个落点） |
+| get-app | 当前 APP 信息快照（active_slot 回读确认，只读豁免） |
 
 ### 4.4 kind 注册表（唯一权威；Agent 侧 keys.py 镜像）
 
@@ -139,4 +141,5 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 - v0.2.1 · 2026-09-21：裁决同步——DEC-20/22/30 出处收敛（SC-02）。
 - v0.3 · 2026-09-23：参考项目借鉴批次（owner 提供 NeuroLink/MatrixMechanic）——新增 §0 演进原则（fail-closed 不变 + ver/kind 信封演进）；§2 传输健康定义（zp 任务自省，M3a.2 短板收口）；§4.2 命令信封 v2〔Q-20〕；§4.4 kind 注册表；§4.5 控制租约〔Q-21〕；§5 事件/遥测信封与 zenoh QoS 映射〔Q-22〕；§7 Kconfig 增补；M3a.1/M3a.2/L3 实现状态对齐（§8）。
 - v0.3.1 · 2026-09-23：裁决同步（DEC-40/41/42）——§4.2 增 zenoh 可靠性调研留档 + 命令面链路 TCP/TLS 约束 + to>5000ms 拒绝；提案标记全部转 DEC 出处；§9 实现批次定为 MA3 前。
+- v0.3.3 · 2026-09-25：MA3.1 部署面落地——§4.3 增 app-*（gated）/get-app 行与 get-info 身份自报；cbor_min 增 bstr 解码（ts_cbor_bstr_ref）；CMD_TABLE 容量 12→16；CONFIG_TS_NET_APP_CHUNK_MAX（§7 同步）。
 - v0.3.2 · 2026-09-23：**DEC-40/41/42 实现批次落地**——§2 缺省 locator udp→tcp（DEC-40 收敛）+ is_up 自省已实现；§4.2 idem 缓存实现细节（op 一致性防御/分发级拒绝不缓存/LRU 单调时钟）；§4.5 惰性过期/lease_id 单调/拒绝回执归因细节；§5 遥测键 `kind`→`dev` 改名（信封 kind 让位）+ QoS 已实现；§8 测试要点逐条标记实现状态 + L3 扩展五验证点。回归：twister 8/8（35 用例）/ L5 6/6 / pytest / L3 PASS。

@@ -4,10 +4,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <zephyr/ztest.h>
+#include <ts/appmgr.h>
 #include <ts/core.h>
 #include <ts/hal.h>
 #include <ts/net.h>
 #include <ts/safety.h>
+#include <ts/store.h>
 /* 最小 CBOR 编解码（模块内部 API——测试构造请求/解回执复用同一实现） */
 #include "../../../module/tessera/src/net/internal.h"
 
@@ -697,6 +699,234 @@ ZTEST(framework_net, test_09_lease)
 			    NULL, false, 0);
 	zassert_equal(ts_net_cmd_dispatch("sys/lease-acquire", req, rlen, resp,
 					  sizeof(resp), &resp_len), TS_E_PARAM);
+}
+
+/* ---- MA3.1：远程部署命令面（LLD-A06 §3；gated = v2 + 租约）---------------- */
+
+static bool put_bstr(uint8_t *buf, size_t cap, size_t *pos, const uint8_t *d, uint32_t n)
+{
+	if (n < 24) {
+		if (*pos + 1 > cap) return false;
+		buf[(*pos)++] = 0x40 | (uint8_t)n;
+	} else if (n < 256) {
+		if (*pos + 2 > cap) return false;
+		buf[(*pos)++] = 0x58;
+		buf[(*pos)++] = (uint8_t)n;
+	} else {
+		if (*pos + 3 > cap) return false;
+		buf[(*pos)++] = 0x59;
+		buf[(*pos)++] = (uint8_t)(n >> 8);
+		buf[(*pos)++] = (uint8_t)n;
+	}
+	if (*pos + n > cap) return false;
+	memcpy(buf + *pos, d, n);
+	*pos += n;
+	return true;
+}
+
+/* v2 部署请求：args = {total} 或 {offset, data(bstr)}，src 可指定（门控测试） */
+static size_t build_req_deploy(uint8_t *buf, size_t cap, const char *op, const char *src,
+			       bool with_total, uint32_t total,
+			       bool with_chunk, uint32_t offset, const uint8_t *data, uint32_t dlen)
+{
+	uint32_t apairs = (with_total ? 1u : 0u) + (with_chunk ? 2u : 0u);
+	size_t p = 0;
+
+	zassert_true(ts_cbor_put_map(buf, cap, &p, 6));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "ver"));
+	zassert_true(ts_cbor_put_uint(buf, cap, &p, 1));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "kind"));
+	zassert_true(ts_cbor_put_uint(buf, cap, &p, 1));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "rid"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "r-dep"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "src"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, src));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "op"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, op));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "args"));
+	zassert_true(ts_cbor_put_map(buf, cap, &p, apairs));
+	if (with_total) {
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, "total"));
+		zassert_true(ts_cbor_put_uint(buf, cap, &p, total));
+	}
+	if (with_chunk) {
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, "offset"));
+		zassert_true(ts_cbor_put_uint(buf, cap, &p, offset));
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, "data"));
+		zassert_true(put_bstr(buf, cap, &p, data, dlen));
+	}
+	return p;
+}
+
+/* 最小 TSAP 包（同 appmgr 测试构造：manifest 32 + wasm 64 + COSE 结构头 18） */
+static size_t build_deploy_pkg(uint8_t *buf, size_t cap)
+{
+	uint32_t ml = 32, wl = 64;
+	size_t total = 16 + ml + wl + 18;
+
+	if (total > cap) return 0;
+	memset(buf, 0xAA, total);
+	buf[0] = 'T'; buf[1] = 'S'; buf[2] = 'A'; buf[3] = 'P';
+	buf[4] = 0; buf[5] = 1;
+	buf[6] = (uint8_t)(ml >> 24); buf[7] = (uint8_t)(ml >> 16);
+	buf[8] = (uint8_t)(ml >> 8); buf[9] = (uint8_t)ml;
+	buf[10] = (uint8_t)(wl >> 24); buf[11] = (uint8_t)(wl >> 16);
+	buf[12] = (uint8_t)(wl >> 8); buf[13] = (uint8_t)wl;
+	buf[16 + ml + wl] = 0xd2;
+	buf[16 + ml + wl + 1] = 0x84;
+	return total;
+}
+
+/* 解回执 data 子图中的 uint 值（v1 平面 / v2 信封均可；值按类型消费跳过） */
+static uint64_t resp_data_uint(const char *key)
+{
+	ts_cbor_rd_t r;
+	uint32_t pairs;
+
+	ts_cbor_rd_init(&r, resp, resp_len);
+	zassert_true(ts_cbor_map_open(&r, &pairs));
+	/* 顶层定位 "data" 子图：v2 = {ver,kind,rid,status,data}；v1 = {status,data} */
+	uint32_t dpairs = 0;
+	bool in_data = false;
+
+	for (uint32_t i = 0; i < pairs; i++) {
+		char k[8];
+
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)));
+		if (strcmp(k, "data") == 0) {
+			zassert_true(ts_cbor_map_open(&r, &dpairs));
+			in_data = true;
+			break;
+		}
+		if (strcmp(k, "rid") == 0) {
+			char rid[24];
+
+			zassert_true(ts_cbor_tstr(&r, rid, sizeof(rid)));
+		} else {
+			int64_t iv;
+
+			zassert_true(ts_cbor_int(&r, &iv)); /* ver/kind/status */
+		}
+	}
+	zassert_true(in_data, "回执无 data 子图");
+	for (uint32_t i = 0; i < dpairs; i++) {
+		char k[16];
+		uint64_t v;
+
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)));
+		if (strcmp(k, key) == 0 && ts_cbor_uint(&r, &v)) {
+			return v;
+		}
+		/* 不匹配：按实际类型消费值（data 图值域 = uint/tstr） */
+		if (!ts_cbor_uint(&r, &v)) {
+			char dummy[24];
+
+			zassert_true(ts_cbor_tstr(&r, dummy, sizeof(dummy)),
+				     "未知值类型（本助手仅覆盖 uint/tstr）");
+		}
+	}
+	return UINT64_MAX;
+}
+
+ZTEST(framework_net, test_10_deploy_face)
+{
+	static uint8_t pkg[512];
+	static uint8_t req[CONFIG_TS_NET_APP_CHUNK_MAX + 256];
+	size_t plen = build_deploy_pkg(pkg, sizeof(pkg));
+	size_t rlen;
+
+	zassert_true(plen > 0, "pkg built");
+	ts_net_test_reset();
+	ts_net_cmd_test_reset();
+	ts_net_cmd_sys_init();
+	ts_net_lease_test_reset();
+	(void)ts_net_set_ids("n1", "c1");
+	ts_store_test_reset();
+	ts_appmgr_test_reset();
+
+	/* v1 请求 → 拒（gated 面无 src 身份） */
+	rlen = build_req(req, sizeof(req), "app-begin", NULL, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/app-begin", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_E_PARAM, "v1 拒绝（v2 required）");
+
+	/* v2 无租约 → STATE（lease required） */
+	rlen = build_req_deploy(req, sizeof(req), "app-begin", "t-agent",
+				true, (uint32_t)plen, false, 0, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/app-begin", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_E_STATE, "无租约拒绝");
+
+	/* 他人持租约 → 仍拒（src ≠ holder） */
+	uint32_t lid = 0;
+	uint64_t lexp = 0;
+
+	zassert_equal(ts_net_lease_acquire("other-owner", ts_time_ms(), &lid, &lexp),
+		      TS_OK);
+	zassert_equal(ts_net_cmd_dispatch("sys/app-begin", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_E_STATE, "src != holder 拒绝");
+
+	/* 本人持租约 → 全链：begin → chunk×2 → verify → activate → get-app */
+	zassert_equal(ts_net_lease_release("other-owner", ts_time_ms()), TS_OK);
+	zassert_equal(ts_net_lease_acquire("t-agent", ts_time_ms(), &lid, &lexp), TS_OK);
+	zassert_equal(ts_net_cmd_dispatch("sys/app-begin", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_OK);
+	zassert_equal(resp_data_uint("slot"), 1, "inactive = B");
+	zassert_equal(resp_data_uint("total"), (uint64_t)plen);
+
+	/* 分块（两半）+ 断点续传进度 */
+	uint32_t half = (uint32_t)plen / 2;
+
+	rlen = build_req_deploy(req, sizeof(req), "app-chunk", "t-agent",
+				false, 0, true, 0, pkg, half);
+	zassert_equal(ts_net_cmd_dispatch("sys/app-chunk", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_OK);
+	zassert_equal(resp_data_uint("high_water"), half, "进度 = 半包");
+	rlen = build_req_deploy(req, sizeof(req), "app-chunk", "t-agent",
+				false, 0, true, half, pkg + half, (uint32_t)plen - half);
+	zassert_equal(ts_net_cmd_dispatch("sys/app-chunk", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_OK);
+	zassert_equal(resp_data_uint("high_water"), (uint64_t)plen, "进度 = 全包");
+
+	/* 越界块 → PARAM */
+	rlen = build_req_deploy(req, sizeof(req), "app-chunk", "t-agent",
+				false, 0, true, (uint32_t)plen, pkg, 4);
+	zassert_equal(ts_net_cmd_dispatch("sys/app-chunk", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_E_PARAM);
+
+	/* verify：容器事实（TEST 构建结构级通过；manifest 32/wasm 64/cose_off 112） */
+	rlen = build_req_deploy(req, sizeof(req), "app-verify", "t-agent",
+				false, 0, false, 0, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/app-verify", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_OK);
+	zassert_equal(resp_data_uint("manifest_len"), 32);
+	zassert_equal(resp_data_uint("cose_off"), 16 + 32 + 64);
+
+	/* activate（他人 src → 拒；本人 → OK） */
+	rlen = build_req_deploy(req, sizeof(req), "app-activate", "intruder",
+				false, 0, false, 0, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/app-activate", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_E_STATE);
+	rlen = build_req_deploy(req, sizeof(req), "app-activate", "t-agent",
+				false, 0, false, 0, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/app-activate", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_OK);
+	zassert_equal(resp_data_uint("active_slot"), 1);
+
+	/* get-app（只读豁免）：active_slot 已切换 */
+	rlen = build_req(req, sizeof(req), "get-app", NULL, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/get-app", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_OK, "get-app 只读不门控");
+	zassert_equal(resp_data_uint("active_slot"), 1);
 }
 
 ZTEST_SUITE(framework_net, NULL, NULL, NULL, NULL, NULL);

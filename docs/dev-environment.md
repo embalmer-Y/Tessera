@@ -108,10 +108,13 @@ python3.12 -m venv ~/project/agent-venv
 - **pthread 动态栈依赖链**：`THREAD_STACK_INFO` → `DYNAMIC_THREAD` → `DYNAMIC_THREAD_ALLOC`（缺 THREAD_STACK_INFO 则 DYNAMIC_THREAD 被静默丢弃 → pthread_create 恒 EINVAL）；默认动态栈 1024 过小 → `DYNAMIC_THREAD_STACK_SIZE=8192`。
 - **POSIX 对象静态池**：`MAX_PTHREAD_MUTEX_COUNT`/`MAX_PTHREAD_COND_COUNT` 默认 5——zenoh 会话互斥量即超限（ENOMEM→连锁 EINVAL）；提至 16；`POSIX_THREAD_THREADS_MAX` 5→8。
 - zenoh 会话堆：官方例程档位以上（实测 192K）。
+- **TAP 重建失效教训（2026-09-25）**：zeth 删除重建后为**新设备**——已运行固件的附着 fd 指向旧设备，连接恒 -102；重建 TAP 后须重启固件进程。WSL 网络栈刷新可能静默删除 zeth（含 IP），复跑前先 `ip addr show zeth` 核验。
+- Agent 部署 E2E 入口：`TESSERA_E2E_DEPLOY=1 ~/project/agent-venv/bin/python -m pytest agent/tests/test_deploy_e2e.py`（自建固件至 agent/build/deploy-e2e；需 TAP 在位 + zenohd 端口可拉起）。
 
 ## 修订记录
 
 - v1.2 · 2026-09-23：§7 补丁清单 + §8 L3 端到端达成（PASS）与复跑方法（TAP 需 sudo；zenohd v1.10.1 @ ~/project/tools）。
+- v1.4 · 2026-09-25：§8 补 TAP 重建失效教训 + Agent 部署 E2E 入口（MA3.1）。
 - v1.3 · 2026-09-23：§8 L3 扩展为五验证点（DEC-40/41/42 实现批次：v2 信封/幂等/to 拒绝/租约/事件信封）复跑 PASS；缺省回退 locator udp→tcp（DEC-40 命令面链路约束——zenohd 缺省监听兼容）。
 - v1.1 · 2026-09-23：§5-5 教训（`=` 后 `~` 不展开）+ §7 zenoh-pico 接入（1.10.1 钉版 / config.h 生成缺口 / POSIX_API 关键项）。
 - v1.0 · 2026-09-21：建立（WSL 迁移完成 + Windows 复原 + 验证结果：native_sim 构建 ✓、twister 运行级 1/1 passed ✓、pytest ✓）。

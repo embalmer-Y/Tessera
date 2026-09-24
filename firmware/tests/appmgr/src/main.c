@@ -154,4 +154,71 @@ ZTEST(framework_appmgr, test_fresh_system_no_app)
 	zassert_equal(info.state, TS_APP_STAGED, "no app: staged default");
 }
 
+/* ---- MA3.1：分步安装链（stage_begin/chunk/verify/activate，LLD-A06 §3）-- */
+
+ZTEST(framework_appmgr, test_staged_install_chain)
+{
+	uint8_t pkg[PKG_BUFFER_SIZE];
+	size_t len = build_minimal_pkg(pkg, sizeof(pkg), 1);
+	uint8_t root_key[32] = {0};
+
+	zassert_true(len > 0, "pkg built");
+
+	/* 尺寸域：过小/过大拒绝 */
+	zassert_equal(ts_appmgr_stage_begin(TSAP_HEADER_SIZE, NULL), TS_E_PARAM);
+	zassert_equal(ts_appmgr_stage_begin(CONFIG_TS_STORE_SLOT_SIZE + 1, NULL),
+		      TS_E_PARAM);
+
+	/* 未 begin：chunk/verify/activate 全 STATE（fail-closed） */
+	zassert_equal(ts_appmgr_stage_chunk(0, pkg, 8, NULL), TS_E_STATE);
+	zassert_equal(ts_appmgr_stage_verify(root_key, NULL, NULL, NULL), TS_E_STATE);
+	zassert_equal(ts_appmgr_stage_activate(NULL), TS_E_STATE);
+
+	/* begin → slot B；分两半 chunk（断点续传语义） */
+	uint8_t slot = 9;
+	uint32_t hw = 0;
+
+	zassert_equal(ts_appmgr_stage_begin((uint32_t)len, &slot), TS_OK);
+	zassert_equal(slot, 1, "inactive = B（active=0^1）");
+
+	/* 越界 chunk（off+len > total）拒绝 */
+	zassert_equal(ts_appmgr_stage_chunk((uint32_t)len, pkg, 4, NULL), TS_E_PARAM);
+
+	zassert_equal(ts_appmgr_stage_chunk(0, pkg, (uint32_t)len / 2, &hw), TS_OK);
+	zassert_equal(hw, (uint32_t)len / 2);
+	/* 未收满：verify 拒绝 */
+	zassert_equal(ts_appmgr_stage_verify(root_key, NULL, NULL, NULL), TS_E_STATE);
+
+	zassert_equal(ts_appmgr_stage_chunk((uint32_t)len / 2, pkg + len / 2,
+					    (uint32_t)(len - len / 2), &hw), TS_OK);
+	zassert_equal(hw, (uint32_t)len, "high_water = total");
+
+	/* 未验证：activate 拒绝 */
+	zassert_equal(ts_appmgr_stage_activate(NULL), TS_E_STATE);
+
+	/* verify：容器事实对拍（manifest 32 / wasm 64 / cose_off = 16+96） */
+	uint32_t ml = 0, wl = 0, co = 0;
+
+	zassert_equal(ts_appmgr_stage_verify(root_key, &ml, &wl, &co), TS_OK);
+	zassert_equal(ml, 32);
+	zassert_equal(wl, 64);
+	zassert_equal(co, TSAP_HEADER_SIZE + 32 + 64);
+
+	/* activate：与 install 同效（STAGED + slot B） */
+	ts_app_info_t info;
+
+	zassert_equal(ts_appmgr_stage_activate(&info), TS_OK);
+	zassert_equal(info.state, TS_APP_STAGED);
+	zassert_equal(info.active_slot, 1);
+	/* 终态清台：再 activate/chunk = STATE */
+	zassert_equal(ts_appmgr_stage_activate(NULL), TS_E_STATE);
+	zassert_equal(ts_appmgr_stage_chunk(0, pkg, 8, NULL), TS_E_STATE);
+
+	/* slot 内容 = 包字节（回读对拍首 4B magic） */
+	uint8_t rb[4];
+
+	zassert_equal(ts_store_slot_read(1, 0, rb, 4), TS_OK);
+	zassert_equal(rb[0], 'T');
+}
+
 ZTEST_SUITE(framework_appmgr, NULL, appmgr_setup, NULL, NULL, NULL);

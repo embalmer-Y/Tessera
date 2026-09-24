@@ -76,6 +76,23 @@ bool ts_cbor_array_open(ts_cbor_rd_t *r, uint32_t *items)
 	return true;
 }
 
+/* bstr 解码（MA3.1：app-chunk 数据载荷）。引用零拷贝版：不复制，回传
+ * 指向请求缓冲内部的指针（生存期 = 分发调用域；fail-closed 同族）。 */
+bool ts_cbor_bstr_ref(ts_cbor_rd_t *r, const uint8_t **out, uint32_t *len)
+{
+	uint8_t maj;
+	uint64_t v;
+
+	if (!rd_head(r, &maj, &v) || maj != 2 || v > UINT32_MAX || v > r->rem) {
+		return false;
+	}
+	*out = r->p;
+	*len = (uint32_t)v;
+	r->p += v;
+	r->rem -= (size_t)v;
+	return true;
+}
+
 bool ts_cbor_tstr(ts_cbor_rd_t *r, char *out, size_t cap)
 {
 	uint8_t maj;

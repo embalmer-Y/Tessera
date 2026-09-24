@@ -37,6 +37,21 @@ typedef struct {
 ts_res_t ts_appmgr_install(const uint8_t *pkg_data, size_t pkg_len,
 			    const uint8_t root_pubkey[32], ts_app_info_t *out);
 
+/* ---- 分步安装（远程部署面，LLD-A06 §3；upload→verify→activate）-----------
+ * 供 ts-net sys/app-* 命令消费：chunk 增量写 inactive slot（断点续传），
+ * verify 只校验不动 meta，activate 才整槽 hash + meta 原子切换——与
+ * ts_appmgr_install 同一内部链（行为一致）。staging 状态在内存，begin
+ * 可重入（新 begin 重置进度）。 */
+ts_res_t ts_appmgr_stage_begin(uint32_t total_len, uint8_t *slot_out);
+ts_res_t ts_appmgr_stage_chunk(uint32_t off, const uint8_t *data, uint32_t len,
+			       uint32_t *high_water);
+/** verify：TSAP 头 + COSE 验签（fail-closed 同 install）+ manifest 边界。
+ * 出参为容器事实（供调用方与本地包对拍——「版本回读一致」确认语义）。 */
+ts_res_t ts_appmgr_stage_verify(const uint8_t root_pubkey[32],
+				uint32_t *manifest_len, uint32_t *wasm_len,
+				uint32_t *cose_off);
+ts_res_t ts_appmgr_stage_activate(ts_app_info_t *out);
+
 /** 获取当前 active APP 信息。 */
 ts_res_t ts_appmgr_get_info(ts_app_info_t *out);
 
