@@ -6,6 +6,8 @@
 
 ## 1. 当前状态
 
+- **2026-09-25（十二） · owner 指令 review：`docs/impl-review-01.md` 交付——对象 = DEC-40/41/42 批/MA3.1/MA3.2/M3b 四交付单元；验证声明全量复现（twister 10/10+44 用例/L5/pytest×2/ruff/skills 全绿）；8 项发现（无 P1）：F-1 periph/预算事件未 net 外发（LLD-ts-periph §3 承诺差距；pub.c"容量四类全占"注释系误读——订阅表按事件类型分桶）、F-2 desc.c GPIO/PWM 路径注册调用方指针（slots.c 同型悬垂未覆盖）、F-3 sys 表 gated 位按下标回填（装配序耦合）、F-4 idem 回放先于 key/op 匹配、F-5 注册链无回滚（V1 已知限制）、F-6 里程碑退出无 tag（军规 5）、F-7 WAMR 多线程前并发复核（set_link/recover 无锁 + 预算 TOCTOU——写入 M2b.2 DoD 前置）、F-8 clear_fault 语义复核未闭环；修复批建议（F-1/F-2/F-3/F-8+F-6 补 tag，小规模）**待 owner 批复**，未批不动代码（军规 9）**
+  - 正面确认：安全合同映射（唯一写路径四段/estop 锁存拒恢复/prov 缺省安全侧）、lease 与 DEC-41 一致、cbor fail-closed（无截断别名）、deploy 租约闭环+幂等重试、平台域导入图守卫、文档同步齐、调试 printk 零残留。
 - **2026-09-25（十一） · M3b 交付并退出：ts-power + ts-periph + 集成重放——twister 10/10（44 用例）/L5 6/6/pytest/zenoh overlay 全绿；固件轨 M0…M3b 全部完成，余 M2b.2（WAMR，需网络）与板级移植（前置 Zephyr SDK）**
   - ts-power：供电槽（组装通道描述符随槽记录**静态存储**——safety 注册表存指针，栈上组装即悬垂〔本批自检修复〕）；预算 = prov `power_budget_ma` 只读（缺省 0 = 拒绝，安全侧）+ readback 记账（单源）+ 峰值 + `TS_EVT_POWER_BUDGET`；`sys/get-budget` 实装；遥测 **kind 97** 预算快照（`…/sys/power`，keys.py 镜像同步）。
   - ts-periph：描述符职责链（GPIO/PWM→safety；POWER→ts-power 槽；ADC→仅 hal 输入侧〔DR-13〕；safe.uid 单源校验）+ 插拔（DETACH→**单通道 SAFE_FAULT**/ATTACH→上电态重放——机制面 = `ts_safety_force_channel_fault/channel_recover` 新公共 API；estop 锁存期恢复拒绝）。
