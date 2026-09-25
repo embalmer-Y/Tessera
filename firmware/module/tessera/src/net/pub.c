@@ -37,7 +37,7 @@ static ts_net_qos_t evt_qos(ts_evt_id_t id)
 }
 
 static void push_evt(ts_evt_id_t id, uint64_t t_ms, const char *uid_key_suffix,
-		     const uint8_t *extra, size_t extra_len)
+		     const uint8_t *extra, size_t extra_len, uint32_t extra_pairs)
 {
 	char key[64];
 	int kw = ts_net_key_evt(key, sizeof(key), uid_key_suffix);
@@ -48,10 +48,13 @@ static void push_evt(ts_evt_id_t id, uint64_t t_ms, const char *uid_key_suffix,
 			return;
 		}
 	}
-	/* payload = map{ver, kind=32+id, t_ms, wall_ms, extra?}（DEC-42） */
-	uint8_t buf[64];
+	/* payload = map{ver, kind=32+id, t_ms, wall_ms, extra?}（DEC-42）。
+	 * extra = extra_pairs 个**扁平 key:value 对**的原始 CBOR 字节
+	 *（append 进外层 map——SAFE_STATE_CHANGED 一对 / periph 两对 /
+	 * 预算三对）。128B = 信封头（~45B）+ 最宽 extra（预算 ~51B）+ 余量。 */
+	uint8_t buf[128];
 	size_t p = 0;
-	bool ok = ts_cbor_put_map(buf, sizeof(buf), &p, extra ? 5 : 4) &&
+	bool ok = ts_cbor_put_map(buf, sizeof(buf), &p, 4 + extra_pairs) &&
 		  ts_cbor_put_tstr(buf, sizeof(buf), &p, "ver") &&
 		  ts_cbor_put_uint(buf, sizeof(buf), &p, 1) &&
 		  ts_cbor_put_tstr(buf, sizeof(buf), &p, "kind") &&
@@ -76,7 +79,7 @@ static void on_evt(const ts_evt_t *evt, void *user)
 	ARG_UNUSED(user);
 	switch (evt->id) {
 	case TS_EVT_ESTOP: /* 事后补发观测（合同 5；estop 动作本身不经总线） */
-		push_evt(evt->id, evt->t_ms, "sys", NULL, 0);
+		push_evt(evt->id, evt->t_ms, "sys", NULL, 0, 0);
 		break;
 	case TS_EVT_SAFE_STATE_CHANGED: {
 		/* payload: ts_safe_state_evt_t（safety.h——uid + 新态） */
@@ -86,7 +89,41 @@ static void on_evt(const ts_evt_t *evt, void *user)
 
 		if (ts_cbor_put_tstr(extra, sizeof(extra), &p, "state") &&
 		    ts_cbor_put_uint(extra, sizeof(extra), &p, (uint64_t)pl->new_state)) {
-			push_evt(evt->id, evt->t_ms, pl->uid, extra, p);
+			push_evt(evt->id, evt->t_ms, pl->uid, extra, p, 1);
+		}
+		break;
+	}
+	case TS_EVT_PERIPH_ATTACH:
+	case TS_EVT_PERIPH_DETACH: {
+		/* payload: ts_periph_evt_t（core.h——uid + periph 类别）。
+		 * F-1（impl-review-01）：插拔归因外发（LLD-ts-periph §3"key 下线
+		 * 通告"落点）；QoS = 尽力而为（DEC-42 安全类集合不含插拔）。 */
+		const ts_periph_evt_t *pl = evt->data;
+		uint8_t extra[48];
+		size_t p = 0;
+
+		if (ts_cbor_put_tstr(extra, sizeof(extra), &p, "uid") &&
+		    ts_cbor_put_tstr(extra, sizeof(extra), &p, pl->uid) &&
+		    ts_cbor_put_tstr(extra, sizeof(extra), &p, "pkind") &&
+		    ts_cbor_put_uint(extra, sizeof(extra), &p, pl->kind)) {
+			push_evt(evt->id, evt->t_ms, pl->uid, extra, p, 2);
+		}
+		break;
+	}
+	case TS_EVT_POWER_BUDGET: {
+		/* payload: ts_pwr_budget_evt_t（core.h——超预算拒绝归因，
+		 * LLD-ts-power §3）；QoS = 尽力而为（同上，DEC-42 类属）。 */
+		const ts_pwr_budget_evt_t *pl = evt->data;
+		uint8_t extra[64];
+		size_t p = 0;
+
+		if (ts_cbor_put_tstr(extra, sizeof(extra), &p, "requested_ma") &&
+		    ts_cbor_put_uint(extra, sizeof(extra), &p, pl->requested_ma) &&
+		    ts_cbor_put_tstr(extra, sizeof(extra), &p, "used_ma") &&
+		    ts_cbor_put_uint(extra, sizeof(extra), &p, pl->used_ma) &&
+		    ts_cbor_put_tstr(extra, sizeof(extra), &p, "budget_ma") &&
+		    ts_cbor_put_uint(extra, sizeof(extra), &p, pl->budget_ma)) {
+			push_evt(evt->id, evt->t_ms, "sys", extra, p, 3);
 		}
 		break;
 	}
@@ -94,7 +131,7 @@ static void on_evt(const ts_evt_t *evt, void *user)
 	case TS_EVT_INPUT_CHANGED: /* DR-02 输入变化 */
 	default:
 		/* 通用：ver/kind/t_ms（detail 原始结构非稳定编码，不外发——防架构相关字节） */
-		push_evt(evt->id, evt->t_ms, "sys", NULL, 0);
+		push_evt(evt->id, evt->t_ms, "sys", NULL, 0, 0);
 		break;
 	}
 }
@@ -107,11 +144,14 @@ ts_res_t ts_net_pub_init(void)
 	if (subscribed) {
 		return TS_OK;
 	}
-	/* 事件总线容量 CONFIG_TS_CORE_MAX_SUBS=4（DEC-27）——四类全占；
-	 * 满员属装配错误（TS_E_NOMEM 如实上报） */
+	/* 订阅容量 = CONFIG_TS_CORE_MAX_SUBS **按事件类型分桶**（events.c 的
+	 * subs[id][N]，各类型独立 4 位——F-1 修复时更正早前"总量 4"误读）；
+	 * 本处七类订阅各占一桶一位，单桶满员属装配错误（TS_E_NOMEM 如实上报） */
 	const ts_evt_id_t ids[] = {
 		TS_EVT_ESTOP, TS_EVT_SAFE_STATE_CHANGED,
 		TS_EVT_PERM_DENIED, TS_EVT_INPUT_CHANGED,
+		TS_EVT_PERIPH_ATTACH, TS_EVT_PERIPH_DETACH,
+		TS_EVT_POWER_BUDGET,
 	};
 
 	for (size_t i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {

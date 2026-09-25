@@ -44,35 +44,45 @@ ts_res_t ts_periph_register(const ts_periph_desc_t *d)
 			return TS_E_PARAM; /* 撞 uid（逻辑名全局唯一） */
 		}
 	}
-	if (d->kind == TS_PK_ADC) {
+	/* F-2（impl-review-01）：先落静态表再注册——ts-safety 通道注册表持指针
+	 * （slot->desc = ch），注册源必须是本表静态存储（与 ts-power slots 同型；
+	 * 此前注册调用方 &d->safe，栈上组装即悬垂）。失败不递增 desc_count：
+	 * 脏槽不可见（撞名检查只走 [0, desc_count)）；下游已注册项无回滚 =
+	 * V1 已知限制（LLD-ts-periph §7——静态声明 + fail-fast 初始化下无
+	 * 运行期影响）。 */
+	ts_periph_desc_t *slot = &descs[desc_count];
+
+	*slot = *d;
+	if (slot->kind == TS_PK_ADC) {
 		/* 输入侧：只进 ts-hal（不进 ts-safety——DR-13） */
 	} else {
 		/* 输出类：安全声明单源校验（safe.uid == uid，三态齐备由
 		 * ts-safety/ts-power 注册校验兜底——fail 即整链失败） */
-		if (d->safe.uid == NULL || strcmp(d->safe.uid, d->uid) != 0) {
+		if (slot->safe.uid == NULL || strcmp(slot->safe.uid, slot->uid) != 0) {
 			return TS_E_PARAM;
 		}
-		ts_res_t r;
+		ts_res_t rs;
 
-		if (d->kind == TS_PK_POWER) {
+		if (slot->kind == TS_PK_POWER) {
 			/* POWER 经 ts-power 槽（linkloss/fault 由 power 生成；
-			 * safe 三态中的 poweron.en = 上电是否供电） */
-			const ts_pwr_slot_t slot = {
-				.uid = d->uid,
-				.current_limit_ma = d->safe.limits.current_limit_ma,
-				.poweron_on = d->safe.poweron.pwr.en,
+			 * safe 三态中的 poweron.en = 上电是否供电）。槽记录由
+			 * slots.c 静态自持——此处栈上组装安全。 */
+			const ts_pwr_slot_t pwr = {
+				.uid = slot->uid,
+				.current_limit_ma = slot->safe.limits.current_limit_ma,
+				.poweron_on = slot->safe.poweron.pwr.en,
 			};
-			r = ts_power_register_slot(&slot);
+			rs = ts_power_register_slot(&pwr);
 		} else {
-			r = ts_safety_register_channel(&d->safe);
+			rs = ts_safety_register_channel(&slot->safe);
 		}
-		if (r != TS_OK) {
-			return r;
+		if (rs != TS_OK) {
+			return rs;
 		}
 	}
 	ts_hal_dev_desc_t dev = {
-		.uid = d->uid,
-		.kind = dev_kind_of(d->kind),
+		.uid = slot->uid,
+		.kind = dev_kind_of(slot->kind),
 	};
 
 	ts_res_t r = ts_hal_register_dev(&dev);
@@ -80,7 +90,7 @@ ts_res_t ts_periph_register(const ts_periph_desc_t *d)
 	if (r != TS_OK) {
 		return r;
 	}
-	descs[desc_count++] = *d;
+	desc_count++;
 	return TS_OK;
 }
 

@@ -163,4 +163,44 @@ ZTEST(framework_periph, test_03_detach_during_estop_lock)
 	zassert_equal(ts_periph_attach("hp1"), TS_OK, "锁存释放后恢复可达");
 }
 
+/* F-2（impl-review-01）：栈上组装描述符注册的回归测试——注册源改为模块
+ * 静态表后，调用帧返回，safety 通道引用（uid 查表/状态/写路径）仍须有效。
+ * 修复前：注册的是调用方 &d->safe，帧返回即悬垂。 */
+static ts_res_t register_from_stack_frame(void)
+{
+	const ts_periph_desc_t d = {
+		.uid = "stk0", .kind = TS_PK_GPIO,
+		.safe = {.uid = "stk0", .kind = TS_CH_GPIO,
+			 .poweron = {.b = false}, .linkloss = {.b = false},
+			 .fault = {.b = false}},
+	};
+
+	return ts_periph_register(&d);
+}
+
+ZTEST(framework_periph, test_04_stack_descriptor_regression)
+{
+	ts_ch_state_t st;
+
+	ts_safety_test_reset();
+	ts_periph_test_reset();
+	ts_power_test_reset();
+	zassert_equal(register_from_stack_frame(), TS_OK);
+	zassert_equal(ts_periph_count(), 1);
+
+	/* 调用帧已返回：通道引用仍可解析、状态可读 */
+	zassert_equal(ts_safety_channel_state("stk0", &st), TS_OK,
+		      "栈上描述符注册后引用仍有效");
+	zassert_equal(st, TS_ST_SAFE_POWERON);
+
+	/* 写路径可达（唯一写路径经 safety；先建链置 ACTIVE） */
+	ts_safety_set_link(true);
+	zassert_equal(ts_safety_commit("stk0", (ts_out_value_t){.b = true}), TS_OK,
+		      "commit 经静态表引用落驱动");
+	ts_out_value_t rb;
+
+	zassert_equal(ts_safety_readback("stk0", &rb), TS_OK);
+	zassert_true(rb.b, "读回 = 已提交值");
+}
+
 ZTEST_SUITE(framework_periph, NULL, NULL, NULL, NULL, NULL);

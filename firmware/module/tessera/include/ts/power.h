@@ -29,7 +29,9 @@ typedef struct {
 
 /** 注册供电槽（init 期 / ts-periph 描述符链驱动）：
  * 三安全态由此模块按合同 1 生成（poweron = 声明值；linkloss/fault = 关断——
- * 供电安全侧缺省，不接受调用方放宽）。注册期冻结，运行时只读。 */
+ * 供电安全侧缺省，不接受调用方放宽）。注册期冻结，运行时只读。
+ * 生命周期契约：槽结构体被拷入模块静态记录（允许栈上组装）；uid 字符串
+ * 须指向静态存储（通道注册表持引用）。 */
 ts_res_t ts_power_register_slot(const ts_pwr_slot_t *s);
 
 size_t ts_power_slot_count(void);

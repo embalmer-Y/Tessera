@@ -864,7 +864,21 @@ ts_res_t ts_net_cmd_dispatch(const char *key_suffix, const uint8_t *req, uint32_
 	if (e.v2 && e.has_to && e.to_ms > REQ_TO_MAX_MS) {
 		return encode_err(resp, cap, resp_len, &e, TS_E_PARAM, "to>5000ms rejected");
 	}
-	/* 幂等回放（DEC-40）：同 idem 命中 = 原样回执不重执行 */
+	/* key 后缀与 op 双重匹配（sys/get-info 处 op 必须为 get-info——防表项错位）。
+	 * F-4（impl-review-01）：匹配先于 idem 回放——回执只应在与其执行同 key 的
+	 * 查询上回放，跨 key 同 idem = op/key mismatch 拒绝（原实现回放先于
+	 * 匹配，语义松：同 idem 可在任意 key 得到回执）。 */
+	char expect[36];
+
+	int w = snprintf(expect, sizeof(expect), "sys/%s", e.op);
+
+	if (w < 0 || (size_t)w >= sizeof(expect) ||
+	    strncmp(key_suffix, "sys/", 4) != 0 ||
+	    strcmp(key_suffix, expect) != 0) {
+		return encode_err(resp, cap, resp_len, &e, TS_E_NOTFOUND, "op/key mismatch");
+	}
+	/* 幂等回放（DEC-40）：同 idem 命中 = 原样回执不重执行（门控豁免是有意
+	 * 语义：回放无新副作用，缓存回执对应一次已通过门控的历史执行） */
 	if (e.v2 && e.has_idem) {
 		struct idem_slot *hit = idem_find(e.idem);
 
@@ -882,16 +896,6 @@ ts_res_t ts_net_cmd_dispatch(const char *key_suffix, const uint8_t *req, uint32_
 			hit->stamp = ++idem_clock; /* LRU 触碰 */
 			return hit->status;
 		}
-	}
-	/* key 后缀与 op 双重匹配（sys/get-info 处 op 必须为 get-info——防表项错位） */
-	char expect[36];
-
-	int w = snprintf(expect, sizeof(expect), "sys/%s", e.op);
-
-	if (w < 0 || (size_t)w >= sizeof(expect) ||
-	    strncmp(key_suffix, "sys/", 4) != 0 ||
-	    strcmp(key_suffix, expect) != 0) {
-		return encode_err(resp, cap, resp_len, &e, TS_E_NOTFOUND, "op/key mismatch");
 	}
 	/* 写类命令门控（DEC-41 准入挂钩首个落点——部署面）：仅 v2 信封（v1 无
 	 * src 身份）且当前租约持有者 = src。只读族与 estop-clear 豁免不变。 */
@@ -923,7 +927,7 @@ ts_res_t ts_net_cmd_dispatch(const char *key_suffix, const uint8_t *req, uint32_
 	return wr;
 }
 
-void ts_net_cmd_sys_init(void)
+ts_res_t ts_net_cmd_sys_init(void)
 {
 	/* sys 命令表（LLD §4；host_only——本函数仅框架 init 调用）。
 	 * gated = 写类（v2 信封 + 租约持有者 = src 才执行，DEC-41）。 */
@@ -949,9 +953,23 @@ void ts_net_cmd_sys_init(void)
 		{"sys/get-app", cmd_get_app, false},
 	};
 	for (size_t i = 0; i < sizeof(sys_cmds) / sizeof(sys_cmds[0]); i++) {
-		(void)ts_net_cmd_register(sys_cmds[i].suffix, sys_cmds[i].fn);
-		table[i].gated = sys_cmds[i].gated; /* 公共注册面之后补装配位 */
+		ts_res_t r = ts_net_cmd_register(sys_cmds[i].suffix, sys_cmds[i].fn);
+
+		if (r != TS_OK) {
+			return r; /* 表满/撞名 = 装配错误，init 如实上抛（boot fail-safe） */
+		}
+		/* F-3（impl-review-01）：gated 位按 suffix 回查回填——公共注册面
+		 * 占首个空位，若本表不是表的首个注册方，数组下标与表位错开；
+		 * 按名回填使门控位恒指向本命令（按下标回填错位 = 写命令未门控，
+		 * 不可接受）。注册已成功 → find 必中（assert 防御装配回归）。 */
+		struct cmd_slot *s = find_cmd(sys_cmds[i].suffix);
+
+		__ASSERT(s != NULL, "sys cmd registered but unfound");
+		if (s != NULL) {
+			s->gated = sys_cmds[i].gated;
+		}
 	}
+	return TS_OK;
 }
 
 #ifdef CONFIG_TS_TEST

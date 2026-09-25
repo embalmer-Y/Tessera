@@ -1,6 +1,6 @@
-# LLD · ts-net v0.3.4
+# LLD · ts-net v0.3.5
 
-> **状态**：v0.3.2（2026-09-23 DEC-40/41/42 实现批次落地：信封 v2 + 幂等缓存 + 控制租约 + 事件/遥测信封 + QoS 映射 + is_up 任务自省；twister/L5/L3 全绿）。上位：HLD §3.5；公共约定 `LLD-00-common.md`。
+> **状态**：v0.3.5（2026-09-25 impl-review-01 修复批：periph/预算事件外发兑现〔F-1〕+ pubq 定容 128B + 分发顺序〔F-4〕+ sys_init 按 suffix 回填与错误传播〔F-3〕；twister 10/10〔46 用例〕全绿）。上位：HLD §3.5；公共约定 `LLD-00-common.md`。
 > **职责**：zenoh-pico 会话管理、命名空间构造、命令-回执分发、遥测/事件发布、心跳监视（断链判定）、控制租约（DEC-41）。
 > **合同关联**：合同 3（断链 fail-safe 判定源）、8（本地独立生效——判定不依赖外部确认）、9（rx 串行化）、10（命令准入/留痕）。
 > **外部依赖**：zenoh-pico 1.10.1（钉版，DR-22；上游零源码补丁，接线要点见 docs/dev-environment.md §7/§8）。
@@ -57,7 +57,7 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 - 回执：`{"ver": 1, "kind": 16, "rid": <原样回带>, "status": int, "data": …}`
 - 语义：
   - **request_id（rid）**：回执回带——调用方关联/审计归因（合同 10 对外留痕的调用方标识）；
-  - **幂等键（idem，可选）**：固件侧最近 4 项 idem→回执缓存（定容 LRU，`CONFIG_TS_NET_IDEM_CACHE`），同键重复请求**回放回执不重执行**——网络超时重发安全；
+  - **幂等键（idem，可选）**：固件侧最近 4 项 idem→回执缓存（定容 LRU，`CONFIG_TS_NET_IDEM_CACHE`），同键重复请求**回放回执不重执行**——网络超时重发安全；**回放判定在 key/op 双匹配之后**（impl-review-01 F-4：回执只应在与其执行同 key 的查询上回放，跨 key 同 idem = op/key mismatch 拒绝；门控豁免回放是有意语义——回放无新副作用，缓存回执对应一次已通过门控的历史执行）；
   - **带内超时（to，可选）**：命令执行上界；**固件拒绝 to > 5000ms**（断链窗口 6000ms〔DEC-22〕− 余量；出处 DEC-40）；
   - **source（src）**：调用方身份，进审计 payload。
 - v1/v2 共存策略：固件按首键判别（"op" 首 = v1；"ver" 首 = v2）；v1 进入弃用期（fw semver 次+1 移除）。
@@ -79,6 +79,8 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 | app-begin / app-chunk / app-verify / app-activate | 远程部署面（MA3.1，LLD-A06 §3；**gated：仅 v2 信封 + 租约持有者 = src**——DEC-41 写类准入首个落点） |
 | get-app | 当前 APP 信息快照（active_slot 回读确认，只读豁免） |
 
+- **gated 装配（impl-review-01 F-3）**：`ts_net_cmd_sys_init`（返回 `ts_res_t`，表满/撞名上抛 → init fail-safe，合同 6）按 **suffix 回查**回填 gated 位——公共注册面占首个空位，若 sys 表非首个注册方则下标与表位错开，按名回填使门控恒指向本命令（按下标回填错位 = 写命令未门控，不可接受）。
+
 ### 4.4 kind 注册表（唯一权威；Agent 侧 keys.py 镜像）
 
 | 区间 | 用途 | 已分配 |
@@ -98,10 +100,10 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 
 ## 5. 发布（pub.c）
 
-- 遥测：实例值变化（commit 审计缓冲消费）与周期快照〔DEC-27：200ms〕合流；缓冲深度〔DEC-27：8〕满则丢最旧并计数；**DOWN 期发布直接丢弃并计数**（不排队重放——防上电风暴与不确定时序）。
-- 事件：TS_EVT_* 选择性外发（estop 后补发、安全态迁移、越权留痕——合同 5/10 对外可见面）。
-- **信封 v1（DEC-42，已实现）**：事件 payload = `{"ver":1, "kind":32+evt_id, "t_ms", "wall_ms", "state"?}`；遥测 payload = `{"ver":1, "kind":96, "dev", "value_u", "wall_ms"}`（原 M3a.2 的设备种类键 `"kind"` 让位信封 kind，改名 `"dev"`——破坏性变更随本批与消费端同步切换）。消费端（host/Agent）对未知 kind **透传存储不解析**（§0 前向兼容落点）；固件产生端只产注册表内 kind。
-- 优先级映射（DEC-42，已实现，经 `ts_net_qos_t` 穿透 pubq→transport）：安全事件（estop/安全态迁移/越权）= zenoh congestion **BLOCK** + priority **REAL_TIME**；遥测/心跳 = 缺省（DROP + DATA）——参考 MatrixMechanic priority 位思想，用 zenoh 原生 QoS 承接（不自造位域）。
+- 遥测：实例值变化（commit 审计缓冲消费）与周期快照〔DEC-27：200ms〕合流；缓冲深度〔DEC-27：8〕满则丢最旧并计数；**DOWN 期发布直接丢弃并计数**（不排队重放——防上电风暴与不确定时序）。pubq 单条 payload 上限 **128B**（impl-review-01 F-1 定容：DEC-42 信封头最坏 ~45B + 预算事件 3 对 extra ~51B——原 64B 系"单 extra 对"口径；内存影响 +512B 静态，计入 DEC-29 板级 RAM 预算复核）。
+- 事件：TS_EVT_* 选择性外发，**订阅七类**——estop 后补发 / 安全态迁移 / 越权留痕 / 输入变化 / periph 插拔 / periph 附着 / 功率预算拒绝（后三类 = impl-review-01 F-1 兑现，其中插拔归因为 LLD-ts-periph §3"key 下线通告"承诺；早前"容量四类全占"系对订阅表分桶语义的误读——`subs[id][CONFIG_TS_CORE_MAX_SUBS]` 按事件类型各 4 位）。合同 5/10 对外可见面。
+- **信封 v1（DEC-42，已实现）**：事件 payload = `{"ver":1, "kind":32+evt_id, "t_ms", "wall_ms", <extra 扁平键值对 0…3 个>}`——extra：安全态迁移 = `{"state"}`（按 uid 路由 `…/<uid>/event`）；periph 插拔 = `{"uid", "pkind"}`（按 uid 路由）；功率预算拒绝 = `{"requested_ma", "used_ma", "budget_ma"}`（路由 `…/sys/event`）；遥测 payload = `{"ver":1, "kind":96, "dev", "value_u", "wall_ms"}`（原 M3a.2 的设备种类键 `"kind"` 让位信封 kind，改名 `"dev"`——破坏性变更随本批与消费端同步切换）。消费端（host/Agent）对未知 kind **透传存储不解析**（§0 前向兼容落点）；固件产生端只产注册表内 kind。
+- 优先级映射（DEC-42，已实现，经 `ts_net_qos_t` 穿透 pubq→transport）：安全事件（estop/安全态迁移/越权）= zenoh congestion **BLOCK** + priority **REAL_TIME**；遥测/心跳/**periph 插拔与预算事件**（DEC-42 安全类集合之外的观测类，类属缺省）= 缺省（DROP + DATA）——参考 MatrixMechanic priority 位思想，用 zenoh 原生 QoS 承接（不自造位域）。
 
 ## 6. 心跳监视（linkmon.c）——合同 3 判定源
 
@@ -136,6 +138,7 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 
 ## 修订记录
 
+- v0.3.5 · 2026-09-25：impl-review-01 修复批（F-1/F-3/F-4）——§5 订阅扩至七类（periph 插拔/附着 + 功率预算拒绝归因外发，extra 扁平对 0…3 个）+ pubq 定容 128B（溯源见 §5）；§4.2 idem 回放判定置于 key/op 匹配后（跨 key 同 idem 拒绝）；§4.3 gated 按 suffix 回查回填 + sys_init 错误上抛。回归：twister 10/10（46 用例）/ L5 6/6 / pytest 全绿。
 - v0.1 · 2026-09-20：首版草案。
 - v0.2 · 2026-09-20：review-01——keyspace 补 hb/sys 构造器（DR-12）；§4 补 sys 命令面（DR-03，深化批次）。
 - v0.2.1 · 2026-09-21：裁决同步——DEC-20/22/30 出处收敛（SC-02）。

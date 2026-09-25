@@ -174,7 +174,8 @@
 | ts-periph 族（ts_periph_kind_t{TS_PK_*}/ts_periph_desc_t/ts_periph_{register,count,get,attach,detach} + ts_periph_evt_t + CONFIG_TS_PERIPH_MAX_DESCS） | 描述符职责链（uid/dt 双名解耦 DEC-04）+ 插拔（DETACH→单通道 SAFE_FAULT） | include/ts/periph.h + src/periph/{desc,hotplug}.c | 已实现（M3b） |
 | ts_safety_force_channel_fault / ts_safety_channel_recover / ts_safety_test_reset | 单通道故障与恢复（periph DETACH 机制面）+ 测试隔离（通道表全清） | include/ts/safety.h + src/safety/channel.c | 已实现（M3b） |
 | kind 97（功率预算快照）+ ts_pwr_budget_evt_t | 遥测区间分配（LLD-ts-net §4.4 权威；keys.py KIND_TELEMETRY_POWER 镜像） | design/LLD-ts-net.md §4.4 + src/net/pub.c | 已实现（M3b） |
-| impl-review-01 / F-1…F-8 | impl 阶段评审报告与发现编号族（2026-09-25，对象 = DEC 批/MA3.1/MA3.2/M3b 四交付单元；验证全绿复现，8 项发现分级处置） | docs/impl-review-01.md | 已交付（待 owner 批复修复批） |
+| impl-review-01 / F-1…F-8 | impl 阶段评审报告与发现编号族（2026-09-25，对象 = DEC 批/MA3.1/MA3.2/M3b 四交付单元；验证全绿复现，8 项发现分级处置） | docs/impl-review-01.md | 已处置（修复批 2026-09-25 同日交付，F-5/F-7 为登记项） |
+| 里程碑 tag 族（m0…m3b / ma0…ma3） | git annotated tag 指向各里程碑交付终态提交（军规 5；m0 完整退出仍待 CI 上线〔DEC-24〕——tag 标记本地交付点） | git tag -l 'm*' 'ma*' | 2026-09-25 补打（impl-review-01 F-6） |
 | PeerTransport / Frontend / McpFrontend（core/peer.py） | A2A（DEC-36④）/ACP（DEC-35）接入缝——V1 仅协议 + 打桩冒烟 | agent/tessera_agent/core/peer.py | 已预留（MA3.2，实现属未来 Q） |
 | NeuroLink / MatrixMechanic | owner 前作参考项目（zenoh 上层协议 / TLV 私有协议；借鉴不照搬，采纳走门③） | github embalmer-Y；WSL 克隆 ~/project/logs/tmp/ref/ | 参考存档（2026-09-23） |
 | HLD-agent / LLD-A00…A07 | Agent 轨道设计文档族（A00 公共/A01 网关/A02 核心/A03 固件工具/A04 模拟器/A05 TSAP/A06 部署/A07 skills+平台） | design/HLD-agent.md v0.1 批次 | v0.1 待 owner 确认（C-4/C-5） |
@@ -210,5 +211,5 @@
 - 2026-09-22 · **裁决批次 8 登记**：DEC-38（Q-19：11 项按建议 + #6/#9 修订）、tag `dec-38`；Q-19 转已裁；设计文档同步（HLD v0.1.1 / LLD-A00·A01·A02 v0.1.1）。
 - 2026-09-22 · **裁决批次 9 登记**：DEC-39（C-4/C-5 确认 + 统一计划 + MA0 开工）、tag `dec-39`；project-plan 标识符登记。
 - 2026-09-22 · **M1 交付登记**：ts-core/ts-safety API 族与类型族、framework.{core,safety,replay} 用例、check_l5.py；M1 行更新为本地全绿（退出 review 门呈报）。
-- 2026-09-22 · M1 自检登记：IR-01…04（design/impl-review-m1.md）；tag 无（里程碑 tag 随 CI 上线补打惯例）。
+- 2026-09-22 · M1 自检登记：IR-01…04（design/impl-review-m1.md）；tag 当时无（2026-09-25 impl-review-01 F-6 已补打 m1 于交付终态提交）。
 - 2026-09-22 · **MA1 交付登记**：TaError/TaskRegistry/ContextBudget/ApprovalBroker/gated_tool/PolicyTable/PlanDto/build_app 等标识符；MA1 状态 = 本地全绿（FastMCP 客户端 + fw_build 句柄化实测）。

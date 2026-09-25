@@ -1,6 +1,6 @@
-# LLD · ts-safety v0.1 草案
+# LLD · ts-safety v0.2.3
 
-> **状态**：v0.1 草案，随 LLD 批次待 owner review。上位：HLD §3.2/§4；公共约定 `LLD-00-common.md`。
+> **状态**：v0.2.3（2026-09-25 impl-review-01 修复批：clear_fault 复位语义定案〔F-8〕——状态条件恢复 + 值不回写）。上位：HLD §3.2/§4；公共约定 `LLD-00-common.md`。
 > **职责**：输出保护层（限幅/slew/限流）、三安全态状态机、estop 直达路径、fail-safe 管线。
 > **合同关联**：合同 1（三安全态）、2（唯一写路径）、5（estop 不经队列）、7（供电同轨）、8（本地独立生效）。
 
@@ -78,6 +78,8 @@ void ts_safety_set_link(bool up);       /* [thread] ts-net 专用（经 sysworkq
 ts_res_t ts_safety_clear_fault(void);   /* [thread] 仅 sys:estop-clear 命令可达（host-only + 确认令牌，LLD-ts-net §4；授权 DEC-30①） */
 ```
 
+- **clear_fault 复位语义（v0.2.3 定案，impl-review-01 F-8——v0.2.2 ③"随 M3 联调复核"闭环）**：释放 forced 锁存后逐 SAFE_FAULT 通道做**状态条件恢复**（link up → ACTIVE，否则 SAFE_LINKLOSS）+ **输出值不回写**——物理输出保持 fault 安全值直至下一次显式 commit（与 DR-04"断链恢复不自动回写"同则：任何恢复路径都不凭记忆回写历史值，调用方须重新提交目标值；消除了"clear 即跳回 estop 前值"的隐性风险）。
+
 - **estop 路径纪律**（L5 机械检查目标）：`ts_safety_force_all_fault` 调用图内禁：分配、队列、锁、协议栈符号；仅原子置位 + driver_dispatch 直写（driver_dispatch 写函数须可重入/无锁——在 driver_dispatch.c 内以"写只依赖注册期冻结数据"实现）。
 - **estop 引脚绑定（DR-11）**：devicetree `chosen` 节点 `ts,estop-gpio`（板级 overlay 提供）；boot 步骤 1 由本模块读取并配置 IRQ（触发沿来自 prov 配置，构建期/烧录期确定）。
 - estop ISR 返回后：sysworkq 补发 `TS_EVT_ESTOP`（含触发时间戳，合同 5"事后补发事件"）。
@@ -113,6 +115,7 @@ extern const ts_driver_ops_t ts_drivers[3];   /* [GPIO]=native_sim 桩/gpio、[P
 
 ## 修订记录
 
+- v0.2.3 · 2026-09-25：impl-review-01 修复批（F-8）——§5 clear_fault 复位语义定案（v0.2.2 ③ 复核闭环）：状态条件恢复 + 输出值不回写（保持 fault 安全值直至显式 commit，与 DR-04 同则）。代码注释同步（channel.c），无行为变更。
 - v0.1 · 2026-09-20：首版草案（estop 无锁直达 + commit 末段 irq_lock 复查为本版关键设计）。
 - v0.2 · 2026-09-20：review-01——断链恢复不自动回写（DR-04）、审计消费/溢出策略（DR-07）、estop DT 绑定（DR-11）、clear_fault 授权收敛 sys:estop-clear（DR-03）。
 - v0.2.1 · 2026-09-21：裁决同步——DEC-30② 审计含 app_id；出处标注收敛（SC-02）。

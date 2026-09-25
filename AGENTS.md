@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-09-25（十三） · impl-review-01 修复批交付（owner 指令"严格按照大型项目标准规范修复这些问题"）：F-1…F-8 全处置——twister 10/10（46 用例）/L5 6/6/pytest×2/ruff/skills 全绿；10 个里程碑 tag 补打（m0…m3b/ma0…ma3，F-6）**
+  - 代码修复：F-1 pub.c 订阅七类事件（periph 插拔/附着 + 功率预算拒绝归因外发——LLD-ts-periph §3 承诺兑现；**pubq PAYLOAD_MAX 64→128B**〔派生定容，+512B 静态，计入 DEC-29 板级 RAM 复核〕；push_evt 增 extra_pairs 扁平对参数）；F-2 ts_periph_register 注册源静态表化（先落 descs[] 再注册，与 slots.c 同型；periph.h/power.h 生命周期契约；framework.periph test_04 栈描述符回归）；F-3 gated 按 suffix 回查回填 + `ts_net_cmd_sys_init` 返回 ts_res_t 上抛（init.c 传播 → boot fail-safe）；F-4 idem 回放判定后移至 key/op 匹配后（跨 key 同 idem 拒绝）；F-8 channel.c clear_fault 注释定案。
+  - 测试新增：framework.net test_11（F-3 表偏移判别：lease-get 不误门控/app-activate 不丢门控 + F-4 跨 key idem 拒绝）+ test_07 扩展（periph/预算事件信封与 QoS 断言）+ framework.periph test_04。
+  - 文档：LLD-ts-net v0.3.5 / LLD-ts-periph v0.4 / LLD-ts-safety v0.2.3 / project-plan v1.6（**M2b.2 开工前置检查项 F-7 并发防护复核**）；F-5 注册链无回滚登记 LLD 已知限制；decisions.md 修复批条目 + names.md（tag 族/评审状态）。
+  - 修复过程留痕（军规 5）：test_11 初版漏 sizeof(resp) 实参（编译拦截）；插 test_11 时误删 test_10 get-app 的 sizeof(resp)（编译拦截复原）；预算事件初版 extra 用嵌套 map（CBOR map 计数不符 → 测试拦截改扁平对）。
 - **2026-09-25（十二） · owner 指令 review：`docs/impl-review-01.md` 交付——对象 = DEC-40/41/42 批/MA3.1/MA3.2/M3b 四交付单元；验证声明全量复现（twister 10/10+44 用例/L5/pytest×2/ruff/skills 全绿）；8 项发现（无 P1）：F-1 periph/预算事件未 net 外发（LLD-ts-periph §3 承诺差距；pub.c"容量四类全占"注释系误读——订阅表按事件类型分桶）、F-2 desc.c GPIO/PWM 路径注册调用方指针（slots.c 同型悬垂未覆盖）、F-3 sys 表 gated 位按下标回填（装配序耦合）、F-4 idem 回放先于 key/op 匹配、F-5 注册链无回滚（V1 已知限制）、F-6 里程碑退出无 tag（军规 5）、F-7 WAMR 多线程前并发复核（set_link/recover 无锁 + 预算 TOCTOU——写入 M2b.2 DoD 前置）、F-8 clear_fault 语义复核未闭环；修复批建议（F-1/F-2/F-3/F-8+F-6 补 tag，小规模）**待 owner 批复**，未批不动代码（军规 9）**
   - 正面确认：安全合同映射（唯一写路径四段/estop 锁存拒恢复/prov 缺省安全侧）、lease 与 DEC-41 一致、cbor fail-closed（无截断别名）、deploy 租约闭环+幂等重试、平台域导入图守卫、文档同步齐、调试 printk 零残留。
 - **2026-09-25（十一） · M3b 交付并退出：ts-power + ts-periph + 集成重放——twister 10/10（44 用例）/L5 6/6/pytest/zenoh overlay 全绿；固件轨 M0…M3b 全部完成，余 M2b.2（WAMR，需网络）与板级移植（前置 Zephyr SDK）**

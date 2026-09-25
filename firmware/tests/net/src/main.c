@@ -8,6 +8,7 @@
 #include <ts/core.h>
 #include <ts/hal.h>
 #include <ts/net.h>
+#include <ts/periph.h>
 #include <ts/safety.h>
 #include <ts/store.h>
 /* 最小 CBOR 编解码（模块内部 API——测试构造请求/解回执复用同一实现） */
@@ -20,11 +21,11 @@ static int fake_close_calls;
 static int fake_pub_calls;
 static bool fake_up_v;
 static char last_key[64];
-static uint8_t last_payload[64];
+static uint8_t last_payload[128]; /* = pubq PAYLOAD_MAX（F-1 预算事件 ~85B） */
 static uint32_t last_len;
 static ts_net_qos_t last_qos;
 static char prev_key[64];
-static uint8_t prev_payload[64];
+static uint8_t prev_payload[128];
 static uint32_t prev_len;
 
 static ts_res_t fake_open(void)
@@ -453,6 +454,89 @@ ZTEST(framework_net, test_07_telemetry_and_events)
 		zassert_equal(kind, (uint64_t)(32 + (int)TS_EVT_SAFE_STATE_CHANGED),
 			      "事件 kind = 32+evt_id（§4.4）");
 		zassert_equal(last_qos, TS_NET_QOS_SAFETY, "安全事件 = 阻塞式高优先级");
+	}
+
+	/* F-1（impl-review-01）：periph 插拔事件归因外发（LLD-ts-periph §3
+	 * "key 下线通告"）——payload 携 uid/pkind，QoS = 尽力而为 */
+	fake_pub_calls = 0;
+	const ts_periph_evt_t ppl = {.uid = "tel1", .kind = (uint8_t)TS_PK_GPIO};
+	const ts_evt_t pevt = {
+		.id = TS_EVT_PERIPH_DETACH, .t_ms = 30,
+		.data = &ppl, .len = sizeof(ppl),
+	};
+
+	ts_evt_publish(&pevt);
+	ts_net_pubq_flush();
+	zassert_equal(fake_pub_calls, 1, "插拔事件一条");
+	zassert_equal(strcmp(last_key, "tessera/n1/c1/tel1/event"), 0, "按 uid 路由");
+	{
+		ts_cbor_rd_t r;
+		uint32_t pairs;
+		char k[8], uid[16];
+		uint64_t ver = 0, kind = 0, pkind = 0;
+
+		ts_cbor_rd_init(&r, last_payload, last_len);
+		zassert_true(ts_cbor_map_open(&r, &pairs));
+		zassert_equal(pairs, 6, "信封四对 + uid/pkind");
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "ver") == 0);
+		zassert_true(ts_cbor_uint(&r, &ver) && ver == 1);
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "kind") == 0);
+		zassert_true(ts_cbor_uint(&r, &kind));
+		zassert_equal(kind, (uint64_t)(32 + (int)TS_EVT_PERIPH_DETACH),
+			      "插拔 kind = 32+evt_id");
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "t_ms") == 0);
+		zassert_true(ts_cbor_uint(&r, &kind));
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "wall_ms") == 0);
+		zassert_true(ts_cbor_uint(&r, &kind));
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "uid") == 0);
+		zassert_true(ts_cbor_tstr(&r, uid, sizeof(uid)));
+		zassert_equal(strcmp(uid, "tel1"), 0, "归因 uid");
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "pkind") == 0);
+		zassert_true(ts_cbor_uint(&r, &pkind));
+		zassert_equal(pkind, (uint64_t)TS_PK_GPIO, "periph 类别");
+		zassert_equal(last_qos, TS_NET_QOS_BESTEFFORT, "插拔 = 尽力而为（DEC-42 类属）");
+	}
+
+	/* F-1：供电预算拒绝事件外发——payload 携 requested/used/budget 三元组 */
+	fake_pub_calls = 0;
+	const ts_pwr_budget_evt_t bpl = {
+		.requested_ma = 200, .used_ma = 150, .budget_ma = 300,
+	};
+	const ts_evt_t bevt = {
+		.id = TS_EVT_POWER_BUDGET, .t_ms = 40,
+		.data = &bpl, .len = sizeof(bpl),
+	};
+
+	ts_evt_publish(&bevt);
+	ts_net_pubq_flush();
+	zassert_equal(fake_pub_calls, 1, "预算事件一条");
+	zassert_equal(strcmp(last_key, "tessera/n1/c1/sys/event"), 0, "系统事件路由");
+	{
+		ts_cbor_rd_t r;
+		uint32_t pairs;
+		char k[16];
+		uint64_t u = 0, kind = 0;
+
+		ts_cbor_rd_init(&r, last_payload, last_len);
+		zassert_true(ts_cbor_map_open(&r, &pairs));
+		zassert_equal(pairs, 7, "信封四对 + 三元组");
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "ver") == 0);
+		zassert_true(ts_cbor_uint(&r, &u) && u == 1);
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "kind") == 0);
+		zassert_true(ts_cbor_uint(&r, &kind));
+		zassert_equal(kind, (uint64_t)(32 + (int)TS_EVT_POWER_BUDGET),
+			      "预算事件 kind = 32+evt_id");
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "t_ms") == 0);
+		zassert_true(ts_cbor_uint(&r, &u));
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "wall_ms") == 0);
+		zassert_true(ts_cbor_uint(&r, &u));
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "requested_ma") == 0);
+		zassert_true(ts_cbor_uint(&r, &u) && u == 200, "请求值归因");
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "used_ma") == 0);
+		zassert_true(ts_cbor_uint(&r, &u) && u == 150);
+		zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "budget_ma") == 0);
+		zassert_true(ts_cbor_uint(&r, &u) && u == 300);
+		zassert_equal(last_qos, TS_NET_QOS_BESTEFFORT, "预算事件 = 尽力而为");
 	}
 }
 
@@ -958,6 +1042,67 @@ ZTEST(framework_net, test_10_deploy_face)
 					  sizeof(resp), &resp_len),
 		      TS_OK, "get-app 只读不门控");
 	zassert_equal(resp_data_uint("active_slot"), 1);
+}
+
+/* ---- impl-review-01 修复批：F-3 gated 按 suffix 回填 / F-4 idem 先匹配 ---- */
+
+static ts_res_t cmd_probe(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
+{
+	ARG_UNUSED(a);
+	ARG_UNUSED(r);
+	ARG_UNUSED(cap);
+	*n = 0;
+	return TS_OK;
+}
+
+ZTEST(framework_net, test_11_gated_backfill_idem_order)
+{
+	uint8_t req[192];
+	size_t rlen;
+
+	ts_net_test_reset();
+	ts_net_cmd_test_reset();
+	/* F-3 场景：sys_init 前预注册外部命令（表头偏移一位）。按下标回填的
+	 * 旧实现此时会把 app-activate 的门控位错压到别处（app-activate 丢门控、
+	 * lease-get 被误门控）——按 suffix 回填后两者恒正确 */
+	zassert_equal(ts_net_cmd_register("sys/probe", cmd_probe), TS_OK);
+	zassert_equal(ts_net_cmd_sys_init(), TS_OK);
+
+	/* 外部命令不被误门控：v1 可执行 */
+	rlen = build_req(req, sizeof(req), "probe", NULL, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/probe", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_OK, "外部命令不门控");
+
+	/* 判别点（修复前失败）：lease-get 只读不被误门控——v1 可执行 */
+	rlen = build_req(req, sizeof(req), "lease-get", NULL, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/lease-get", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_OK, "只读命令不因表偏移被误门控");
+
+	/* 判别点（修复前失败）：app-activate 门控不因表偏移丢失——v1 拒绝 */
+	rlen = build_req(req, sizeof(req), "app-activate", NULL, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/app-activate", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_E_PARAM, "部署面门控不因表偏移丢失（v1 required）");
+
+	/* F-4：idem 回放不得跨 key——同 idem+op 发到别的 key = op/key mismatch
+	 *（修复前：回放先于 key/op 匹配，会原样回放 get-info 的回执） */
+	rlen = build_req_v2(req, sizeof(req), "get-info", "r-k1", NULL, NULL, 0,
+			    "idem-x", false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/get-info", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_OK);
+	zassert_equal(ts_net_cmd_dispatch("sys/get-link", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_E_NOTFOUND, "同 idem 跨 key = 拒绝（先匹配后回放）");
+
+	/* 同 key 同 idem 重发 = 原样回放（正路径不回归） */
+	rlen = build_req_v2(req, sizeof(req), "get-info", "r-k2", NULL, NULL, 0,
+			    "idem-x", false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/get-info", req, rlen, resp,
+					  sizeof(resp), &resp_len),
+		      TS_OK, "同 key 同 idem 正常回放");
 }
 
 ZTEST_SUITE(framework_net, NULL, NULL, NULL, NULL, NULL);

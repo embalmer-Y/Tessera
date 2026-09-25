@@ -53,10 +53,13 @@ ts_res_t ts_net_init(void)
 	printk("[ts-net] init prov_load=%d node=%s cube=%s\n", (int)plr, node, cube);
 	(void)ts_net_set_ids(node, cube);
 
-	/* sys 命令表注册（host_only；表满 = 装配错误，如实返回） */
-	ts_net_cmd_sys_init();
-	ts_res_t r = ts_net_pub_init();
+	/* sys 命令表 + 事件订阅（host_only；表满/订阅满 = 装配错误，如实返回） */
+	ts_res_t r = ts_net_cmd_sys_init();
 
+	if (r != TS_OK) {
+		return r;
+	}
+	r = ts_net_pub_init();
 	if (r != TS_OK) {
 		return r;
 	}

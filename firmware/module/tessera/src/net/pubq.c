@@ -7,7 +7,11 @@
 #include "internal.h"
 
 #define KEY_MAX     64
-#define PAYLOAD_MAX 64 /* DEC-42 信封最坏编码（事件含 extra ≈ 60B） */
+/* 溯源：DEC-42 信封最坏编码。原 64B = 信封头 + 单 extra 对（SAFE_STATE）；
+ * impl-review-01 F-1 增补 periph（2 对）/预算（3 对）extra 后最坏 ≈ 96B
+ * （t_ms/wall_ms 均 uint64 + 三键值对），扩至 128B。内存影响 +512B 静态
+ * （8 深度 ×128B = 1KB），计入板级 RAM 预算复核（DEC-29）。 */
+#define PAYLOAD_MAX 128
 #define DEPTH       CONFIG_TS_NET_PUBQ_DEPTH
 
 struct pubq_entry {

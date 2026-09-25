@@ -163,10 +163,11 @@ ts_res_t ts_safety_clear_fault(void)
 {
 	/* IR-01 修复（M1 自检）：clear_fault 是 estop 锁存的**唯一释放路径**
 	 *（LLD §5"clear_fault 前 forced 标志不复位"= 复位只经此处发生）；
-	 * 运行期可达性 = 仅 sys:estop-clear（host-only + 确认令牌，DEC-30①，
-	 * M3 ts-net 接线；M1 直调仅供测试）。
-	 * LLD §3 状态机图未明示复位目标态；实现取条件恢复
-	 * （link up → ACTIVE，否则 SAFE_LINKLOSS），语义随 M3 net 联调复核。 */
+	 * 运行期可达性 = 仅 sys:estop-clear（host-only + 确认令牌，DEC-30①）。
+	 * 复位语义（F-8 定案，LLD-ts-safety §5 v0.2.1）：状态条件恢复
+	 * （link up → ACTIVE，否则 SAFE_LINKLOSS）+ **输出值不回写**——物理
+	 * 输出保持 fault 安全值直至下一次显式 commit（与 DR-04"断链恢复不
+	 * 自动回写"同则；调用方须重新提交目标值）。 */
 	atomic_set(&ts_forced, 0);
 	ts_safety_estop_announce_reset();
 	for (size_t i = 0; i < ts_ch_count; i++) {

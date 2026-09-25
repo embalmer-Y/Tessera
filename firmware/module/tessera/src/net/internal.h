@@ -14,8 +14,9 @@ extern char ts_net_prefix[48]; /* "tessera/<node>/<cube>"，构造期一次成�
 /* session.c 定义：当前传输（NULL = 未注入） */
 extern const ts_net_transport_t *ts_net_transport;
 
-/* cmd.c：sys 命令表注册（init 期一次；host_only——DEC-30①） */
-void ts_net_cmd_sys_init(void);
+/* cmd.c：sys 命令表注册（init 期一次；host_only——DEC-30①）。
+ * 返回 TS_E_NOMEM/PARAM = 装配错误（表满/撞名），init 上抛 → boot fail-safe。 */
+ts_res_t ts_net_cmd_sys_init(void);
 #ifdef CONFIG_TS_TEST
 void ts_net_cmd_test_reset(void); /* 表 + 幂等缓存清空（测试隔离） */
 #endif

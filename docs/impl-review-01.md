@@ -97,5 +97,9 @@
 
 批内验证：twister 全量 + L5 + pytest ×2 + ruff + skills sync（与本报告 §1 同口径）。
 
+## 5. 处置结果（2026-09-25 修复批，owner 批复"严格按照大型项目标准规范修复这些问题"）
+
+F-1/F-2/F-3/F-4/F-8 代码修复 + F-6 十个里程碑 tag 补打（m0…m3b/ma0…ma3）+ F-5/F-7 登记落位（LLD 已知限制 / project-plan M2b.2 开工前置检查项）；新增测试 framework.net test_11 + framework.periph test_04 + test_07 扩展；派生定容一处（pubq PAYLOAD_MAX 64→128B，溯源见 LLD-ts-net §5）。回归全绿：twister 10/10（46 用例）/ L5 6/6 / pytest ×2 / ruff / skills sync。文档同步：LLD-ts-net v0.3.5 / LLD-ts-periph v0.4 / LLD-ts-safety v0.2.3 / project-plan v1.6 / decisions.md 修复批条目 / AGENTS.md（十三）。明细见上述登记处。
+
 ---
 *登记：docs/names.md（impl-review-01）；AGENTS.md 当前状态已同步。修复批未获批准前不动代码（军规 9）。*
