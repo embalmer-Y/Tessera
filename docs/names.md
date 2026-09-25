@@ -178,6 +178,7 @@
 | 里程碑 tag 族（m0…m3b / ma0…ma3） | git annotated tag 指向各里程碑交付终态提交（军规 5；m0 完整退出仍待 CI 上线〔DEC-24〕——tag 标记本地交付点） | git tag -l 'm*' 'ma*' | 2026-09-25 补打（impl-review-01 F-6） |
 | Q-23 / CONFIG_TS_APP_WAMR{,_HEAP} / TS_WAMR_DIR / tessera_wamr 库 / wamr_compat.c | WAMR 宿主线程模型与并发收口（F-7 落点，待裁）+ WAMR 接入配置族（M2b.2a 环境批：钉版 WAMR-2.4.5 源码根注入、独立三方库、Zephyr 4.4 API 兼容垫片） | decisions.md Q-23 + firmware/module/tessera/{Kconfig,CMakeLists.txt} + src/appmgr/wamr_compat.c | 环境批已交付（2026-09-26）；接线批待 Q-23 |
 | framework.wamr / 样例 APP 族（tests/wamr/app/{sample.c,build.sh,sample.wasm} + wasm_bytes.h 生成件） | WAMR 装载/零导入实例化/调用/重放冒烟（DEC-25 边界活体证明）；clang wasm32 自由固件产物（103B） | firmware/tests/wamr/ | 已实现（M2b.2a 环境批） |
+| framework.wamrdemo / busy.wasm 族（tests/wamrdemo/{app,src}） | Q-23 实证批：时延画像/B 方案 sysworkq 饿死/预算 TOCTOU 窗口（203ns）/A 通路对照（SMP+USE_SWITCH+真实时间对齐配置样板） | firmware/tests/wamrdemo/ + decisions.md Q-23 实验补充 | 已实现（2026-09-26，Q-23 证据留档） |
 | PeerTransport / Frontend / McpFrontend（core/peer.py） | A2A（DEC-36④）/ACP（DEC-35）接入缝——V1 仅协议 + 打桩冒烟 | agent/tessera_agent/core/peer.py | 已预留（MA3.2，实现属未来 Q） |
 | NeuroLink / MatrixMechanic | owner 前作参考项目（zenoh 上层协议 / TLV 私有协议；借鉴不照搬，采纳走门③） | github embalmer-Y；WSL 克隆 ~/project/logs/tmp/ref/ | 参考存档（2026-09-23） |
 | HLD-agent / LLD-A00…A07 | Agent 轨道设计文档族（A00 公共/A01 网关/A02 核心/A03 固件工具/A04 模拟器/A05 TSAP/A06 部署/A07 skills+平台） | design/HLD-agent.md v0.1 批次 | v0.1 待 owner 确认（C-4/C-5） |

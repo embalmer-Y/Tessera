@@ -373,3 +373,20 @@
 ---
 
 - 2026-09-26 · **M2b.2a 环境批交付（owner 指令"按照计划执行：M2b.2a"）**：WAMR **2.4.5 tag 钉版**接入（浅克隆 ~/project/deps/wamr，经 TS_WAMR_DIR 注入——仓库不含三方源码，zenoh-pico 同纪律）+ 模块构建配置按既有裁决落位（DEC-25 fast 解释器 + WASI 全关 + AOT/JIT 不启用；DEC-31 线程/共享内存编译期关；DEC-27 #10 池模式，native_sim 堆 64KB = HLD §4.6）+ 样例 APP（clang wasm32 自由固件 103B，health_ping/on_input）+ **framework.wamr 冒烟**（装载/零导入实例化 = WASI 关边界活体证明/调用/重放一致）。零上游补丁四要点留痕 dev-env v1.6 §3（include 传播/独立库 -w〔GB 撞名〕/通用 invokeNative〔.note.GNU-stack〕/stdout 钩子垫片）。CONFIG_TS_APP_WAMR 默认 n——接线批随 **Q-23** 裁定后落（appmgr 执行线程 + ts_* natives 挂接 + 租约挂钩）。回归：twister **11/11（47 用例）**/L5 6/6/pytest×2/ruff/skills 全绿；CI native-build 增 WAMR 检出步骤。
+
+#### Q-23 实验补充（2026-09-26 · framework.wamrdemo 实证批，owner 指令"先做 demo 实验用真实运行数据确认"）
+
+**实验环境**：native_sim（真实 pthread 抢占 + SMP 4 核真并行〔需显式 USE_SWITCH，否则 Kconfig 静默失效〕+ 真实时间对齐〔SLOWDOWN_TO_REAL_TIME，twister/TEST 下默认关〕）；负载 = busy.wasm（确定性算术循环，实测 ~1.1ns/迭代）。套件：framework.wamrdemo（4 用例全绿）。
+
+**实测数据**：
+
+| 实验 | 结果 | 判读 |
+|---|---|---|
+| ① 调用时延画像 | busy(1e3)≈1.4-4µs；busy(1e5)≈0.1-0.3ms；busy(1e6)≈1.1-1.9ms；busy(1e8)≈106-126ms（线性） | 事件处理器量级 = 微秒级；无界循环 = 百毫秒级且随规模线性放大——执行上下文必须与周期任务隔离 |
+| ② B 方案（sysworkq 同队）饿死 | 周期任务（10ms 节拍）基线 max 迟到 ≈1.0-1.3ms；同队一次 busy(1e8) 后 = **101.9-113.6ms**（两轮复现，断言过） | **APP 执行时长全量转嫁为周期任务延迟**；真实 MCU 协作 sysworkq 语义下更糟（完全阻塞抢占线程）——B 方案实证不可行 |
+| ③ 预算 TOCTOU 窗口 | 单请求全路径均值 = **203ns**（检查→提交窗口上界）；信号量栅栏同步起跑 4000 轮（4 核）实测超限 0 次 | 窗口客观存在但极窄；native_sim 唤醒串行化掩盖碰撞。**修订认知：锁收口紧迫性低于纸面预估**——但 ESP32-S3/P4 为真双核 SMP 板，长运行×海量请求下期望碰撞非零，收口仍必要（属廉价保险而非高危前置） |
+| ④ A 方案（专用线程）通路 | 独立实例 10 轮完整执行 ✓；周期任务未停摆 ✓；迟到数值 = native_sim 伪影（忙循环冻结模拟时钟，真实 MCU 上 ISR 抢占忙线程） | A 形态执行通路可用；其并发优越性在 native_sim 上**不可忠实演示**（时间模型限制，如实标注），板级验证补 |
+
+**修订后的建议（数据版）**：维持 **A**（每 APP 一个宿主框架线程 + 锁收口），但实施定位由"高危前置"改为"接线批顺带"——②证明 B 不可行是硬结论；③证明锁收口对象（203ns 窗口）成本低、可在接线批一并落（commit_lock 扩展 + 预算入锁 + pubq 互斥）并配并发压力回归用例；④的最终并发行为确认留板级里程碑（S3 双核实测）。
+
+**过程教训（dev-env §5-10/11 登记）**：native_sim SMP 需 USE_SWITCH 显式开启（静默失效）；忙循环冻结模拟时钟——宿主墙钟（显式声明 clock_gettime）是唯一可信测量时基。

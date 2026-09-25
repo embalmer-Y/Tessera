@@ -6,6 +6,9 @@
 
 ## 1. 当前状态
 
+- **2026-09-26（十六） · Q-23 实证批交付（owner 指令"先做 demo 实验用真实数据确认"）：framework.wamrdemo 4 用例全绿——B 方案饿死实证（基线 ~1.2ms → 同队 busy(1e8) 后 105-113ms，APP 时长全量转嫁，两轮复现）/ TOCTOU 窗口实测 203ns（4 核栅栏同步 4000 轮未碰撞——锁收口定位由"高危前置"修订为"接线批顺带"，真 SMP 板仍需）/ A 通路可用（专用线程+独立实例 10 轮完整，并发优越性受 native_sim 时间模型限制留板级验证）；时延画像（~1.1ns/wasm 迭代，busy(1e8)≈106-126ms）**
+  - 实验环境要点（dev-env v1.7 §5-10/11）：native_sim SMP 需显式 USE_SWITCH（否则静默失效）；忙循环冻结模拟时钟——测量须宿主墙钟（显式声明 clock_gettime）；真实时间对齐 SLOWDOWN_TO_REAL_TIME（twister/TEST 默认关）。
+  - 修订后建议呈递 decisions.md（Q-23 实验补充）：**维持方案 A**，锁收口随接线批一并落 + 并发压力回归用例 + S3 双核板级终验。**待 owner 裁定后开工接线批**（appmgr 执行线程 + ts_* natives + 租约挂钩）。
 - **2026-09-26（十五） · M2b.2a 环境批交付（owner 指令"按照计划执行：M2b.2a"）：WAMR-2.4.5 钉版接入 + 样例 APP + framework.wamr 冒烟——twister 11/11（47 用例）/L5 6/6/pytest×2/ruff/skills 全绿；**Q-23 已登记待裁（接线批前置）****
   - WAMR 接入：源码钉版 `~/project/deps/wamr`（WAMR-2.4.5 tag，浅克隆 34MB，经 `TS_WAMR_DIR` 注入——仓库不含三方源码，zenoh-pico 同纪律）；模块构建配置按既有裁决落位（DEC-25 fast 解释器+WASI 全关+AOT/JIT 不启用；DEC-31 线程/共享内存编译期关；DEC-27 #10 池模式 + native_sim 堆 64KB=HLD §4.6）；`CONFIG_TS_APP_WAMR` 默认 n（接线批随 Q-23 裁定后翻转）。
   - 零上游补丁四要点（留痕 dev-env v1.6 §3）：① runtime_lib.cmake 目录级 include → `zephyr_include_directories` 传播 wasm_export.h；② WAMR 源码独立库 `tessera_wamr` + `-w`（ems_gc.c `GB` 与 Zephyr 单位宏撞名）；③ `WAMR_BUILD_INVOKE_NATIVE_GENERAL=1`（ia32 汇编缺 .note.GNU-stack）；④ `__stdout_hook_install` 兼容垫片（WAMR 平台层引用 Zephyr 已移除 API，wamr_compat.c 空实现）。

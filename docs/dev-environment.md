@@ -86,6 +86,8 @@ python3.12 -m venv ~/project/agent-venv
 7. **Windows SDK 经 /mnt 互通掩盖工具链变体问题（2026-09-25，CI 三轮排障真因）**：WSL 会把 Windows 的 `ZEPHYR_SDK_INSTALL_DIR` 翻译成 `/mnt/c/...`——`ZEPHYR_TOOLCHAIN_VARIANT` 未设时 Zephyr 探测 SDK"成功"（实际编译器仍是 host gcc），本地全绿；干净环境（CI runner）同路径直接致命。**native_sim 主机工具链构建一律显式 `ZEPHYR_TOOLCHAIN_VARIANT=host`**（CI 已设；本地亦推荐）。
 8. **GitHub Actions 日志 API 需 admin 权限，public 仓库注解（annotations）API 免鉴权可读**：CI 内建"失败时把 CMake Error 首块注入 `::error::` 注解"（ci.yml，常设设施）——无 gh CLI/token 时的调试通路。
 9. **代理新模式（2026-09-25 起）**：owner 开启 TUN 级代理后，`wsl --shutdown` 重启即自动生效，WSL 内无需任何代理配置（教训 4 的 127.0.0.1:7897 手动配置不再是必需路径）。
+10. **native_sim SMP 需显式 USE_SWITCH（2026-09-26，wamrdemo 实证批）**：`CONFIG_SMP=y` 在 posix 架构下因缺 USE_SWITCH **静默失效**（Kconfig 告警被忽略时）——多核实验须同时开 `CONFIG_USE_SWITCH=y` + `CONFIG_MP_MAX_NUM_CPUS`，并以 autoconf.h 实际值为准复核。
+11. **native_sim 忙循环冻结模拟时钟**：Zephyr 线程忙等期间 hw timer 模型不推进（模拟时间停摆、宿主墙钟照走）——时序测量必须用宿主墙钟（minimal-libc time.h 不声明 clock_gettime，native_sim 进程链接宿主 libc，显式 extern 声明可用，仅测试代码）；"忙线程 + 定时器并发"类行为在 native_sim 上不可忠实模拟，留板级验证。
 
 ## 6. 会话规范（此后所有开发会话）
 
@@ -123,6 +125,7 @@ python3.12 -m venv ~/project/agent-venv
 
 ## 修订记录
 
+- v1.7 · 2026-09-26：Q-23 实证批——§5 增教训 10/11（native_sim SMP 需显式 USE_SWITCH 否则静默失效 / 忙循环冻结模拟时钟——宿主墙钟为唯一可信测量时基）；framework.wamrdemo 套件（SMP/真实时间对齐配置样板）。
 - v1.6 · 2026-09-26：M2b.2a 环境批——§2 增 WAMR-2.4.5 钉版（~/project/deps/wamr）与 clang/lld（wasm32 样例 APP）；§3 增 TS_WAMR_DIR 注入 + 样例重建入口 + WAMR 接入四要点（include 传播/独立库 -w/通用 invokeNative/stdout 钩子垫片）。
 - v1.5 · 2026-09-25：§5 增教训 7/8/9（Windows SDK /mnt 互通掩盖变体问题〔CI 真因〕/Actions 注解调试通路/TUN 级代理重启即用）；远端 `github.com/embalmer-Y/Tessera` 上线，CI 四 job 全绿。
 
