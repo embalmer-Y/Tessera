@@ -69,10 +69,14 @@ jobs:
       - name: 构建 firmware/app @ native_sim
         run: |
           source ~/ws/zephyr/zephyr-env.sh
+          set -o pipefail
           west build -b native_sim "$GITHUB_WORKSPACE/firmware/app" -d build-app --pristine=always -- \
-            -DZEPHYR_EXTRA_MODULES="$GITHUB_WORKSPACE/firmware/module/tessera"
+            -DZEPHYR_EXTRA_MODULES="$GITHUB_WORKSPACE/firmware/module/tessera" 2>&1 | tee /tmp/build.log \
+            || { echo "::error title=build-tail::$(tail -c 900 /tmp/build.log | tr '\n' '|')"; exit 1; }
       - name: twister 全量（L1/L2/L4，10 套件 @ native_sim）
         run: |
           source ~/ws/zephyr/zephyr-env.sh
+          set -o pipefail
           west twister -p native_sim -T "$GITHUB_WORKSPACE/firmware/tests" \
-            --extra-args=ZEPHYR_EXTRA_MODULES="$GITHUB_WORKSPACE/firmware/module/tessera"
+            --extra-args=ZEPHYR_EXTRA_MODULES="$GITHUB_WORKSPACE/firmware/module/tessera" 2>&1 | tee /tmp/twister.log \
+            || { echo "::error title=twister-tail::$(tail -c 900 /tmp/twister.log | tr '\n' '|')"; exit 1; }
