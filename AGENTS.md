@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-09-26（十五） · M2b.2a 环境批交付（owner 指令"按照计划执行：M2b.2a"）：WAMR-2.4.5 钉版接入 + 样例 APP + framework.wamr 冒烟——twister 11/11（47 用例）/L5 6/6/pytest×2/ruff/skills 全绿；**Q-23 已登记待裁（接线批前置）****
+  - WAMR 接入：源码钉版 `~/project/deps/wamr`（WAMR-2.4.5 tag，浅克隆 34MB，经 `TS_WAMR_DIR` 注入——仓库不含三方源码，zenoh-pico 同纪律）；模块构建配置按既有裁决落位（DEC-25 fast 解释器+WASI 全关+AOT/JIT 不启用；DEC-31 线程/共享内存编译期关；DEC-27 #10 池模式 + native_sim 堆 64KB=HLD §4.6）；`CONFIG_TS_APP_WAMR` 默认 n（接线批随 Q-23 裁定后翻转）。
+  - 零上游补丁四要点（留痕 dev-env v1.6 §3）：① runtime_lib.cmake 目录级 include → `zephyr_include_directories` 传播 wasm_export.h；② WAMR 源码独立库 `tessera_wamr` + `-w`（ems_gc.c `GB` 与 Zephyr 单位宏撞名）；③ `WAMR_BUILD_INVOKE_NATIVE_GENERAL=1`（ia32 汇编缺 .note.GNU-stack）；④ `__stdout_hook_install` 兼容垫片（WAMR 平台层引用 Zephyr 已移除 API，wamr_compat.c 空实现）。
+  - 样例 APP：`firmware/tests/wamr/app/`（clang wasm32 自由固件 103B，health_ping/on_input，build.sh 重建产物）；**framework.wamr** 冒烟 = 装载/零导入实例化（WASI 关边界活体证明）/调用/重放一致。
+  - CI：native-build 增 WAMR 检出步骤 + TS_WAMR_DIR env；**下一步 = Q-23 裁定后接线批**（appmgr 执行线程 + ts_* natives 挂接 + 写路径租约挂钩 + 并发压力用例）。
 - **2026-09-25（十四） · 远端上线 + CI 全绿 = M0 完整退出（DEC-24 落地）：`github.com/embalmer-Y/Tessera`（public）——main + 23 tag 已推；CI 四 job 全绿（repo-checks/l5-checks/agent-checks/native-build〔runner 上 twister 全量 10 套件〕）**
   - 过程：origin 更换（旧 origin 系 M0 迁移期指向 Windows 快照的本地路径）；合并 owner 建仓初始提交（LICENSE 附录占位符风格差异——保留本地 {yyyy} 版，法律文本等价）。
   - CI 首跑 native-build 失败，三轮定位（教训落盘 dev-env §5-7/8）：①bare runner 缺 Zephyr 主机构建依赖（apt 清单补齐）；②真因 = `ZEPHYR_TOOLCHAIN_VARIANT` 未设 → 探测 SDK → runner 无 SDK 致命——本地 WSL 曾被 Windows 侧 SDK 经 /mnt 环境互通掩盖（"Found host-tools: zephyr 1.0.1 (/mnt/c/…)"，编译器实为 host gcc）；修复 = 显式 `ZEPHYR_TOOLCHAIN_VARIANT=host`（本地同口径复验：构建 + twister 10/10〔46 用例〕全绿）。调试通路 = 失败时 CMake Error 首块注入注解（公开注解 API 可读，日志 API 需 admin；已留作常设设施）。

@@ -25,6 +25,8 @@
 | gcc / g++ | 13.3.0（+ **multilib**，native_sim 默认 32 位所需） | apt（清华镜像） |
 | cmake / ninja | 3.28.3 / 1.11.1 | apt |
 | 其他 apt 包 | gperf、ccache、python3-{pip,setuptools,dev,venv}、git、file、xz-utils | |
+| clang / lld | 18.1.3（apt） | 样例 APP 构建（`--target=wasm32` 自由固件，无 WASI——DEC-25） |
+| **WAMR 源码** | **WAMR-2.4.5 tag 钉版**，浅克隆 `~/project/deps/wamr`（34MB） | DEC-17 选型 / R1 v0.2 核验版本；仓库不含三方源码（zenoh-pico 同纪律），经 `TS_WAMR_DIR` 注入构建 |
 | venv | `~/project/zephyrproject/.venv`，Python 3.12.3 | west 1.5.0 + zephyr `scripts/requirements.txt` 全量 + pytest/gcovr/jsonschema（pip 清华镜像） |
 | Zephyr 工作区 | v4.4.0 **tag 钉版**（自 Windows 拷贝，8.8G，模块与钉版一致） | DEC-19 |
 | 网络 | apt/pip 走清华镜像（免代理）；GitHub 访问如需 → 经 Windows 代理 127.0.0.1:7897（WSL→Windows 需用主机 IP，暂未配——当前工作区完整拷贝，无网络需求） | |
@@ -37,12 +39,17 @@ cd ~/project/zephyrproject
 # 构建（native_sim，DEC-13/14 CI 基线）
 .venv/bin/west build -b native_sim ~/project/tessera/firmware/app -d build-m0-app \
   -- -DZEPHYR_EXTRA_MODULES=~/project/tessera/firmware/module/tessera
-# twister（运行级测试；tests/ 下用例）
+# twister（运行级测试；tests/ 下用例；M2b.2a 起 WAMR 套件需注入源码根）
+export TS_WAMR_DIR=~/project/deps/wamr
 .venv/bin/west twister -p native_sim -T ~/project/tessera/firmware/tests \
   --extra-args=ZEPHYR_EXTRA_MODULES=~/project/tessera/firmware/module/tessera
+# 样例 APP 产物重建（firmware/tests/wamr/app；源变更后重跑并提交 sample.wasm）
+~/project/tessera/firmware/tests/wamr/app/build.sh
 # pytest 仓库检查（军规 4 编码）
 ~/project/zephyrproject/.venv/bin/python -m pytest ~/project/tessera/firmware/tests/pytest -v
 ```
+
+**WAMR 接入要点（M2b.2a 实测，零上游补丁）**：① `runtime_lib.cmake` 内部为目录级 `include_directories`——消费方须经 `zephyr_include_directories` 取 `wasm_export.h`；② 三方源码独立库 `tessera_wamr` + `-w`（ems_gc.c 的 `GB` 与 Zephyr util.h 单位宏撞名）；③ `WAMR_BUILD_INVOKE_NATIVE_GENERAL=1`（ia32 汇编缺 `.note.GNU-stack`，被 `--fatal-warnings` 升级为链接错误）；④ `__stdout_hook_install` 兼容垫片（WAMR 平台层引用 Zephyr ≥3.x 已移除 API，`src/appmgr/wamr_compat.c` 空实现满足链接）。
 
 - 注：`-DZEPHYR_EXTRA_MODULES` 的路径含 `~` 时须展开（脚本中用 `$HOME`）；后续按 `docs/std/versioning.md` §4 迁入自管 west manifest 后可省。
 
@@ -116,6 +123,7 @@ python3.12 -m venv ~/project/agent-venv
 
 ## 修订记录
 
+- v1.6 · 2026-09-26：M2b.2a 环境批——§2 增 WAMR-2.4.5 钉版（~/project/deps/wamr）与 clang/lld（wasm32 样例 APP）；§3 增 TS_WAMR_DIR 注入 + 样例重建入口 + WAMR 接入四要点（include 传播/独立库 -w/通用 invokeNative/stdout 钩子垫片）。
 - v1.5 · 2026-09-25：§5 增教训 7/8/9（Windows SDK /mnt 互通掩盖变体问题〔CI 真因〕/Actions 注解调试通路/TUN 级代理重启即用）；远端 `github.com/embalmer-Y/Tessera` 上线，CI 四 job 全绿。
 
 - v1.2 · 2026-09-23：§7 补丁清单 + §8 L3 端到端达成（PASS）与复跑方法（TAP 需 sudo；zenohd v1.10.1 @ ~/project/tools）。

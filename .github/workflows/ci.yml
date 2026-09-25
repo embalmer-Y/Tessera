@@ -53,11 +53,16 @@ jobs:
       # 避免"变体未设→探测 SDK→无 SDK 致命"（runner 不装 ~1GB SDK）。
       # 注：本地 WSL 之所以免设，是 Windows 侧 SDK 经 /mnt 互通被探测到。
       ZEPHYR_TOOLCHAIN_VARIANT: host
+      # WAMR 源码根（钉版 WAMR-2.4.5，DEC-17/25；仓库不含三方源码）
+      TS_WAMR_DIR: /home/runner/wamr
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: 检出 WAMR 2.4.5（钉版，浅克隆）
+        run: git clone --depth 1 --branch WAMR-2.4.5
+              https://github.com/bytecodealliance/wasm-micro-runtime.git ~/wamr
       - name: 主机构建依赖（Zephyr 官方 Ubuntu 清单，native_sim 32 位含 multilib）
         run: |
           sudo apt-get update

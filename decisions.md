@@ -357,3 +357,19 @@
 - 2026-09-23 · **DEC-40/41/42 实现批次落地**（owner 指令"按计划继续开发"）：cmd.c 信封 v2（首键判别/rid 回带/4 项 idem LRU 回放不重执行/to>5000 拒绝/idem-op 一致性防御）+ lease.c（单租约/惰性过期/lease_id 单调/sys 三命令）+ pub.c 事件遥测 ver+kind 信封（遥测键 kind→dev 改名随批）+ ts_net_qos_t 穿透（安全事件 BLOCK+REAL_TIME）+ zenoh.c is_up 任务自省与 locator TCP/TLS 校验（缺省 locator udp→tcp 收敛）；twister 8/8（35 用例）/L5 6/6/pytest/L3 五验证点全绿（LLD-ts-net v0.3.2 §8）。
 - 2026-09-25 · **impl-review-01 修复批交付**（owner 指令"严格按照大型项目标准规范修复这些问题"）：评审发现 F-1…F-8 全处置——F-1 periph/预算事件 net 外发兑现（pub.c 订阅七类 + extra 扁平对；**pubq PAYLOAD_MAX 64→128B**〔派生定容：预算事件 3 对 extra 最坏 ~96B，内存 +512B 静态，计入 DEC-29 板级 RAM 复核〕；LLD-ts-periph §3 承诺闭环）+ F-2 ts_periph_register 注册源静态表化（safety 持指针——与 slots.c M3b 修复同型；头文件生命周期契约）+ F-3 gated 按 suffix 回查回填 + sys_init 错误上抛（boot fail-safe）+ F-4 idem 回放判定后移至 key/op 匹配后（跨 key 同 idem 拒绝）+ F-8 clear_fault 复位语义定案（状态条件恢复 + 值不回写，v0.2.2 ③ 复核闭环）；F-5 注册链无回滚登记 LLD 已知限制；F-7 并发防护复核写入 project-plan M2b.2 开工前置；F-6 里程碑 tag 同批补打。文档：LLD-ts-net v0.3.5 / LLD-ts-periph v0.4 / LLD-ts-safety v0.2.3 / project-plan v1.6。回归：twister 10/10（46 用例：+net test_11 +periph test_04）/L5 6/6/pytest/ruff/skills 全绿。
 - 2026-09-25 · **远端上线（DEC-24 落地）= M0 完整退出**：owner 提供 git@github.com:embalmer-Y/Tessera.git；origin 更换（旧 origin = M0 迁移期指向 Windows 快照的本地路径）；合并建仓初始提交（LICENSE 附录占位符风格差异保留本地 {yyyy} 版）；main + 23 tag 推送完成。CI（.github/workflows/ci.yml）四 job 全绿：repo-checks / l5-checks / agent-checks / native-build（runner 上 west v4.4.0 + twister 全量 10 套件 + ZEPHYR_TOOLCHAIN_VARIANT=host）。CI 修复链（三轮）：apt 主机构建依赖清单 → 真因 = 工具链变体未设探测 SDK（本地被 Windows SDK /mnt 互通掩盖）→ 显式 host 变体；调试通路 = 失败注解注入（公开 API 可读，常设）。仓库可见性 = public（如需 private 由 owner 在设置中调整，CI 无影响）。教训登记 dev-environment.md §5-7/8/9（v1.5）。
+
+---
+
+#### Q-23 · WAMR 宿主线程模型与并发收口（F-7 落点；M2b.2a 开工前置检查项）
+
+- **背景**：impl-review-01 F-7 登记：ts_safety_commit 持锁（+ 末段 irq_lock 复查 forced），但 ts_safety_set_link / ts_safety_force_channel_fault / ts_safety_channel_recover、ts_power_request 预算检查→提交、pubq/事件发布面均按"单 net 线程 + 测试直调"假设无锁——当前接线安全。M2b.2 接入 WAMR 后，APP 代码若在与 net 分离的执行上下文运行，上述假设失效（迁移路径竞态改写 shadow/state、预算 TOCTOU 瞬时超限、pubq 环竞态）。LLD-ts-appmgr 既有定义"**每 APP 一个框架线程**"；DEC-31 已裁 APP **内**禁自建线程（wasm 侧 pthread/共享内存编译期不启用，本批已按此配置）；**宿主侧**线程模型未裁。
+- **选项**：
+  - **A（建议）**：每 APP 一个宿主框架线程（V1 单 APP = 单执行线程，低于 net 优先级、可抢占）+ 配套锁收口——commit_lock 扩展覆盖 set_link / force_channel_fault / channel_recover；预算检查纳入 commit_lock 内；pubq/事件总线加轻量互斥。estop ISR 路径（force_all_fault）保持无锁直达设计**不变**（合同 5）。
+  - **B**：APP 执行串行化到 sysworkq（零锁改动）——长 APP 饿死 net_tick → 心跳缺失 → 误断链（方向 fail-safe 但功能不可用）；与 LLD"每 APP 一个框架线程"定义冲突。
+  - **C**：V1 先 B、V2 迁 A——避免不了 A 的锁收口工作，反增语义切换与返工。
+- **建议**：**A**。与 LLD/DEC-31 语义连续；锁收口范围小且可测（现有 47 用例回归 + 新增并发压力用例于 native_sim 实抢占环境）；规避 sysworkq 饿死。合同 9 不受影响（L4 重放本就单线程虚拟时钟）。
+- **影响**：M2b.2a 接线批（appmgr → WAMR 调用线程 + natives 挂接）按裁定实现；本环境批（WAMR 2.4.5 接入/framework.wamr 冒烟）不依赖本项，已先行交付。
+
+---
+
+- 2026-09-26 · **M2b.2a 环境批交付（owner 指令"按照计划执行：M2b.2a"）**：WAMR **2.4.5 tag 钉版**接入（浅克隆 ~/project/deps/wamr，经 TS_WAMR_DIR 注入——仓库不含三方源码，zenoh-pico 同纪律）+ 模块构建配置按既有裁决落位（DEC-25 fast 解释器 + WASI 全关 + AOT/JIT 不启用；DEC-31 线程/共享内存编译期关；DEC-27 #10 池模式，native_sim 堆 64KB = HLD §4.6）+ 样例 APP（clang wasm32 自由固件 103B，health_ping/on_input）+ **framework.wamr 冒烟**（装载/零导入实例化 = WASI 关边界活体证明/调用/重放一致）。零上游补丁四要点留痕 dev-env v1.6 §3（include 传播/独立库 -w〔GB 撞名〕/通用 invokeNative〔.note.GNU-stack〕/stdout 钩子垫片）。CONFIG_TS_APP_WAMR 默认 n——接线批随 **Q-23** 裁定后落（appmgr 执行线程 + ts_* natives 挂接 + 租约挂钩）。回归：twister **11/11（47 用例）**/L5 6/6/pytest×2/ruff/skills 全绿；CI native-build 增 WAMR 检出步骤。
