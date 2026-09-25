@@ -48,6 +48,11 @@ jobs:
 
   native-build:
     runs-on: ubuntu-24.04
+    env:
+      # native_sim 用主机工具链（本仓库全量测试的本地口径）——显式声明，
+      # 避免"变体未设→探测 SDK→无 SDK 致命"（runner 不装 ~1GB SDK）。
+      # 注：本地 WSL 之所以免设，是 Windows 侧 SDK 经 /mnt 互通被探测到。
+      ZEPHYR_TOOLCHAIN_VARIANT: host
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
