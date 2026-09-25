@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-09-25（十四） · 远端上线 + CI 全绿 = M0 完整退出（DEC-24 落地）：`github.com/embalmer-Y/Tessera`（public）——main + 23 tag 已推；CI 四 job 全绿（repo-checks/l5-checks/agent-checks/native-build〔runner 上 twister 全量 10 套件〕）**
+  - 过程：origin 更换（旧 origin 系 M0 迁移期指向 Windows 快照的本地路径）；合并 owner 建仓初始提交（LICENSE 附录占位符风格差异——保留本地 {yyyy} 版，法律文本等价）。
+  - CI 首跑 native-build 失败，三轮定位（教训落盘 dev-env §5-7/8）：①bare runner 缺 Zephyr 主机构建依赖（apt 清单补齐）；②真因 = `ZEPHYR_TOOLCHAIN_VARIANT` 未设 → 探测 SDK → runner 无 SDK 致命——本地 WSL 曾被 Windows 侧 SDK 经 /mnt 环境互通掩盖（"Found host-tools: zephyr 1.0.1 (/mnt/c/…)"，编译器实为 host gcc）；修复 = 显式 `ZEPHYR_TOOLCHAIN_VARIANT=host`（本地同口径复验：构建 + twister 10/10〔46 用例〕全绿）。调试通路 = 失败时 CMake Error 首块注入注解（公开注解 API 可读，日志 API 需 admin；已留作常设设施）。
+  - 代理新模式：owner TUN 级代理开启，`wsl --shutdown` 重启即自动生效（dev-env §5-9）——**M2b.2 的网络前置已就绪**。
+  - 下一步（待 owner 点向）：**M2b.2**（WAMR + wasm 工具链，网络已通，开工即登记 F-7 并发方案 Q）或**板级移植**（前置 Zephyr SDK for Linux ~1GB）。
 - **2026-09-25（十三） · impl-review-01 修复批交付（owner 指令"严格按照大型项目标准规范修复这些问题"）：F-1…F-8 全处置——twister 10/10（46 用例）/L5 6/6/pytest×2/ruff/skills 全绿；10 个里程碑 tag 补打（m0…m3b/ma0…ma3，F-6）**
   - 代码修复：F-1 pub.c 订阅七类事件（periph 插拔/附着 + 功率预算拒绝归因外发——LLD-ts-periph §3 承诺兑现；**pubq PAYLOAD_MAX 64→128B**〔派生定容，+512B 静态，计入 DEC-29 板级 RAM 复核〕；push_evt 增 extra_pairs 扁平对参数）；F-2 ts_periph_register 注册源静态表化（先落 descs[] 再注册，与 slots.c 同型；periph.h/power.h 生命周期契约；framework.periph test_04 栈描述符回归）；F-3 gated 按 suffix 回查回填 + `ts_net_cmd_sys_init` 返回 ts_res_t 上抛（init.c 传播 → boot fail-safe）；F-4 idem 回放判定后移至 key/op 匹配后（跨 key 同 idem 拒绝）；F-8 channel.c clear_fault 注释定案。
   - 测试新增：framework.net test_11（F-3 表偏移判别：lease-get 不误门控/app-activate 不丢门控 + F-4 跨 key idem 拒绝）+ test_07 扩展（periph/预算事件信封与 QoS 断言）+ framework.periph test_04。
