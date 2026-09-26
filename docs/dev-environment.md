@@ -27,10 +27,10 @@
 | 其他 apt 包 | gperf、ccache、python3-{pip,setuptools,dev,venv}、git、file、xz-utils | |
 | clang / lld | 18.1.3（apt） | 样例 APP 构建（`--target=wasm32` 自由固件，无 WASI——DEC-25） |
 | **WAMR 源码** | **WAMR-2.4.5 tag 钉版**，浅克隆 `~/project/deps/wamr`（34MB） | DEC-17 选型 / R1 v0.2 核验版本；仓库不含三方源码（zenoh-pico 同纪律），经 `TS_WAMR_DIR` 注入构建 |
-| venv | `~/project/zephyrproject/.venv`，Python 3.12.3 | west 1.5.0 + zephyr `scripts/requirements.txt` 全量 + pytest/gcovr/jsonschema（pip 清华镜像） |
-| Zephyr 工作区 | v4.4.0 **tag 钉版**（自 Windows 拷贝，8.8G，模块与钉版一致） | DEC-19 |
-| 网络 | apt/pip 走清华镜像（免代理）；GitHub 访问如需 → 经 Windows 代理 127.0.0.1:7897（WSL→Windows 需用主机 IP，暂未配——当前工作区完整拷贝，无网络需求） | |
-| **缺项** | Zephyr SDK（Linux 版）未装 | native_sim 开发**不需要**；真机板交叉构建需时下载 SDK 1.0.1 Linux 包（~1GB，建议经 Windows 代理下载后从 /mnt 拷入）——登记为待办，板级移植前完成 |
+| venv | `~/project/zephyrproject/.venv`，Python 3.12.3 | west 1.5.0 + `scripts/requirements.txt` + `west packages pip --install`（含 **esptool 5.4.0**）+ pytest/gcovr/jsonschema |
+| Zephyr 工作区 | v4.4.0 **tag 钉版**（2026-09-26 **官方手册重建**：`west init --mr v4.4.0` + `west update` + `west zephyr-export`；不再自 Windows 拷贝） | DEC-19；重建动因 = 教训 15 根因修复 |
+| **Zephyr SDK** | **1.0.1** @ `~/zephyr-sdk-1.0.1`：hosttools + `xtensa-espressif_esp32s3_zephyr-elf`（官方 `west sdk install`，版本自 `zephyr/SDK_VERSION`） | arm 等其他工具链日后按需同法补装 |
+| 网络 | apt/pip 清华镜像；GitHub 经 TUN 级代理（WSL 重启自动生效，教训 9） | |
 
 ## 3. 构建与测试命令（WSL 内，标准入口）
 
@@ -47,6 +47,12 @@ export TS_WAMR_DIR=~/project/deps/wamr
 ~/project/tessera/firmware/tests/wamr/app/build.sh
 # pytest 仓库检查（军规 4 编码）
 ~/project/zephyrproject/.venv/bin/python -m pytest ~/project/tessera/firmware/tests/pytest -v
+# 板级（xiao_esp32s3，2026-09-26 打通）——venv/bin 必须在 PATH（configure 期 cmake 于 PATH 找 esptool）
+export TS_WAMR_DIR=~/project/deps/wamr PATH=~/project/zephyrproject/.venv/bin:$PATH
+.venv/bin/west build -p always -b xiao_esp32s3/esp32s3/procpu ~/project/tessera/firmware/app \
+  -d ~/project/logs/build-xiao3 -- -DZEPHYR_EXTRA_MODULES=$HOME/project/tessera/firmware/module/tessera
+.venv/bin/west flash -d ~/project/logs/build-xiao3          # esptool @ /dev/ttyACM0（ESPTOOL_PORT 可显式指定）
+~/project/zephyrproject/.venv/bin/python ~/project/logs/console_smoke.py /dev/ttyACM0 12   # console 冒烟（RTS 复位重抓启动全程）
 ```
 
 **WAMR 接入要点（M2b.2a 实测，零上游补丁）**：① `runtime_lib.cmake` 内部为目录级 `include_directories`——消费方须经 `zephyr_include_directories` 取 `wasm_export.h`；② 三方源码独立库 `tessera_wamr` + `-w`（ems_gc.c 的 `GB` 与 Zephyr util.h 单位宏撞名）；③ `WAMR_BUILD_INVOKE_NATIVE_GENERAL=1`（ia32 汇编缺 `.note.GNU-stack`，被 `--fatal-warnings` 升级为链接错误）；④ `__stdout_hook_install` 兼容垫片（WAMR 平台层引用 Zephyr ≥3.x 已移除 API，`src/appmgr/wamr_compat.c` 空实现满足链接）。
@@ -89,7 +95,11 @@ python3.12 -m venv ~/project/agent-venv
 10. **native_sim SMP 需显式 USE_SWITCH（2026-09-26，wamrdemo 实证批）**：`CONFIG_SMP=y` 在 posix 架构下因缺 USE_SWITCH **静默失效**（Kconfig 告警被忽略时）——多核实验须同时开 `CONFIG_USE_SWITCH=y` + `CONFIG_MP_MAX_NUM_CPUS`，并以 autoconf.h 实际值为准复核。
 11. **native_sim 忙循环冻结模拟时钟**：Zephyr 线程忙等期间 hw timer 模型不推进（模拟时间停摆、宿主墙钟照走）——时序测量必须用宿主墙钟（minimal-libc time.h 不声明 clock_gettime，native_sim 进程链接宿主 libc，显式 extern 声明可用，仅测试代码）；"忙线程 + 定时器并发"类行为在 native_sim 上不可忠实模拟，留板级验证。
 12. **WAMR Zephyr 平台模块生命周期怪癖（2026-09-26，接线批排障双复现）**：同进程内 `wasm_runtime_load→unload→再 load`（相同字节流）与 `init→destroy→再 init→load` 均失败（解析错"unexpected end of section"）——规避 = **模块进程级复用**（runtime.c mod_cache：同字节流复用、不 unload、换包需重启）；升级 WAMR 后先撤实验验证。
-13. **板卡 USB 进 WSL（xiao_esp32s3，2026-09-26 打通）**：Windows 侧 `usbipd bind --busid 7-4`（管理员，UAC）→ 保持 WSL 存活 → `usbipd attach --wsl --busid 7-4` → `/dev/ttyACM0`（emb 已在 dialout 组，可直接读写）。注意 attach 需 WSL 发行版在运行；Windows 侧 COM 口同时消失（用完 `usbipd detach` 归还）。
+13. **板卡 USB 进 WSL（xiao_esp32s3，2026-09-26 打通）**：Windows 侧 `usbipd bind --busid 7-4`（管理员，UAC）→ 保持 WSL 存活 → `usbipd attach --wsl --busid 7-4` → `/dev/ttyACM0`（emb 已在 dialout 组，可直接读写）。注意 attach 需 WSL 发行版在运行；Windows 侧 COM 口同时消失（用完 `usbipd detach` 归还）。**`wsl --shutdown` 后 usbipd 状态残留 "Attached" 但内核未绑定**——须先 `detach` 再 `attach`（2026-09-26 环境重建实证）。
+14. **ESP32-S3 工具链勘误（2026-09-26 板级批实证）**：早前"ESP32 不需要 Zephyr SDK"**有误**——Zephyr 4.4 的 ESP32 系列交叉工具链 = **Zephyr SDK 的 xtensa-espressif_\* 系列**（`west espressif` 扩展仅有 monitor 子命令，无 install）。~~构建时显式 `ZEPHYR_SDK_INSTALL_DIR` 防 /mnt 污染~~ → 教训 15 已除根，SDK 发现链干净后**无需**显式指定（保持默认自动发现）。
+15. **Windows PATH 泄漏劫持 SDK 发现链——根因定论（2026-09-26，owner 指令官方重建时钉死）**：WSL 默认把 Windows PATH 追加进 Linux PATH（interop）；CMake `find_package(Zephyr-sdk)` 把 PATH 条目的父目录当搜索前缀并按 `<前缀>/zephyr-sdk*/cmake/Zephyr-sdkConfig.cmake` 通配匹配，`/mnt/c`（drvfs）**大小写不敏感**，故 `/mnt/c/Users/y1985/bin` → 前缀 `/mnt/c/Users/y1985` → 命中 Windows 侧 SDK。此通道**同时**劫持 cmake 构建与 `west sdk list/install`（后者经 `listsdk.cmake` 走同一 find_package）。**修复 = `/etc/wsl.conf` 追加 `[interop]\nappendWindowsPath=false` + `wsl --shutdown`**；代价 = WSL 内不能再直接调 Windows exe（本项目无此需求）。教训 7 的"ZEPHYR_SDK_INSTALL_DIR 翻译"机制描述不完整，以本条为准。
+16. **SDK 官方安装三要点（2026-09-26）**：① `west sdk install -t` 的工具链名用**全名**（`xtensa-espressif_esp32s3_zephyr-elf`，报错时它会列出全部合法名）；② `west sdk` 是 zephyr 侧扩展命令，依赖 `scripts/requirements.txt`——**先 pip 装依赖再跑 sdk install**，否则扩展导入失败且 west 以内部 AttributeError 掩盖真实错误；③ esptool 由 `west packages pip --install` 官方提供——构建与烧录须把 `.venv/bin` 前置 PATH（configure 期 cmake 在 PATH 找 esptool，缺失直接 configure 失败）。
+17. **板级 bring-up 三坑（2026-09-26，xiao_esp32s3）**：① RAM slot 替身（store/part.c）默认双 256KB = 512KB，ESP32-S3 的 dram0_0_seg 装不下（溢出 251KB）——板级片段 `firmware/app/boards/xiao_esp32s3_esp32s3_procpu.conf` 按 DEC-23/DEC-27 收紧（slot 32KB、宿主栈 16KB；PSRAM 挂接待板级任务）；② 改 `boards/` 片段后**必须 `-p always`**——`-p auto` 在同板同源 build 目录不触发 pristine，CONF_FILE 沿用缓存、新片段静默不生效（本次多耗两轮构建）；③ esp32s3 默认 **picolibc**，其 stdio.c 自带 `__stdout_hook_install`，与 WAMR 垫片撞多重定义——垫片加 `#if !defined(CONFIG_PICOLIBC)` 守卫（native_sim minimal-libc 路径不变）。
 
 ## 6. 会话规范（此后所有开发会话）
 
@@ -127,6 +137,7 @@ python3.12 -m venv ~/project/agent-venv
 
 ## 修订记录
 
+- v2.0 · 2026-09-26：**环境官方手册重建（owner 指令）**——§2 工作区改为 `west init --mr v4.4.0` 官方重建 + SDK 1.0.1 官方安装（~/zephyr-sdk-1.0.1）+ esptool 接入；§3 增板级构建/烧录/console 冒烟命令；§5 增教训 15（PATH interop 根因定论 + wsl.conf 修复）/16（SDK 安装三要点）/17（板级 bring-up 三坑），修正教训 13（shutdown 后 detach→reattach）/14（缓解手段除根后作废）；zenoh-pico 自旧工作区原样回拷（1.10.1 + config.h；L3 E2E 复跑待后续单元）。回归：native_sim 构建 + twister 14/14（58 用例）×2 + pytest + L5 全绿；板级：构建/烧录/console 冒烟绿，占用 text 91KB / 静态 bss 113KB / libc 堆余 218KB。
 - v1.9 · 2026-09-26：接线批——§5 增教训 12（WAMR 模块生命周期怪癖 + mod_cache 复用规避）/13（usbipd 板卡进 WSL 全流程，xiao_esp32s3 @ /dev/ttyACM0）。
 - v1.8 · 2026-09-26：板级前置——espressif 工具链安装（west espressif install，ESP32 系列不需要 Zephyr SDK）；xiao_esp32s3 定为真机板（DEC-43④）；WSL2 下 USB 串口不可见（板级会话需 usbipd-win 附加或 Windows 侧 esptool 烧录）。
 - v1.7 · 2026-09-26：Q-23 实证批——§5 增教训 10/11（native_sim SMP 需显式 USE_SWITCH 否则静默失效 / 忙循环冻结模拟时钟——宿主墙钟为唯一可信测量时基）；framework.wamrdemo 套件（SMP/真实时间对齐配置样板）。

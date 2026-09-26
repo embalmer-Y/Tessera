@@ -6,6 +6,12 @@
 
 ## 1. 当前状态
 
+- **2026-09-26（二十） · 环境官方重建 + 板级 bring-up 达成：SDK 发现链根因钉死除根（Windows PATH interop）；工作区/SDK 按官方手册重建安装；xiao_esp32s3 交叉构建/烧录/console 冒烟全绿；效率 DoD 六项移交下一单元**
+  - **根因（owner 指令"彻底解决"时钉死，dev-env 教训 15）**：WSL interop 把 Windows PATH 追加进 Linux PATH → cmake `find_package(Zephyr-sdk)` 前缀通配 + drvfs 大小写不敏感 → `/mnt/c` Windows SDK 劫持构建与 `west sdk` 双通道。**修复 = `/etc/wsl.conf [interop] appendWindowsPath=false` + `wsl --shutdown`**（教训 7/14 机制描述以此为准；显式 ZEPHYR_SDK_INSTALL_DIR 缓解不再需要）。
+  - **官方重建（后续操作依托官方工具）**：apt 手册清单 → fresh venv → `west init --mr v4.4.0` + `west update` + `west zephyr-export` + `west packages pip --install`（esptool 5.4.0 官方接入）→ **SDK 1.0.1 = `west sdk install -t xtensa-espressif_esp32s3_zephyr-elf`**（@ `~/zephyr-sdk-1.0.1`，`west sdk list` 验证发现链无污染）；旧工作区（Windows 拷贝版 8.8G）已删。
+  - **回归**：native_sim 构建 + twister **14/14（58 用例）×2**（picolibc 守卫前后各一轮）+ pytest + L5 全绿；zenoh-pico 原样回拷（1.10.1+config.h），L3 E2E 复跑待后续单元。
+  - **板级（xiao_esp32s3）**：交叉构建绿（板级内存片段 `firmware/app/boards/xiao_esp32s3_esp32s3_procpu.conf`〔DEC-23/27：slot 32KB/宿主栈 16KB，PSRAM 挂接前过渡〕+ WAMR 垫片 picolibc 守卫〔esp32s3 默认 picolibc 自带 `__stdout_hook_install`〕；教训 17 三坑留痕）→ esptool 烧录绿 → **console 冒烟绿**（boot 全程 / step8 无 APP 不阻塞〔r=-7 如实上报〕/ prov 缺失安全回退 n-dev·c-dev）；足迹第一组数据：text 91KB@flash / 静态 bss 113KB / libc 堆余 218KB。
+  - **下一单元（板级二）**：效率 DoD 六项（吞吐/陷出往返/写路径时延/mailbox 抖动/足迹对照/framework.conc 双核）+ RAM slot→flash 后端 + estop chosen overlay + PSRAM 挂接（HLD §4.6）。
 - **2026-09-26（十九） · M2b.2 收尾单元交付——boot 步骤 8 slot 装载 + TS_APP_WAMR 默认 y + E2E 真夹具 wasm：twister 14/14（58 用例）全绿，M2b.2 全部完成；板级运行效率 DoD 六项固化（owner 指令）**
   - ts_appmgr_boot_start：active slot TSAP → manifest canonical 走查（未知键 fail-closed；caps ';' 组合；app_id/app_ver 提取；stack/heap_kb V1 消耗常量〔已知限制〕）→ wasm 装载（TS_APP_LOAD_MAX=16K）→ 运行 → STAGED→ACTIVE；boot 步骤 8 尾部追加（**APP 故障不阻塞启动** = 合同 6 显式例外）；framework.app test_04 全链（构造容器→分步安装→boot 装载→写 gpio→app_id 断言）。
   - E2E wasm 化：test_deploy_e2e 改用固件同源夹具 native_app.wasm（Agent 打包链与固件运行时同一工件）；mod_cache 复用改内容比较（boot 缓冲 vs 夹具两份拷贝）。

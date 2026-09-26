@@ -86,7 +86,15 @@ if(CONFIG_TS_APP_WAMR)
       "TS_WAMR_DIR not set (WAMR source root; local: ~/project/deps/wamr, CI: checkout step)")
   endif()
   set(WAMR_BUILD_PLATFORM "zephyr")
-  set(WAMR_BUILD_TARGET "X86_32")     # native_sim 32 位基线
+  # 目标架构按板映射（板级移植批）：native_sim = X86_32（32 位基线）；
+  # xiao_esp32s3 = XTENSA（LX7）。新板须显式登记映射，防默认静默错配。
+  if(BOARD STREQUAL "native_sim")
+    set(WAMR_BUILD_TARGET "X86_32")
+  elseif(BOARD STREQUAL "xiao_esp32s3")
+    set(WAMR_BUILD_TARGET "XTENSA")
+  else()
+    message(FATAL_ERROR "WAMR_BUILD_TARGET unmapped for board '${BOARD}'")
+  endif()
   set(WAMR_BUILD_INTERP 1)
   set(WAMR_BUILD_FAST_INTERP 1)       # DEC-25：fast 解释器
   set(WAMR_BUILD_AOT 0)               # DEC-25：AOT = Agent 构建期选项，不入固件
