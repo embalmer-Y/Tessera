@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-09-26（十九） · M2b.2 收尾单元交付——boot 步骤 8 slot 装载 + TS_APP_WAMR 默认 y + E2E 真夹具 wasm：twister 14/14（58 用例）全绿，M2b.2 全部完成；板级运行效率 DoD 六项固化（owner 指令）**
+  - ts_appmgr_boot_start：active slot TSAP → manifest canonical 走查（未知键 fail-closed；caps ';' 组合；app_id/app_ver 提取；stack/heap_kb V1 消耗常量〔已知限制〕）→ wasm 装载（TS_APP_LOAD_MAX=16K）→ 运行 → STAGED→ACTIVE；boot 步骤 8 尾部追加（**APP 故障不阻塞启动** = 合同 6 显式例外）；framework.app test_04 全链（构造容器→分步安装→boot 装载→写 gpio→app_id 断言）。
+  - E2E wasm 化：test_deploy_e2e 改用固件同源夹具 native_app.wasm（Agent 打包链与固件运行时同一工件）；mod_cache 复用改内容比较（boot 缓冲 vs 夹具两份拷贝）。
+  - 过程修复（如实）：caps 分段末段越界（GCC UB 拦截）、manifest 键分支下标笔误（app_id 落 app_ver）、core 步骤守卫测试更新（新增步骤触发）。
+  - **板级效率 DoD（plan v1.10）**：① 解释器吞吐（vs native_sim 1.1ns/迭代）② native 陷出往返 ③ 写路径端到端时延 ④ mailbox/tick 抖动 ⑤ 足迹对拍 HLD §4.6 ⑥ conc 双核终验。**下一步 = 板级移植（xiao_esp32s3：/dev/ttyACM0 已通、espressif 工具链就绪）**。
 - **2026-09-26（十八） · 接线批第二单元交付（APP 运行时宿主 + natives，M2b.2a 核心）——twister 14/14（57 用例）全绿；板卡通道打通（usbipd → /dev/ttyACM0）**
   - runtime.c：每 APP 一框架线程（DEC-43 A，V1 单活跃）+ mailbox（DR-14 深度 8 满丢最旧）+ 停止语义（join 2s 强杀回收）+ 健康探针（连续 3 败自停 → health_fail 回滚入口）；Kconfig 常量全部 DEC-27 溯源。
   - natives.c：ts_api_v1 V1 子集（gpio/pwm/adc/time/log）；**ctx 经 exec_env user_data 注入防伪造**；权限裁决全经 ts-hal（PERM_DENIED 留痕 = 合同 10）。已知偏差 ①（全局注册→调用期裁决）与 ②（WAMR 模块生命周期怪癖 → mod_cache 进程级复用）登记 LLD-ts-appmgr v0.3 §7 + dev-env §5-12。

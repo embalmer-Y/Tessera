@@ -140,8 +140,12 @@ typedef struct {
  * （M2/M3 各里程碑按序补 periph/hal/store/net/appmgr 步骤），不可调换既有次序。
  * 来源: 结构性数值（步骤计数随里程碑追加更新，HLD §4.4）
  */
-#if defined(CONFIG_TS_NET)
+#if defined(CONFIG_TS_NET) && defined(CONFIG_TS_APP_WAMR)
+#define TS_BOOT_STEP_COUNT 6 /* M1 四步 + net_init（M3a.2）+ app_load（M2b.2 步骤 8）；来源: HLD §4.4 */
+#elif defined(CONFIG_TS_NET)
 #define TS_BOOT_STEP_COUNT 5 /* M1 四步 + net_init（M3a.2 尾部追加）；来源: HLD §4.4 */
+#elif defined(CONFIG_TS_APP_WAMR)
+#define TS_BOOT_STEP_COUNT 5 /* M1 四步 + app_load（M2b.2 步骤 8）；来源: HLD §4.4 */
 #else
 #define TS_BOOT_STEP_COUNT 4 /* M1: estop/poweron/wdt/core；来源: 结构性数值（HLD §4.4） */
 #endif

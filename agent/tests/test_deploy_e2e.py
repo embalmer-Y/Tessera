@@ -101,14 +101,20 @@ def cube_env(tmp_path_factory):
 
 
 def test_e2e_spec_to_deployed_cube(cube_env, tmp_path):
-    """MA3 退出标准：manifest spec → TSAP 打包签名 → 部署到仿真立方体。"""
+    """MA3 退出标准：manifest spec → TSAP 打包签名 → 部署到仿真立方体。
+    M2b.2 收尾：wasm 产物 = 仓库真夹具（framework.app 运行的同一二进制
+    firmware/tests/app/appw/native_app.wasm）——E2E 与固件运行时同一工件。"""
     tsap_tools.tsap_keygen("e2e", str(tmp_path), [str(tmp_path)])
-    wasm = tmp_path / "app.wasm"
-    wasm.write_bytes(b"\x00asm\x01\x00\x00\x00" + b"E2E-DEPLOY-FIXTURE" * 16)
+    repo_root = Path(__file__).resolve().parents[1]
+    while not (repo_root / "AGENTS.md").is_file():
+        repo_root = repo_root.parent
+    wasm = repo_root / "firmware" / "tests" / "app" / "appw" / "native_app.wasm"
+    assert wasm.is_file(), f"夹具 wasm 缺失：{wasm}"
     pkg = tsap_tools.tsap_package(
         str(wasm),
         {"app_id": "com.tessera.e2e", "app_ver": "1.0.0", "min_fw_ver": "0.1.0",
-         "caps": [], "stack_kb": 4, "heap_kb": 16, "exports": ["health_ping"]},
+         "caps": ["gpio:write:0-3"], "stack_kb": 4, "heap_kb": 16,
+         "exports": ["health_ping", "app_init", "app_evt"]},
         str(tmp_path / "e2e.key"), str(tmp_path), [str(tmp_path)],
     )
     with ZenohService("tcp/127.0.0.1:7447") as svc:

@@ -177,12 +177,33 @@ ts_res_t ts_appmgr_app_start(uint16_t app_id, const uint8_t *wasm,
 	if (!ts_app_natives_register()) {
 		return TS_E_IO;
 	}
-	/* 权限表 → hal ctx 绑定（表拷贝入绑定层；防伪造边界） */
+	/* 权限表 → hal ctx 绑定（表拷贝入绑定层；防伪造边界）。
+	 * caps 可为 ';' 分隔多条（boot 组合 manifest caps 数组；ts_perm_parse
+	 * 语义 = 位图或合并） */
 	ts_perm_table_t table;
 
 	ts_perm_table_init(&table);
-	if (caps[0] != '\0' && ts_perm_parse(caps, &table) != TS_OK) {
-		return TS_E_PARAM;
+	if (caps[0] != '\0') {
+		const char *p = caps;
+
+		while (*p != '\0') {
+			const char *seg = strchr(p, ';');
+			size_t sl = (seg != NULL) ? (size_t)(seg - p) : strlen(p);
+			char one[48];
+
+			if (sl == 0 || sl >= sizeof(one)) {
+				return TS_E_PARAM;
+			}
+			memcpy(one, p, sl);
+			one[sl] = '\0';
+			if (ts_perm_parse(one, &table) != TS_OK) {
+				return TS_E_PARAM;
+			}
+			if (seg == NULL) {
+				break; /* 末段（无 ';'）——防越过 NUL 越界 */
+			}
+			p = seg + 1;
+		}
 	}
 	memset(&rt, 0, sizeof(rt));
 	rt.app_id = app_id;
@@ -191,8 +212,10 @@ ts_res_t ts_appmgr_app_start(uint16_t app_id, const uint8_t *wasm,
 	}
 	rt.mod = NULL;
 	if (mod_cache.loaded) {
-		if (mod_cache.src == wasm && mod_cache.len == wasm_len) {
-			rt.mod = mod_cache.mod; /* 复用（见 mod_cache 注释） */
+		if (mod_cache.len == wasm_len &&
+		    memcmp(mod_cache.src, wasm, wasm_len) == 0) {
+			rt.mod = mod_cache.mod; /* 内容一致 → 复用（见 mod_cache 注释：
+						 * boot 缓冲与测试夹具为同 wasm 两份拷贝） */
 		} else {
 			return TS_E_STATE; /* 进程内换包不支持（怪癖规避——重启路径） */
 		}

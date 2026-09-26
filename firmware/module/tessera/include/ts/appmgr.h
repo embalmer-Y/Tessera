@@ -108,6 +108,13 @@ ts_res_t ts_appmgr_app_evt(uint32_t payload);
 bool ts_appmgr_app_running(void);
 void ts_appmgr_app_stats(struct ts_app_rt_stats *out);
 
+/** boot 装载（HLD §4.4-8；M2b.2 收尾单元）：读 active slot TSAP 容器 →
+ * manifest 走查（caps 组合/app_id 提取；未知键 fail-closed）→ wasm 字节
+ * → app_start。空 slot = TS_E_NOTFOUND；**APP 故障不阻塞启动**（boot
+ * 步骤内部留痕吞掉非致命错误——合同 6 显式例外）。加载缓冲上限 =
+ * CONFIG_TS_APP_LOAD_MAX；stack_kb/heap_kb V1 消耗运行时常量（已知限制）。 */
+ts_res_t ts_appmgr_boot_start(void);
+
 /* ---- 测试钩子（CONFIG_TS_TEST）------------------------------------------- */
 #ifdef CONFIG_TS_TEST
 void ts_appmgr_test_reset(void);

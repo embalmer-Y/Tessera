@@ -129,13 +129,20 @@ if TS_APPMGR
 
 config TS_APP_WAMR
 	bool "WAMR wasm runtime (WAMR-2.4.5 pinned)"
-	default n
+	default y
 	help
-	  M2b.2 environment batch (DEC-17 WAMR / DEC-25 fast interp + WASI off /
-	  DEC-31 no app threads). Default n until Q-23 (host threading model)
-	  adjudication lands the appmgr wiring; framework.wamr suite enables it.
-	  Source root injected via env TS_WAMR_DIR (repo carries no third-party
+	  DEC-17 WAMR / DEC-25 fast interp + WASI off / DEC-31 no app threads.
+	  Wiring batch complete (boot step 8 loads from active slot). Source
+	  root injected via env TS_WAMR_DIR (repo carries no third-party
 	  source; same discipline as zenoh-pico, dev-environment.md).
+
+config TS_APP_LOAD_MAX
+	int "Boot APP load buffer (bytes)"
+	depends on TS_APP_WAMR
+	default 16384
+	help
+	  Structural cap for wasm bytes loaded from slot at boot (must stay
+	  <= TS_STORE_SLOT_SIZE; board porting revisits per APP size class).
 
 config TS_APP_WAMR_HEAP
 	int "WAMR global heap pool size (bytes)"

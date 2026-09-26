@@ -1,4 +1,4 @@
-# LLD · ts-appmgr v0.3（M2b.2a 接线批落地）
+# LLD · ts-appmgr v0.4（M2b.2 完成）
 
 > **状态**：v0.3（2026-09-26 DEC-43 接线批：§4/§5 运行时宿主 + natives 落地——framework.app 端到端全绿；两项 V1 已知偏差与 WAMR 平台怪癖规避登记于 §7）。上位：HLD §3.4；公共约定 `LLD-00-common.md`。
 > **职责**：APP 包接收/验签/双 slot 存储/版本与回滚；WAMR 宿主（实例化 + 按能力装配导入面）；APP 线程与健康探针。
@@ -75,10 +75,11 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
   - **已知偏差 ①（结构化装配→调用期裁决）**：WAMR natives 为全局注册（namespace "env"），"未授权符号链接期不存在"需 per-instance natives 支持——留待 WAMR 升级/AOT 构建期裁剪；调用期经 ts_perm_check 拒绝 + TS_EVT_PERM_DENIED 留痕（合同 10 完整），测试 test_02 实证。
   - **已知偏差 ②（WAMR 平台怪癖规避）**：同进程 unload→reload 与 init→destroy→init 均实测失败（dev-env §5-12）——模块进程级复用（同字节流复用、stop 不卸载、换包需重启）；升级路径随板级/WAMR 修复版再议。
   - 健康导出名对齐 manifest v1 权威：`health_ping`（本文件 §4 早前笔误 app_health_ping 以 TsapManifest 为准）。
-  - 余项（M2b.2 收尾单元）：boot 步骤 8 从 active slot 装载接线（slot→wasm 字节读取 API）+ CONFIG_TS_APP_WAMR 默认翻转 + Agent E2E 链路 wasm 化。
+  - **收尾单元落地（v0.4）**：ts_appmgr_boot_start（active slot TSAP → manifest canonical 走查〔未知键 fail-closed；caps ';' 组合——ts_perm_parse 位图或合并；app_id/app_ver 提取；stack_kb/heap_kb 读取但 V1 消耗运行时常量〕→ wasm 装载〔CONFIG_TS_APP_LOAD_MAX 结构性上限〕→ app_start → STAGED→ACTIVE）；boot 步骤 8 app_load 尾部追加（APP 故障不阻塞启动 = 合同 6 显式例外〔HLD §4.4-8〕）；CONFIG_TS_APP_WAMR 默认 y；Agent E2E 使用固件同源夹具 wasm。
 
 ## 修订记录
 
+- v0.4 · 2026-09-26：M2b.2 收尾——boot 步骤 8 slot 装载 + 默认 y + E2E 真夹具 wasm；M2b.2 全部完成（twister 14/14〔58 用例〕）。
 - v0.3 · 2026-09-26：DEC-43 接线批——§5 运行时宿主与 natives 落地（framework.app 端到端）；§7 两项 V1 已知偏差（调用期裁决/模块进程级复用）+ 健康导出名对齐 health_ping + M2b.2 收尾余项登记。
 - v0.1 · 2026-09-20：首版草案（"按能力过滤符号装配"为权限硬边界核心机制）。
 - v0.2 · 2026-09-20：review-01——slot 经 ts-store（DR-01）、mailbox 串行化与卸载停止语义（DR-14）、APP 状态不持久化声明（DR-15）。

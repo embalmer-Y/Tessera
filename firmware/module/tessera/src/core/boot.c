@@ -10,6 +10,11 @@
 #include <ts/net.h>
 #endif
 
+#if defined(CONFIG_TS_APP_WAMR)
+#include <ts/appmgr.h>
+#include <zephyr/sys/printk.h>
+#endif
+
 /* 事件 payload 类型（core.h 侧集中定义于本文件上方 include；此处仅实现） */
 
 static ts_res_t step_estop_gpio(void)
@@ -48,9 +53,26 @@ static ts_res_t step_net_init(void)
 }
 #endif
 
+#if defined(CONFIG_TS_APP_WAMR)
+static ts_res_t step_app_load(void)
+{
+	/* 步骤 8（HLD §4.4-8，M2b.2 收尾）：从 active slot 装载 APP。
+	 * APP 级故障**不阻塞系统启动**（HLD §4.4-8 = 合同 6 显式例外）——
+	 * 失败仅 printk 留痕并返回 OK。 */
+	ts_res_t r = ts_appmgr_boot_start();
+
+	if (r != TS_OK) {
+		printk("[boot] step8 app load: 无 APP 或装载跳过（r=%d，不阻塞启动）\n",
+		       (int)r);
+	}
+	return TS_OK;
+}
+#endif
+
 /*
  * 顺序 = HLD §4.4（规格，不可调换；只允许尾部追加）：
- * estop GPIO → 全通道 SAFE_POWERON → WDT 启动 → core → net（M3a.2 追加）。
+ * estop GPIO → 全通道 SAFE_POWERON → WDT 启动 → core → net（M3a.2 追加）
+ * → app load（M2b.2 追加，步骤 8）。
  */
 const ts_boot_step_t ts_boot_steps[TS_BOOT_STEP_COUNT] = {
 	{"estop_gpio", step_estop_gpio},
@@ -59,6 +81,9 @@ const ts_boot_step_t ts_boot_steps[TS_BOOT_STEP_COUNT] = {
 	{"core_init", step_core_init},
 #if defined(CONFIG_TS_NET)
 	{"net_init", step_net_init},
+#endif
+#if defined(CONFIG_TS_APP_WAMR)
+	{"app_load", step_app_load},
 #endif
 };
 
