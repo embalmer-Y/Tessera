@@ -6,6 +6,12 @@
 
 ## 1. 当前状态
 
+- **2026-09-26（十七） · DEC-43 实现批交付（Q-23 裁定 A 后落地：锁收口 + 并发回归）——twister 13/13（54 用例）/L5 6/6/pytest×2/ruff/skills 全绿；板级前置就绪（xiao_esp32s3 + espressif 工具链）**
+  - 裁决登记：Q-23 → **DEC-43**（方案 A + 实验数据版定位：锁收口随接线批顺带；板卡定为 **xiao_esp32s3** 真机双核终验——owner 已接入）。
+  - 锁收口：commit.c 重构（write_lock/commit_locked 受控暴露）+ 迁移路径（set_link/force_channel_fault/channel_recover 双检/clear_fault）入互斥 + ts_power_request 检查-提交原子化（203ns TOCTOU 窗口消除）+ pubq 互斥（锁内出队/锁外发送）；**estop ISR 无锁直达不变（合同 5）**；锁序 write_lock→pubq 单向。
+  - **framework.conc** 新套件（SMP+USE_SWITCH）：对齐双冲 0 超限（锁后硬保证）/迁移×提交不变量/pubq 会计闭合与序号单调。
+  - 板级前置：espressif 工具链已装（west espressif install）；**WSL2 下 USB 串口不可见**（烧录策略随板级会话定：usbipd-win 或 Windows 侧 esptool）；文档 LLD-ts-safety v0.2.4/ts-power v0.2.1/ts-net v0.3.6。
+  - 下一单元：**接线批第二单元**（appmgr 执行线程 + ts_* natives 挂接 + 写路径租约挂钩）→ 板级移植（xiao_esp32s3 起）。
 - **2026-09-26（十六） · Q-23 实证批交付（owner 指令"先做 demo 实验用真实数据确认"）：framework.wamrdemo 4 用例全绿——B 方案饿死实证（基线 ~1.2ms → 同队 busy(1e8) 后 105-113ms，APP 时长全量转嫁，两轮复现）/ TOCTOU 窗口实测 203ns（4 核栅栏同步 4000 轮未碰撞——锁收口定位由"高危前置"修订为"接线批顺带"，真 SMP 板仍需）/ A 通路可用（专用线程+独立实例 10 轮完整，并发优越性受 native_sim 时间模型限制留板级验证）；时延画像（~1.1ns/wasm 迭代，busy(1e8)≈106-126ms）**
   - 实验环境要点（dev-env v1.7 §5-10/11）：native_sim SMP 需显式 USE_SWITCH（否则静默失效）；忙循环冻结模拟时钟——测量须宿主墙钟（显式声明 clock_gettime）；真实时间对齐 SLOWDOWN_TO_REAL_TIME（twister/TEST 默认关）。
   - 修订后建议呈递 decisions.md（Q-23 实验补充）：**维持方案 A**，锁收口随接线批一并落 + 并发压力回归用例 + S3 双核板级终验。**待 owner 裁定后开工接线批**（appmgr 执行线程 + ts_* natives + 租约挂钩）。

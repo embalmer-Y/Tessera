@@ -1,6 +1,6 @@
-# LLD · ts-safety v0.2.3
+# LLD · ts-safety v0.2.4
 
-> **状态**：v0.2.3（2026-09-25 impl-review-01 修复批：clear_fault 复位语义定案〔F-8〕——状态条件恢复 + 值不回写）。上位：HLD §3.2/§4；公共约定 `LLD-00-common.md`。
+> **状态**：v0.2.4（2026-09-26 DEC-43 锁收口：迁移路径与预算检查纳入 write_lock；estop ISR 路径不变）。上位：HLD §3.2/§4；公共约定 `LLD-00-common.md`。
 > **职责**：输出保护层（限幅/slew/限流）、三安全态状态机、estop 直达路径、fail-safe 管线。
 > **合同关联**：合同 1（三安全态）、2（唯一写路径）、5（estop 不经队列）、7（供电同轨）、8（本地独立生效）。
 
@@ -68,6 +68,7 @@ ts_res_t ts_safety_readback(const char *uid, ts_out_value_t *out); /* [any] 影�
 7. 审计：commit 事件（uid/value/t/结果/**调用者 app_id**〔DEC-30②〕）入环形审计缓冲〔深度 DEC-27： 64〕，供遥测与重放比对。
 
 - **审计消费与溢出（DR-07）**：消费者 = ts-net 遥测合流 + `sys:get-audit` 导出命令（LLD-ts-net §4）；溢出覆盖最旧并累加丢弃计数；**V1 不落盘（掉电丢失）**——记入 HLD §1 裁剪清单〔DEC-30④〕。
+- **锁收口（DEC-43，v0.2.4）**：`commit_lock` 经内部 `ts_safety_write_lock/unlock` 受控暴露——**安全态迁移路径（set_link / force_channel_fault / channel_recover / clear_fault）与供电预算检查-提交（ts_power_request，走 `ts_safety_commit_locked`）全部纳入同一互斥**（k_mutex 非递归，持锁方必须走 _locked 变体）。锁序 write_lock → pubq（事件发布路径），单向无环；线程上下文专用（ISR 禁入）；**estop ISR 路径（force_all_fault + 末段 irq_lock 复查）保持无锁直达不变（合同 5）**。读路径（readback/summary/遥测快照）维持无锁——影子字段均 ≤32bit 对齐读无撕裂，瞬时陈旧属观测面可接受（控制路径全部持锁）。回归 = framework.conc（对齐双冲 0 超限/迁移×提交不变量/pubq 完整性）+ 全量 13 套件。
 
 ## 5. estop 与 fail-safe 直达（force.c）——合同 5/8
 
@@ -115,6 +116,7 @@ extern const ts_driver_ops_t ts_drivers[3];   /* [GPIO]=native_sim 桩/gpio、[P
 
 ## 修订记录
 
+- v0.2.4 · 2026-09-26：DEC-43 锁收口——§4 增 write_lock 语义（迁移路径/预算检查-提交纳入同一互斥；estop ISR 无锁直达不变；读路径无锁标注）；回归 framework.conc 3 用例 + twister 13/13（54 用例）全绿。
 - v0.2.3 · 2026-09-25：impl-review-01 修复批（F-8）——§5 clear_fault 复位语义定案（v0.2.2 ③ 复核闭环）：状态条件恢复 + 输出值不回写（保持 fault 安全值直至显式 commit，与 DR-04 同则）。代码注释同步（channel.c），无行为变更。
 - v0.1 · 2026-09-20：首版草案（estop 无锁直达 + commit 末段 irq_lock 复查为本版关键设计）。
 - v0.2 · 2026-09-20：review-01——断链恢复不自动回写（DR-04）、审计消费/溢出策略（DR-07）、estop DT 绑定（DR-11）、clear_fault 授权收敛 sys:estop-clear（DR-03）。

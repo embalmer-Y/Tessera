@@ -93,6 +93,9 @@ ts_res_t ts_safety_poweron_init(void)
 
 void ts_safety_set_link(bool up)
 {
+	/* DEC-43 锁收口：迁移路径与 commit/单通道迁移互斥（set_state 发布事件
+	 * 在锁内——锁序 write_lock → pubq，单向）。线程上下文（sysworkq）。 */
+	ts_safety_write_lock();
 	atomic_set(&ts_link_up, up ? 1 : 0);
 	for (size_t i = 0; i < ts_ch_count; i++) {
 		struct ts_ch_slot *s = &ts_ch_table[i];
@@ -108,6 +111,7 @@ void ts_safety_set_link(bool up)
 			set_state(i, TS_ST_SAFE_LINKLOSS);
 		}
 	}
+	ts_safety_write_unlock();
 }
 
 #ifdef CONFIG_TS_TEST
@@ -129,6 +133,8 @@ ts_res_t ts_safety_force_channel_fault(const char *uid)
 	if (i < 0) {
 		return TS_E_NOTFOUND;
 	}
+	/* DEC-43 锁收口：与 commit/迁移互斥 */
+	ts_safety_write_lock();
 	struct ts_ch_slot *s = &ts_ch_table[i];
 
 	/* 与 force_all_fault 同语义但单通道；不置全局 forced（estop 专用锁存） */
@@ -136,6 +142,7 @@ ts_res_t ts_safety_force_channel_fault(const char *uid)
 	s->shadow = s->desc->fault;
 	s->have_last = false;
 	set_state(i, TS_ST_SAFE_FAULT);
+	ts_safety_write_unlock();
 	return TS_OK;
 }
 
@@ -149,6 +156,12 @@ ts_res_t ts_safety_channel_recover(const char *uid)
 	if (atomic_get(&ts_forced) != 0) {
 		return TS_E_STATE; /* estop/system_fail 锁存期不得单通道恢复 */
 	}
+	/* DEC-43 锁收口：与 commit/迁移互斥 */
+	ts_safety_write_lock();
+	if (atomic_get(&ts_forced) != 0) {
+		ts_safety_write_unlock();
+		return TS_E_STATE; /* 双检：持锁后复核（estop 可在两检之间置位） */
+	}
 	struct ts_ch_slot *s = &ts_ch_table[i];
 
 	/* 物理重附 = 重新上电语义：回 poweron 值；链路已立 → ACTIVE */
@@ -156,6 +169,7 @@ ts_res_t ts_safety_channel_recover(const char *uid)
 	s->shadow = s->desc->poweron;
 	s->have_last = false;
 	set_state(i, atomic_get(&ts_link_up) ? TS_ST_ACTIVE : TS_ST_SAFE_POWERON);
+	ts_safety_write_unlock();
 	return TS_OK;
 }
 
@@ -170,12 +184,15 @@ ts_res_t ts_safety_clear_fault(void)
 	 * 自动回写"同则；调用方须重新提交目标值）。 */
 	atomic_set(&ts_forced, 0);
 	ts_safety_estop_announce_reset();
+	/* DEC-43 锁收口：状态批量迁移与 commit/单通道迁移互斥 */
+	ts_safety_write_lock();
 	for (size_t i = 0; i < ts_ch_count; i++) {
 		if (ts_ch_table[i].state == TS_ST_SAFE_FAULT) {
 			set_state(i, atomic_get(&ts_link_up) ? TS_ST_ACTIVE : TS_ST_SAFE_LINKLOSS);
 			ts_ch_table[i].have_last = false;
 		}
 	}
+	ts_safety_write_unlock();
 	return TS_OK;
 }
 

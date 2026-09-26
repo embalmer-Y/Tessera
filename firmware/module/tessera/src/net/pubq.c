@@ -1,9 +1,12 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* 发布队列（LLD-ts-net §5）：遥测/事件尽力而为，不阻塞控制路径。
  * DOWN 期直接丢弃并计数（防上电风暴与不确定时序，不排队重放）；
- * 队满丢最旧并计数（DEC-27：缓冲 8）。 */
+ * 队满丢最旧并计数（DEC-27：缓冲 8）。
+ * 互斥（DEC-43）：push/flush 并发（net 线程 flush × APP 线径事件 push）——
+ * flush 仅在锁内出队，transport->publish 在锁外（防传输阻塞反压发布方）。 */
 #include <string.h>
 #include <ts/net.h>
+#include <zephyr/kernel.h>
 #include "internal.h"
 
 #define KEY_MAX     64
@@ -23,6 +26,7 @@ struct pubq_entry {
 
 static struct pubq_entry q[DEPTH];
 static uint32_t head, count, dropped;
+static struct k_mutex pubq_lock = Z_MUTEX_INITIALIZER(pubq_lock);
 
 ts_res_t ts_net_pubq_push(const char *key, const uint8_t *payload, uint32_t len)
 {
@@ -38,8 +42,10 @@ ts_res_t ts_net_pubq_push_qos(const char *key, const uint8_t *payload, uint32_t 
 	if (strlen(key) >= KEY_MAX || len > PAYLOAD_MAX) {
 		return TS_E_PARAM;
 	}
+	k_mutex_lock(&pubq_lock, K_FOREVER);
 	if (ts_net_state() == TS_NET_DOWN) {
 		dropped++; /* DOWN 期直接丢弃（LLD §5） */
+		k_mutex_unlock(&pubq_lock);
 		return TS_OK;
 	}
 	if (count == DEPTH) {
@@ -54,6 +60,7 @@ ts_res_t ts_net_pubq_push_qos(const char *key, const uint8_t *payload, uint32_t 
 	e->len = len;
 	e->qos = qos;
 	count++;
+	k_mutex_unlock(&pubq_lock);
 	return TS_OK;
 }
 
@@ -62,14 +69,24 @@ void ts_net_pubq_flush(void)
 	if (ts_net_state() != TS_NET_CONNECTED || ts_net_transport == NULL) {
 		return;
 	}
-	while (count > 0) {
-		struct pubq_entry *e = &q[head];
+	for (;;) {
+		struct pubq_entry e;
 
-		if (ts_net_transport->publish(e->key, e->payload, e->len, e->qos) != TS_OK) {
-			dropped++; /* 发送失败丢弃（尽力而为语义） */
+		k_mutex_lock(&pubq_lock, K_FOREVER);
+		if (count == 0) {
+			k_mutex_unlock(&pubq_lock);
+			return;
 		}
+		e = q[head]; /* 锁内出队；发送在锁外（传输阻塞不反压发布方） */
 		head = (head + 1) % DEPTH;
 		count--;
+		k_mutex_unlock(&pubq_lock);
+
+		if (ts_net_transport->publish(e.key, e.payload, e.len, e.qos) != TS_OK) {
+			k_mutex_lock(&pubq_lock, K_FOREVER);
+			dropped++; /* 发送失败丢弃（尽力而为语义） */
+			k_mutex_unlock(&pubq_lock);
+		}
 	}
 }
 

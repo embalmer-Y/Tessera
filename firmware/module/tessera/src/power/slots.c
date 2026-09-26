@@ -13,6 +13,7 @@
 #include <ts/store.h>
 #include <zephyr/kernel.h>
 #include "budget.h"
+#include "../safety/internal.h" /* DEC-43：write_lock/commit_locked（检查-提交原子化） */
 
 struct pwr_slot_rec {
 	ts_pwr_slot_t spec;
@@ -80,6 +81,9 @@ ts_res_t ts_power_request(ts_ctx_t c, uint8_t slot, bool on, uint32_t ma)
 	if (s == NULL) {
 		return TS_E_NOTFOUND;
 	}
+	/* DEC-43 锁收口：预算检查-提交原子化（持锁内走 commit_locked——
+	 * k_mutex 非递归）。锁序 write_lock → pubq（预算拒绝事件发布），单向。 */
+	ts_safety_write_lock();
 	/* 预算检查（LLD §3：超 → 拒绝新请求；既有槽不受影响） */
 	uint32_t used = ts_power_used_ma();
 	ts_out_value_t rb;
@@ -98,12 +102,15 @@ ts_res_t ts_power_request(ts_ctx_t c, uint8_t slot, bool on, uint32_t ma)
 			.data = &pl, .len = sizeof(pl),
 		};
 		ts_evt_publish(&evt);
+		ts_safety_write_unlock();
 		return TS_E_RANGE;
 	}
 	/* 唯一写路径（合同 2/7）；限流（current_limit）在保护层兜底 */
 	ts_out_value_t v = {.pwr = {.en = on, .ma = on ? ma : 0}};
 
-	return ts_safety_commit(s->uid, v);
+	r = ts_safety_commit_locked(s->uid, v);
+	ts_safety_write_unlock();
+	return r;
 }
 
 #ifdef CONFIG_TS_TEST

@@ -33,6 +33,15 @@ extern atomic_t ts_link_up;     /* 全局链路标志（LLD §3） */
 /** estop 补发宣布位复位（clear_fault 调用；IR-01） */
 void ts_safety_estop_announce_reset(void);
 
+/* ---- 锁收口（DEC-43，Q-23 方案 A）------------------------------------------
+ * write_lock = commit_lock 的受控暴露：安全态迁移路径（set_link / 单通道
+ * force/recover / clear_fault）与供电预算检查-提交须与 commit 互斥。
+ * 线程上下文专用（ISR 禁入）；已持锁方调用 commit 须走 commit_locked
+ * （k_mutex 非递归）。锁序：write_lock → pubq 锁（事件发布路径），单向。 */
+void ts_safety_write_lock(void);
+void ts_safety_write_unlock(void);
+ts_res_t ts_safety_commit_locked(const char *uid, ts_out_value_t v);
+
 /* ts_value_encode 已提升为公共 API（safety.h）——审计/遥测统一口径 */
 
 /* 查找槽下标；未注册返回 -1 */

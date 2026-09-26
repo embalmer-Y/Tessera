@@ -1,6 +1,6 @@
-# LLD · ts-power v0.2（M3b 已实现）
+# LLD · ts-power v0.2.1（M3b 已实现）
 
-> **状态**：v0.2（2026-09-25 M3b 实现批次落地；twister framework.power 3 用例 + replay 集成场景全绿）。上位：HLD §3.6；公共约定 `LLD-00-common.md`。
+> **状态**：v0.2.1（2026-09-26 DEC-43：预算检查-提交原子化〔write_lock + commit_locked〕）。上位：HLD §3.6；公共约定 `LLD-00-common.md`。
 > **职责**：受控供电——供电槽开关、限流、功率预算上报（DEC-03：供电视同输出，走同一安全合同）。
 > **合同关联**：合同 7（纳入 1–6 同一合同）、1（供电通道三安全态必声明）、2（开关必经 ts-safety 唯一出口）。
 
@@ -25,7 +25,7 @@ ts_res_t ts_power_register_slot(const ts_pwr_slot_t *s);          /* ts-periph �
 ts_res_t ts_power_request(ts_ctx_t c, uint8_t slot, bool on, uint32_t ma);  /* ts-hal → 此处 */
 ```
 
-- `ts_power_request` 流程：预算检查（§3）→ 构造 `ts_out_value_t{.pwr={on, ma}}` → **`ts_safety_commit(uid, v)`**——开关的物理生效只有这一条路（合同 2/7）；限流由 ts-safety 的 `limits.current_limit_ma` 兜底。
+- `ts_power_request` 流程：预算检查（§3）→ 构造 `ts_out_value_t{.pwr={on, ma}}` → **`ts_safety_commit(uid, v)`**——开关的物理生效只有这一条路（合同 2/7）；限流由 ts-safety 的 `limits.current_limit_ma` 兜底。**锁收口（DEC-43，v0.2.1）**：检查-提交原子化——全程持 `ts_safety_write_lock`，提交走 `ts_safety_commit_locked`（消除 TOCTOU：窗口实测 203ns〔Q-23 实验补充〕，真 SMP 板上可达）。
 - 三安全态：poweron/linkloss/fault 的取值在注册描述符中声明（如 fault = 关断），缺省拒绝注册。
 
 ## 3. 功率预算（budget.c）
@@ -59,6 +59,7 @@ ts_res_t ts_power_request(ts_ctx_t c, uint8_t slot, bool on, uint32_t ma);  /* t
 
 ## 修订记录
 
+- v0.2.1 · 2026-09-26：DEC-43 锁收口——ts_power_request 检查-提交原子化（write_lock + commit_locked，TOCTOU 窗口 203ns 消除）；回归 framework.conc test_01 + 全量 13/13。
 - v0.1 · 2026-09-20：首版草案。
 - v0.1.1 · 2026-09-21：裁决同步——出处标注收敛（SC-02）。
 - v0.2 · 2026-09-25：M3b 实现批次——§7 落地状态；prov 只读预算语义（缺省 0 = 安全侧）与静态存储细节定稿。

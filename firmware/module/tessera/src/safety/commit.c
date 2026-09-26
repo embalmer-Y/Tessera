@@ -3,12 +3,27 @@
  * 唯一写路径出口（LLD-ts-safety §4）——合同 2 的强制点。
  * 内部流程：查表 → ACTIVE 校验 → 限幅 → slew → 限流 → 末段临界区（irq_lock 复查
  * forced，防 estop ISR 与本线程竞争末笔）→ 审计。
+ * 锁收口（DEC-43）：ts_safety_write_lock/unlock 公开给迁移路径与预算检查，
+ * ts_safety_commit_locked 供已持锁调用方（ts_power_request 检查-提交原子化）
+ * 复用——k_mutex 非递归，持锁方必须走 _locked 变体。锁序：write_lock →
+ * pubq（事件发布路径），单向无环。
  */
 #include <string.h>
 #include <ts/safety.h>
 #include "internal.h"
 
 static struct k_mutex commit_lock = Z_MUTEX_INITIALIZER(commit_lock);
+
+void ts_safety_write_lock(void)
+{
+	__ASSERT(!k_is_in_isr(), "write lock is thread-only");
+	(void)k_mutex_lock(&commit_lock, K_FOREVER);
+}
+
+void ts_safety_write_unlock(void)
+{
+	(void)k_mutex_unlock(&commit_lock);
+}
 
 /* 审计环形：深度 CONFIG_TS_SAFETY_AUDIT_DEPTH（DEC-27: 64）；溢出覆盖最旧并计数
  * （DR-07；V1 不落盘——DEC-30④）。消费者 = ts-net 遥测合流 + sys:get-audit（M3）。 */
@@ -36,16 +51,29 @@ static void audit_append(int ch_idx, ts_ch_kind_t kind, ts_out_value_t v, ts_res
 	audit_head = next;
 }
 
+static ts_res_t commit_impl(const char *uid, ts_out_value_t v);
+
 ts_res_t ts_safety_commit(const char *uid, ts_out_value_t v)
 {
 	if (k_is_in_isr()) {
 		return TS_E_PERM; /* [thread] API（ISR 禁入，LLD-00 §3） */
 	}
-	(void)k_mutex_lock(&commit_lock, K_FOREVER);
+	ts_safety_write_lock();
+	ts_res_t r = commit_impl(uid, v);
+	ts_safety_write_unlock();
+	return r;
+}
 
+ts_res_t ts_safety_commit_locked(const char *uid, ts_out_value_t v)
+{
+	/* 调用方已持 write_lock（DEC-43：预算检查-提交原子化路径） */
+	return commit_impl(uid, v);
+}
+
+static ts_res_t commit_impl(const char *uid, ts_out_value_t v)
+{
 	int i = ts_ch_find(uid);
 	if (i < 0) {
-		(void)k_mutex_unlock(&commit_lock);
 		return TS_E_NOTFOUND;
 	}
 	struct ts_ch_slot *s = &ts_ch_table[i];
@@ -53,12 +81,10 @@ ts_res_t ts_safety_commit(const char *uid, ts_out_value_t v)
 
 	if (s->state != TS_ST_ACTIVE) {
 		audit_append(i, ch->kind, v, TS_E_STATE); /* 安全态下写入被拒（合同 3） */
-		(void)k_mutex_unlock(&commit_lock);
 		return TS_E_STATE;
 	}
 	if (atomic_get(&ts_forced) != 0) {
 		audit_append(i, ch->kind, v, TS_E_STATE);
-		(void)k_mutex_unlock(&commit_lock);
 		return TS_E_STATE; /* fail-safe 锁存期 */
 	}
 
@@ -95,7 +121,6 @@ ts_res_t ts_safety_commit(const char *uid, ts_out_value_t v)
 	/* 3) 限流（TS_CH_POWER）：请求电流超限 → 整笔拒绝（LLD §4-5） */
 	if (ch->kind == TS_CH_POWER && v.pwr.en && v.pwr.ma > ch->limits.current_limit_ma) {
 		audit_append(i, ch->kind, v, TS_E_RANGE);
-		(void)k_mutex_unlock(&commit_lock);
 		return TS_E_RANGE;
 	}
 
@@ -118,7 +143,6 @@ ts_res_t ts_safety_commit(const char *uid, ts_out_value_t v)
 	}
 
 	audit_append(i, ch->kind, v, res);
-	(void)k_mutex_unlock(&commit_lock);
 	return res;
 }
 

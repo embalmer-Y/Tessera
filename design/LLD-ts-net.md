@@ -1,6 +1,6 @@
-# LLD · ts-net v0.3.5
+# LLD · ts-net v0.3.6
 
-> **状态**：v0.3.5（2026-09-25 impl-review-01 修复批：periph/预算事件外发兑现〔F-1〕+ pubq 定容 128B + 分发顺序〔F-4〕+ sys_init 按 suffix 回填与错误传播〔F-3〕；twister 10/10〔46 用例〕全绿）。上位：HLD §3.5；公共约定 `LLD-00-common.md`。
+> **状态**：v0.3.6（2026-09-26 DEC-43：pubq 互斥——push/flush 并发安全〔锁内出队 + 锁外发送〕；锁序 write_lock → pubq 单向）。上位：HLD §3.5；公共约定 `LLD-00-common.md`。
 > **职责**：zenoh-pico 会话管理、命名空间构造、命令-回执分发、遥测/事件发布、心跳监视（断链判定）、控制租约（DEC-41）。
 > **合同关联**：合同 3（断链 fail-safe 判定源）、8（本地独立生效——判定不依赖外部确认）、9（rx 串行化）、10（命令准入/留痕）。
 > **外部依赖**：zenoh-pico 1.10.1（钉版，DR-22；上游零源码补丁，接线要点见 docs/dev-environment.md §7/§8）。
@@ -138,6 +138,7 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 
 ## 修订记录
 
+- v0.3.6 · 2026-09-26：DEC-43——§5 pubq 互斥（push/flush 并发安全；flush 锁内出队 + 锁外发送防传输阻塞反压；锁序 write_lock → pubq 单向无环）。回归 framework.conc test_03 + 全量 13/13（54 用例）。
 - v0.3.5 · 2026-09-25：impl-review-01 修复批（F-1/F-3/F-4）——§5 订阅扩至七类（periph 插拔/附着 + 功率预算拒绝归因外发，extra 扁平对 0…3 个）+ pubq 定容 128B（溯源见 §5）；§4.2 idem 回放判定置于 key/op 匹配后（跨 key 同 idem 拒绝）；§4.3 gated 按 suffix 回查回填 + sys_init 错误上抛。回归：twister 10/10（46 用例）/ L5 6/6 / pytest 全绿。
 - v0.1 · 2026-09-20：首版草案。
 - v0.2 · 2026-09-20：review-01——keyspace 补 hb/sys 构造器（DR-12）；§4 补 sys 命令面（DR-03，深化批次）。
