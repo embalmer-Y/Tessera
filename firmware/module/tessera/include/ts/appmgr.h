@@ -76,9 +76,42 @@ typedef struct {
 ts_res_t ts_appmgr_meta_read(ts_appmgr_meta_t *meta);
 ts_res_t ts_appmgr_meta_write(const ts_appmgr_meta_t *meta);
 
+/* ---- APP 运行时宿主（runtime.c + natives.c；DEC-43 接线批，M2b.2a）---------
+ * LLD-ts-appmgr §4/§5：每 APP 一个框架线程（V1 单活跃 APP）；事件串行化
+ * （DR-14 mailbox）；停止 = 停投递→join 2s→强杀回收；健康探针连续失败
+ * 〔DEC-27：3〕→ health_fail（回滚状态机）。wasm 导入面 = ts_api_v1
+ * （natives.c，防伪造 ctx 注入 + 调用期权限裁决〔合同 10 留痕〕）。 */
+
+struct ts_app_rt_stats {
+	uint32_t evt_seen;
+	uint32_t tick_count;
+	uint32_t health_fails;
+	uint32_t mb_dropped;
+	uint32_t init_res; /* app_init 返回值（0 = 成功） */
+	int32_t last_evt;
+	bool running;
+	bool health_failed;
+};
+
+/** 启动 APP（wasm 字节 + 能力文法串；V1 字节由调用方提供——boot 从
+ * slot 装载随下一单元接线）。返回 TS_E_PARAM = caps 非法或缺 health_ping
+ * 导出；TS_E_STATE = 已有 APP 在跑。 */
+ts_res_t ts_appmgr_app_start(uint16_t app_id, const uint8_t *wasm,
+			     uint32_t wasm_len, const char *caps);
+
+/** 停止并回收（DR-14 停止语义）。 */
+ts_res_t ts_appmgr_app_stop(void);
+
+/** 外部事件入 APP mailbox（满丢最旧 + 计数，DR-14）。 */
+ts_res_t ts_appmgr_app_evt(uint32_t payload);
+
+bool ts_appmgr_app_running(void);
+void ts_appmgr_app_stats(struct ts_app_rt_stats *out);
+
 /* ---- 测试钩子（CONFIG_TS_TEST）------------------------------------------- */
 #ifdef CONFIG_TS_TEST
 void ts_appmgr_test_reset(void);
+void ts_appmgr_app_test_reset(void);
 #endif
 
 #ifdef __cplusplus

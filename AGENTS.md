@@ -6,6 +6,13 @@
 
 ## 1. 当前状态
 
+- **2026-09-26（十八） · 接线批第二单元交付（APP 运行时宿主 + natives，M2b.2a 核心）——twister 14/14（57 用例）全绿；板卡通道打通（usbipd → /dev/ttyACM0）**
+  - runtime.c：每 APP 一框架线程（DEC-43 A，V1 单活跃）+ mailbox（DR-14 深度 8 满丢最旧）+ 停止语义（join 2s 强杀回收）+ 健康探针（连续 3 败自停 → health_fail 回滚入口）；Kconfig 常量全部 DEC-27 溯源。
+  - natives.c：ts_api_v1 V1 子集（gpio/pwm/adc/time/log）；**ctx 经 exec_env user_data 注入防伪造**；权限裁决全经 ts-hal（PERM_DENIED 留痕 = 合同 10）。已知偏差 ①（全局注册→调用期裁决）与 ②（WAMR 模块生命周期怪癖 → mod_cache 进程级复用）登记 LLD-ts-appmgr v0.3 §7 + dev-env §5-12。
+  - framework.app 3 用例：生命周期端到端（init 写经唯一写路径落 gpio/mailbox evt 驱动/stop 回收/重复停止拒绝）/ 权限拒绝（-3 + 事件留痕）/ 健康失败自停。夹具 wasm 286B（clang --allow-undefined 导入）。
+  - 租约语义澄清（decisions 批次条目）：DEC-41 准入 = net 命令面（部署面已落）；natives 按 LLD-ts-hal §3 = 权限裁决。
+  - **板级就绪**：xiao_esp32s3 经 usbipd 附加进 WSL（/dev/ttyACM0，dev-env §5-13 全流程）；espressif 工具链已装。
+  - 余项（M2b.2 收尾单元）：boot 步骤 8 slot 装载接线 + TS_APP_WAMR 默认翻转 + Agent E2E wasm 化 → 之后板级移植。
 - **2026-09-26（十七） · DEC-43 实现批交付（Q-23 裁定 A 后落地：锁收口 + 并发回归）——twister 13/13（54 用例）/L5 6/6/pytest×2/ruff/skills 全绿；板级前置就绪（xiao_esp32s3 + espressif 工具链）**
   - 裁决登记：Q-23 → **DEC-43**（方案 A + 实验数据版定位：锁收口随接线批顺带；板卡定为 **xiao_esp32s3** 真机双核终验——owner 已接入）。
   - 锁收口：commit.c 重构（write_lock/commit_locked 受控暴露）+ 迁移路径（set_link/force_channel_fault/channel_recover 双检/clear_fault）入互斥 + ts_power_request 检查-提交原子化（203ns TOCTOU 窗口消除）+ pubq 互斥（锁内出队/锁外发送）；**estop ISR 无锁直达不变（合同 5）**；锁序 write_lock→pubq 单向。

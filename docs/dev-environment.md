@@ -88,6 +88,8 @@ python3.12 -m venv ~/project/agent-venv
 9. **代理新模式（2026-09-25 起）**：owner 开启 TUN 级代理后，`wsl --shutdown` 重启即自动生效，WSL 内无需任何代理配置（教训 4 的 127.0.0.1:7897 手动配置不再是必需路径）。
 10. **native_sim SMP 需显式 USE_SWITCH（2026-09-26，wamrdemo 实证批）**：`CONFIG_SMP=y` 在 posix 架构下因缺 USE_SWITCH **静默失效**（Kconfig 告警被忽略时）——多核实验须同时开 `CONFIG_USE_SWITCH=y` + `CONFIG_MP_MAX_NUM_CPUS`，并以 autoconf.h 实际值为准复核。
 11. **native_sim 忙循环冻结模拟时钟**：Zephyr 线程忙等期间 hw timer 模型不推进（模拟时间停摆、宿主墙钟照走）——时序测量必须用宿主墙钟（minimal-libc time.h 不声明 clock_gettime，native_sim 进程链接宿主 libc，显式 extern 声明可用，仅测试代码）；"忙线程 + 定时器并发"类行为在 native_sim 上不可忠实模拟，留板级验证。
+12. **WAMR Zephyr 平台模块生命周期怪癖（2026-09-26，接线批排障双复现）**：同进程内 `wasm_runtime_load→unload→再 load`（相同字节流）与 `init→destroy→再 init→load` 均失败（解析错"unexpected end of section"）——规避 = **模块进程级复用**（runtime.c mod_cache：同字节流复用、不 unload、换包需重启）；升级 WAMR 后先撤实验验证。
+13. **板卡 USB 进 WSL（xiao_esp32s3，2026-09-26 打通）**：Windows 侧 `usbipd bind --busid 7-4`（管理员，UAC）→ 保持 WSL 存活 → `usbipd attach --wsl --busid 7-4` → `/dev/ttyACM0`（emb 已在 dialout 组，可直接读写）。注意 attach 需 WSL 发行版在运行；Windows 侧 COM 口同时消失（用完 `usbipd detach` 归还）。
 
 ## 6. 会话规范（此后所有开发会话）
 
@@ -125,6 +127,7 @@ python3.12 -m venv ~/project/agent-venv
 
 ## 修订记录
 
+- v1.9 · 2026-09-26：接线批——§5 增教训 12（WAMR 模块生命周期怪癖 + mod_cache 复用规避）/13（usbipd 板卡进 WSL 全流程，xiao_esp32s3 @ /dev/ttyACM0）。
 - v1.8 · 2026-09-26：板级前置——espressif 工具链安装（west espressif install，ESP32 系列不需要 Zephyr SDK）；xiao_esp32s3 定为真机板（DEC-43④）；WSL2 下 USB 串口不可见（板级会话需 usbipd-win 附加或 Windows 侧 esptool 烧录）。
 - v1.7 · 2026-09-26：Q-23 实证批——§5 增教训 10/11（native_sim SMP 需显式 USE_SWITCH 否则静默失效 / 忙循环冻结模拟时钟——宿主墙钟为唯一可信测量时基）；framework.wamrdemo 套件（SMP/真实时间对齐配置样板）。
 - v1.6 · 2026-09-26：M2b.2a 环境批——§2 增 WAMR-2.4.5 钉版（~/project/deps/wamr）与 clang/lld（wasm32 样例 APP）；§3 增 TS_WAMR_DIR 注入 + 样例重建入口 + WAMR 接入四要点（include 传播/独立库 -w/通用 invokeNative/stdout 钩子垫片）。

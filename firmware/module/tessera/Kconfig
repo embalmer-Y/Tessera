@@ -145,6 +145,49 @@ config TS_APP_WAMR_HEAP
 	  Source: HLD 4.6 per-board table (DEC-27 #10 dynamic per board;
 	  native_sim test baseline 64KB, board porting sets per board).
 
+config TS_APP_THREAD_PRIORITY
+	int "APP runtime thread priority"
+	depends on TS_APP_WAMR
+	default 10
+	help
+	  Source: DEC-43 (below net/sysworkq; wamrdemo experiment baseline).
+
+config TS_APP_THREAD_STACK
+	int "APP runtime host thread stack (bytes)"
+	depends on TS_APP_WAMR
+	default 32768
+	help
+	  Host-side stack for WAMR interpreter C frames (experiment baseline:
+	  framework.wamr/wamrdemo); wasm app stack is separate (manifest mem).
+
+config TS_APP_TICK_MS
+	int "APP tick period (ms)"
+	depends on TS_APP_WAMR
+	default 100
+	help
+	  Source: DEC-27 (LLD-ts-appmgr 5).
+
+config TS_APP_HEALTH_MS
+	int "Health probe period (ms)"
+	depends on TS_APP_WAMR
+	default 1000
+	help
+	  Source: DEC-27 (LLD-ts-appmgr 4).
+
+config TS_APP_HEALTH_FAILS
+	int "Consecutive health failures to rollback"
+	depends on TS_APP_WAMR
+	default 3
+	help
+	  Source: DEC-27 (LLD-ts-appmgr 4).
+
+config TS_APP_MBOX_DEPTH
+	int "Per-APP event mailbox depth (drop-oldest)"
+	depends on TS_APP_WAMR
+	default 8
+	help
+	  Source: DEC-27 #15 (LLD-ts-appmgr 5, DR-14).
+
 endif # TS_APPMGR
 
 

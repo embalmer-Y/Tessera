@@ -1,6 +1,6 @@
-# LLD · ts-appmgr v0.1 草案
+# LLD · ts-appmgr v0.3（M2b.2a 接线批落地）
 
-> **状态**：v0.1 草案，随 LLD 批次待 owner review。上位：HLD §3.4；公共约定 `LLD-00-common.md`。
+> **状态**：v0.3（2026-09-26 DEC-43 接线批：§4/§5 运行时宿主 + natives 落地——framework.app 端到端全绿；两项 V1 已知偏差与 WAMR 平台怪癖规避登记于 §7）。上位：HLD §3.4；公共约定 `LLD-00-common.md`。
 > **职责**：APP 包接收/验签/双 slot 存储/版本与回滚；WAMR 宿主（实例化 + 按能力装配导入面）；APP 线程与健康探针。
 > **合同关联**：合同 10（权限硬边界 = 符号过滤装配）；DEC-04/05/17。
 > **外部依赖**：WAMR（wasm_runtime_* 家族，具体签名以钉住版本为准，M0 核验）。
@@ -69,10 +69,17 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 
 ## 7. 未决依赖
 
-- DEC-21/25/23/27 已裁；DEC-31（APP 线程模型：禁自建线程）已裁；**无未决**。
+- DEC-21/25/23/27 已裁；DEC-31（APP 线程模型：禁自建线程）已裁；DEC-43（宿主线程模型 A + 锁收口）已裁。
+- **v0.2 实现批留痕（2026-09-26，framework.app 3 用例全绿）**：
+  - 已落地：runtime.c（每 APP 一框架线程〔V1 单活跃〕/mailbox DR-14 满丢最旧/停止 join 2s 强杀/健康探针连续〔DEC-27：3〕败自停→health_fail 回滚入口）+ natives.c（ts_api_v1 V1 子集：gpio_write/gpio_read/pwm_set/adc_read/time_ms/log_write；ctx 由 exec_env user_data 注入防伪造——wasm 传参仅占位）。
+  - **已知偏差 ①（结构化装配→调用期裁决）**：WAMR natives 为全局注册（namespace "env"），"未授权符号链接期不存在"需 per-instance natives 支持——留待 WAMR 升级/AOT 构建期裁剪；调用期经 ts_perm_check 拒绝 + TS_EVT_PERM_DENIED 留痕（合同 10 完整），测试 test_02 实证。
+  - **已知偏差 ②（WAMR 平台怪癖规避）**：同进程 unload→reload 与 init→destroy→init 均实测失败（dev-env §5-12）——模块进程级复用（同字节流复用、stop 不卸载、换包需重启）；升级路径随板级/WAMR 修复版再议。
+  - 健康导出名对齐 manifest v1 权威：`health_ping`（本文件 §4 早前笔误 app_health_ping 以 TsapManifest 为准）。
+  - 余项（M2b.2 收尾单元）：boot 步骤 8 从 active slot 装载接线（slot→wasm 字节读取 API）+ CONFIG_TS_APP_WAMR 默认翻转 + Agent E2E 链路 wasm 化。
 
 ## 修订记录
 
+- v0.3 · 2026-09-26：DEC-43 接线批——§5 运行时宿主与 natives 落地（framework.app 端到端）；§7 两项 V1 已知偏差（调用期裁决/模块进程级复用）+ 健康导出名对齐 health_ping + M2b.2 收尾余项登记。
 - v0.1 · 2026-09-20：首版草案（"按能力过滤符号装配"为权限硬边界核心机制）。
 - v0.2 · 2026-09-20：review-01——slot 经 ts-store（DR-01）、mailbox 串行化与卸载停止语义（DR-14）、APP 状态不持久化声明（DR-15）。
 - v0.2.1 · 2026-09-21：裁决同步——DEC-27 每板堆配置；出处标注收敛（SC-02）。

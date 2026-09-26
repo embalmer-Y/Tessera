@@ -44,6 +44,11 @@ zephyr_library_sources_ifdef(CONFIG_TS_APPMGR
   src/appmgr/slot.c
 )
 
+zephyr_library_sources_ifdef(CONFIG_TS_APP_WAMR
+  src/appmgr/runtime.c
+  src/appmgr/natives.c
+)
+
 zephyr_library_sources_ifdef(CONFIG_TS_NET
   src/net/keyspace.c
   src/net/pubq.c
