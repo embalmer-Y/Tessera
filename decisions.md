@@ -416,3 +416,28 @@
 ---
 
 - 2026-09-26 · **板级二单元交付（效率 DoD 真机实测 + WAMR xtensa 可用性修复）——twister 14/14（58 用例）/L5 6/6/pytest×2 全绿**：boardbench 基准应用（wasm 夹具 669B + 宿主 CCOUNT 计时 + 影子翻转检测）六项数据（docs/board-bench-01.md）：① 解释器吞吐 1043ns/iter（vs native_sim 1.1ns）② native 往返净 ~3.5µs ③ 写路径端到端 9.7µs/call（安全层净 ~5.2µs）④ mailbox p50=28µs/max=34µs ⑤ 足迹（text 82-91KB@flash / bss 92-113KB / 堆余 ~218KB）⑥ 单核抢占并发（锁竞争 p95 不变、尾部 +12µs、estop 并发中生效 + 可恢复）+ APP 冷启动 4.8ms。**WAMR xtensa 修复**：invokeNative 切官方汇编（`invokeNative_xtensa.s` + `-Wa,--noexecstack` 补注记；GENERAL C 版跨板不可靠——WAMR cmake 注释自认）。**失败可见性**：runtime.c app_init 异常路径补 WAMR 异常文本 printk。**事实登记**：ESP32-S3 无 SMP（Q-24 呈递）；k_cycle_get_64 本板冻结 → CCOUNT（dev-env 教训 18/19）；通道描述符须独立持久对象（注册存指针）。诊断插曲（如实）：invokeNative/解释器/栈深三轮误诊后定位为 bench 自身描述符别名 bug（低级但真实——native_sim 测试惯例掩盖该约束）。
+
+
+#### Q-24 调研补充（2026-09-27 · owner 指令"深度调研我们选择的板卡哪些支持 SMP"；全部可复核）
+
+**调研范围**：DEC-28 目标板集（ESP32-S3 / ESP32-P4 / STM32H7 + native_sim）+ 备选经典款。两层证据：钉版 v4.4.0 源码树/构建实测（本地）+ 上游状态（4.5 发布说明 / GitHub main 树 / Espressif 官方页）。
+
+**逐板事实表**：
+
+| 板/SoC | SMP（v4.4.0 钉版） | 上游状态 | 证据 |
+|---|---|---|---|
+| **ESP32-S3**（xiao_esp32s3） | ❌ 无实现 | **无任何公开进展**：4.5 发布说明零提及；issue #83168 中"扩展到 S3"请求无维护者回应 | 本地构建 CONFIG_SMP=y 链接失败（arch_cpu_start 未定义）；soc/espressif/esp32s3 仅 AMP 文件（esp32s3-mp.c，SOC_ENABLE_APPCPU 门控） |
+| **ESP32 经典款**（esp32_devkitc / esp_wrover_kit / ethernet_kit / threadbr） | ✅ **构建实证可用**（本会话实测：hello_world + SMP=y + 2 核 → 构建绿，arch_cpu_start/z_smp_init 符号入镜像；4.0 时代的损坏〔issue #83168〕在 4.4 已修） | Zephyr SMP 测试参考板之一（discussion #77131："multicore SMP tested mainly on esp32 and qemu_x86"）；但 **Espressif 官方支持页称 "SMP is currently non-functional"**（快照时效不明，可能指运行级不稳定）——两说并存，运行级需真板验证 | esp32-mp.c（#ifdef CONFIG_SMP，IPI 实现） |
+| **ESP32-P4** | ➖ **SoC 支持不存在**（v4.4.0 soc/espressif 无 esp32p4） | **4.5 加入**（多块官方板：esp32p4_function_ev_board〔16MB flash + 8MB PSRAM〕、OLIMEX/Waveshare 等）；拓扑 = 双核 RISC-V HP@400MHz + LP@40MHz；**main 分支 soc/espressif/esp32p4 无任何 SMP/mp/cpu_start 文件**——HP/LP 为 AMP 双镜像（default_lpcore.ld / start_lpcore.S），HP 双核 SMP 未接线 | Zephyr 4.5 release notes + main 树目录 |
+| **STM32H7**（H743 目标 / H745 双核变体） | ❌ **架构级不可能** | Zephyr SMP 实现清单 = riscv / cortex_a_r / x86 intel64 / arc / arm64 / intel_adsp / esp32(xtensa)——**无任何 Cortex-M**；H7 双核变体（M7+M4）= AMP 形态 | v4.4.0 树 arch/*/smp 实现清单 |
+| **native_sim** | ✅ 实证（Q-23 批 SMP=4 核真并行常设于 CI） | — | framework.conc / framework.wamrdemo |
+
+**关键判读**：
+1. "等 Zephyr 给 S3 加 SMP"**不可预估周期**（无 PR、无 issue 响应、4.5 零提及）——原建议 A 的"跟进上游"分支实质弱化为无期限等待。
+2. **体系内唯一今天就能在真芯片构建 SMP 的 = ESP32 经典款**（构建已实证；运行级因 Espressif 官方页"non-functional"表述存疑，需真板冒烟后才能挂 framework.conc）。
+3. P4 升级到 Zephyr 4.5+ 可获得 SoC 支持（对 PSRAM/大 flash 有吸引力），但**不解决 SMP**（P4 HP 双核同样未接线）。
+4. H7 上"双核终验"概念不适用（单核 SoC + M 核架构无 SMP）。
+
+**修订建议（数据版）**：A'——V1 双核终验以 **native_sim 多核为准**（唯一已实证且常设运行的真并行载体）；若 owner 认为必须在真芯片上终验，则采购一块 **ESP32 经典款开发板**（esp32_devkitc-wrover 等，几十元级）作并发终验专用板，到货后流程 = SMP 运行级冒烟（官方页 non-functional 表述需先证伪/证实）→ 通过则挂 framework.conc + boardbench ⑥ 双核版。S3 继续承担 bring-up/效率/单核角色；"等 S3 SMP 上游"仅作观察项不作依赖。
+
+**引用**：zephyr issue #83168（ESP32 SMP 4.0 时代损坏）/ discussion #77131（SMP 测试面）；Zephyr 4.5 release notes（P4 加入、S3 无 SMP 动静）；github main soc/espressif/esp32p4 目录（无 SMP 文件）；developer.espressif.com/software/zephyr-support-status（"SMP is currently non-functional"）。
