@@ -90,8 +90,15 @@ if(CONFIG_TS_APP_WAMR)
   # xiao_esp32s3 = XTENSA（LX7）。新板须显式登记映射，防默认静默错配。
   if(BOARD STREQUAL "native_sim")
     set(WAMR_BUILD_TARGET "X86_32")
+    # 通用 C 版 invokeNative：ia32 汇编缺 .note.GNU-stack（可执行栈警告被
+    # Zephyr --fatal-warnings 升级为链接错误）；C 版零补丁且 x86 传参可靠。
+    set(WAMR_BUILD_INVOKE_NATIVE_GENERAL 1)
   elseif(BOARD STREQUAL "xiao_esp32s3")
     set(WAMR_BUILD_TARGET "XTENSA")
+    # xtensa 用 WAMR 官方汇编 invokeNative（WAMR cmake 对 XTENSA 的既定
+    # 路径；GENERAL C 版注释自认部分 CPU 传参不可靠）。汇编缺 GNU-stack
+    # 注记 → 汇编期补（-Wa,--noexecstack）。
+    set(WAMR_BUILD_INVOKE_NATIVE_GENERAL 0)
   else()
     message(FATAL_ERROR "WAMR_BUILD_TARGET unmapped for board '${BOARD}'")
   endif()
@@ -104,9 +111,6 @@ if(CONFIG_TS_APP_WAMR)
   set(WAMR_BUILD_MULTI_MODULE 0)
   set(WAMR_BUILD_SHARED_MEMORY 0)     # DEC-31：共享内存不启用
   set(WAMR_BUILD_LIB_PTHREAD 0)       # DEC-31：APP 自建线程编译期禁用
-  # 通用 C 版 invokeNative：ia32 汇编缺 .note.GNU-stack（可执行栈警告被
-  # Zephyr --fatal-warnings 升级为链接错误）；C 版跨板一致且零补丁。
-  set(WAMR_BUILD_INVOKE_NATIVE_GENERAL 1)
   set(WAMR_BUILD_GLOBAL_HEAP_POOL 1)  # 池模式（PSRAM 分层纪律，DEC-27）
   set(WAMR_BUILD_GLOBAL_HEAP_SIZE ${CONFIG_TS_APP_WAMR_HEAP})
   set(WAMR_ROOT_DIR $ENV{TS_WAMR_DIR})
@@ -117,6 +121,11 @@ if(CONFIG_TS_APP_WAMR)
   zephyr_library_sources(${WAMR_RUNTIME_LIB_SOURCE})
   zephyr_library_sources(src/appmgr/wamr_compat.c)
   zephyr_library_compile_options(-w)
+  # xtensa invokeNative 汇编缺 .note.GNU-stack → 汇编期补注记
+  # （否则 Zephyr --fatal-warnings 链接失败；对 C 对象无副作用）。
+  if(BOARD STREQUAL "xiao_esp32s3")
+    zephyr_library_compile_options(-Wa,--noexecstack)
+  endif()
   # 消费面（app/测试）include 传播：runtime_lib.cmake 内部为目录级
   # include_directories（仅本模块编译域可见）——Zephyr 下消费方须经
   # zephyr_include_directories 取到 wasm_export.h。

@@ -220,3 +220,4 @@
 - 2026-09-22 · **M1 交付登记**：ts-core/ts-safety API 族与类型族、framework.{core,safety,replay} 用例、check_l5.py；M1 行更新为本地全绿（退出 review 门呈报）。
 - 2026-09-22 · M1 自检登记：IR-01…04（design/impl-review-m1.md）；tag 当时无（2026-09-25 impl-review-01 F-6 已补打 m1 于交付终态提交）。
 - 2026-09-22 · **MA1 交付登记**：TaError/TaskRegistry/ContextBudget/ApprovalBroker/gated_tool/PolicyTable/PlanDto/build_app 等标识符；MA1 状态 = 本地全绿（FastMCP 客户端 + fw_build 句柄化实测）。
+- 2026-09-26 · **板级二交付登记**：Q-24（双核终验载体，待裁）；board-bench-01（docs/ 板级效率基准报告）；boardbench（firmware/tests/ 基准应用：appw/bench.c 夹具 + src/main.c 宿主计时；BB* console 行 = 数据格式）；教训 18/19（dev-env：WAMR xtensa 官方汇编陷出 / CCOUNT 计时源）。

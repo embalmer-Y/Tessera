@@ -398,3 +398,21 @@
 - 2026-09-26 · **接线批第二单元交付（APP 运行时宿主 + natives，M2b.2a 核心）——twister 14/14（57 用例）全绿**：runtime.c（每 APP 一框架线程〔DEC-43 A，V1 单活跃〕；mailbox DR-14 深度 8 满丢最旧+计数；停止 = 停投递→join 2s〔DEC-27 #15〕→强杀回收；健康探针连续〔DEC-27：3〕败自停→health_fail 回滚入口）+ natives.c（ts_api_v1 V1 子集：gpio_write/gpio_read/pwm_set/adc_read/time_ms/log_write；**ctx 由 exec_env user_data 注入防伪造**，wasm 传参仅占位）+ framework.app 套件 3 用例（生命周期端到端/调用期权限拒绝 + TS_EVT_PERM_DENIED 留痕〔合同 10〕/健康失败自停）+ 夹具 wasm（clang wasm32，--allow-undefined 导入）。**两项 V1 已知偏差登记 LLD-ts-appmgr v0.3 §7**：① WAMR natives 全局注册→调用期裁决（结构化装配留待 WAMR per-instance 支持）；② WAMR 平台模块生命周期怪癖（unload→reload / init→destroy→init 双复现失败）→ mod_cache 进程级复用规避（dev-env §5-12）。租约挂钩语义澄清：DEC-41 准入属 **net 命令面**（部署面已落），ts_api_v1 natives 按权威 LLD-ts-hal §3 = 权限裁决（无租约）。板卡通道打通：usbipd 附加 xiao_esp32s3 → /dev/ttyACM0（dev-env §5-13）。余项（M2b.2 收尾单元）：boot 步骤 8 slot 装载接线 + CONFIG_TS_APP_WAMR 默认翻转 + Agent E2E wasm 化。
 
 - 2026-09-26 · **M2b.2 收尾单元交付（boot 装载 + 默认翻转 + E2E wasm 化）——twister 14/14（58 用例）全绿，M2b.2 全部完成**：① ts_appmgr_boot_start（slot.c）：active slot TSAP 容器 → manifest 走查（TsapManifest v1 canonical CBOR；未知键 fail-closed；caps 组合 ';' 串、app_id/app_ver 提取；stack_kb/heap_kb V1 消耗运行时常量〔已知限制登记 LLD〕）→ wasm 字节（CONFIG_TS_APP_LOAD_MAX=16K 结构性上限）→ app_start；装载成功置 STAGED→ACTIVE；② boot 步骤 8（app_load，尾部追加；core.h 计数条件化 4/5/5/6；**APP 故障不阻塞启动** = 合同 6 显式例外，HLD §4.4-8）；③ CONFIG_TS_APP_WAMR 默认翻 y（含 TS_APP_LOAD_MAX）；④ framework.app test_04（容器构造→分步安装→meta 切换→boot 装载→APP 写 gpio→app_id 断言）；⑤ Agent E2E wasm 化（真夹具 native_app.wasm 入 TSAP 包——E2E 与固件运行时同一工件）；⑥ mod_cache 复用改为内容比较（boot 缓冲与测试夹具两份拷贝场景）。过程修复（如实）：caps 分段循环末段越界（编译器 UB 检测 + 测试拦截）、manifest 键分支下标笔误、core 步骤守卫测试随新步骤更新。板级效率 DoD 六项固化 project-plan v1.10（owner 指令"真板检查多看架构运行效率"：解释器吞吐/native 陷出/写路径时延/邮箱时延/足迹对拍/双核终验）。
+
+
+#### Q-24 · 真机双核终验载体（DEC-43④ 落点；板级二实证）
+
+**背景**：DEC-43④ 约定 A 方案（每 APP 一框架线程）的最终并发行为确认 = xiao_esp32s3 真机双核终验。板级二单元（2026-09-26）构建实证：**Zephyr v4.4.0 的 ESP32-S3 无 SMP 支持**——kernel SMP 钩子 `arch_cpu_start` 无 esp32s3 实现（`CONFIG_SMP=y` 链接失败；v4.4.0 树内仅 esp32 经典款 soc/espressif/esp32/esp32-mp.c 实现）。espressif 在 Zephyr 的双核路径 = **AMP**（`SOC_ENABLE_APPCPU`：procpu/appcpu 各跑独立镜像经 IPM 通信），与 framework.conc 单调度器语义（DEC-43 线程模型）不符。效率 DoD 六项中 ①-⑤ 已在真机完成（docs/board-bench-01.md），⑥ 已降级为单核抢占并发实测（锁竞争 p95 无影响、尾部 +12µs、estop 并发中生效）。
+
+**选项**：
+- **A（建议）**：V1 双核终验以 **native_sim 多核**为准（framework.conc 已在 SMP=4 核真并行下常设运行，Q-23 批具备）；真机双核终验挂起，经 DEC-19 机制跟进 Zephyr ESP32-S3 SMP 落地后补做。
+- B：购入 ESP32 经典款板（如 DevKitC/WROOM，v4.4.0 已支持 SMP）作双核终验载体——需 owner 采购，且 ESP32 经典款非 DEC-28 目标板（性能弱于 S3）。
+- C：ESP32-S3 AMP 路径（appcpu 独立镜像 + IPM）——架构语义与单调度器并发模型不符，framework.conc 不适用，仅在未来需要"双立方体/异构核"形态时才有意义。
+
+**建议**：A。零采购、零架构妥协；SMP 缺口属上游事实，跟进即可（与 RP2350 移出〔DEC-28〕同类处置）。
+
+**影响**：⑥ 的真机双核数据延后（不阻塞 V1 任何里程碑——六项中五项已真机实测）；若 owner 选 B 需提供板卡。
+
+---
+
+- 2026-09-26 · **板级二单元交付（效率 DoD 真机实测 + WAMR xtensa 可用性修复）——twister 14/14（58 用例）/L5 6/6/pytest×2 全绿**：boardbench 基准应用（wasm 夹具 669B + 宿主 CCOUNT 计时 + 影子翻转检测）六项数据（docs/board-bench-01.md）：① 解释器吞吐 1043ns/iter（vs native_sim 1.1ns）② native 往返净 ~3.5µs ③ 写路径端到端 9.7µs/call（安全层净 ~5.2µs）④ mailbox p50=28µs/max=34µs ⑤ 足迹（text 82-91KB@flash / bss 92-113KB / 堆余 ~218KB）⑥ 单核抢占并发（锁竞争 p95 不变、尾部 +12µs、estop 并发中生效 + 可恢复）+ APP 冷启动 4.8ms。**WAMR xtensa 修复**：invokeNative 切官方汇编（`invokeNative_xtensa.s` + `-Wa,--noexecstack` 补注记；GENERAL C 版跨板不可靠——WAMR cmake 注释自认）。**失败可见性**：runtime.c app_init 异常路径补 WAMR 异常文本 printk。**事实登记**：ESP32-S3 无 SMP（Q-24 呈递）；k_cycle_get_64 本板冻结 → CCOUNT（dev-env 教训 18/19）；通道描述符须独立持久对象（注册存指针）。诊断插曲（如实）：invokeNative/解释器/栈深三轮误诊后定位为 bench 自身描述符别名 bug（低级但真实——native_sim 测试惯例掩盖该约束）。

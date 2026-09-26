@@ -117,6 +117,12 @@ static void app_thread_entry(void *p1, void *p2, void *p3)
 		uint32_t ret = 0;
 
 		if (!call1(r, r->fn_init, r->app_id, &ret)) {
+			/* 失败可见性（军规 7 如实上报）：WAMR 异常文本留痕 */
+			const char *exc = wasm_runtime_get_exception(r->inst);
+
+			if (exc != NULL) {
+				printk("[appmgr] app_init exception: %s\n", exc);
+			}
 			r->init_res = (uint32_t)TS_E_IO; /* init 异常 = 启动失败 */
 			atomic_set(&r->running, 0);
 			return;

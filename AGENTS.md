@@ -6,6 +6,12 @@
 
 ## 1. 当前状态
 
+- **2026-09-26（二十一） · 板级二交付：效率 DoD 真机实测完成（`docs/board-bench-01.md`）+ WAMR xtensa 可用性修复——twister 14/14（58 用例）/L5/pytest 全绿**
+  - **六项数据（xiao_esp32s3 @240MHz 单核，fast-interp）**：① 解释器吞吐 1043ns/iter（vs native_sim 1.1ns）② native 往返净 ~3.5µs ③ 写路径端到端 9.7µs/call（安全层净 ~5.2µs）④ mailbox p50=28µs/max=34µs（n=300 零失败）⑤ 足迹 text 82-91KB@flash / bss 92-113KB / libc 堆余 ~218KB ⑥ 单核抢占并发（锁竞争 p95 不变、尾部 +12µs、estop 并发中生效+可恢复）；APP 冷启动 4.8ms。**结论：V1 效率预算充裕（报告 §2）。**
+  - **载体**：`firmware/tests/boardbench/`（wasm 夹具 669B + 宿主 CCOUNT 计时 + 影子翻转检测；非 twister 独立应用，复跑 = 报告 §6）。
+  - **WAMR xtensa 修复**：invokeNative 切官方汇编（`invokeNative_xtensa.s` + `-Wa,--noexecstack`；GENERAL C 版 xtensa 传参不可靠——模块 CMakeLists 按板分派）；runtime.c app_init 异常路径补 WAMR 异常文本 printk（失败可见性）。
+  - **事实与呈递**：**ESP32-S3 在 Zephyr v4.4.0 无 SMP**（`arch_cpu_start` 缺失，构建实证；espressif 双核 = AMP 独立镜像）→ ⑥ 降级单核实测，**Q-24 已登记待 owner 裁决双核终验载体**（建议 A：native_sim 多核为准 + 跟进上游 SMP）。`k_cycle_get_64` 本板冻结 → CCOUNT（教训 19）；诊断插曲如实：三轮误诊（invokeNative/解释器/栈深）后定位为 bench 描述符别名 bug。
+  - **下一单元（板级三）**：RAM slot→flash 后端、estop chosen overlay、PSRAM 挂接（HLD §4.6）、真 GPIO/外设驱动。
 - **2026-09-26（二十） · 环境官方重建 + 板级 bring-up 达成：SDK 发现链根因钉死除根（Windows PATH interop）；工作区/SDK 按官方手册重建安装；xiao_esp32s3 交叉构建/烧录/console 冒烟全绿；效率 DoD 六项移交下一单元**
   - **根因（owner 指令"彻底解决"时钉死，dev-env 教训 15）**：WSL interop 把 Windows PATH 追加进 Linux PATH → cmake `find_package(Zephyr-sdk)` 前缀通配 + drvfs 大小写不敏感 → `/mnt/c` Windows SDK 劫持构建与 `west sdk` 双通道。**修复 = `/etc/wsl.conf [interop] appendWindowsPath=false` + `wsl --shutdown`**（教训 7/14 机制描述以此为准；显式 ZEPHYR_SDK_INSTALL_DIR 缓解不再需要）。
   - **官方重建（后续操作依托官方工具）**：apt 手册清单 → fresh venv → `west init --mr v4.4.0` + `west update` + `west zephyr-export` + `west packages pip --install`（esptool 5.4.0 官方接入）→ **SDK 1.0.1 = `west sdk install -t xtensa-espressif_esp32s3_zephyr-elf`**（@ `~/zephyr-sdk-1.0.1`，`west sdk list` 验证发现链无污染）；旧工作区（Windows 拷贝版 8.8G）已删。
