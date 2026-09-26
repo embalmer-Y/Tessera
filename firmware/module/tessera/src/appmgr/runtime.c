@@ -14,6 +14,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/atomic.h>
 #include <ts/appmgr.h>
+#include <ts/core.h> /* ts_time_ms：合同 9 时基（L5 禁 uptime） */
 #include <ts/hal.h>
 #include <wasm_export.h>
 
@@ -122,7 +123,7 @@ static void app_thread_entry(void *p1, void *p2, void *p3)
 		}
 		r->init_res = ret;
 	}
-	uint32_t last_tick = k_uptime_get_32();
+	uint32_t last_tick = (uint32_t)ts_time_ms();
 	uint32_t last_health = last_tick;
 	uint32_t v;
 
@@ -134,7 +135,7 @@ static void app_thread_entry(void *p1, void *p2, void *p3)
 				r->health_fails++; /* evt 异常计入健康 */
 			}
 		}
-		uint32_t now = k_uptime_get_32();
+		uint32_t now = (uint32_t)ts_time_ms();
 
 		if (r->fn_tick != NULL &&
 		    (now - last_tick) >= CONFIG_TS_APP_TICK_MS) {
