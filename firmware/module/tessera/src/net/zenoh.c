@@ -30,7 +30,7 @@ static void drop_query(void *ctx)
 	ARG_UNUSED(ctx);
 }
 
-static void on_query(const z_loaned_query_t *query, void *ctx)
+static void on_query(z_loaned_query_t *query, void *ctx)
 {
 	ARG_UNUSED(ctx);
 	/* 两种命令面：…/<uid>/cmd（实例命令，M2b.2+）与 …/sys/<cmd>（sys 面，
@@ -154,7 +154,7 @@ static void on_query(const z_loaned_query_t *query, void *ctx)
 	}
 }
 
-static void on_sample(const z_loaned_sample_t *sample, void *ctx)
+static void on_sample(z_loaned_sample_t *sample, void *ctx)
 {
 	ARG_UNUSED(ctx);
 	/* 仅 hb-host 订阅在册；到达即视为 host 心跳（DR-12，合同 8 本地判定） */

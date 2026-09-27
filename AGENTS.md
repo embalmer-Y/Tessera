@@ -6,6 +6,12 @@
 
 ## 1. 当前状态
 
+- **2026-09-27（二十三） · 板级四交付：WiFi+zenoh 命令往返实测（owner 指令）——上游 esp32s3 WiFi 打通；L1 全路径 p50≈12ms（省电关 5.5×）；L3 五验证点环境重建后复跑 PASS——twister 14/14（58 用例）/L5/pytest 全绿**
+  - **链路**：xiao_esp32s3（WiFi "cemetery"）→ LAN → PC(192.168.2.90) → WSL mirrored zenohd@9955；客户端三层探针（L0 路由本机 0.10ms / **L1 sys 查询全路径 p50 12.0ms p95 28.6ms max 55ms 零失败** / L2 estop-clear p50 13.5ms），N=100×2 轮复现 <4%。
+  - **关键发现**：① WiFi 省电是第一敏感项（默认 modem-sleep p50=66ms/max≈105ms≈DTIM；固件已默认关，5.5×改善）；② 判读：命令/Agent/API 级无感、断链窗占比 0.2%；闭环控制走板内路径（网络层 = 下发/遥测定位）；本地框架处理占比 <0.1%。
+  - **载体入库**：firmware/tests/netbench/（板固件 + netbench_client.py）；**凭证零泄漏**（cmake 变量注入，git grep 验证）；prov 板上注入走 TS_TEST（RAM 后端，持久化 = 板级后续）。
+  - **过程修复**：zenoh-pico 1.10.1 回调非 const（新工作区首编译即拦）→ **L3 五验证点复跑 PASS**（环境重建后首次，待办清账）；WSL mirrored LAN 入站 = Hyper-V 防火墙（owner UAC 放行一次）；WAMR version.cmake 并行竞态判明（非回归，单套件重跑绿）。
+  - **余项（板级五）**：prov/APP 持久化（flash 分区）、estop chosen overlay、PSRAM 挂接、PWM/ADC 真驱动、WiFi 重连策略。
 - **2026-09-27（二十二） · DEC-44（Q-24 → A）+ 板级三交付：真机 IO 延迟实测完成——判定"不过高"（两数量级裕量）；最小真 GPIO 后端入库（CONFIG_TS_DRV_GPIO）**
   - **DEC-44**：V1 双核终验以 native_sim 多核为准（不采购经典款；S3 SMP 降观察项）；同批 owner 指令 = 真机 IO 延迟确认。
   - **实测（board-bench-01 §1.5，三层对照，GPIO9 真寄存器）**：裸 `gpio_pin_set_dt` p50=204ns（~4.9MHz）/ 框架安全层 5.75µs（~174kHz；压测竞争下 p50/p95 **零变化**、max +66ns）/ 完整 wasm APP 路径 10.59µs（~94kHz）。**判定：不过高**——100Hz 输出更新占周期 0.058%（全路径 0.106%），两数量级裕量；位带式 >174kHz 协议走硬件外设通道（架构本意）；输入路径真驱动未接（板级待办）。

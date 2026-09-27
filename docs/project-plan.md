@@ -1,6 +1,6 @@
 # docs/project-plan.md · Tessera 统一项目开发计划
 
-> **版本**：v1.13 · 2026-09-26（v1.0 · 2026-09-22 · 依 owner 指令与 **DEC-39** 建立）.
+> **版本**：v1.14 · 2026-09-26（v1.0 · 2026-09-22 · 依 owner 指令与 **DEC-39** 建立）.
 > **权威顺序**：owner 最新裁决（decisions.md DEC）> `FOUNDING_PROMPT.md` > 本计划。计划变更走修订记录；里程碑进出走 review 门（流程 §2.4-②）。
 > **结构**：双轨并行——**轨道 A（固件框架，M 系）** 与 **轨道 B（AI Agent，MA 系）**；交叉依赖见 §4；实施节奏（单会话一交付单元，军规/流程 §2.3）建议排序见 §7。
 
@@ -65,6 +65,7 @@ M1 → MA1 → M2a → MA2 → M2b → M3a → MA3 → M3b → 板级（S3）→
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.14 · 2026-09-27：板级四交付——WiFi+zenoh 命令往返实测（docs/netbench-01.md：L1 全路径 p50≈12ms/p95≈29ms，省电关闭 5.5×；L3 五验证点环境重建后复跑 PASS）；上游 esp32s3 WiFi 打通（blobs+overlay+省电关）。
 
 - v1.13 · 2026-09-27：DEC-44（Q-24 → A：native_sim 多核为准，不采购；S3 SMP 观察）+ 板级三交付——真机 IO 延迟实测（board-bench-01 §1.5：裸 204ns / 框架 5.75µs / wasm 全路径 10.6µs；判定不过高）+ 最小真 GPIO 后端（CONFIG_TS_DRV_GPIO + zephyr,user 绑定）。
 
