@@ -54,10 +54,19 @@ ts_res_t ts_appmgr_stage_begin(uint32_t total_len, uint8_t *slot_out)
 	ts_appmgr_meta_t meta;
 
 	ts_appmgr_meta_read(&meta);
+	/* flash 后端：安装前抹除目标 slot（物理只可 1→0；RAM 后端 = 0xFF 复位）。
+	 * begin 可重入重置 = 重装同槽亦经此处（重置语义保持）。 */
+	uint8_t target = meta.active_slot ^ 1;
+	ts_res_t er = ts_store_slot_erase(target);
+
+	if (er != TS_OK) {
+		memset(&stage, 0, sizeof(stage));
+		return er; /* 槽抹除失败 = 拒绝开始安装（fail-closed） */
+	}
 	memset(&stage, 0, sizeof(stage));
 	stage.active = true;
 	stage.total = total_len;
-	stage.slot = meta.active_slot ^ 1;
+	stage.slot = target;
 	if (slot_out != NULL) {
 		*slot_out = stage.slot;
 	}

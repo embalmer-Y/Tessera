@@ -9,15 +9,23 @@
 #include <ts/store.h>
 #include "internal.h"
 
-/* META 分区布局：copy0 @0x000，copy1 @0x200（各 512B） */
-#define COPY_STRIDE 0x200
-#define REC_HDR     8 /* seq u32 | len u16 | crc16 u16（小端） */
+/* META 分区布局：copy0 @0，copy1 @stride；stride = 分区尺寸/2
+ *（RAM 后端 1024/2=512；flash 后端按 DT〔8KB/2=4096，与擦除块对齐〕——
+ * 副本须各自独立擦除，步距随分区尺寸派生而非硬编码）。 */
+#define REC_HDR 8 /* seq u32 | len u16 | crc16 u16（小端） */
+
+static uint32_t meta_stride(void)
+{
+	return ts_store_backend.size(TS_PART_META) / 2;
+}
 
 static ts_res_t read_rec(uint8_t copy, uint32_t *seq, uint16_t *len, uint8_t *data)
 {
 	uint8_t hdr[REC_HDR];
+	uint32_t stride = meta_stride();
 
-	if (ts_store_backend.read(TS_PART_META, copy * COPY_STRIDE, hdr, REC_HDR) != TS_OK) {
+	if (stride < REC_HDR + CONFIG_TS_STORE_META_MAX ||
+	    ts_store_backend.read(TS_PART_META, copy * stride, hdr, REC_HDR) != TS_OK) {
 		return TS_E_IO;
 	}
 	*seq = ts_get_le32(hdr);
@@ -27,7 +35,7 @@ static ts_res_t read_rec(uint8_t copy, uint32_t *seq, uint16_t *len, uint8_t *da
 	if (*len == 0 || *len > CONFIG_TS_STORE_META_MAX) {
 		return TS_E_IO;
 	}
-	if (ts_store_backend.read(TS_PART_META, copy * COPY_STRIDE + REC_HDR, data, *len) != TS_OK) {
+	if (ts_store_backend.read(TS_PART_META, copy * stride + REC_HDR, data, *len) != TS_OK) {
 		return TS_E_IO;
 	}
 	if (ts_crc16(data, *len) != crc) {
@@ -39,20 +47,30 @@ static ts_res_t read_rec(uint8_t copy, uint32_t *seq, uint16_t *len, uint8_t *da
 static ts_res_t write_rec(uint8_t copy, uint32_t seq, const void *buf, uint16_t len)
 {
 	uint8_t rec[REC_HDR + CONFIG_TS_STORE_META_MAX];
+	uint32_t stride = meta_stride();
 
+	if (stride < REC_HDR + len) {
+		return TS_E_RANGE;
+	}
 	ts_put_le32(rec, seq);
 	ts_put_le16(rec + 4, len);
 	ts_put_le16(rec + 6, ts_crc16(buf, len));
 	memcpy(rec + REC_HDR, buf, len);
 	uint32_t total = REC_HDR + len;
 
-	if (ts_store_backend.write(TS_PART_META, copy * COPY_STRIDE, rec, total) != TS_OK) {
+	/* flash 后端：写前范围抹除目标副本区（擦除块对齐由分区布局保证）；
+	 * RAM 后端同序无害（0xFF 填充后整记录写入，语义不变）。撕裂时序：
+	 * 擦-写之间掉电 → 该副本损，另一副本仍完整（§3 安全性保持）。 */
+	if (ts_store_backend.erase_off(TS_PART_META, copy * stride, stride) != TS_OK) {
+		return TS_E_IO;
+	}
+	if (ts_store_backend.write(TS_PART_META, copy * stride, rec, total) != TS_OK) {
 		return TS_E_IO;
 	}
 	/* 校验回读 */
 	uint8_t back[REC_HDR + CONFIG_TS_STORE_META_MAX];
 
-	if (ts_store_backend.read(TS_PART_META, copy * COPY_STRIDE, back, total) != TS_OK ||
+	if (ts_store_backend.read(TS_PART_META, copy * stride, back, total) != TS_OK ||
 	    memcmp(rec, back, total) != 0) {
 		return TS_E_IO;
 	}
@@ -118,8 +136,15 @@ ts_res_t ts_store_meta_corrupt_test(uint8_t copy_idx)
 	if (copy_idx > 1) {
 		return TS_E_PARAM;
 	}
+	/* flash 后端物理只可 1→0：先范围抹除目标副本再写垃圾（RAM 后端同序等价）
+	 * ——注入语义 = "该副本损毁"，擦除态+垃圾均达成。 */
+	uint32_t stride = meta_stride();
+
+	if (ts_store_backend.erase_off(TS_PART_META, copy_idx * stride, stride) != TS_OK) {
+		return TS_E_IO;
+	}
 	uint8_t garbage[REC_HDR] = {0xDE, 0xAD, 0xBE, 0xEF, 0, 0, 0, 0};
 
-	return ts_store_backend.write(TS_PART_META, copy_idx * COPY_STRIDE, garbage, REC_HDR);
+	return ts_store_backend.write(TS_PART_META, copy_idx * stride, garbage, REC_HDR);
 }
 #endif

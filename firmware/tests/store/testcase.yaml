@@ -5,3 +5,10 @@ tests:
       - native_sim
     platform_allow:
       - native_sim
+  framework.store.flash:
+    tags: framework
+    integration_platforms:
+      - native_sim
+    platform_allow:
+      - native_sim
+    extra_args: DTC_OVERLAY_FILE=flash.overlay EXTRA_CONF_FILE=flash.conf

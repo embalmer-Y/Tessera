@@ -62,6 +62,9 @@ ts_res_t ts_store_noinit_get(void *rec, uint16_t *len, bool *fresh);
 ts_res_t ts_store_slot_write(uint8_t slot, uint32_t off, const void *buf, uint32_t len);
 ts_res_t ts_store_slot_read(uint8_t slot, uint32_t off, void *buf, uint32_t len);
 ts_res_t ts_store_slot_hash(uint8_t slot, uint8_t sha[32]);
+/* 全 slot 抹除：安装序前置（flash 后端必须——物理只可 1→0；RAM 后端 = 0xFF
+ * 复位，语义一致）。消费者 = ts-appmgr stage_begin（板级五新增，LLD §6 增补）。 */
+ts_res_t ts_store_slot_erase(uint8_t slot);
 
 /* ---- 测试钩子（仅 CONFIG_TS_TEST）---------------------------------------- */
 #ifdef CONFIG_TS_TEST

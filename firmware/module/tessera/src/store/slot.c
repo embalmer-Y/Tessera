@@ -51,6 +51,16 @@ ts_res_t ts_store_slot_write(uint8_t slot, uint32_t off, const void *buf, uint32
 	return TS_OK;
 }
 
+ts_res_t ts_store_slot_erase(uint8_t slot)
+{
+	ts_store_part_t part;
+
+	if (slot_of(slot, &part) != TS_OK) {
+		return TS_E_PARAM;
+	}
+	return ts_store_backend.erase(part);
+}
+
 ts_res_t ts_store_slot_read(uint8_t slot, uint32_t off, void *buf, uint32_t len)
 {
 	ts_store_part_t part;

@@ -57,5 +57,9 @@ ts_res_t ts_store_noinit_get(void *rec, uint16_t *len, bool *fresh)
 	memcpy(rec, data, rlen);
 	*len = rlen;
 	*fresh = false; /* 上次复位前留痕存在（异常复位可观测） */
+	/* one-shot：读后抹除。flash 持久介质上防陈旧留痕跨多次复位误报
+	 *（RAM 后端同语义统一——此前 RAM 掩盖了该缺口，板级五 flash 后端
+	 * 暴露后收敛；LLD-ts-store §5 语义细化）。 */
+	(void)ts_store_backend.erase(TS_PART_NOINIT);
 	return TS_OK;
 }

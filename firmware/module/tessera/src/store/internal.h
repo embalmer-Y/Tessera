@@ -25,6 +25,7 @@ typedef struct {
 	ts_res_t (*read)(ts_store_part_t part, uint32_t off, void *buf, uint32_t len);
 	ts_res_t (*write)(ts_store_part_t part, uint32_t off, const void *buf, uint32_t len);
 	ts_res_t (*erase)(ts_store_part_t part); /* 全区抹除 */
+	ts_res_t (*erase_off)(ts_store_part_t part, uint32_t off, uint32_t len); /* 范围抹除（flash 后端按擦除块对齐；meta 副本步距用） */
 	uint32_t (*size)(ts_store_part_t part);
 } ts_store_ops_t;
 

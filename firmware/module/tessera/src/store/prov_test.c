@@ -4,6 +4,7 @@
  * （L5 机械检查目标，LLD-ts-store §4）。生产烧录 = 外部工具 / Agent
  * deploy_push_prov（MA3）。
  */
+#include <string.h>
 #include <ts/store.h>
 #include "internal.h"
 
@@ -13,17 +14,19 @@ ts_res_t ts_store_prov_write_test(const uint8_t *cbor, uint32_t len)
 	if (cbor == NULL || len == 0 || len + 6 > 4096) {
 		return TS_E_PARAM;
 	}
-	uint8_t hdr[6];
+	/* 头（len u32 | crc16 u16，小端）+ CBOR 一体单次连续写：flash 后端
+	 * 程序一次纪律——分区 erase 后每字至多一次 program（跨写边界字重编程
+	 * 在 sim-flash EXPLICIT_ERASE 语义下被拒，真机亦损寿命；prov.c 本体
+	 * 仍零写调用，L5 目标不变）。 */
+	static uint8_t rec[4096];
 
-	ts_put_le32(hdr, len);
-	ts_put_le16(hdr + 4, ts_crc16(cbor, len));
+	ts_put_le32(rec, len);
+	ts_put_le16(rec + 4, ts_crc16(cbor, len));
+	memcpy(rec + 6, cbor, len);
 	if (ts_store_backend.erase(TS_PART_PROV) != TS_OK) {
 		return TS_E_IO;
 	}
-	if (ts_store_backend.write(TS_PART_PROV, 0, hdr, sizeof(hdr)) != TS_OK) {
-		return TS_E_IO;
-	}
-	if (ts_store_backend.write(TS_PART_PROV, sizeof(hdr), cbor, len) != TS_OK) {
+	if (ts_store_backend.write(TS_PART_PROV, 0, rec, 6 + len) != TS_OK) {
 		return TS_E_IO;
 	}
 	return TS_OK;

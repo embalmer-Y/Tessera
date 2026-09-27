@@ -6,6 +6,12 @@
 
 ## 1. 当前状态
 
+- **2026-09-28（二十四） · 板级五交付：prov/APP flash 持久化（真机全链 PASS）+ ts-store flash 后端入库——twister 15/15（65 用例）/L5/pytest 全绿**
+  - **后端**：`CONFIG_TS_STORE_FLASH` + DT 五分区（ts_prov/meta/slot_a/slot_b/noinit，carved 自 espressif AMP 布局空闲 slot1 区——boot/sys/slot0 与 esptool 偏移零变化；fw_b 预留 = DEC-23 固件双 slot）；ops 增 erase_off、逐 4B 字"读-比-写"垫片（同值跳过幂等/位子集校验/仅抹除态编程）；分区缺失/尺寸错配 = 构建期失败。上层适配：meta 副本步距动态化 + 写前范围擦除；noinit one-shot 读清；`ts_store_slot_erase` API + stage_begin 安装前擦除；prov 注入一体单写（sim 程序一次语义拦下双写缺陷）；cbor_min 无条件编译（TS_NET=n 暴露的真实依赖）。LLD-ts-store v0.3 同步。
+  - **真机验证**（persistbench 载体，docs/board-persist-01.md）：完整单迹 = PB1 首启烧录会话（prov 注入 + 440B TSAP 分步安装链 + activate + 暖复位）→ 复位后 prov/meta/slot 全出自 flash、APP 自 slot 装载运行 + evt 写路径全链 PASS。附带证据：跨固件重刷持久（west flash 不动分区）+ 中断会话一致性（半途复位 → step8 r=-7 不阻塞启动）。
+  - **语义观察留痕**：冷启动 poweron_init 后通道处 SAFE_POWERON，APP app_init 期写被拒（TS_E_STATE）= 合同 1/3 预期（ACTIVE 迁移 = set_link，正常部署由 linkmon 驱动；TS_NET=y 无传输压 linkloss 亦真机观测正确生效）；无网面部署（TS_NET=n）由 glue 在 BOOT_DONE 后声明链路。
+  - **回归**：framework.store.flash 新 CI 变体（native_sim sim-flash，EXPLICIT_ERASE 程序一次语义**比真机严格**）7/7；twister **15/15（65 用例）**/L5 6/6/pytest 2/2 全绿。API 口径：PARTITION_ID/SIZE 现行宏（FIXED_PARTITION_* v4.4 弃用，教训 22）。
+  - **余项（板级六候选）**：estop chosen overlay、PSRAM 挂接（HLD §4.6，解锁 256KB WAMR 堆目标）、PWM/ADC 真驱动、WiFi 重连策略、生产 prov 烧录通道（esptool 直写 / Agent push_prov〔MA3〕）。
 - **2026-09-27（二十三） · 板级四交付：WiFi+zenoh 命令往返实测（owner 指令）——上游 esp32s3 WiFi 打通；L1 全路径 p50≈12ms（省电关 5.5×）；L3 五验证点环境重建后复跑 PASS——twister 14/14（58 用例）/L5/pytest 全绿**
   - **链路**：xiao_esp32s3（WiFi "cemetery"）→ LAN → PC(192.168.2.90) → WSL mirrored zenohd@9955；客户端三层探针（L0 路由本机 0.10ms / **L1 sys 查询全路径 p50 12.0ms p95 28.6ms max 55ms 零失败** / L2 estop-clear p50 13.5ms），N=100×2 轮复现 <4%。
   - **关键发现**：① WiFi 省电是第一敏感项（默认 modem-sleep p50=66ms/max≈105ms≈DTIM；固件已默认关，5.5×改善）；② 判读：命令/Agent/API 级无感、断链窗占比 0.2%；闭环控制走板内路径（网络层 = 下发/遥测定位）；本地框架处理占比 <0.1%。

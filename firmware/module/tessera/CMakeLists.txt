@@ -6,6 +6,12 @@ zephyr_include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 zephyr_library()
 
+zephyr_library_sources(
+  # cbor_min = 模块内共享最小 CBOR 编解码（net 命令面 + appmgr boot_start
+  # manifest 走查共用——板级五实证 TS_NET=n 时 appmgr 亦依赖，故无条件编译）
+  src/net/cbor_min.c
+)
+
 zephyr_library_sources_ifdef(CONFIG_TS_CORE
   src/core/time.c
   src/core/events.c
@@ -54,7 +60,6 @@ zephyr_library_sources_ifdef(CONFIG_TS_NET
   src/net/pubq.c
   src/net/session.c
   src/net/linkmon.c
-  src/net/cbor_min.c
   src/net/cmd.c
   src/net/lease.c
   src/net/pub.c

@@ -93,6 +93,16 @@ config TS_STORE_SIM_DIR
 	help
 	  One file per partition under this relative directory (resettable in tests).
 
+config TS_STORE_FLASH
+	bool "ts-store: real flash backend (flash_map fixed partitions)"
+	depends on FLASH_MAP
+	default n
+	help
+	  LLD-ts-store section 2 board backend (board bring-up unit 5). Requires
+	  DT fixed partitions ts_prov_part / ts_meta_part / ts_slot_a_part /
+	  ts_slot_b_part / ts_noinit_part (BUILD_ASSERT-checked against
+	  TS_STORE_SLOT_SIZE / META_MAX). RAM backend otherwise (native_sim/CI).
+
 endif # TS_STORE
 
 config TS_HAL

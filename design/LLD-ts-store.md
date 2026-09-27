@@ -27,7 +27,8 @@ typedef struct {
 } ts_store_part_t;
 ```
 
-- 后端 ops：`{read, write, erase, is_erased}`；native_sim 实现为宿主文件（路径 `build/store/<part>.bin`，构建可重置）；真机为 flash 子系统。**上层（appmgr 等）不感知后端**。
+- 后端 ops：`{read, write, erase, erase_off, size}`；**RAM 后端**（默认，native_sim/CI：静态数组 + 0xFF 抹除语义）/ **flash 后端**（`CONFIG_TS_STORE_FLASH`：DT fixed-partitions〔ts_prov_part/ts_meta_part/ts_slot_a_part/ts_slot_b_part/ts_noinit_part〕+ flash_map；分区缺失/尺寸错配 = 构建期失败）双实现，**上层（appmgr 等）不感知后端**。
+- flash 后端写对齐垫片（板级五）：逐 4B 字"读-比-写"——同值跳过（幂等重发）、位子集校验（越 erase 改写显式拦截，真机为静默 AND 损坏）、仅抹除态/可扩展字编程。块边界扩展写真机合法、sim-flash（EXPLICIT_ERASE 程序一次语义）拒绝——调用方约束为单次连续写或整槽 erase 后顺序写。
 
 ## 3. 掉电安全 meta（meta.c）
 
@@ -37,7 +38,7 @@ ts_res_t ts_store_meta_write(const void *buf, uint16_t len);   /* 写非活动�
 ts_res_t ts_store_meta_read (void *buf, uint16_t *len);        /* 活动副本；双副本皆坏 → TS_E_IO + 系统按缺省安全态启动 */
 ```
 
-- 撕裂恢复：活动指针 = 序号较大且 CRC 通过者；两副本皆损 → 启动进 fail-safe 并留痕（TS_FAIL_SRC_STORE）。
+- 撕裂恢复：活动指针 = 序号较大且 CRC 通过者；两副本皆损 → 启动进 fail-safe 并留痕（TS_FAIL_SRC_STORE）。**副本步距 = 分区尺寸/2**（RAM 512B / flash 4096B=擦除块对齐，板级五动态化）；flash 后端写前范围擦除目标副本（擦-写间撕裂 → 该副本损、另一副本完整）。
 - 消费者：ts-appmgr（active_slot/app_ver/rollback_count/boot_gen）。
 
 ## 4. provisioning（prov.c）——合同 10 的落点
@@ -64,7 +65,7 @@ void ts_store_noinit_put(const void *rec, uint16_t len);   /* 复位前留痕（
 ts_res_t ts_store_noinit_get(void *rec, uint16_t *len, bool *fresh);  /* 启动读取；fresh=false 表示上次异常复位 */
 ```
 
-- 消费者：ts-core（boot/WDT 留痕，DR-17）；启动后首条遥测携带 `fresh` 标志（可观测）。
+- 消费者：ts-core（boot/WDT 留痕，DR-17）；启动后首条遥测携带 `fresh` 标志（可观测）。**one-shot 读清**（板级五）：读到有效留痕后抹除分区——flash 持久介质上防陈旧留痕跨多次复位误报（RAM 后端同语义统一）。
 
 ## 6. APP slot 读写
 
@@ -72,6 +73,9 @@ ts_res_t ts_store_noinit_get(void *rec, uint16_t *len, bool *fresh);  /* 启动�
 ts_res_t ts_store_slot_write(uint8_t slot, uint32_t off, const void *buf, uint32_t len); /* 逐块写+回读校验 */
 ts_res_t ts_store_slot_read (uint8_t slot, uint32_t off, void *buf, uint32_t len);
 ts_res_t ts_store_slot_hash (uint8_t slot, uint8_t sha[32]);   /* 供安装校验 */
+ts_res_t ts_store_slot_erase(uint8_t slot);  /* 全槽抹除：安装序前置（板级五增补；
+                                                flash 后端必须，RAM 后端语义一致；
+                                                消费者 = ts-appmgr stage_begin） */
 ```
 
 ## 7. Kconfig（节选）
@@ -79,6 +83,7 @@ ts_res_t ts_store_slot_hash (uint8_t slot, uint8_t sha[32]);   /* 供安装校�
 | 项 | 默认〔DEC-27〕 | 说明 |
 |---|---|---|
 | CONFIG_TS_STORE_META_MAX | 256B | meta 记录上限（appmgr 字段集） |
+| CONFIG_TS_STORE_FLASH | n | flash 后端（板级五；依赖 FLASH_MAP + DT 五分区） |
 
 ## 8. 测试要点
 
@@ -96,3 +101,4 @@ ts_res_t ts_store_slot_hash (uint8_t slot, uint8_t sha[32]);   /* 供安装校�
 - v0.1 · 2026-09-20：首版（design review-01 DR-01/17 处置新增）。
 - v0.1.1 · 2026-09-21：裁决同步——DEC-20/21/23/27/30 出处收敛（SC-02）。
 - v0.2 · 2026-09-22：M2a 实现收敛留痕——① §2 native_sim 后端实现为 **RAM 静态数组 + 0xFF 抹除语义**（`ts_store_test_reset()` 模拟掉电后全新镜像；"宿主文件"跨进程持久化非 M2a 测试所需，留真实掉电场景一并接真机 flash 后端）；② §4 prov CBOR 解码 = **固定 schema 确定性子集实现**（definite-length 专用，任何超集拒绝——不引入通用 CBOR 依赖），schema v1 键序定稿：v/node_id/cube_id/routers/pk0/pk1/cred/pwr_ma/estop；③ 内部分区多字节整数 = **小端**（与 TSAP 容器大端互不相关，见 LLD-ts-appmgr §2）；④ noinit fresh 语义实现 = 读到有效留痕即 fresh=false。
+- v0.3 · 2026-09-28：板级五（flash 持久化，docs/board-persist-01.md）——① §2 flash 后端（CONFIG_TS_STORE_FLASH + DT 五分区 + flash_map + 写对齐垫片）与 ops 增 erase_off；② §3 副本步距 = 分区尺寸/2 + 写前范围擦除；③ §5 noinit one-shot 读清；④ §6 ts_store_slot_erase 公共 API 增补（消费者 stage_begin 安装前抹除）；⑤ prov 注入改一体单次连续写（程序一次纪律，prov.c 本体零写不变）；真机分区布局表见 board-persist-01 §1。
