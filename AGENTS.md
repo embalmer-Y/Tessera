@@ -6,6 +6,13 @@
 
 ## 1. 当前状态
 
+- **2026-09-27（二十二） · DEC-44（Q-24 → A）+ 板级三交付：真机 IO 延迟实测完成——判定"不过高"（两数量级裕量）；最小真 GPIO 后端入库（CONFIG_TS_DRV_GPIO）**
+  - **DEC-44**：V1 双核终验以 native_sim 多核为准（不采购经典款；S3 SMP 降观察项）；同批 owner 指令 = 真机 IO 延迟确认。
+  - **实测（board-bench-01 §1.5，三层对照，GPIO9 真寄存器）**：裸 `gpio_pin_set_dt` p50=204ns（~4.9MHz）/ 框架安全层 5.75µs（~174kHz；压测竞争下 p50/p95 **零变化**、max +66ns）/ 完整 wasm APP 路径 10.59µs（~94kHz）。**判定：不过高**——100Hz 输出更新占周期 0.058%（全路径 0.106%），两数量级裕量；位带式 >174kHz 协议走硬件外设通道（架构本意）；输入路径真驱动未接（板级待办）。
+  - **入库物**：`CONFIG_TS_DRV_GPIO`（默认关；native_sim/CI 零影响）+ zephyr,user DT 绑定（uid 匹配通道）→ driver_dispatch.c（L5 白名单文件）真写 + sim 记录保留；L5 唯一写路径检查增 boardbench 裸基线豁免（对照层）；boardbench BB5 系列。
+  - **过程教训（dev-env 20）**：`ZEPHYR_USER_NODE` 为 4.5 API（4.4 用 `DT_PATH(zephyr_user)`）；未定义宏在 DT 包装宏里字面拼接产生连环假象。
+  - **回归**：twister 14/14（58 用例）/L5 6/6/pytest/native_sim bench 构建全绿。
+  - **余项（板级四）**：RAM slot→flash 后端、estop chosen overlay、PSRAM 挂接（HLD §4.6）、PWM/ADC 真外设驱动。
 - **2026-09-26（二十一） · 板级二交付：效率 DoD 真机实测完成（`docs/board-bench-01.md`）+ WAMR xtensa 可用性修复——twister 14/14（58 用例）/L5/pytest 全绿**
   - **六项数据（xiao_esp32s3 @240MHz 单核，fast-interp）**：① 解释器吞吐 1043ns/iter（vs native_sim 1.1ns）② native 往返净 ~3.5µs ③ 写路径端到端 9.7µs/call（安全层净 ~5.2µs）④ mailbox p50=28µs/max=34µs（n=300 零失败）⑤ 足迹 text 82-91KB@flash / bss 92-113KB / libc 堆余 ~218KB ⑥ 单核抢占并发（锁竞争 p95 不变、尾部 +12µs、estop 并发中生效+可恢复）；APP 冷启动 4.8ms。**结论：V1 效率预算充裕（报告 §2）。**
   - **载体**：`firmware/tests/boardbench/`（wasm 夹具 669B + 宿主 CCOUNT 计时 + 影子翻转检测；非 twister 独立应用，复跑 = 报告 §6）。

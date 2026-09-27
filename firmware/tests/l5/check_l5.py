@@ -53,11 +53,16 @@ def c_files(roots: list[Path]) -> list[Path]:
     return out
 
 
+# 唯一写路径豁免：driver_dispatch（驱动分发点）+ boardbench 基准（裸 GPIO
+# 对照层——无它无法量化框架增量，DEC-44；产品代码直调仍一票否决）。
+WRITE_PATH_ALLOWED = {DISPATCH_FILE, FW / "tests" / "boardbench" / "src" / "main.c"}
+
+
 def check_1_write_path(files: list[Path]) -> list[str]:
     bad = []
     for f in files:
         for m in OUTPUT_DRIVER_RE.finditer(f.read_text(encoding="utf-8")):
-            if f != DISPATCH_FILE:
+            if f not in WRITE_PATH_ALLOWED:
                 bad.append(f"[1] 输出驱动调用越权: {f.relative_to(REPO)}:{m.group(1)}")
     return bad
 

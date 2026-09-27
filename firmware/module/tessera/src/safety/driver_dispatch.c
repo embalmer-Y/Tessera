@@ -9,6 +9,7 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/sys/util.h>
+#include <errno.h>
 #include <ts/safety.h>
 #include "internal.h"
 
@@ -54,8 +55,54 @@ static int sim_read(const ts_out_ch_t *ch, ts_out_value_t *out)
 	return 0;
 }
 
+/* ---- 真机 GPIO 输出后端（板级替换，DEC-44 IO 延迟实测起） ------------------
+ * DT 绑定：zephyr,user 节点（uid = 通道 uid 串匹配；io-gpios = 输出脚）。
+ * 写路径 = sim 记录（L4 golden 连续性）+ 真寄存器写；uid 不匹配仍只记录。
+ * 只依赖注册期冻结数据（可重入/无锁——文件头纪律）。init 由板级 boot/bench
+ * 显式调用（ts_drv_gpio_init）。缺 DT 属性 = -ENODEV（配置错误如实上报）。 */
+#if defined(CONFIG_TS_DRV_GPIO)
+#if DT_NODE_HAS_PROP(DT_PATH(zephyr_user), uid)
+/* Zephyr 4.4 无 ZEPHYR_USER_NODE（4.5 API）——用 DT_PATH(zephyr_user)。 */
+static const struct gpio_dt_spec real_io =
+	GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), io_gpios);
+static const char *const real_io_uid = DT_PROP(DT_PATH(zephyr_user), uid);
+static bool real_io_ready;
+
+int ts_drv_gpio_init(void)
+{
+	if (!gpio_is_ready_dt(&real_io)) {
+		return -ENODEV;
+	}
+	if (gpio_pin_configure_dt(&real_io, GPIO_OUTPUT_INACTIVE) != 0) {
+		return -EIO;
+	}
+	real_io_ready = true;
+	return 0;
+}
+
+static void gpio_real_write(const ts_out_ch_t *ch, const ts_out_value_t *v)
+{
+	sim_record(slot_of(ch), v);
+	if (real_io_ready && strcmp(ch->uid, real_io_uid) == 0) {
+		gpio_pin_set_dt(&real_io, v->b);
+	}
+}
+
+#define TS_GPIO_WRITE gpio_real_write
+#else /* CONFIG_TS_DRV_GPIO 无 DT 绑定：回退桩（init 报错） */
+int ts_drv_gpio_init(void)
+{
+	return -ENODEV;
+}
+
+#define TS_GPIO_WRITE sim_write
+#endif
+#else /* !CONFIG_TS_DRV_GPIO：native_sim/CI 基线路径 */
+#define TS_GPIO_WRITE sim_write
+#endif
+
 const ts_driver_ops_t ts_drivers[TS_CH_KIND_COUNT] = {
-	[TS_CH_GPIO] = {sim_write, sim_read},
+	[TS_CH_GPIO] = {TS_GPIO_WRITE, sim_read},
 	[TS_CH_PWM] = {sim_write, sim_read},
 	[TS_CH_POWER] = {sim_write, sim_read},
 };

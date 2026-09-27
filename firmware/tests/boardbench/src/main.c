@@ -15,7 +15,15 @@
  * 数字无意义只打印）。 */
 #include <stdbool.h>
 #include <stdint.h>
+#include <zephyr/devicetree.h>
+#include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
+
+/* Zephyr 4.4 实证（板级三批）：DT_HAS_PROP/DT_NODE_HAS_PROP 包装宏在 #if 下
+ * 求值为假，而原始生成宏为真（P5 探针）——守卫直接用生成宏 + defined 保护
+ * （native_sim 无 zephyr,user 节点 → 宏不存在 → defined() 拦截）。 */
+#define BB_REAL_IO_COND defined(CONFIG_TS_DRV_GPIO) && \
+	defined(DT_N_S_zephyr_user_P_uid_EXISTS) && DT_N_S_zephyr_user_P_uid_EXISTS
 #include <zephyr/sys/printk.h>
 #include <ts/appmgr.h>
 #include <ts/core.h>
@@ -27,11 +35,13 @@
 #define OP_RT 2u
 #define OP_WR 3u
 #define OP_ECHO 4u
+#define OP_WRIO 5u
 
 #define CH_ECHO "be0"
 #define CH_MARK "bm0"
 #define CH_DATA "bd0"
 #define CH_STRESS "bs0"
+#define CH_IO "io0"
 
 #ifdef CONFIG_BOARD_NATIVE_SIM
 #define BUSY_ITERS 1000u
@@ -90,6 +100,46 @@ static const ts_out_ch_t ch_stress = {
 	.uid = CH_STRESS, .kind = TS_CH_GPIO,
 	.poweron = {.b = false}, .linkloss = {.b = false}, .fault = {.b = false},
 };
+static const ts_out_ch_t ch_io = {
+	.uid = CH_IO, .kind = TS_CH_GPIO,
+	.poweron = {.b = false}, .linkloss = {.b = false}, .fault = {.b = false},
+};
+
+/* ---- BB5 真机 IO 延迟（DEC-44）：三层对照 + 分布 -------------------------- */
+#if BB_REAL_IO_COND
+#define IO_N 10000u
+static const struct gpio_dt_spec io_spec =
+	GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), io_gpios);
+static void sort_u32(uint32_t *a, size_t n);
+
+static uint32_t io_ns[IO_N];
+
+static void raw_fn(uint32_t i)
+{
+	gpio_pin_set_dt(&io_spec, i & 1u);
+}
+
+static void fw_fn(uint32_t i)
+{
+	ts_out_value_t v = {.b = (i & 1u) != 0};
+
+	(void)ts_safety_commit(CH_IO, v);
+}
+
+static void io_dist(const char *tag, uint32_t n, void (*fn)(uint32_t))
+{
+	for (uint32_t i = 0; i < n; i++) {
+		uint32_t c0 = cyc_now();
+
+		fn(i);
+		io_ns[i] = (uint32_t)cyc_to_ns(cyc_now() - c0);
+	}
+	sort_u32(io_ns, n);
+	printk("BB5 %s n=%u min=%u p50=%u p95=%u max=%u ns p50_hz=%u\n", tag, n,
+	       io_ns[0], io_ns[n / 2], io_ns[n * 95u / 100u], io_ns[n - 1],
+	       (uint32_t)(1000000000ULL / io_ns[n / 2]));
+}
+#endif /* CONFIG_TS_DRV_GPIO */
 
 static bool rb(const char *uid)
 {
@@ -211,29 +261,37 @@ int main(void)
 
 	/* 通道描述符必须各自独立持久（注册存指针——栈上复用单对象 = 全表别名，
 	 * 板级二实证教训：四通道全指向同一 uid，ts_ch_find 全 NOTFOUND） */
-	static const ts_out_ch_t *const chs[4] = {
-		&ch_echo, &ch_mark, &ch_data, &ch_stress,
+	static const ts_out_ch_t *const chs[5] = {
+		&ch_echo, &ch_mark, &ch_data, &ch_stress, &ch_io,
 	};
-	static const ts_hal_dev_desc_t devs[3] = {
+	static const ts_hal_dev_desc_t devs[4] = {
 		{.uid = CH_ECHO, .kind = TS_DEV_GPIO_OUT},
 		{.uid = CH_MARK, .kind = TS_DEV_GPIO_OUT},
 		{.uid = CH_DATA, .kind = TS_DEV_GPIO_OUT},
+		{.uid = CH_IO, .kind = TS_DEV_GPIO_OUT},
 	};
 
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < 4; i++) {
 		if (ts_hal_register_dev(&devs[i]) != TS_OK) {
 			printk("BB FAIL hal_register %d\n", i);
 			return 1;
 		}
 	}
 	printk("BBs devs ok\n");
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < 5; i++) {
 		if (ts_safety_register_channel(chs[i]) != TS_OK) {
 			printk("BB FAIL ch_register %d\n", i);
 			return 1;
 		}
 	}
 	ts_safety_set_link(true);
+#if BB_REAL_IO_COND
+	if (ts_drv_gpio_init() != 0) {
+		printk("BB FAIL ts_drv_gpio_init\n");
+		return 1;
+	}
+	printk("BBs real-io ok (uid=%s)\n", CH_IO);
+#endif
 	printk("BBs channels ok\n");
 
 	uint32_t c0 = cyc_now();
@@ -284,6 +342,22 @@ int main(void)
 		return 1;
 	}
 
+	/* ⑤' BB5 真机 IO 延迟（DEC-44）：裸 Zephyr / 框架安全层 / wasm 全路径 */
+#if BB_REAL_IO_COND
+	io_dist("raw", IO_N, raw_fn);
+	io_dist("fw", IO_N, fw_fn);
+	dt = post_and_wait(OP_WRIO, 5000, CH_MARK, !mark, &ok);
+	printk("BB5 wasm n=5000 ok=%d total_ns=%llu per_call_ns=%u\n", ok, dt,
+	       ok ? (uint32_t)(dt / 5000u) : 0u);
+	if (!ok) {
+		printk("BB FAIL wrio\n");
+		return 1;
+	}
+	mark = !mark;
+#else
+	printk("BB5 skipped（无真机 GPIO 后端）\n");
+#endif
+
 #if CONC_ON
 	/* ⑥ 并发（单核抢占模式）：压测线程直写独立通道期间重测 ④ + estop 生效性。
 	 * stress 优先级 = main（15）——同抢占级靠时间片轮转，单核上高于 stress
@@ -295,6 +369,9 @@ int main(void)
 	k_thread_name_set(&stress_thr, "bench_stress");
 
 	uint32_t f = mb_dist("cont", 100);
+#if BB_REAL_IO_COND
+	io_dist("fw_cont", 2000, fw_fn); /* 压测下真机 IO 写分布 */
+#endif
 	ts_safety_force_all_fault();
 	bool all_safe = !rb(CH_ECHO) && !rb(CH_MARK) && !rb(CH_DATA) &&
 			!rb(CH_STRESS);

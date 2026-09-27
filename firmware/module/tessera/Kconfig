@@ -314,4 +314,14 @@ config TS_NET_ZENOH
 
 endif # TS_NET
 
+
+config TS_DRV_GPIO
+	bool "ts-safety: real GPIO output backend (board porting)"
+	depends on TS_SAFETY && GPIO
+	default n
+	help
+	  Real-machine GPIO write backend (DEC-44 IO latency measurement onwards). Binding = zephyr,user node
+	  (uid matches channel uid; io-gpios = output pin); write path = sim record (L4 golden continuity) + register write.
+	  Default off (native_sim/CI baseline sim backend).
+
 endmenu

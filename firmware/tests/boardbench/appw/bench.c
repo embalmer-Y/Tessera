@@ -10,10 +10,12 @@ extern long long ts_time_ms(int ctx);
 #define OP_RT 2u /* ts_time_ms 往返 N 次 */
 #define OP_WR 3u /* 写路径 N 次（perm→safety→驱动） */
 #define OP_ECHO 4u /* 立即回写（mailbox 时延探针） */
+#define OP_WRIO 5u /* 真机 IO 写路径 N 次（inst 3 → 真寄存器） */
 
 #define CH_ECHO 0
 #define CH_MARK 1
 #define CH_DATA 2
+#define CH_REAL 3
 
 static int g_ctx;
 static volatile unsigned g_sink; /* 防优化 Sink */
@@ -54,6 +56,11 @@ int app_evt(int v)
 	case OP_WR:
 		for (unsigned i = 0; i < n; i++) {
 			ts_gpio_write(g_ctx, CH_DATA, (int)(i & 1u));
+		}
+		return ts_gpio_write(g_ctx, CH_MARK, (int)out);
+	case OP_WRIO:
+		for (unsigned i = 0; i < n; i++) {
+			ts_gpio_write(g_ctx, CH_REAL, (int)(i & 1u));
 		}
 		return ts_gpio_write(g_ctx, CH_MARK, (int)out);
 	case OP_ECHO:

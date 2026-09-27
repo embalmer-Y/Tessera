@@ -441,3 +441,9 @@
 **修订建议（数据版）**：A'——V1 双核终验以 **native_sim 多核为准**（唯一已实证且常设运行的真并行载体）；若 owner 认为必须在真芯片上终验，则采购一块 **ESP32 经典款开发板**（esp32_devkitc-wrover 等，几十元级）作并发终验专用板，到货后流程 = SMP 运行级冒烟（官方页 non-functional 表述需先证伪/证实）→ 通过则挂 framework.conc + boardbench ⑥ 双核版。S3 继续承担 bring-up/效率/单核角色；"等 S3 SMP 上游"仅作观察项不作依赖。
 
 **引用**：zephyr issue #83168（ESP32 SMP 4.0 时代损坏）/ discussion #77131（SMP 测试面）；Zephyr 4.5 release notes（P4 加入、S3 无 SMP 动静）；github main soc/espressif/esp32p4 目录（无 SMP 文件）；developer.espressif.com/software/zephyr-support-status（"SMP is currently non-functional"）。
+
+
+- 2026-09-27 · **裁决：Q-24 → DEC-44（方案 A，基于板卡 SMP 深度调研）**：owner 原文："选择A，同时我需要请你进行真机测试确认现在我们的框架是否会导致IO操作延迟过高"。裁定内容：① V1 双核终验以 **native_sim 多核为准**（framework.conc 已在 4 核真并行常设于 CI）；② 不采购 ESP32 经典款板；③ "S3 SMP 上游落地"降级为观察项（DEC-19 跟进机制内关注，不作任何计划依赖）；④ S3 本板继续承担 bring-up/效率/单核角色。**同批新任务（owner 指令）= 真机 IO 延迟实测**：确认框架层（APP/权限/安全/审计）是否导致 IO 操作延迟过高——需最小真 GPIO 后端（driver_dispatch 板级替换点，L5 白名单内）+ 三层对照基准（裸 Zephyr GPIO / 经框架安全层 / 经完整 wasm APP 路径）。
+
+
+- 2026-09-27 · **板级三单元交付（DEC-44 同批：真机 IO 延迟实测 + 最小真 GPIO 后端）**：① `CONFIG_TS_DRV_GPIO`（Kconfig 默认关，native_sim/CI 零影响）+ zephyr,user DT 绑定（uid 串匹配通道；GPIO9@xiao D10）——driver_dispatch.c 板级替换点（L5 白名单文件）内实现真写，sim 记录保留（L4 golden 连续性），L5 唯一写路径检查增 boardbench 裸基线豁免（对照层合法性，产品代码禁令不变）；② boardbench BB5 三层对照（board-bench-01 §1.5）：裸 gpio_pin_set_dt p50=204ns（4.9MHz）/ 框架安全层 5.75µs（174kHz，压测竞争下 p50/p95 零变化、max +66ns）/ 完整 wasm 路径 10.59µs（94kHz）——**判定：不过高**（100Hz 更新占周期 0.058%，两数量级裕量；位带式 >174kHz 走硬件外设通道为架构本意）；③ 过程实证教训登记 dev-env 教训 20（ZEPHYR_USER_NODE 为 4.5 API，4.4 须 DT_PATH(zephyr_user)；未定义宏在 DT 包装宏里被字面拼接产生连环假象）。回归：native_sim bench 构建 ✓ / L5 6/6 / pytest ✓ / twister 全量（见当日 CI）。

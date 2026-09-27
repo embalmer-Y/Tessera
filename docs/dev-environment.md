@@ -102,6 +102,7 @@ python3.12 -m venv ~/project/agent-venv
 17. **板级 bring-up 三坑（2026-09-26，xiao_esp32s3）**：① RAM slot 替身（store/part.c）默认双 256KB = 512KB，ESP32-S3 的 dram0_0_seg 装不下（溢出 251KB）——板级片段 `firmware/app/boards/xiao_esp32s3_esp32s3_procpu.conf` 按 DEC-23/DEC-27 收紧（slot 32KB、宿主栈 16KB；PSRAM 挂接待板级任务）；② 改 `boards/` 片段后**必须 `-p always`**——`-p auto` 在同板同源 build 目录不触发 pristine，CONF_FILE 沿用缓存、新片段静默不生效（本次多耗两轮构建）；③ esp32s3 默认 **picolibc**，其 stdio.c 自带 `__stdout_hook_install`，与 WAMR 垫片撞多重定义——垫片加 `#if !defined(CONFIG_PICOLIBC)` 守卫（native_sim minimal-libc 路径不变）。
 18. **WAMR XTENSA 陷出必须用官方汇编（2026-09-26 板级二）**：`invokeNative_general.c`（C 版）在 xtensa 上传参不可靠（WAMR cmake 注释自认；native_sim/x86 可用是平台假象）——XTENSA 目标用 `invokeNative_xtensa.s` + `-Wa,--noexecstack`（汇编期补 .note.GNU-stack，否则 Zephyr --fatal-warnings 链接失败）。模块 CMakeLists 已按板分派。
 19. **esp32s3 计时源与描述符约束（2026-09-26 板级二实证）**：① `k_cycle_get_64` 本板**冻结**（75ms 忙等 delta=0，uptime 正常；根因未深究，上游跟踪项）——板级周期计时用 **CCOUNT**（`rsr.ccount`，240MHz 直接驱动；32 位 ~17.8s 回绕，差值即时计算回绕安全）；② `ts_safety_register_channel` 存描述符**指针**——描述符须 file-scope 持久对象（栈上复用单对象 = 全表别名 → 全 NOTFOUND；native_sim 测试的 static 惯例掩盖该约束）；③ wsl bash 管道输出中文可能显示为 GBK 伪乱码——**判文件编码一律用 Read 工具直读，勿信管道显示**。
+20. **Zephyr 4.4 DT 用户节点 API 陷阱（2026-09-27 板级三实证）**：① **`ZEPHYR_USER_NODE` 是 4.5 API，4.4 无此宏**——4.4 用 `DT_PATH(zephyr_user)`；读 /latest/ 文档时注意版本差；② 未定义宏进了 DT 包装宏（DT_PROP/GPIO_DT_SPEC_GET/DT_NODE_HAS_PROP）会被**字面 token 拼接**，产生"宏不可见/守卫恒假/undeclared 后缀符号"连环假象——遇此类怪象先确认节点宏本身存在；③ DT 的 gpios 单元只认 dt-bindings 宏（`GPIO_ACTIVE_HIGH` 等，`#include <zephyr/dt-bindings/gpio/gpio.h>`——注意双层 gpio 目录）；`GPIO_OUTPUT_LOW/HIGH` 是**运行时 API 旗标**，不属于 DT。
 
 ## 6. 会话规范（此后所有开发会话）
 
@@ -139,6 +140,7 @@ python3.12 -m venv ~/project/agent-venv
 
 ## 修订记录
 
+- v2.2 · 2026-09-27：板级三（IO 延迟实测）——§5 增教训 20（ZEPHYR_USER_NODE 4.5 API / 4.4 用 DT_PATH(zephyr_user)；未定义宏字面拼接连环假象；dt-bindings 宏层级）。
 - v2.1 · 2026-09-26：板级二（效率基准）——§5 增教训 18（WAMR XTENSA 陷出用官方汇编 + noexecstack）/19（k_cycle_get_64 冻结 → CCOUNT；通道描述符持久约束；管道伪乱码判读法）；板级基准复跑入口 = `docs/board-bench-01.md` §6（`~/project/logs/bflash.sh`）。
 - v2.0 · 2026-09-26：**环境官方手册重建（owner 指令）**——§2 工作区改为 `west init --mr v4.4.0` 官方重建 + SDK 1.0.1 官方安装（~/zephyr-sdk-1.0.1）+ esptool 接入；§3 增板级构建/烧录/console 冒烟命令；§5 增教训 15（PATH interop 根因定论 + wsl.conf 修复）/16（SDK 安装三要点）/17（板级 bring-up 三坑），修正教训 13（shutdown 后 detach→reattach）/14（缓解手段除根后作废）；zenoh-pico 自旧工作区原样回拷（1.10.1 + config.h；L3 E2E 复跑待后续单元）。回归：native_sim 构建 + twister 14/14（58 用例）×2 + pytest + L5 全绿；板级：构建/烧录/console 冒烟绿，占用 text 91KB / 静态 bss 113KB / libc 堆余 218KB。
 - v1.9 · 2026-09-26：接线批——§5 增教训 12（WAMR 模块生命周期怪癖 + mod_cache 复用规避）/13（usbipd 板卡进 WSL 全流程，xiao_esp32s3 @ /dev/ttyACM0）。

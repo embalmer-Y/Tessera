@@ -189,6 +189,11 @@ typedef struct {
 /** [thread] 拷贝指定通道的写序列快照（从旧到新），返回实际条数（环形容量 32/通道）。 */
 size_t ts_driversim_writes(const char *uid, ts_write_rec_t *out, size_t max);
 
+/** [boot/board] 真机 GPIO 输出后端初始化（板级步骤；driver_dispatch.c）。
+ * 依赖 CONFIG_TS_DRV_GPIO=y + zephyr,user 节点（uid + io-gpios）；
+ * 未启用/缺绑定返回 -ENODEV——板级按需如实检查。 */
+int ts_drv_gpio_init(void);
+
 #ifdef __cplusplus
 }
 #endif
