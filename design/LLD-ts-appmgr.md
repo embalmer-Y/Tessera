@@ -79,6 +79,7 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 
 ## 修订记录
 
+- v0.5 · 2026-10-01：板级六（PSRAM 挂接，docs/board-psram-01.md）——WAMR 实例堆统一为显式池：wasm_runtime_full_init(Alloc_With_Pool) 注入堆缓冲（事实修正：WAMR-2.4.5 的 WASM_ENABLE_GLOBAL_HEAP_POOL 旗标无消费者，wasm_runtime_init() 实为系统分配器——"64KB 池基线"从未生效；池模式下 64KB 结构性不可行〔线性内存一页即 64KB〕，TS_APP_WAMR_HEAP 默认 65536→262144）；TS_APP_PSRAM_HEAP（esp32s3 = SMH_REG_ATTR_EXTERNAL 分配 = HLD §4.6 分层纪律落点；其余 = 内部静态池）。
 - v0.4 · 2026-09-26：M2b.2 收尾——boot 步骤 8 slot 装载 + 默认 y + E2E 真夹具 wasm；M2b.2 全部完成（twister 14/14〔58 用例〕）。
 - v0.3 · 2026-09-26：DEC-43 接线批——§5 运行时宿主与 natives 落地（framework.app 端到端）；§7 两项 V1 已知偏差（调用期裁决/模块进程级复用）+ 健康导出名对齐 health_ping + M2b.2 收尾余项登记。
 - v0.1 · 2026-09-20：首版草案（"按能力过滤符号装配"为权限硬边界核心机制）。

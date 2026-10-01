@@ -157,10 +157,25 @@ config TS_APP_LOAD_MAX
 config TS_APP_WAMR_HEAP
 	int "WAMR global heap pool size (bytes)"
 	depends on TS_APP_WAMR
-	default 65536
+	default 262144
 	help
-	  Source: HLD 4.6 per-board table (DEC-27 #10 dynamic per board;
-	  native_sim test baseline 64KB, board porting sets per board).
+	  Source: HLD 4.6 per-board table (DEC-27 #10 dynamic per board).
+	  Board-unit-6 correction: the old 64KB "native_sim baseline" was a
+	  system-allocator-era artifact (linear memory actually came from the
+	  host heap). In true pool mode one linear-memory page alone is 64KB,
+	  so 64KB is structurally infeasible; default now matches the DEC-27
+	  256KB target (native_sim has host RAM to spare).
+
+config TS_APP_PSRAM_HEAP
+	bool "WAMR instance heap in PSRAM (shared multi heap)"
+	depends on TS_APP_WAMR && ESP_SPIRAM && SHARED_MULTI_HEAP
+	default n
+	help
+	  HLD 4.6 PSRAM layering discipline (DEC-27): only the APP sandbox
+	  (WAMR instance heap) may live in external RAM. Pool buffer injected
+	  via wasm_runtime_full_init (zero WAMR patches; esp32s3 registers
+	  PSRAM in SMH as SMH_REG_ATTR_EXTERNAL). Off = internal SRAM static
+	  pool (native_sim/CI path).
 
 config TS_APP_THREAD_PRIORITY
 	int "APP runtime thread priority"

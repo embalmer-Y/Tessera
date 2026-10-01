@@ -17,6 +17,9 @@
 #include <ts/core.h> /* ts_time_ms：合同 9 时基（L5 禁 uptime） */
 #include <ts/hal.h>
 #include <wasm_export.h>
+#if defined(CONFIG_TS_APP_PSRAM_HEAP)
+#include <zephyr/multi_heap/shared_multi_heap.h>
+#endif
 
 #define APP_STOP_JOIN_MS 2000 /* DEC-27 #15 */
 #define APP_WASM_STACK   4096 /* wasm 应用栈（manifest.mem.stack 上限 8KB 前
@@ -171,13 +174,49 @@ ts_res_t ts_appmgr_app_start(uint16_t app_id, const uint8_t *wasm,
 	if (rt.used) {
 		return TS_E_STATE;
 	}
-	/* WAMR 进程级初始化 + natives 全局注册（一次） */
+	/* WAMR 进程级初始化 + natives 全局注册（一次）。
+	 * 实例堆 = 显式池（DEC-27 #10 池模式；板级六修正：WAMR-2.4.5 的
+	 * WASM_ENABLE_GLOBAL_HEAP_POOL 旗标对 runtime 路径已无消费者——
+	 * wasm_runtime_init() 实为系统分配器，池语义须经 wasm_runtime_full_init
+	 * 显式注入）：
+	 *  - PSRAM 配置（CONFIG_TS_APP_PSRAM_HEAP，HLD §4.6 分层纪律：仅 APP
+	 *    沙箱内存可入外部 RAM）= 共享多堆 SMH_REG_ATTR_EXTERNAL 分配
+	 *   （esp32s3 PSRAM 注册面，官方机制）；
+	 *  - 其余（native_sim/CI/未挂 PSRAM 板）= 内部 SRAM 静态池。 */
 	static bool wamr_up;
 
 	if (!wamr_up) {
-		if (!wasm_runtime_init()) {
+#if defined(CONFIG_TS_APP_PSRAM_HEAP)
+		static void *wamr_heap_buf;
+
+		if (wamr_heap_buf == NULL) {
+			wamr_heap_buf = shared_multi_heap_alloc(
+				SMH_REG_ATTR_EXTERNAL, CONFIG_TS_APP_WAMR_HEAP);
+		}
+		if (wamr_heap_buf == NULL) {
+			printk("[appmgr] wamr psram heap alloc %u failed\n",
+			       CONFIG_TS_APP_WAMR_HEAP);
+			return TS_E_NOMEM;
+		}
+#else
+		static uint8_t wamr_heap_buf[CONFIG_TS_APP_WAMR_HEAP] __aligned(8);
+#endif
+		RuntimeInitArgs args = {0};
+
+		args.mem_alloc_type = Alloc_With_Pool;
+		args.mem_alloc_option.pool.heap_buf = wamr_heap_buf;
+		args.mem_alloc_option.pool.heap_size = CONFIG_TS_APP_WAMR_HEAP;
+		if (!wasm_runtime_full_init(&args)) {
+#if defined(CONFIG_TS_APP_PSRAM_HEAP)
+			shared_multi_heap_free(wamr_heap_buf);
+			wamr_heap_buf = NULL;
+#endif
 			return TS_E_IO;
 		}
+		printk("[appmgr] wamr pool heap: buf=%p size=%u (%s)\n",
+		       args.mem_alloc_option.pool.heap_buf,
+		       CONFIG_TS_APP_WAMR_HEAP,
+		       IS_ENABLED(CONFIG_TS_APP_PSRAM_HEAP) ? "psram/smh" : "sram/static");
 		wamr_up = true;
 	}
 	if (!ts_app_natives_register()) {

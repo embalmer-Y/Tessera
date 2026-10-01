@@ -6,6 +6,12 @@
 
 ## 1. 当前状态
 
+- **2026-10-01（二十五） · 板级六交付（owner 指令"优先 PSRAM"）：WAMR 实例堆 256KB 入 PSRAM（DEC-27/HLD §4.6 兑现）——真机全链 PASS；twister 15/15（65 用例）/L5/pytest 全绿**
+  - **两条事实修正**：①"Zephyr 4.4 无 psram 节点"评估有误（psram0@common.dtsi + N8R8 8MB；**八线须显式 SPIRAM_MODE_OCT**，默认 QUAD 即 esp_init_psram 硬停）；② WAMR-2.4.5 的 GLOBAL_HEAP_POOL 旗标无消费者——wasm_runtime_init() 实为系统分配器，"64KB 池基线"从未生效（板级二足迹数据与此一致）。
+  - **实现**：runtime.c 统一显式池（wasm_runtime_full_init 注入堆缓冲；PSRAM = SMH_REG_ATTR_EXTERNAL 官方分配面 / 其余 = 内部静态池；零上游补丁）；Kconfig TS_APP_PSRAM_HEAP（默认 n）；**TS_APP_WAMR_HEAP 默认 65536→262144**（池模式下 64KB 结构性不可行——线性内存一页即 64KB，twister 实证拦截；HLD §4.6 注记 + LLD-ts-appmgr v0.5）。
+  - **真机**（psrambench，docs/board-psram-01.md）：8MB 八线识别 + memtest OK；SMH 探针 0x3c030060 读写一致；WAMR 池 buf=0x3c030060@256KB；APP 全链 PASS。**量化对照**：PSRAM 开 = 内部 dram 38.8%；关 + 256KB = 溢出 14548B（目标内部装不下的硬证据）。生产 app 板 conf 升每板默认。
+  - **回归**：twister 15/15（65）/L5 6/6/pytest 2/2 + 真机重刷复验 PASS。分层纪律结构面成立（仅 APP 沙箱入 SMH）。
+  - **下一单元（板级七，owner 指令次优先）**：WiFi 重连策略；余项：estop chosen overlay、PWM/ADC 真驱动、生产 prov 烧录通道。
 - **2026-09-28（二十四） · 板级五交付：prov/APP flash 持久化（真机全链 PASS）+ ts-store flash 后端入库——twister 15/15（65 用例）/L5/pytest 全绿**
   - **后端**：`CONFIG_TS_STORE_FLASH` + DT 五分区（ts_prov/meta/slot_a/slot_b/noinit，carved 自 espressif AMP 布局空闲 slot1 区——boot/sys/slot0 与 esptool 偏移零变化；fw_b 预留 = DEC-23 固件双 slot）；ops 增 erase_off、逐 4B 字"读-比-写"垫片（同值跳过幂等/位子集校验/仅抹除态编程）；分区缺失/尺寸错配 = 构建期失败。上层适配：meta 副本步距动态化 + 写前范围擦除；noinit one-shot 读清；`ts_store_slot_erase` API + stage_begin 安装前擦除；prov 注入一体单写（sim 程序一次语义拦下双写缺陷）；cbor_min 无条件编译（TS_NET=n 暴露的真实依赖）。LLD-ts-store v0.3 同步。
   - **真机验证**（persistbench 载体，docs/board-persist-01.md）：完整单迹 = PB1 首启烧录会话（prov 注入 + 440B TSAP 分步安装链 + activate + 暖复位）→ 复位后 prov/meta/slot 全出自 flash、APP 自 slot 装载运行 + evt 写路径全链 PASS。附带证据：跨固件重刷持久（west flash 不动分区）+ 中断会话一致性（半途复位 → step8 r=-7 不阻塞启动）。

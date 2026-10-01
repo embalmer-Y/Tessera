@@ -173,7 +173,7 @@ estop / WDT / 故障 → SAFE_FAULT（estop 后须人工/显式命令复位）
 | ESP32-S3 | 512KB | PSRAM 2–8MB（Zephyr 官方支持） | 256KB | 4（可扩 8） |
 | ESP32-P4 | 768KB | PSRAM（容量待核验） | 256KB | 8 |
 | STM32H7 | 1MB+ | FMC SDRAM（待核验） | 256KB | 8 |
-| native_sim | 宿主内存 | — | 64KB（测试基线，可配） | 4 |
+| native_sim | 宿主内存 | — | 256KB（板级六修正：64KB 为系统分配器时代伪基线——真池模式下线性内存一页即 64KB，结构性不可行） | 4 |
 
 Flash（按板可配，DEC-23）：bootloader 64KB ｜ 固件 slot ×2 ｜ APP slot ×2 ｜ prov/meta/noinit 64KB。
 

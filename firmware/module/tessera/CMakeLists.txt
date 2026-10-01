@@ -116,7 +116,11 @@ if(CONFIG_TS_APP_WAMR)
   set(WAMR_BUILD_MULTI_MODULE 0)
   set(WAMR_BUILD_SHARED_MEMORY 0)     # DEC-31：共享内存不启用
   set(WAMR_BUILD_LIB_PTHREAD 0)       # DEC-31：APP 自建线程编译期禁用
-  set(WAMR_BUILD_GLOBAL_HEAP_POOL 1)  # 池模式（PSRAM 分层纪律，DEC-27）
+  set(WAMR_BUILD_GLOBAL_HEAP_POOL 1)  # 池模式（PSRAM 分层纪律，DEC-27）。
+  # 注（板级六实证）：WAMR-2.4.5 中本旗标对 runtime 路径已无消费者——池
+  # 语义实际由 runtime.c 经 wasm_runtime_full_init(Alloc_With_Pool, 注入堆
+  # 缓冲) 显式建立（PSRAM = SMH 分配；其余 = 内部静态池）。保留定义不改
+  # 上游口径。
   set(WAMR_BUILD_GLOBAL_HEAP_SIZE ${CONFIG_TS_APP_WAMR_HEAP})
   set(WAMR_ROOT_DIR $ENV{TS_WAMR_DIR})
   include($ENV{TS_WAMR_DIR}/build-scripts/runtime_lib.cmake)
