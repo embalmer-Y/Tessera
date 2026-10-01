@@ -61,9 +61,13 @@ ts_net_state_t ts_net_state(void);
 void ts_net_set_transport(const ts_net_transport_t *t); /* NULL = 摘除 */
 /* 退避表查值（DEC-27 固定表 250/500/1000/2000 循环；attempt 从 0 起，无随机） */
 uint32_t ts_net_backoff_ms(uint32_t attempt);
-/* 周期推进（sysworkq / 测试）：DOWN → 按退避表尝试 open；CONNECTED → 掉线
+/* 周期推进（net_wq / 测试）：DOWN → 按退避表尝试 open；CONNECTED → 掉线
  * 检测 + 迁移；成功建链后冲刷 pubq。返回本 tick 后状态。 */
 ts_net_state_t ts_net_session_poll(uint64_t now_ms);
+/* 媒体掉线提示（板级七增补，LLD §2）：承载静默掉线（WiFi 断联等）时 TCP
+ * 半开、is_up 检测分钟级才收敛——glue 在承载事件上调用本接口，会话在下
+ * 一 poll（net_wq 上下文）立即判 DOWN 并按退避表重连。任意上下文可调。 */
+void ts_net_session_media_down(void);
 
 /* ---- 发布队列（LLD §5：遥测尽力而为，不阻塞控制路径）---------------------- */
 

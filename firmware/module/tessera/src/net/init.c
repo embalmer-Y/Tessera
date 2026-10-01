@@ -1,7 +1,10 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-/* ts-net 初始化（boot 步骤接线，LLD-ts-net §2/§6）+ sysworkq 周期驱动。
+/* ts-net 初始化（boot 步骤接线，LLD-ts-net §2/§6）+ 周期驱动。
  * 周期体 = session_poll → linkmon_tick → pub_telem（依赖序）；遥测周期
- * 〔DEC-27：200ms〕为驱动节拍（session/linkmon 内部按各自周期判定）。 */
+ * 〔DEC-27：200ms〕为驱动节拍（session/linkmon 内部按各自周期判定）。
+ * 板级七修正：周期体迁**专用工作队列**——zenoh open/close 为阻塞 TCP
+ * 操作（死链上可达十余秒），在 sysworkq 上会饿死同队列工作（真机实证：
+ * WiFi 重试工作迟 18s）；线程序遵循 DEC-43（net 优先级高于 APP=10）。 */
 #include <string.h>
 #include <ts/core.h>
 #include <ts/net.h>
@@ -16,6 +19,11 @@ extern const ts_net_transport_t ts_net_zenoh_transport;
 static struct k_work_delayable net_work;
 static bool started;
 
+/* 专用工作队列（结构性数值：栈 4096 覆盖 z_open/zenoh 声明路径；优先级 8 =
+ * DEC-43 线程序 net > APP(10)，低于框架安全/核心路径） */
+static K_KERNEL_STACK_DEFINE(net_wq_stack, 4096);
+static struct k_work_q net_wq;
+
 static void net_tick(struct k_work *work)
 {
 	struct k_work_delayable *d = k_work_delayable_from_work(work);
@@ -25,8 +33,8 @@ static void net_tick(struct k_work *work)
 	ts_net_linkmon_tick(now);
 	ts_net_pub_telem(now);
 	ts_net_pubq_flush(); /* 周期冲刷（CONNECTED 持续期；DOWN 期 pubq 自弃） */
-	k_work_reschedule_for_queue(&k_sys_work_q, d,
-				     K_MSEC(CONFIG_TS_NET_TELEM_INTERVAL_MS));
+	k_work_reschedule_for_queue(&net_wq, d,
+				    K_MSEC(CONFIG_TS_NET_TELEM_INTERVAL_MS));
 }
 #else
 static bool started; /* 桩构建：ts_net_init 仅装配 ids/命令表/事件订阅 */
@@ -65,9 +73,17 @@ ts_res_t ts_net_init(void)
 	}
 #ifdef CONFIG_TS_NET_ZENOH
 	ts_net_set_transport(&ts_net_zenoh_transport);
+	static bool wq_started;
+
+	if (!wq_started) {
+		k_work_queue_init(&net_wq);
+		k_work_queue_start(&net_wq, net_wq_stack,
+				   K_KERNEL_STACK_SIZEOF(net_wq_stack), 8, NULL);
+		wq_started = true;
+	}
 	k_work_init_delayable(&net_work, net_tick);
-	k_work_reschedule_for_queue(&k_sys_work_q, &net_work,
-				     K_MSEC(CONFIG_TS_NET_TELEM_INTERVAL_MS));
+	k_work_reschedule_for_queue(&net_wq, &net_work,
+				    K_MSEC(CONFIG_TS_NET_TELEM_INTERVAL_MS));
 #else
 	/* 无传输（测试/桩构建）：不启动周期体——逻辑经测试直调驱动 */
 #endif

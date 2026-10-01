@@ -6,6 +6,12 @@
 
 ## 1. 当前状态
 
+- **2026-10-01（二十六） · 板级七交付（owner 指令"其次 WiFi 重连"）：双断链全链自愈 4.2/9.2s（真机）——twister 15/15（65 用例）/L5/pytest 全绿**
+  - **分层定稿**（board-reconnect-01 §1）：WiFi 关联 = glue（驱动无自动重连；固定 2s 无抖动 + 断线 DHCP 重启〔esp32 陈旧租约〕）；zenoh 会话 = ts-net 自带退避；检测加速 = **`ts_net_session_media_down()`**（僵尸 TCP 半开显式下沉——静默掉线时 is_up 分钟级才收敛）。
+  - **两项框架修复**（三轮真机迭代实证）：① ts-net 周期体迁**专用工作队列**（sysworkq 被 zenoh 阻塞操作饿死，重试迟 18s；DEC-43 线程序 net=8>APP=10）；② netbench net_mgmt 回调重入自禁（回调内 net_mgmt = 事件 ~40ms 风暴）。
+  - **真机**：NB-R 双断链自愈 9.2s/4.2s（快关联缓存生效）；zenoh 同进程 close→re-open 首次实证；恢复后 L1×30 零失败 p50 13.4ms。局限：真实 AP 断电未测（无 AP 控制）。
+  - **回归**：twister 15/15（65）/L5 6/6/pytest 2/2。文档：board-reconnect-01 + LLD-ts-net v0.3.7 + dev-env 教训 24。
+  - **余项（板级八候选）**：estop chosen overlay、PWM/ADC 真驱动、生产 prov 烧录通道（esptool 直写/Agent push_prov）。
 - **2026-10-01（二十五） · 板级六交付（owner 指令"优先 PSRAM"）：WAMR 实例堆 256KB 入 PSRAM（DEC-27/HLD §4.6 兑现）——真机全链 PASS；twister 15/15（65 用例）/L5/pytest 全绿**
   - **两条事实修正**：①"Zephyr 4.4 无 psram 节点"评估有误（psram0@common.dtsi + N8R8 8MB；**八线须显式 SPIRAM_MODE_OCT**，默认 QUAD 即 esp_init_psram 硬停）；② WAMR-2.4.5 的 GLOBAL_HEAP_POOL 旗标无消费者——wasm_runtime_init() 实为系统分配器，"64KB 池基线"从未生效（板级二足迹数据与此一致）。
   - **实现**：runtime.c 统一显式池（wasm_runtime_full_init 注入堆缓冲；PSRAM = SMH_REG_ATTR_EXTERNAL 官方分配面 / 其余 = 内部静态池；零上游补丁）；Kconfig TS_APP_PSRAM_HEAP（默认 n）；**TS_APP_WAMR_HEAP 默认 65536→262144**（池模式下 64KB 结构性不可行——线性内存一页即 64KB，twister 实证拦截；HLD §4.6 注记 + LLD-ts-appmgr v0.5）。

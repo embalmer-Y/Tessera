@@ -145,6 +145,7 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 - v0.2.1 · 2026-09-21：裁决同步——DEC-20/22/30 出处收敛（SC-02）。
 - v0.3 · 2026-09-23：参考项目借鉴批次（owner 提供 NeuroLink/MatrixMechanic）——新增 §0 演进原则（fail-closed 不变 + ver/kind 信封演进）；§2 传输健康定义（zp 任务自省，M3a.2 短板收口）；§4.2 命令信封 v2〔Q-20〕；§4.4 kind 注册表；§4.5 控制租约〔Q-21〕；§5 事件/遥测信封与 zenoh QoS 映射〔Q-22〕；§7 Kconfig 增补；M3a.1/M3a.2/L3 实现状态对齐（§8）。
 - v0.3.1 · 2026-09-23：裁决同步（DEC-40/41/42）——§4.2 增 zenoh 可靠性调研留档 + 命令面链路 TCP/TLS 约束 + to>5000ms 拒绝；提案标记全部转 DEC 出处；§9 实现批次定为 MA3 前。
+- v0.3.7 · 2026-10-01：板级七（WiFi 断链重连，docs/board-reconnect-01.md）——① 周期体迁**专用工作队列**（栈 4096/优先级 8 = DEC-43 net > APP〔10〕；sysworkq 上 zenoh 阻塞 TCP 操作饿死同队列工作，真机实证迟 18s）；② §2 增 `ts_net_session_media_down()`：承载断线事件显式下沉（静默掉线 TCP 半开、is_up 分钟级收敛 → 下一 poll 立即判 DOWN；close/open 在 net_wq 上下文执行）；③ 板级 glue 纪律留痕：net_mgmt 回调内禁调 net_mgmt（重入自激 = 事件风暴，真机实证）+ 断线显式 net_dhcpv4_restart（esp32 口陈旧租约）。真机：双断链全链自愈 4.2/9.2s + 恢复后 L1 p50 13.4ms；twister 15/15。
 - v0.3.4 · 2026-09-25：M3b——§4.4 增 kind 97（功率预算快照，pub_telem 附带 …/sys/power 记录）；get-budget 实装（§4.3 表语义兑现）。
 - v0.3.3 · 2026-09-25：MA3.1 部署面落地——§4.3 增 app-*（gated）/get-app 行与 get-info 身份自报；cbor_min 增 bstr 解码（ts_cbor_bstr_ref）；CMD_TABLE 容量 12→16；CONFIG_TS_NET_APP_CHUNK_MAX（§7 同步）。
 - v0.3.2 · 2026-09-23：**DEC-40/41/42 实现批次落地**——§2 缺省 locator udp→tcp（DEC-40 收敛）+ is_up 自省已实现；§4.2 idem 缓存实现细节（op 一致性防御/分发级拒绝不缓存/LRU 单调时钟）；§4.5 惰性过期/lease_id 单调/拒绝回执归因细节；§5 遥测键 `kind`→`dev` 改名（信封 kind 让位）+ QoS 已实现；§8 测试要点逐条标记实现状态 + L3 扩展五验证点。回归：twister 8/8（35 用例）/ L5 6/6 / pytest / L3 PASS。
