@@ -226,3 +226,4 @@
 - 2026-09-28 · **板级五交付登记**：persistbench（firmware/tests/ 持久化验证应用；PB* console 行）；board-persist-01（docs/ 报告）；ts_*_part（DT 分区标签族：ts_prov_part/ts_meta_part/ts_slot_a_part/ts_slot_b_part/ts_noinit_part）+ fw_b_part（MCUmgr 预留）；TS_STORE_FLASH（Kconfig flash 后端）；ts_store_slot_erase（公共 API 增补）；framework.store.flash（twister 变体）；教训 22（flash 持久化六要点）。
 - 2026-10-01 · **板级六交付登记**：psrambench（firmware/tests/ PSRAM 验证应用；PS* console 行）；board-psram-01（docs/ 报告）；TS_APP_PSRAM_HEAP（Kconfig：WAMR 实例堆入 PSRAM〔SMH_REG_ATTR_EXTERNAL〕）；TS_APP_WAMR_HEAP 默认 65536→262144（64KB 基线修正，池模式下结构性不可行）；教训 23（PSRAM 五要点）。
 - 2026-10-01 · **板级七交付登记**：board-reconnect-01（docs/ 报告）；ts_net_session_media_down（公共 API 增补：承载断线下沉）；NB-R 场景（netbench 脚本化双断链；NBR* console 行）；ts-net 专用工作队列（net_wq）；教训 24（WiFi 重连四要点）。
+- 2026-10-01 · **板级八交付登记**：estopbench（firmware/tests/ estop 真机验证应用；EB* console 行）；board-estop-01（docs/ 报告）；ts-estop-gpio alias（estop DT 绑定机制修订：aliases 替代 chosen）；estop-key（gpio-keys 子节点约定）；教训 25（estop 绑定与注入三要点）。

@@ -125,9 +125,13 @@ size_t ts_driversim_writes(const char *uid, ts_write_rec_t *out, size_t max)
 	return n;
 }
 
-/* ---- estop DT 绑定（DR-11）与 ISR 粘合 ---------------------------------- */
+/* estop DT 绑定（DR-11）与 ISR 粘合。
+ * 绑定机制（板级八实证修订）：v4.4 的 EDT 管道不发射非 zephyr 前缀 chosen
+ * 属性的宏（dtlib 层属性在、edtlib 层被弃）——改走 **aliases**
+ * （DT_ALIAS(ts_estop_gpio) ← overlay aliases { ts-estop-gpio = &node; }），
+ * 语义与 DR-11 等价（板级声明式 estop 引脚绑定）。 */
 
-#define ESTOP_GPIO_NODE DT_CHOSEN(ts_estop_gpio) /* chosen: ts,estop-gpio */
+#define ESTOP_GPIO_NODE DT_ALIAS(ts_estop_gpio) /* 板 overlay aliases 定义 */
 
 #if DT_NODE_EXISTS(ESTOP_GPIO_NODE)
 static const struct gpio_dt_spec estop_spec = GPIO_DT_SPEC_GET(ESTOP_GPIO_NODE, gpios);

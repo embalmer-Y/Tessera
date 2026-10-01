@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-10-01（二十七） · 板级八交付：estop 绑定真机验证 PASS（硬件链路 ×3，合同 5 真机首证）——twister 15/15（65 用例）/L5/pytest 全绿**
+  - **绑定机制修订**（上游事实）：v4.4 EDT 管道不发射非 zephyr 前缀 chosen 宏（dtlib 属性在、edtlib 弃）——改走 **aliases**（`DT_ALIAS(ts_estop_gpio)`），模块同步切换，DR-11 语义不变（LLD-ts-safety v0.2.5 + dev-env 教训 25）。
+  - **真机**（estopbench，docs/board-estop-01.md）：引脚沿（io_mux 双使能注入 = 完整硬件路径）→ ISR 直达 → fault 落通道 **≤20ms** → 锁存 → clear+显式 commit 恢复，×3 轮；观测判据 = 通道三态 fault=true。如实记录：TS_EVT_ESTOP 补发属周期驱动接线（直启面未接，framework 测试已覆盖）；沿配置仍为上升沿占位（DR-11 prov 化待办）。
+  - **回归**：twister 15/15（65）/L5 6/6（estop 调用图零违规）/pytest 2/2。
+  - **余项（板级九候选）**：PWM/ADC 真驱动（ts-periph dispatch 板级后端）、生产 prov 烧录通道（esptool 直写 / Agent push_prov〔MA3〕）。
 - **2026-10-01（二十六） · 板级七交付（owner 指令"其次 WiFi 重连"）：双断链全链自愈 4.2/9.2s（真机）——twister 15/15（65 用例）/L5/pytest 全绿**
   - **分层定稿**（board-reconnect-01 §1）：WiFi 关联 = glue（驱动无自动重连；固定 2s 无抖动 + 断线 DHCP 重启〔esp32 陈旧租约〕）；zenoh 会话 = ts-net 自带退避；检测加速 = **`ts_net_session_media_down()`**（僵尸 TCP 半开显式下沉——静默掉线时 is_up 分钟级才收敛）。
   - **两项框架修复**（三轮真机迭代实证）：① ts-net 周期体迁**专用工作队列**（sysworkq 被 zenoh 阻塞操作饿死，重试迟 18s；DEC-43 线程序 net=8>APP=10）；② netbench net_mgmt 回调重入自禁（回调内 net_mgmt = 事件 ~40ms 风暴）。

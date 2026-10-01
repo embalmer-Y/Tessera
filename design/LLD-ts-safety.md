@@ -116,6 +116,7 @@ extern const ts_driver_ops_t ts_drivers[3];   /* [GPIO]=native_sim 桩/gpio、[P
 
 ## 修订记录
 
+- v0.2.5 · 2026-10-01：板级八（estop 真机，docs/board-estop-01.md）——① §5 estop DT 绑定机制修订：**aliases**（`DT_ALIAS(ts_estop_gpio)` ← 板 overlay `aliases { ts-estop-gpio = &node; }`）替代 chosen——v4.4 EDT 管道不发射非 zephyr 前缀 chosen 宏（dtlib 属性在、edtlib 弃，实证留痕）；DR-11 语义不变；② 真机实证：引脚沿→ISR 直达→fault 落通道 ≤20ms（轮询粒度上界）→锁存→clear+显式 commit 恢复，×3 轮；合同 5 链路真机首证。
 - v0.2.4 · 2026-09-26：DEC-43 锁收口——§4 增 write_lock 语义（迁移路径/预算检查-提交纳入同一互斥；estop ISR 无锁直达不变；读路径无锁标注）；回归 framework.conc 3 用例 + twister 13/13（54 用例）全绿。
 - v0.2.3 · 2026-09-25：impl-review-01 修复批（F-8）——§5 clear_fault 复位语义定案（v0.2.2 ③ 复核闭环）：状态条件恢复 + 输出值不回写（保持 fault 安全值直至显式 commit，与 DR-04 同则）。代码注释同步（channel.c），无行为变更。
 - v0.1 · 2026-09-20：首版草案（estop 无锁直达 + commit 末段 irq_lock 复查为本版关键设计）。
