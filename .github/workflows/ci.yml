@@ -63,6 +63,12 @@ jobs:
       - name: 检出 WAMR 2.4.5（钉版，浅克隆）
         run: git clone --depth 1 --branch WAMR-2.4.5
               https://github.com/bytecodealliance/wasm-micro-runtime.git ~/wamr
+      - name: 预生成 WAMR version.h（竞态除根，板级四/八两度 CI 咬人）
+        # version.cmake 的 configure_file 写共享源码树——twister 15 并行套件
+        # 的配置/编译竞争撕裂（冷检出首现；本地热树掩盖）。检出后串行生成
+        # 一次，此后 configure_file 内容相同即不重写（CMake 幂等语义），
+        # 并行阶段写者归零。
+        run: cmake -DWAMR_ROOT_DIR=$HOME/wamr -P ~/wamr/build-scripts/version.cmake
       - name: 主机构建依赖（Zephyr 官方 Ubuntu 清单，native_sim 32 位含 multilib）
         run: |
           sudo apt-get update
