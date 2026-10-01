@@ -6,6 +6,13 @@
 
 ## 1. 当前状态
 
+- **2026-10-02（二十八） · 板级九交付：PWM/ADC 真驱动（ts-periph dispatch 板级后端）真机全链 PASS——twister 15/15（65 用例）/L5 6/6/Agent pytest 58+2s 全绿**
+  - **后端**：`CONFIG_TS_DRV_PWM`（driver_dispatch.c = L5 白名单内；zephyr,user 绑定 pwm-uid+pwms 三元胞，LEDC 引脚路由经 pinctrl；失败进 `ts_drv_pwm_err_count` 观测计数〔真机全程 0〕）+ `CONFIG_TS_DRV_ADC`（hal/api.c 输入面——合同 3 输入直读不经保护层；zephyr,user adc-uid+io-channels = 官方文档示例模式；12bit/内部基准/12dB 衰减，mV = 通用换算 1100mV 口径〔esp32 驱动 raw 预补偿：eFuse 校准+衰减反归一〕，读失败如实 TS_E_IO）。
+  - **安全层存量欠账修复（bench 拦下）**：① `set_link(false)` 断链迁移此前**仅改 shadow** = 物理输出滞留断链前值（HLD §4.5-S2 原文"声明值落驱动"欠账；fault 路径本就落驱动故 estop 真机未暴露）——修复 = 声明值经 ts_drivers 落驱动，DR-04 恢复不回写不变（真机 PP5 首证）；② Kconfig 结构缺陷：TS_POWER/TS_PERIPH 误嵌 `if TS_NET` 块（TS_NET=n 不可见）——endif 上移回归 depends TS_HAL 本位；③ `ts_pwm_set` hz 下界 100Hz（打包粒度，V1 桩曾静默接受）。
+  - **真机**（periphbench，PP* 行，docs/board-periph-01.md）：LEDC duty 寄存器六点 **±1‰**（含跨 hz 1000↔5000 重配 res 14↔13）/ 保护层限幅 900‰→700‰ **落硬件** + TS_E_RANGE / 端点 0%·100% 停止态 / **断链 fail-safe linkloss 0% 落驱动真机首证** + 恢复显式重写 / ADC 轨到轨注入 **0mV·3122mV**（3.3V 饱和；io_mux 注入 = estopbench 同型）。板级事实：LEDC duty 寄存器字段 = **ticks<<4**（hal ledc_ll 直证；reg 头部位域注释误导）。
+  - **观察项登记**（报告 §5）：注册期 poweron 值落驱动未接线（V1 各板 poweron 与硬件缺省一致未暴露）；ADC 悬空保持残压（真部署需外部网络）；input monitor 真输入驱动未接（板级三既有登记）；LEDC 同 timer 多通道须同频。
+  - **计划补账**：project-plan **v1.15**（板级行收口板级一~九 + §5 owner 待办清空——历史两项已落定）；文档：LLD-ts-safety v0.2.6 / LLD-ts-hal v0.2.2 / LLD-ts-periph v0.5 / dev-env v2.8 教训 26 / names 军规 6 撞名自查（periphbench PB*→PP*，persistbench 不受影响）。
+  - **余项（板级十候选）**：生产 prov 烧录通道（esptool 直写 / Agent push_prov〔MA3〕）、**Agent→真机完整部署 E2E**（经 WiFi/zenoh 分块安装真机 APP——固件能力齐备）、注册期 poweron 落驱动；P4/H7 移植未启动。
 - **2026-10-01（二十七） · 板级八交付：estop 绑定真机验证 PASS（硬件链路 ×3，合同 5 真机首证）——twister 15/15（65 用例）/L5/pytest 全绿**
   - **绑定机制修订**（上游事实）：v4.4 EDT 管道不发射非 zephyr 前缀 chosen 宏（dtlib 属性在、edtlib 弃）——改走 **aliases**（`DT_ALIAS(ts_estop_gpio)`），模块同步切换，DR-11 语义不变（LLD-ts-safety v0.2.5 + dev-env 教训 25）。
   - **真机**（estopbench，docs/board-estop-01.md）：引脚沿（io_mux 双使能注入 = 完整硬件路径）→ ISR 直达 → fault 落通道 **≤20ms** → 锁存 → clear+显式 commit 恢复，×3 轮；观测判据 = 通道三态 fault=true。如实记录：TS_EVT_ESTOP 补发属周期驱动接线（直启面未接，framework 测试已覆盖）；沿配置仍为上升沿占位（DR-11 prov 化待办）。

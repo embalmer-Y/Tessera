@@ -101,9 +101,78 @@ int ts_drv_gpio_init(void)
 #define TS_GPIO_WRITE sim_write
 #endif
 
+/* ---- 真机 PWM 输出后端（板级九） -------------------------------------------
+ * DT 绑定：zephyr,user 节点（pwm-uid = 通道 uid 串匹配；pwms = PWM 规格，
+ * 三元胞 channel/period/flags——LEDC 的引脚路由经 ledc0 pinctrl，不在本 spec）。
+ * 写路径 = sim 记录（L4 golden 连续性）+ pwm_set（值域：u 打包低 16 = permille
+ * [0,1000]、高 16 = hz/100——api 层已保证 hz≥100 即打包值非零，安全态值同守）。
+ * 唯一写路径调用点（L5）：pwm_set 限定本文件。写函数 void 返回——失败进
+ * pwm_err 计数（观测面；无锁单写者递增）。init 由板级 boot/bench 显式调用。 */
+#if defined(CONFIG_TS_DRV_PWM)
+#include <zephyr/drivers/pwm.h>
+#if DT_NODE_HAS_PROP(DT_PATH(zephyr_user), pwm_uid)
+static const struct pwm_dt_spec real_pwm = PWM_DT_SPEC_GET(DT_PATH(zephyr_user));
+static const char *const real_pwm_uid = DT_PROP(DT_PATH(zephyr_user), pwm_uid);
+static bool real_pwm_ready;
+static uint32_t pwm_err;
+
+int ts_drv_pwm_init(void)
+{
+	if (!device_is_ready(real_pwm.dev)) {
+		return -ENODEV;
+	}
+	real_pwm_ready = true;
+	return 0;
+}
+
+uint32_t ts_drv_pwm_err_count(void)
+{
+	return pwm_err;
+}
+
+static void pwm_real_write(const ts_out_ch_t *ch, const ts_out_value_t *v)
+{
+	sim_record(slot_of(ch), v);
+	if (!real_pwm_ready || strcmp(ch->uid, real_pwm_uid) != 0) {
+		return;
+	}
+	uint32_t hz = (v->u >> 16) * 100U;
+	uint32_t permille = v->u & 0xFFFFU;
+
+	if (hz == 0U || permille > 1000U) {
+		pwm_err++; /* 打包域外（api/安全态守卫失效的兜底观测） */
+		return;
+	}
+	uint32_t period_ns = 1000000000U / hz;
+	uint64_t pulse_ns = (uint64_t)period_ns * permille / 1000U;
+
+	if (pwm_set(real_pwm.dev, real_pwm.channel, period_ns,
+		    (uint32_t)pulse_ns, real_pwm.flags) != 0) {
+		pwm_err++;
+	}
+}
+
+#define TS_PWM_WRITE pwm_real_write
+#else /* CONFIG_TS_DRV_PWM 无 DT 绑定：回退桩（init 报错） */
+int ts_drv_pwm_init(void)
+{
+	return -ENODEV;
+}
+
+uint32_t ts_drv_pwm_err_count(void)
+{
+	return 0;
+}
+
+#define TS_PWM_WRITE sim_write
+#endif
+#else /* !CONFIG_TS_DRV_PWM：native_sim/CI 基线路径 */
+#define TS_PWM_WRITE sim_write
+#endif
+
 const ts_driver_ops_t ts_drivers[TS_CH_KIND_COUNT] = {
 	[TS_CH_GPIO] = {TS_GPIO_WRITE, sim_read},
-	[TS_CH_PWM] = {sim_write, sim_read},
+	[TS_CH_PWM] = {TS_PWM_WRITE, sim_read},
 	[TS_CH_POWER] = {sim_write, sim_read},
 };
 

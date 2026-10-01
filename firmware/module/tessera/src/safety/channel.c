@@ -105,7 +105,10 @@ void ts_safety_set_link(bool up)
 			 * DR-04：LINKLOSS 恢复不自动回写断链前的值——须显式 commit。 */
 			set_state(i, TS_ST_ACTIVE);
 		} else if (!up && s->state == TS_ST_ACTIVE) {
-			/* 断链：ACTIVE → SAFE_LINKLOSS（shadow 改写为安全值） */
+			/* 断链：ACTIVE → SAFE_LINKLOSS。声明值落驱动（HLD §4.5-S2；
+			 * 板级九修复——此前仅改 shadow，物理输出滞留断链前值 = 合同 3
+			 * 欠账）。shadow 改写 + 恢复不回写（DR-04）不变。 */
+			ts_drivers[s->desc->kind].write(s->desc, &s->desc->linkloss);
 			s->shadow = s->desc->linkloss;
 			s->have_last = false;
 			set_state(i, TS_ST_SAFE_LINKLOSS);

@@ -292,6 +292,8 @@ config TS_NET_APP_CHUNK_MAX
 	  Source: LLD-A06 3 (2KB default, 4KB ceiling from NeuroLink field data).
 	  Also sizes the zenoh query request buffer (chunk + envelope margin).
 
+endif # TS_NET
+
 config TS_POWER
 	bool "ts-power: controlled power slots / current limiting / power budget"
 	depends on TS_HAL
@@ -337,7 +339,6 @@ config TS_NET_ZENOH
 	  Requires zenoh-pico Zephyr module in ZEPHYR_EXTRA_MODULES. Link-level
 	  liveness refinement (keepalive) lands with M3a.2.
 
-endif # TS_NET
 
 
 config TS_DRV_GPIO
@@ -348,5 +349,25 @@ config TS_DRV_GPIO
 	  Real-machine GPIO write backend (DEC-44 IO latency measurement onwards). Binding = zephyr,user node
 	  (uid matches channel uid; io-gpios = output pin); write path = sim record (L4 golden continuity) + register write.
 	  Default off (native_sim/CI baseline sim backend).
+
+config TS_DRV_PWM
+	bool "ts-safety: real PWM output backend (board porting)"
+	depends on TS_SAFETY && PWM
+	default n
+	help
+	  Real-machine PWM write backend (board-9). Binding = zephyr,user node (pwm-uid matches channel uid;
+	  pwms = 3-cell spec; pin routing via PWM controller pinctrl). Write path = sim record + pwm_set (ns),
+	  packed value low16=permille [0,1000], high16=hz/100 (api enforces hz>=100). Failures counted via
+	  ts_drv_pwm_err_count(). Default off (native_sim/CI baseline sim backend).
+
+config TS_DRV_ADC
+	bool "ts-hal: real ADC input backend (board porting)"
+	depends on TS_HAL && ADC
+	default n
+	help
+	  Real-machine ADC read backend (board-9), input side only (contract 3: no protection layer on inputs).
+	  Binding = zephyr,user node (adc-uid matches hal dev uid; io-channels = <&adcN ch>). 12-bit, internal ref,
+	  12dB attenuation (ADC_GAIN_1_4); millivolts via Zephyr generic conversion (esp32 driver pre-compensates
+	  raw with eFuse calibration). Default off (native_sim/CI stub backend).
 
 endmenu

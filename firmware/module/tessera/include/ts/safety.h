@@ -194,6 +194,14 @@ size_t ts_driversim_writes(const char *uid, ts_write_rec_t *out, size_t max);
  * 未启用/缺绑定返回 -ENODEV——板级按需如实检查。 */
 int ts_drv_gpio_init(void);
 
+/** [boot/board] 真机 PWM 输出后端初始化（板级九；driver_dispatch.c）。
+ * 依赖 CONFIG_TS_DRV_PWM=y + zephyr,user 节点（pwm-uid + pwms）；
+ * 未启用/缺绑定返回 -ENODEV。 */
+int ts_drv_pwm_init(void);
+
+/** [any] PWM 真后端写失败计数（观测面；写函数 void 返回的失败留痕）。 */
+uint32_t ts_drv_pwm_err_count(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -2,6 +2,7 @@
 /* 实例注册 + ts_api_v1 实现（LLD-ts-hal §3/§4）。
  * 输出路径：写类 API 全部收敛到 ts_safety_commit（零直接驱动调用——L5）。 */
 #include <string.h>
+#include <errno.h>
 #include <ts/core.h>
 #include <ts/hal.h>
 #include <ts/safety.h>
@@ -11,7 +12,10 @@
 
 #define MAX_DEVS CONFIG_TS_HAL_MAX_INSTANCES /* DEC-27 #7：24 */
 
-/* hz 打包进 u16（值/100）：上限 65535*100 Hz（打包域定义，impl-review IR-08） */
+/* hz 打包进 u16（值/100）：上限 65535*100 Hz（打包域定义，impl-review IR-08）；
+ * 下界 100 Hz = 打包粒度（真机 PWM 后端按 hz 求周期，打包值 0 = 周期无穷——
+ * 板级九真驱动接线起在 api 层显式拒绝，V1 桩曾静默接受 hz<100） */
+#define PWM_HZ_MIN 100U
 #define PWM_HZ_MAX 6553500U
 
 static ts_hal_dev_desc_t devices[MAX_DEVS];
@@ -82,8 +86,8 @@ ts_res_t ts_pwm_set(ts_ctx_t c, uint8_t inst, uint32_t hz, uint16_t permille)
 	ts_res_t r = ts_perm_check(c, TS_PERM_CLASS_PWM, TS_PERM_OP_SET, inst);
 
 	if (r != TS_OK) return r;
-	if (hz > PWM_HZ_MAX || permille > 1000) {
-		return TS_E_PARAM; /* 打包域上限（impl-review IR-08），防静默截断 */
+	if (hz < PWM_HZ_MIN || hz > PWM_HZ_MAX || permille > 1000) {
+		return TS_E_PARAM; /* 打包域界限（IR-08 + 板级九下界），防静默截断 */
 	}
 	const ts_hal_dev_desc_t *d = find_dev(inst, TS_DEV_PWM);
 
@@ -95,13 +99,94 @@ ts_res_t ts_pwm_set(ts_ctx_t c, uint8_t inst, uint32_t hz, uint16_t permille)
 	return ts_safety_commit(d->uid, val);
 }
 
+/* ---- 真机 ADC 输入后端（板级九；LLD-ts-hal §3 输入侧） ---------------------
+ * 合同 3：输入直读不经保护层——驱动调用在 hal 输入面（L5 唯一写路径检查
+ * 只辖输出驱动，adc_read 非输出面）。
+ * DT 绑定：zephyr,user 节点（adc-uid = 逻辑名匹配；io-channels = <&adcN ch>）。
+ * 12bit / 内部基准 / 12dB 衰减（ADC_GAIN_1_4 = 最宽量程）；mV 换算走 Zephyr
+ * 通用口径（esp32 驱动已将 raw 预补偿：eFuse 校准 + 衰减反归一）。 */
+#if defined(CONFIG_TS_DRV_ADC)
+#include <zephyr/drivers/adc.h>
+#if DT_NODE_HAS_PROP(DT_PATH(zephyr_user), adc_uid)
+static const struct adc_dt_spec real_adc = ADC_DT_SPEC_GET(DT_PATH(zephyr_user));
+static const char *const real_adc_uid = DT_PROP(DT_PATH(zephyr_user), adc_uid);
+static bool real_adc_ready;
+
+/* 出处：esp32s3 SoC 12bit 分辨率上限（SOC_ADC_DIGI_MAX_BITWIDTH）；
+ * 口径 = LLD-ts-hal §3 ADC */
+#define TS_ADC_RESOLUTION 12
+/* Source: 上游 adc_esp32.c ADC_ESP32_DEFAULT_VREF_INTERNAL = 1100（推导：
+ * esp32 驱动把 raw 预补偿到该口径——eFuse 校准 + 衰减反归一） */
+#define TS_ADC_REF_MV 1100
+
+int ts_adc_drv_init(void)
+{
+	if (!device_is_ready(real_adc.dev)) {
+		return -ENODEV;
+	}
+	const struct adc_channel_cfg cfg = {
+		.gain = ADC_GAIN_1_4,
+		.reference = ADC_REF_INTERNAL,
+		.acquisition_time = ADC_ACQ_TIME_DEFAULT,
+		.channel_id = real_adc.channel_id,
+		.differential = 0,
+	};
+	if (adc_channel_setup(real_adc.dev, &cfg) != 0) {
+		return -EIO;
+	}
+	real_adc_ready = true;
+	return 0;
+}
+
+static int adc_sample_mv(int32_t *mv)
+{
+	uint16_t raw = 0;
+	const struct adc_sequence seq = {
+		.channels = BIT(real_adc.channel_id),
+		.buffer = &raw,
+		.buffer_size = sizeof(raw),
+		.resolution = TS_ADC_RESOLUTION,
+	};
+
+	if (adc_read(real_adc.dev, &seq) != 0) {
+		return -EIO;
+	}
+	int32_t v = raw;
+
+	adc_raw_to_millivolts(TS_ADC_REF_MV, ADC_GAIN_1_4,
+			      TS_ADC_RESOLUTION, &v);
+	*mv = v;
+	return 0;
+}
+
+/* 非可调常量（编译期结构标志：真 ADC 后端已编译且 DT 绑定存在——推导自
+ * CONFIG_TS_DRV_ADC + adc_uid 属性存在性，无默认值语义） */
+#define TS_ADC_REAL_AVAILABLE 1
+#else /* CONFIG_TS_DRV_ADC 无 DT 绑定：init 报错，读路径恒走桩 */
+int ts_adc_drv_init(void)
+{
+	return -ENODEV;
+}
+#endif
+#else /* !CONFIG_TS_DRV_ADC：native_sim/CI 基线（桩） */
+#endif
+
 ts_res_t ts_adc_read(ts_ctx_t c, uint8_t inst, int32_t *mv)
 {
 	if (mv == NULL) return TS_E_PARAM;
 	ts_res_t r = ts_perm_check(c, TS_PERM_CLASS_ADC, TS_PERM_OP_READ, inst);
 
 	if (r != TS_OK) return r;
-	/* V1 桩：M3 接真实 ADC 驱动 */
+	const ts_hal_dev_desc_t *d = find_dev(inst, TS_DEV_ADC);
+
+	if (d == NULL) return TS_E_NOTFOUND;
+#ifdef TS_ADC_REAL_AVAILABLE
+	/* 真后端（uid 匹配 + 已 init）：真读；读失败如实 TS_E_IO。
+	 * uid 不匹配/未 init = 桩通道（sim/L4 连续性）。 */
+	if (real_adc_ready && strcmp(d->uid, real_adc_uid) == 0) {
+		return adc_sample_mv(mv) == 0 ? TS_OK : TS_E_IO;
+	}
+#endif
 	*mv = 0;
 	return TS_OK;
 }

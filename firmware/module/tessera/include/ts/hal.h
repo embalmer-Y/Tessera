@@ -98,6 +98,11 @@ ts_res_t ts_hal_input_start(void);
 /** 单次采集（input_poll_fn 内部调用 + 测试钩子）。 */
 void ts_hal_input_poll_once(void);
 
+/** [boot/board] 真机 ADC 输入后端初始化（板级九；api.c）。
+ * 依赖 CONFIG_TS_DRV_ADC=y + zephyr,user 节点（adc-uid + io-channels）；
+ * 未启用/缺绑定返回 -ENODEV。输入直读不经保护层（合同 3）。 */
+int ts_adc_drv_init(void);
+
 #ifdef __cplusplus
 }
 #endif

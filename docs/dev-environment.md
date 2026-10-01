@@ -109,6 +109,8 @@ python3.12 -m venv ~/project/agent-venv
 24. **WiFi 断链重连四要点（2026-10-01 板级七实证，docs/board-reconnect-01.md）**：① **net_mgmt 事件回调内禁调 net_mgmt**——PS/DHCP 请求在回调上下文重入自激（connect/ADDR 事件每 ~40ms 风暴）；纪律 = 回调只置标志 + `k_work_submit`，请求一律工作项上下文；② esp32 WiFi 口断线**不清 IPv4 地址/租约**——重连同址无 ADDR_ADD 事件；断线时显式 `net_dhcpv4_restart`（注意 include 顺序：dhcpv4.h 须在 net_if.h 后，参数表内 struct net_if 可见性）；③ 静默掉线 = **僵尸 TCP 半开**：net_if 仍 up、读任务阻塞 recv、zenoh 租期心跳在本地 TCP 缓冲"成功"——is_up 自省分钟级才收敛；承载事件须显式下沉（ts_net_session_media_down）；④ **阻塞传输操作不得上 sysworkq**（zenoh open/close 死链上十余秒，饿死同队列工作真机实证）——ts-net 周期体专用队列（DEC-43 线程序）；WiFi 驱动无自动重连（Zephyr esp32 口），关联维持 = glue 职责（固定周期重试，无抖动）。
 25. **estop 绑定与自动注入三要点（2026-10-01 板级八实证，docs/board-estop-01.md）**：① **v4.4 EDT 管道不发射非 zephyr 前缀 chosen 宏**（dtlib 层属性在、edtlib 层被弃——devicetree_generated.h 缺 `DT_CHOSEN_x`；诊断法：dtlib 直读 dts vs edt.pickle 对比）——自定义 chosen 一律改 **aliases**（`DT_ALIAS(name)`；注意 overlay 语法为 `name = &label;` 直接引用，尖括号 phandle 会被 dts 校验拒绝）；② 无人工按键的硬件路径自动注入：io_mux 输入+输出双使能 + 翻转 GPIO 输出寄存器（esp32s3 GPIO0 bank @0x60004000：ENABLE_W1TS/W1TC + OUT_W1TS/W1TC）→ 引脚电平真实变化 → 中断完整链路（bench 测试注入，产品唯一写路径不变）；③ estop 通道观测设计：三态 fault=true（poweron/linkloss 均 false）——readback false→true 的唯一来源即 fault 直写，判据无歧义。
 
+26. **LEDC/ADC 板级驱动四要点（2026-10-02 板级九实证，docs/board-periph-01.md）**：① **LEDC duty 寄存器字段 = duty ticks << 4**（hal `ledc_ll_set_duty_int_part`：`hw->duty = duty_val << 4`；reg 头部位域注释 [18:0] 有误导，有效位 [18:4]）——硬件比值判据 = DUTY_R/(2^duty_res×16)；② **zephyr,user 支持任意属性含 phandle-array**（`pwms`/`io-channels` 均可；`ADC_DT_SPEC_GET_BY_NAME(DT_PATH(zephyr_user), …)` 即官方文档示例模式）——真机后端绑定统一走 zephyr,user（uid 串 + 资源 spec）；③ LEDC 引脚路由经 **pinctrl**（`LEDC_CHx_GPIOy` 宏 = zephyr `include/zephyr/dt-bindings/pinctrl/esp32s3-pinctrl.h`，非 hal 树）+ channel 子节点（reg/timer），pwms 规格 cell 不含引脚；④ **Kconfig 块嵌套漂移**：TS_POWER/TS_PERIPH 曾误嵌 `if TS_NET`（TS_NET=n 时符号不可见）——新增"某模块默认 y 却消失"症状时先查块结构（Kconfig 无缩进语义，endif 位置即作用域）。
+
 ## 6. 会话规范（此后所有开发会话）
 
 - 开发在 **WSL Ubuntu** 内进行；仓库 = `~/project/tessera`（bootstrap 流程不变，见 AGENTS.md §2）。
@@ -145,6 +147,7 @@ python3.12 -m venv ~/project/agent-venv
 
 ## 修订记录
 
+- v2.8 · 2026-10-02：板级九（PWM/ADC 真后端）——§5 增教训 26（LEDC duty<<4 / zephyr,user phandle-array / LEDC pinctrl 宏位置 / Kconfig 嵌套漂移）；board-periph-01 报告。
 - v2.7 · 2026-10-01：板级八（estop 真机）——§5 增教训 25（EDT 非 zephyr chosen 丢弃→aliases / io_mux 双使能注入 / fault=true 观测判据）；board-estop-01 报告。
 - v2.6 · 2026-10-01：板级七（WiFi 重连）——§5 增教训 24（net_mgmt 回调重入自激 / esp32 陈旧租约 / 僵尸 TCP 半开 / sysworkq 阻塞纪律）；board-reconnect-01 报告与复跑入口。
 - v2.5 · 2026-10-01：板级六（PSRAM 挂接）——§5 增教训 23（OCT 显式 / SMH 分配面 / WAMR GLOBAL_HEAP_POOL 无消费者 / 64KB 基线不可行 / 地址域证据）；board-psram-01 报告与复跑入口。
