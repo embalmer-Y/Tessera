@@ -17,7 +17,10 @@ from pydantic import BaseModel, Field, field_validator
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+$")
 APP_ID_RE = re.compile(r"^[a-z0-9.-]{3,64}$")  # 反域名串（LLD-ts-appmgr §2）
 _EXPORTS_REQUIRED = "health_ping"
-_EXPORTS_ALLOWED = {"health_ping", "init", "tick", "evt"}
+# 导出名 = 固件运行时 lookup 面（LLD-ts-appmgr §4 调用约定：app_init/
+# app_tick/app_evt + health_ping；板级十修复——早前 init/tick/evt 为
+# LLD §2 笔误漂移，与 runtime.c/夹具 wasm 均不符）
+_EXPORTS_ALLOWED = {"health_ping", "app_init", "app_tick", "app_evt"}
 
 
 class TsapManifest(BaseModel):

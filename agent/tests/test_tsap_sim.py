@@ -32,7 +32,7 @@ VALID_MANIFEST = {
     "caps": ["gpio:out:led1"],
     "stack_kb": 4,
     "heap_kb": 16,
-    "exports": ["health_ping", "init", "tick"],
+    "exports": ["health_ping", "app_init", "app_tick"],
 }
 
 
@@ -63,7 +63,7 @@ def test_manifest_roundtrip_and_validation():
     for bad in [
         {**VALID_MANIFEST, "app_ver": "1.0"},  # 非 semver
         {**VALID_MANIFEST, "app_id": "Bad Name"},
-        {**VALID_MANIFEST, "exports": ["init"]},  # 缺 health_ping
+        {**VALID_MANIFEST, "exports": ["app_init"]},  # 缺 health_ping
         {**VALID_MANIFEST, "exports": ["health_ping", "bogus"]},
         {**VALID_MANIFEST, "stack_kb": 0},
     ]:

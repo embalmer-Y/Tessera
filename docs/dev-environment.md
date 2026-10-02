@@ -111,6 +111,8 @@ python3.12 -m venv ~/project/agent-venv
 
 26. **LEDC/ADC 板级驱动四要点（2026-10-02 板级九实证，docs/board-periph-01.md）**：① **LEDC duty 寄存器字段 = duty ticks << 4**（hal `ledc_ll_set_duty_int_part`：`hw->duty = duty_val << 4`；reg 头部位域注释 [18:0] 有误导，有效位 [18:4]）——硬件比值判据 = DUTY_R/(2^duty_res×16)；② **zephyr,user 支持任意属性含 phandle-array**（`pwms`/`io-channels` 均可；`ADC_DT_SPEC_GET_BY_NAME(DT_PATH(zephyr_user), …)` 即官方文档示例模式）——真机后端绑定统一走 zephyr,user（uid 串 + 资源 spec）；③ LEDC 引脚路由经 **pinctrl**（`LEDC_CHx_GPIOy` 宏 = zephyr `include/zephyr/dt-bindings/pinctrl/esp32s3-pinctrl.h`，非 hal 树）+ channel 子节点（reg/timer），pwms 规格 cell 不含引脚；④ **Kconfig 块嵌套漂移**：TS_POWER/TS_PERIPH 曾误嵌 `if TS_NET`（TS_NET=n 时符号不可见）——新增"某模块默认 y 却消失"症状时先查块结构（Kconfig 无缩进语义，endif 位置即作用域）。
 
+27. **手抄二进制数组禁令 + 板 bench 分区残留态（2026-10-02 板级十实证，docs/board-deploy-01.md）**：① **常量字节数组（prov blob 等）禁手抄改写**——丢字节后写通道"成功"返回但确定性解析 fail-closed（症状 = 烧入 OK + 永远 load 失败）；正确做法 = 脚本机械派生（源数组改字节）+ **生成期按消费方 schema 走查验证**（~/project/logs/gen_db_prov.py 模式）；定位法 = esptool read_flash 分区 dump + 独立解析器走查；② **换 bench 后 flash ts 分区残留上一 bench 的 prov/meta**（load=0 旧身份即沿旧身份上线）——板级流程须先 esptool erase_region 0x170000 0x14000（ts 五分区；fw_b 预留不动）；③ env 门控测试（默认 skip）掩盖跨轨漂移（exports 命名案例）——gated 测试须周期性真跑。
+
 ## 6. 会话规范（此后所有开发会话）
 
 - 开发在 **WSL Ubuntu** 内进行；仓库 = `~/project/tessera`（bootstrap 流程不变，见 AGENTS.md §2）。
@@ -147,6 +149,7 @@ python3.12 -m venv ~/project/agent-venv
 
 ## 修订记录
 
+- v2.9 · 2026-10-02：板级十（Agent→真机部署 E2E）——§5 增教训 27（手抄二进制数组禁令 + 分区残留态 + gated 测试漂移掩盖）；board-deploy-01 报告。
 - v2.8 · 2026-10-02：板级九（PWM/ADC 真后端）——§5 增教训 26（LEDC duty<<4 / zephyr,user phandle-array / LEDC pinctrl 宏位置 / Kconfig 嵌套漂移）；board-periph-01 报告。
 - v2.7 · 2026-10-01：板级八（estop 真机）——§5 增教训 25（EDT 非 zephyr chosen 丢弃→aliases / io_mux 双使能注入 / fault=true 观测判据）；board-estop-01 报告。
 - v2.6 · 2026-10-01：板级七（WiFi 重连）——§5 增教训 24（net_mgmt 回调重入自激 / esp32 陈旧租约 / 僵尸 TCP 半开 / sysworkq 阻塞纪律）；board-reconnect-01 报告与复跑入口。

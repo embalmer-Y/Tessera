@@ -1,0 +1,40 @@
+/*
+ * 板级十：deploybench = WiFi 使能（netbench 同款）+ ts-store flash 分区
+ * （persistbench 同款——ts 五分区 + fw-b 预留 carved 自 slot1 空闲区，
+ * boot/sys/slot0 与 esptool 偏移零变化）。
+ */
+&wifi {
+	status = "okay";
+};
+
+/delete-node/ &slot1_partition;
+
+&flash0 {
+	partitions {
+		ts_prov_part: partition@170000 {
+			label = "ts-prov";
+			reg = <0x170000 0x1000>;
+		};
+		ts_meta_part: partition@171000 {
+			label = "ts-meta";
+			reg = <0x171000 0x2000>;
+		};
+		ts_slot_a_part: partition@173000 {
+			label = "ts-slot-a";
+			reg = <0x173000 0x8000>;
+		};
+		ts_slot_b_part: partition@17b000 {
+			label = "ts-slot-b";
+			reg = <0x17b000 0x8000>;
+		};
+		ts_noinit_part: partition@183000 {
+			label = "ts-noinit";
+			reg = <0x183000 0x1000>;
+		};
+		/* fw-b：未来 MCUmgr 固件第二 slot 预留（DEC-23；V1 未接线） */
+		fw_b_part: partition@184000 {
+			label = "fw-b";
+			reg = <0x184000 0x13c000>;
+		};
+	};
+};

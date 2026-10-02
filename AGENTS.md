@@ -6,6 +6,12 @@
 
 ## 1. 当前状态
 
+- **2026-10-02（二十九） · 板级十交付：Agent→真机完整部署 E2E 双轨首次闭环（DEPLOY PASS + DB PASS 双轮复现）——twister 15/15（65 用例）/L5 6/6/Agent pytest 58+2s 全绿；同批 owner 指令：P4 移植暂缓**
+  - **链路**（deploybench DB* + client.py DEPLOY*，docs/board-deploy-01.md）：Agent 侧**复用 MA3.1 deploy 链本体**对真板：发现（get-info 自报 dbn/dbc）→ tsap_keygen/package（tsap_verify 真 ed25519）→ 租约闭环（DEC-41）→ **4×256B 分块上传**（idem + high_water）→ 容器事实对拍 → 激活（整槽 hash + meta 原子切换）→ 板自动暖复位 → **步骤 8 自 flash 装载 APP 运行（WAMR@PSRAM）** → 复位后 get-app 对拍 state=ACTIVE + app_id + slot 一致。
+  - **两项存量缺陷修复（E2E 拦下）**：① 跨轨命名漂移——Agent `TsapManifest._EXPORTS_ALLOWED` = init/tick/evt（LLD §2 笔误漂移）而固件 runtime/夹具/LLD §4 三方均 `app_init/app_tick/app_evt`，白名单照漂移面 = 拒绝一切真包（env 门控 sim E2E 默认跳过掩盖）；白名单+三测试+LLD §2 对齐（LLD-ts-appmgr v0.5.1）。② get_info 惰性初始化打回装载结果——boot_start 成功不置 `initialized` → 首次观测读取把 ACTIVE 盲写回 STAGED + active_slot 不回填（槽位对拍必败）；成功路径补 initialized + active_slot=meta（v0.5.2）。
+  - **过程留痕**：prov 手抄数组丢 6 字节（fail-closed 拦下，esptool 分区 dump 定位，改脚本机械生成+走查验证——教训 27：手抄二进制数组禁令）；换 bench 分区残留态 → 流程增 esptool erase_region；zenohd 后起会话自愈实证。
+  - **板侧载体**：deploybench = WiFi glue（板级七定稿）+ prov flash 持久（板级五语义）+ 三合一内存（DEC-29 每板裁剪 TS_APP_LOAD_MAX 2048 / TS_SAFETY_MAX_CHANNELS 8，池 188416 不动，WAMR 堆 256KB@PSRAM，dram 99.81%）。
+  - **余项（板级十一候选）**：生产 prov 烧录通道（esptool 直写 / Agent push_prov〔MA3〕）、注册期 poweron 落驱动、input monitor 真输入、MCUmgr 固件 OTA、Zephyr 升级评估、H7 移植；**P4 暂缓（owner 指令随批登记）**。观察项：固件侧 COSE 验签 = V1 结构级（真验签在 Agent 侧）；"激活即热装载"留待加载周期批次；gated 测试周期复跑（testing.md 维护项登记）。
 - **2026-10-02（二十八） · 板级九交付：PWM/ADC 真驱动（ts-periph dispatch 板级后端）真机全链 PASS——twister 15/15（65 用例）/L5 6/6/Agent pytest 58+2s 全绿**
   - **后端**：`CONFIG_TS_DRV_PWM`（driver_dispatch.c = L5 白名单内；zephyr,user 绑定 pwm-uid+pwms 三元胞，LEDC 引脚路由经 pinctrl；失败进 `ts_drv_pwm_err_count` 观测计数〔真机全程 0〕）+ `CONFIG_TS_DRV_ADC`（hal/api.c 输入面——合同 3 输入直读不经保护层；zephyr,user adc-uid+io-channels = 官方文档示例模式；12bit/内部基准/12dB 衰减，mV = 通用换算 1100mV 口径〔esp32 驱动 raw 预补偿：eFuse 校准+衰减反归一〕，读失败如实 TS_E_IO）。
   - **安全层存量欠账修复（bench 拦下）**：① `set_link(false)` 断链迁移此前**仅改 shadow** = 物理输出滞留断链前值（HLD §4.5-S2 原文"声明值落驱动"欠账；fault 路径本就落驱动故 estop 真机未暴露）——修复 = 声明值经 ts_drivers 落驱动，DR-04 恢复不回写不变（真机 PP5 首证）；② Kconfig 结构缺陷：TS_POWER/TS_PERIPH 误嵌 `if TS_NET` 块（TS_NET=n 不可见）——endif 上移回归 depends TS_HAL 本位；③ `ts_pwm_set` hz 下界 100Hz（打包粒度，V1 桩曾静默接受）。

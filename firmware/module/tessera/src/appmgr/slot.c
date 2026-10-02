@@ -230,6 +230,12 @@ ts_res_t ts_appmgr_boot_start(void)
 
 	if (sr == TS_OK) {
 		current_app.state = TS_APP_ACTIVE; /* STAGED →（加载周期）→ ACTIVE */
+		current_app.active_slot = meta.active_slot;
+		/* 板级十修复：装载成功即占有 current_app——不置 initialized 时首次
+		 * get_info（观测线程/sys get-app）的惰性初始化会把 ACTIVE 打回
+		 * STAGED（懒路径盲写 state = 装载结果被观测面抹掉）；active_slot
+		 * 同步自 meta（部署确认语义 = activate/get-app 槽位对拍）。 */
+		initialized = true;
 	}
 	return sr;
 }

@@ -38,7 +38,7 @@ def _ctx(tmp_path: Path) -> AppContext:
 _VALID_MANIFEST = {
     "app_id": "com.t.chain", "app_ver": "2.0.0", "min_fw_ver": "0.1.0",
     "caps": [], "stack_kb": 4, "heap_kb": 16,
-    "exports": ["health_ping", "tick"],
+    "exports": ["health_ping", "app_tick"],
 }
 
 
@@ -91,7 +91,7 @@ def test_app_develop_full_chain(tmp_path, keys):
 
 
 def test_app_develop_invalid_manifest_refused(tmp_path, keys):
-    bad = dict(_VALID_MANIFEST, exports=["tick"])  # 缺 health_ping
+    bad = dict(_VALID_MANIFEST, exports=["app_tick"])  # 缺 health_ping
     with pytest.raises(TaError):
         asyncio_run(app_chain.app_develop(
             _ctx(tmp_path), "spec", str(_wasm(tmp_path)), keys[0],
