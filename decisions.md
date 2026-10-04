@@ -491,3 +491,5 @@
 **影响**：工具面 +1（app_compile；域归属 tsap/wasm 实现批定）；app_develop 输出向后兼容扩展；产物部署仍全走既有 deploy_push_app（strict 审批 + tsap_verify 不变——编译产物不豁免任何验签）；测试 = FakeModel 剧本 + 真 clang 子进程（agent-checks CI 需 clang，ubuntu runner 自带，实现批验证）；安全边界 = 导入面白名单 fail-closed（沙箱外符号一票拒绝）+ 编译仅产 wasm 不执行。
 
 ---
+
+- 2026-10-04 · **CI native-build 间歇失败处置（d4060f9 #29 同 1/15 症状；#28/#30 同 workflow 绿）**：如实纠错——chmod 444 在本地两种语义（长期树/全新克隆）均 15/15，但 CI 仍间歇挂，"真除根"结论尚不成立（剩余偶发面 = runner 资源/负载域，本地不可复现）。既有注解只抓到进度行、真实死因不可见（logs API 403）——ffd50be 补失败诊断转储（twister 尾部 40 行 + 套件 build.log 错误块 + nproc/free 环境上下文进 step 日志；注解首错匹配面扩至 Build failure）。下次复发即可定位真因。现状：#30（ffd50be）四 job 绿。
