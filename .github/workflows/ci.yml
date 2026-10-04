@@ -94,10 +94,15 @@ jobs:
           west build -b native_sim "$GITHUB_WORKSPACE/firmware/app" -d build-app --pristine=always -- \
             -DZEPHYR_EXTRA_MODULES="$GITHUB_WORKSPACE/firmware/module/tessera" 2>&1 | tee /tmp/build.log \
             || { echo "::error title=build-error::$(grep -B1 -A12 -m1 'CMake Error\|FATAL ERROR\|ERROR:' /tmp/build.log | tr '\n' '|')"; exit 1; }
-      - name: twister 全量（L1/L2/L4，10 套件 @ native_sim）
+      - name: twister 全量（L1/L2/L4，15 套件 @ native_sim）
         run: |
           source ~/ws/zephyr/zephyr-env.sh
           set -o pipefail
           west twister -p native_sim -T "$GITHUB_WORKSPACE/firmware/tests" \
+            --outdir /tmp/twister-out \
             --extra-args=ZEPHYR_EXTRA_MODULES="$GITHUB_WORKSPACE/firmware/module/tessera" 2>&1 | tee /tmp/twister.log \
-            || { echo "::error title=twister-error::$(grep -B1 -A12 -m1 'CMake Error\|FATAL ERROR\|ERROR:' /tmp/twister.log | tr '\n' '|')"; exit 1; }
+            || { echo "=== 失败诊断（twister 尾部 40 行）==="; tail -40 /tmp/twister.log; \
+                 echo "=== 套件 build.log 错误块 ==="; \
+                 grep -l -m1 -r 'Error' /tmp/twister-out/*/host_gnu/*/build.log 2>/dev/null | head -4 | while read -r f; do echo "--- $f"; grep -B2 -A8 -m2 'Error' "$f"; done; \
+                 echo "=== 环境上下文 ==="; nproc; free -m | head -2; \
+                 echo "::error title=twister-error::$(grep -B1 -A8 -m1 'CMake Error\|FATAL ERROR\|Build failure\|ERROR:' /tmp/twister.log | tr '\n' '|' | head -c 900)"; exit 1; }
