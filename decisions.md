@@ -476,3 +476,18 @@
 - 2026-10-04 · **MD0-1 交付（owner 提供 AI API：minimax anthropic 兼容端点 / MiniMax-M3 / 上下文 1M〔owner 指令〕）：Agent 真实 LLM 冒烟双 PASS——app_develop 真实 LLM 全链首次贯通（SMOKE2 两轮复现 56.3s/29.6s）；pytest 58+2s/ruff 全绿**：① SMOKE1 = pydantic-ai→minimax 结构化输出管道 PASS；SMOKE2 = spec→真实 LLM（skills 渐进披露+read_skill）→DevelopOutcome→manifest 硬校验→打包签名→复验 全链 PASS；LLM 产出质量超预期（caps 精确最小权限 / test_plan 8 条自带军规风格 / steps 含 Q-登记与 review 门——skills 注入生效）；② **冒烟拦下三项产品缺陷并同批修复**：app_develop 缺输出上限（思考型模型耗尽 provider 缺省→链路开箱不可用；补 OUTPUT_MAX_TOKENS 16384）/ config 加载路径错（文档约定 agent/config.toml，代码找包内路径——配置从未能从文档位置加载；修 parents[2]）/ manifest 硬校验无反馈回路（一次一个错整链报废；补错误反馈+message_history 续跑回路预算 3 + caps 文法内联提示）；③ 密钥纪律：密钥仓外文件 600 权限 + env 注入（ANTHROPIC_API_KEY/ANTHROPIC_BASE_URL），config.toml（gitignored）仅模型串；提交前 git grep 零泄漏验证；④ **G2（真实 LLM 未测）关闭**；G1（APP 代码生成）仍为 MD0 最大前置，本轮 LLM 规格理解力为正面信号。文档：agent-llm-smoke-01 + dev-env v2.11 + plan v1.18。
 
 - 2026-10-04 · **MD0-1 收尾：CI native-build 第三次咬人（890ff66，1/15 卡死）→ WAMR 竞态真根因钉死并除根**：本地冷树复刻（删 version.h → 预生成 → 并行 twister 全新目录）复现 8/15 报 version.cmake configure_file "No such file or directory"；单套件同条件绿 = 并发触发。**实证推翻板级八"串行预生成除根"结论**：同内容 configure_file 在共享输出路径仍有临时文件写删动作，15 并发进程竞争即撕裂（预生成只消除内容重写，未消除 temp 抖动）。**真除根 = 预生成 + chmod 444 只读屏障**（强制全部进程走"比较相同→零写"路径；本地冷树 15/15〔65 用例〕实证）。CI 步骤已改（预生成+只读两行）；dev-env 教训 21⑤ 第三次修订为终态（再生 version.h 须先 chmod 644）。
+
+#### Q-25 · APP 代码生成链（G1）：工具面新增 app_compile + app_develop 产物契约扩展（门 ③——DEC-34 工具面变更须 owner 裁决）
+
+**背景**：MD0 后 demo 批唯一大前置 = G1——app_develop 的 V1 边界是"LLM 只产出 manifest/计划，wasm 由调用方提供"（MA3 时代 wasm 工具链未定），"需求分析→设计→**编程开发**→部署"链断在第三环，所有"AI 生成 APP"类 demo 无法自动化。**仓外 spike 实证（2026-10-04，真 LLM MiniMax-M3 ×2 轮）**：LLM 一轮即写出合规 C 源（LED 呼吸灯：斜坡/回绕/确定性俱全，正确使用 __attribute__((export_name)) 与 natives extern 惯例）→ clang wasm32 一轮编译通过（7.9s/12.6s，wasm 239B/250B）→ 导入面 [ts_pwm_set] ⊆ natives 白名单 ✓、导出面四回调齐 ✓；另制成零依赖 wasm 面检查器（llvm-objdump-18 解析不了 strip 后 wasm，含已知好夹具——夹具对照校准通过）。
+
+**选项**：
+- **A（建议）**：① 新增 MCP 工具 **app_compile**（审批 auto——本地确定性构建、无网络无部署）：入参 C 源 + manifest；动作 = clang wasm32 自由固件 flags（appw/build.sh 同款）→ 零依赖 wasm 面检查（imports ⊆ natives 六白名单、exports ⊇ 四回调、尺寸 ≤ TS_APP_LOAD_MAX 对齐上限）→ 产物 wasm + 面报告；编译失败如实回传 stderr（供反馈回路）。② **app_develop 产物契约扩展**（向后兼容）：DevelopOutcome 增可选 `source_c` 字段，wasm_path 变可选——LLM 直接产源码时链内自动编译（同检查器），高层链直达"spec→可部署包"（DEC-34 S2 语义补全）。
+- B：仅加 app_compile，app_develop 不动（调用方自编排 develop→compile→package）——面最小，但高层链仍断，demo 全链需三跳。
+- C：LLM 直出 wasm 字节——不可行（二进制尺寸/结构不可控、无法审查），列此仅为排除留痕。
+
+**建议**：A。spike 已证 LLM 侧就绪；编译反馈回路模式（错误文本 + message_history 续跑，预算 3）已在 MD0-1 验证同型。
+
+**影响**：工具面 +1（app_compile；域归属 tsap/wasm 实现批定）；app_develop 输出向后兼容扩展；产物部署仍全走既有 deploy_push_app（strict 审批 + tsap_verify 不变——编译产物不豁免任何验签）；测试 = FakeModel 剧本 + 真 clang 子进程（agent-checks CI 需 clang，ubuntu runner 自带，实现批验证）；安全边界 = 导入面白名单 fail-closed（沙箱外符号一票拒绝）+ 编译仅产 wasm 不执行。
+
+---

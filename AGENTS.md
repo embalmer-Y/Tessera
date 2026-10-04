@@ -6,6 +6,7 @@
 
 ## 1. 当前状态
 
+- **2026-10-04（三十二） · G1 仓外 spike 双 PASS + Q-25 已呈递（工具面门 ③，停门待裁）**：真 LLM（MiniMax-M3）写 APP C 源 → clang wasm32 **一轮编译通过**×2 轮（7.9s/12.6s，wasm 239/250B），导入面 ⊆ natives 白名单、导出面四回调齐；编译错误反馈回路模式与 MD0-1 同型。制成零依赖 wasm 面检查器（llvm-objdump-18 解析不了 strip 后 wasm——夹具对照校准）。**Q-25（decisions.md）**：新增 app_compile（auto 审批）+ app_develop 产物契约扩展（可选 source_c 字段，链内自动编译）——建议方案 A；B = 仅加工具不动高层链；C = LLM 直出 wasm（已排除）。**待 owner 裁决后进实现批。**
 - **2026-10-04（三十一） · MD0-1 交付：Agent 真实 LLM 冒烟双 PASS——app_develop 真实 LLM 全链首次贯通（MiniMax-M3 @ minimax anthropic 兼容端点，owner 提供 API + 1M 上下文指令）；G2 关闭；冒烟拦下三产品缺陷同批修复；pytest/ruff 全绿**
   - **冒烟**（docs/agent-llm-smoke-01.md）：SMOKE1 = pydantic-ai→minimax 结构化输出管道 PASS；SMOKE2 = spec→真实 LLM（skills 渐进披露 + read_skill）→DevelopOutcome→manifest 硬校验→签名打包→复验 **全链 PASS ×2 轮复现**（56.3s/29.6s）。LLM 产出质量超预期：caps 精确最小权限、test_plan 八条自带军规风格（重放/限幅/越权/断链/review 门）——skills 注入生效。
   - **三缺陷修复（均实证）**：① app_develop 缺输出上限（思考型模型耗尽 SDK 缺省——链路对真实端点开箱不可用；OUTPUT_MAX_TOKENS=16384）；② config 加载路径错（文档约定 agent/config.toml，代码找包内路径——配置从未能从文档位置加载）；③ manifest 硬校验无反馈回路（一次一个错整链报废——补错误反馈 + message_history 续跑回路〔预算 3〕+ caps 文法内联提示）。
