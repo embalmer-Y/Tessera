@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-10-04（三十一） · MD0-1 交付：Agent 真实 LLM 冒烟双 PASS——app_develop 真实 LLM 全链首次贯通（MiniMax-M3 @ minimax anthropic 兼容端点，owner 提供 API + 1M 上下文指令）；G2 关闭；冒烟拦下三产品缺陷同批修复；pytest/ruff 全绿**
+  - **冒烟**（docs/agent-llm-smoke-01.md）：SMOKE1 = pydantic-ai→minimax 结构化输出管道 PASS；SMOKE2 = spec→真实 LLM（skills 渐进披露 + read_skill）→DevelopOutcome→manifest 硬校验→签名打包→复验 **全链 PASS ×2 轮复现**（56.3s/29.6s）。LLM 产出质量超预期：caps 精确最小权限、test_plan 八条自带军规风格（重放/限幅/越权/断链/review 门）——skills 注入生效。
+  - **三缺陷修复（均实证）**：① app_develop 缺输出上限（思考型模型耗尽 SDK 缺省——链路对真实端点开箱不可用；OUTPUT_MAX_TOKENS=16384）；② config 加载路径错（文档约定 agent/config.toml，代码找包内路径——配置从未能从文档位置加载）；③ manifest 硬校验无反馈回路（一次一个错整链报废——补错误反馈 + message_history 续跑回路〔预算 3〕+ caps 文法内联提示）。
+  - **密钥纪律**：密钥仓外文件 600 权限 + env 注入；config.toml（gitignored）仅模型串；提交前 git grep 零泄漏验证。
+  - **MD 批状态**：G2 关闭；G1（APP 代码生成链）= MD0 余项（门 ③）；demo 全链的模型侧就绪。
 - **2026-10-02（三十） · owner 计划调整 + Agent demo 就绪度评估交付：H7 放弃 / P4 恢复（前置 Zephyr 升级 4.5+，门 ⑤）/ MD demo 批入计划（MD0-2，D1-D9 阶梯）——真实 LLM 调用从未实测（实证），app_develop 的 wasm 边界 = demo 最大缺口**
   - **计划调整（owner 指令，decisions 登记）**：H7 适配放弃（评估报告存档）；P4 适配恢复（动机 = APP 复杂性余量；v4.4.0 无 esp32p4 支持 → Zephyr 升级为硬前置）；新增 MD demo 批（功能完成后：MD0 前置补齐 → MD1 阶梯 D1-D7 → MD2 混合 D8/D9）。
   - **评估（docs/agent-demo-readiness-01.md，零代码改动）**：① **真实 LLM 调用从未实测**（全测试 FunctionModel / config.toml 未创建 / audit 零痕迹）——补测需 owner 提供模型（ollama 或 OpenAI-compatible 端点）；② 已就绪 = 部署链真机闭环 / 四回调+mailbox / natives×6 / clang wasm32 / 模拟器 L4 / skills 渐进披露；③ 缺口 = **G1 APP 代码生成不在 app_develop 链内**（LLM 只产 manifest，wasm 调用方提供——门 ③）/ G2 真实 LLM / G3 input monitor / G4 单活跃 APP / G5 模拟深度；④ 建议 MD0 的 LLM 冒烟提前（不等 P4）。

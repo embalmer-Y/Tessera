@@ -63,7 +63,10 @@ def _resolve_path() -> Path:
     env_path = os.environ.get(ENV_CONFIG_PATH)
     if env_path:
         return Path(env_path)
-    return Path(__file__).resolve().parent.parent / DEFAULT_CONFIG_FILENAME
+    # MD0-1 修复：文档/gitignore/config.example.toml 均约定 agent/config.toml
+    # （包根上一级），早前指向包内 tessera_agent/config.toml = 从未可从文档
+    # 位置加载（真实 LLM 冒烟首次暴露）。
+    return Path(__file__).resolve().parents[2] / DEFAULT_CONFIG_FILENAME
 
 
 def load_config(path: str | Path | None = None) -> AgentConfig:

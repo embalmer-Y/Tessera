@@ -30,6 +30,11 @@ from tessera_agent.tools_tsap.manifest import TsapManifest
 
 # 来源: DEC-38 #3——结构化输出重试预算 3
 OUTPUT_RETRIES = 3
+# 来源: MD0-1 真实 LLM 冒烟（2026-10-02，MiniMax-M3）——思考型模型的推理段
+# 会先耗尽 anthropic SDK 的 provider 缺省输出上限（UnexpectedModelBehavior
+# "token limit exceeded before any response"），链路对真实端点开箱不可用。
+# 16k = DevelopOutcome（manifest+计划）+ 思考段的实测裕量档。
+OUTPUT_MAX_TOKENS = 16384
 
 
 class DevelopOutcome(BaseModel):
@@ -47,7 +52,13 @@ def _develop_system_prompt() -> str:
     return "\n\n".join([
         "你是 Tessera 固件域 APP 开发编排器。依据需求产出 DevelopOutcome：",
         "manifest 必须满足 TsapManifest v1（app_id 反向域名式；app_ver/min_fw_ver semver；",
-        "exports 必含 health_ping；stack_kb≤64；caps 遵循 ts_perm_v1 最小权限）。",
+        "exports 必含 health_ping（可选 app_init/app_tick/app_evt）；stack_kb≤64）。",
+        # MD0-1 实证：caps 文法必须内联——LLM 在仅口头引用 ts_perm_v1 时会自造
+        # 格式（{'perm': 'pwm:0#set'}），manifest 硬校验 fail-closed 拦下但链路
+        # 不可用；文法短小，直接入提示消除对 skill 阅读的依赖。
+        "caps 是字符串数组，文法 ts_perm_v1：\"class:op:instances\"，"
+        "class∈{gpio,pwm,adc,power,msg,sys}，op∈{read,write,set}，"
+        "instances=实例号（0-3 或 0,2 或 0-3）——例如 [\"pwm:set:0\", \"gpio:write:0\"]。",
         "安全合同内化：输出经保护层限幅、确定性（禁随机/墙钟分支）、越权拒绝留痕。",
         skill_loader.system_prompt_listing(),
         "先 read_skill 阅读相关 skill（tsap/safety 至少一次），再给出最终结构化产物。",
@@ -78,19 +89,33 @@ async def app_develop(
         output_type=DevelopOutcome,
         retries=OUTPUT_RETRIES,
         system_prompt=_develop_system_prompt(),
+        model_settings={'max_tokens': OUTPUT_MAX_TOKENS},
     )
     agent.tool_plain(read_skill)
-    result = await agent.run(spec)
-    outcome: DevelopOutcome = result.output
-    log(f"plan: {outcome.requirements_summary[:80]}")
 
-    # manifest 硬校验（打包前；失败 = 结构化错误，不降级）
-    try:
-        TsapManifest(**outcome.manifest)
-    except Exception as exc:  # noqa: BLE001
-        msg = f"产物 manifest 非法: {exc}"
+    # manifest 硬校验反馈回路（MD0-1 实证）：校验发生在 LLM 运行之后，pydantic
+    # 的结构化重试管不到——失败即整链报废（LLM 一次只撞一条规则：先 caps 文法
+    # 再 app_id 文法……）。回路 = 校验错误文本 + 消息历史续跑，预算同
+    # OUTPUT_RETRIES（3）；文法内联系统提示降低首错率，本回路兜底。
+    history: list[Any] | None = None
+    feedback = ''
+    for attempt in range(1, OUTPUT_RETRIES + 1):
+        result = await agent.run(spec if history is None else
+                                 f'manifest 校验失败，请修正后重新给出完整产物：\n{feedback}',
+                                 message_history=history)
+        outcome: DevelopOutcome = result.output
+        history = result.all_messages()
+        try:
+            TsapManifest(**outcome.manifest)
+            break
+        except Exception as exc:  # noqa: BLE001
+            feedback = str(exc)
+            log(f'manifest 校验失败（尝试 {attempt}/{OUTPUT_RETRIES}）：{feedback[:120]}')
+    else:
+        msg = f"产物 manifest 非法（{OUTPUT_RETRIES} 次反馈后仍未通过）: {feedback}"
         raise TaError(TA_E_TSAP, msg, domain="app_develop",
-                      detail={"manifest": outcome.manifest}) from exc
+                      detail={"manifest": outcome.manifest})
+    log(f'plan（第 {attempt} 轮通过）: {outcome.requirements_summary[:80]}')
 
     # 打包 + 复验（阻塞文件/ed25519 操作 → 线程；"无签名不产出"硬点在工具内）
     def _package_and_verify() -> tuple[dict, str]:

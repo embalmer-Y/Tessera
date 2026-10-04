@@ -117,6 +117,11 @@ python3.12 -m venv ~/project/agent-venv
 
 - SDK 1.0.1 增装 **arm-zephyr-eabi**（命令 west sdk install -b ~/zephyr-sdk-1.0.1 -t arm-zephyr-eabi，需网络/VPN）——nucleo_h743zi 网面实构建已验证（docs/h7-memory-assessment.md）。
 
+### 2.y Agent LLM 端点（2026-10-04，MD0-1 冒烟批）
+
+- 端点 = minimax Anthropic 兼容面：环境变量 ANTHROPIC_BASE_URL=https://api.minimax.cn/anthropic 与 ANTHROPIC_API_KEY（密钥文件 = 仓外 ~/project/logs/.minimax_key，600 权限，运行器脚本注入）；模型 MiniMax-M3（思考型——pydantic-ai 侧必须显式 max_tokens，SDK 缺省会被思考段耗尽）；上下文 1M（agent/config.toml 的 context_window=1048576）。
+- 复跑：bash ~/project/logs/run_smoke1.sh（结构化输出管道）/ run_smoke2.sh（app_develop 全链，产物在 ~/project/logs/llm-smoke-out/）。
+
 ## 6. 会话规范（此后所有开发会话）
 
 - 开发在 **WSL Ubuntu** 内进行；仓库 = `~/project/tessera`（bootstrap 流程不变，见 AGENTS.md §2）。
@@ -153,6 +158,7 @@ python3.12 -m venv ~/project/agent-venv
 
 ## 修订记录
 
+- v2.11 · 2026-10-04：MD0-1 真实 LLM 冒烟——§2 增 Agent LLM 端点（minimax/anthropic 兼容/M3/1M 窗口 + 密钥纪律 + 复跑入口）；agent-llm-smoke-01 报告。
 - v2.10 · 2026-10-02：H7 内存评估批——§2 增 arm-zephyr-eabi 工具链；docs/h7-memory-assessment.md（S3 四配置实测 + H743 实构建 + 移植前置项）。
 - v2.9 · 2026-10-02：板级十（Agent→真机部署 E2E）——§5 增教训 27（手抄二进制数组禁令 + 分区残留态 + gated 测试漂移掩盖）；board-deploy-01 报告。
 - v2.8 · 2026-10-02：板级九（PWM/ADC 真后端）——§5 增教训 26（LEDC duty<<4 / zephyr,user phandle-array / LEDC pinctrl 宏位置 / Kconfig 嵌套漂移）；board-periph-01 报告。
