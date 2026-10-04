@@ -6,6 +6,10 @@
 
 ## 1. 当前状态
 
+- **2026-10-02（三十） · owner 计划调整 + Agent demo 就绪度评估交付：H7 放弃 / P4 恢复（前置 Zephyr 升级 4.5+，门 ⑤）/ MD demo 批入计划（MD0-2，D1-D9 阶梯）——真实 LLM 调用从未实测（实证），app_develop 的 wasm 边界 = demo 最大缺口**
+  - **计划调整（owner 指令，decisions 登记）**：H7 适配放弃（评估报告存档）；P4 适配恢复（动机 = APP 复杂性余量；v4.4.0 无 esp32p4 支持 → Zephyr 升级为硬前置）；新增 MD demo 批（功能完成后：MD0 前置补齐 → MD1 阶梯 D1-D7 → MD2 混合 D8/D9）。
+  - **评估（docs/agent-demo-readiness-01.md，零代码改动）**：① **真实 LLM 调用从未实测**（全测试 FunctionModel / config.toml 未创建 / audit 零痕迹）——补测需 owner 提供模型（ollama 或 OpenAI-compatible 端点）；② 已就绪 = 部署链真机闭环 / 四回调+mailbox / natives×6 / clang wasm32 / 模拟器 L4 / skills 渐进披露；③ 缺口 = **G1 APP 代码生成不在 app_develop 链内**（LLM 只产 manifest，wasm 调用方提供——门 ③）/ G2 真实 LLM / G3 input monitor / G4 单活跃 APP / G5 模拟深度；④ 建议 MD0 的 LLM 冒烟提前（不等 P4）。
+  - **排期序（修订）**：板级十一~十四（S3 生产化）→ Zephyr 升级 + P4 适配 → MD0-MD2。**待 owner**：① MD0 模型配置（ollama/端点）；② P4 实板（esp32p4_function_ev_board 等，升级评估后采购亦可）。
 - **2026-10-02（二十九） · 板级十交付：Agent→真机完整部署 E2E 双轨首次闭环（DEPLOY PASS + DB PASS 双轮复现）——twister 15/15（65 用例）/L5 6/6/Agent pytest 58+2s 全绿；同批 owner 指令：P4 移植暂缓**
   - **链路**（deploybench DB* + client.py DEPLOY*，docs/board-deploy-01.md）：Agent 侧**复用 MA3.1 deploy 链本体**对真板：发现（get-info 自报 dbn/dbc）→ tsap_keygen/package（tsap_verify 真 ed25519）→ 租约闭环（DEC-41）→ **4×256B 分块上传**（idem + high_water）→ 容器事实对拍 → 激活（整槽 hash + meta 原子切换）→ 板自动暖复位 → **步骤 8 自 flash 装载 APP 运行（WAMR@PSRAM）** → 复位后 get-app 对拍 state=ACTIVE + app_id + slot 一致。
   - **两项存量缺陷修复（E2E 拦下）**：① 跨轨命名漂移——Agent `TsapManifest._EXPORTS_ALLOWED` = init/tick/evt（LLD §2 笔误漂移）而固件 runtime/夹具/LLD §4 三方均 `app_init/app_tick/app_evt`，白名单照漂移面 = 拒绝一切真包（env 门控 sim E2E 默认跳过掩盖）；白名单+三测试+LLD §2 对齐（LLD-ts-appmgr v0.5.1）。② get_info 惰性初始化打回装载结果——boot_start 成功不置 `initialized` → 首次观测读取把 ACTIVE 盲写回 STAGED + active_slot 不回填（槽位对拍必败）；成功路径补 initialized + active_slot=meta（v0.5.2）。
