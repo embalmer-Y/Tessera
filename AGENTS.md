@@ -6,6 +6,10 @@
 
 ## 1. 当前状态
 
+- **2026-10-05（三十六） · DEC-46（Q-26 裁决：硬件即板载 Sense 版）+ MD1.2a 交付：SD 卡 bring-up 真机全链 PASS（7.5GB 卡 + FatFS + 32KB 写读校验）**；Zephyr 支持面钉死：摄像头 ✓（官方 Sense 板变体 + video_esp32_dvp + ov2640 全在树）、SD ✓（本批实证）、音频 PDM ✗（i2s_esp32 无 PDM，驱动扩展批）
+  - **关键事实**：v4.4 树内官方 `xiao_esp32s3/esp32s3/procpu/sense` 板变体——摄像头+SD 的 DT 全就绪（OV2640 I2C@0x30 / lcd_cam DVP / spi2 CS21 SD 槽），换板名即点亮；sdbench 载体入库（教训：大缓冲禁上主栈）。
+  - **MD1.2 切分**：b=cambench（OV2640 DVP 帧捕获 + JPEG）→ c=音频（PDM 驱动扩展评估呈递）→ d=zenoh 传输面（视频帧分片策略 + ts-fs/ts-av natives/权限类扩展走门 ③）。
+  - **排期建议**：MD1.2b（cambench）→ MD1.2d-SD（ts-fs 能力面 + D-SD demo）→ MD1.2c/b-video（传输 + demo）。
 - **2026-10-05（三十五） · MD1.1b 交付：P1 根治（meta 双副本读共享缓冲 bug，一行修复）+ metabench 受控复现载体入库 + 真机五 demo 全 PASS（MD1.1 完整收口）；twister 15/15/L5/pytest 全绿。**Q-26 已呈递：音视频传输 + SD 卡 demo（owner 指令）——xiao_esp32s3 无摄像头/麦克风/SD 座，需 owner 硬件（Sense 版/microSD SPI 模块）+ natives 权限类扩展（门 ③）**
   - **根因**：ts_store_meta_read 两次 read_rec 共用一个 data 缓冲——copy0 body 被 copy1 覆盖；选 copy0（s0>=s1）时返回旧内容。触发面 = 双副本皆有效且 copy0 较新（第 3/5/7… 次写后启动）= D3/D7 铁律的机制解释；板级五以来存在，2 轮测试从未覆盖。修复 = 分缓冲；sim 用例 2→6 轮堵口。
   - **过程修正**：appmgr staged 用例此前骑 bug（依赖陈旧读值）——补 store reset 显式基线；D3 判据两修（通道上限 1000Hz|700‰——打包域 hz 高位语义；audit 聚合采样）；D7 谓词放宽 state∈{3,4}。

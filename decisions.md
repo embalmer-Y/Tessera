@@ -514,3 +514,7 @@
 **影响**：ts_perm_v1 加类（av/fs）+ manifest 白名单扩展 + natives 白名单 NATIVE_WHITELIST 同步 + zenoh 大 payload 分片策略（视频帧 ~20-50KB/帧 vs 当前 128B 遥测——需分块遥测或专用帧通道）+ 两个新 demo（D-AV/D-SD）入 MD 批。
 
 ---
+
+- 2026-10-05 · **裁决：Q-26 → DEC-46**：owner 原文："现在接入的即是带有摄像头和麦克风版本的sense版本，同时我已经插入sd卡板载sd卡卡槽"。裁定：硬件已具备（xiao_esp32s3 **Sense 版**：OV2640 摄像头 + PDM 麦克风 + 板载 microSD 卡槽含卡）——无需采购；MD1.2 批次开工（SD/摄像头/音频 bring-up + 能力面扩展随各批呈递）。
+
+- 2026-10-05 · **MD1.2a 交付（DEC-46 首批）：SD 卡 bring-up 真机全链 PASS（SD PASS：7.5GB 卡识别 + FatFS 挂载 + 32KB 写读校验全等）**：① **重大事实**：Zephyr v4.4 树内有**官方 `xiao_esp32s3/esp32s3/procpu/sense` 板级变体**——OV2640（I2C1@0x30）+ lcd_cam DVP（chosen zephyr,camera）+ **SD 卡槽（spi2 CS=GPIO21/SCK7/MISO8/MOSI9，zephyr,sdhc-spi-slot + sdmmc-disk）DT 全就绪**，换板名即点亮；② sdbench（新载体 firmware/tests/sdbench，SD* console 行）：DISK_IOCTL 探卡 + fs_mount(/SD:) + 顺序写读 32KB（块标识防假阳性）+ 清理幂等；③ 过程教训：4KB×2 缓冲禁上主栈（首版 FATAL illegal instruction——大缓冲 + FatFS 深链超栈，转 static + 主栈 4K 后全绿）；Kconfig 符号 SPI_SDHC（非 SDHC_SPI）；fs_fat_t 实为 FATFS（ff.h）；④ **Zephyr 支持面结论（MD1.2 切分依据）**：SD ✓ 全链（本批实证）；**摄像头 ✓ 全链在树**（video_esp32_dvp + ov2640 sensor 驱动 + Sense DT——MD1.2b：cambench 帧捕获）；**音频 ✗ PDM 缺口**（i2s_esp32.c 零 PDM 支持——Sense PDM 麦克风需驱动扩展〔hal_espressif 有 i2s_std/pdm 组件可接〕，MD1.2c 评估呈递）；⑤ 能力面扩展（ts-fs natives + 权限类）随 demo 实现批呈递（Q-26 已裁方向，API 面细节届时走门 ③）。
