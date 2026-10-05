@@ -79,8 +79,9 @@ def test_app_develop_full_chain(tmp_path, keys):
     key, _pub = keys
     logs: list[str] = []
     out = asyncio_run(app_chain.app_develop(
-        _ctx(tmp_path), "做一个演示 APP", str(_wasm(tmp_path)), key,
-        out_dir=str(tmp_path), model=_model(_VALID_MANIFEST), log_fn=logs.append,
+        _ctx(tmp_path), "做一个演示 APP", key,
+        out_dir=str(tmp_path), wasm_path=str(_wasm(tmp_path)),
+        model=_model(_VALID_MANIFEST), log_fn=logs.append,
     ))
     assert out["manifest"] == _VALID_MANIFEST
     assert Path(out["package_path"]).is_file() and out["package_size"] > 16
@@ -90,12 +91,56 @@ def test_app_develop_full_chain(tmp_path, keys):
     tsap_tools.tsap_verify(out["package_path"], out["pub_key_path"])  # 产物可独立复验
 
 
+def test_app_develop_source_c_compiled(tmp_path, keys, monkeypatch):
+    """DEC-45：LLM 产 source_c → 链内编译（此处 stub 编译器，链逻辑隔离；
+    真编译器由 test_wasm_build 覆盖）→ 打包用编译产物。"""
+    key, _pub = keys
+    fake_wasm = tmp_path / "llm.wasm"
+    fake_wasm.write_bytes(bytes([0]) + b"asm" + bytes([1, 0, 0, 0]) + b"CODE" * 8)
+    called = {}
+
+    def fake_compile(src, out_dir, roots, **kw):
+        called["src"] = src
+        called["exports"] = kw.get("required_exports")
+        return {"wasm_path": str(fake_wasm), "size": 44,
+                "imports": ["ts_pwm_set"], "exports": ["health_ping", "app_tick"],
+                "source_sha256": "ab" * 32, "deterministic": True}
+
+    monkeypatch.setattr(app_chain, "compile_app_c", fake_compile)
+
+    def model(messages, info):
+        async def fn(m, i):
+            import json as _json
+
+            from pydantic_ai.messages import ModelResponse, TextPart
+            payload = {"requirements_summary": "src demo",
+                       "manifest": _VALID_MANIFEST,
+                       "source_c": "int main_no_entry; /* 完整 C 源 */",
+                       "steps": ["s"]}
+            return ModelResponse(parts=[TextPart(content=_json.dumps(payload))])
+        return fn
+
+    from pydantic_ai.models.function import FunctionModel
+    out = asyncio_run(app_chain.app_develop(
+        _ctx(tmp_path), "呼吸灯", key, out_dir=str(tmp_path),
+        model=FunctionModel(model(None, None)),
+    ))
+    assert out["compiled"] is True
+    assert called["exports"] == _VALID_MANIFEST["exports"]
+    assert "完整 C 源" in called["src"]
+    assert out["source_sha256"] == "ab" * 32
+    with open(out["package_path"], "rb") as fh:  # 打包进的是编译产物
+        blob = fh.read()
+    assert b"CODE" * 8 in blob
+
+
 def test_app_develop_invalid_manifest_refused(tmp_path, keys):
     bad = dict(_VALID_MANIFEST, exports=["app_tick"])  # 缺 health_ping
     with pytest.raises(TaError):
         asyncio_run(app_chain.app_develop(
-            _ctx(tmp_path), "spec", str(_wasm(tmp_path)), keys[0],
-            out_dir=str(tmp_path), model=_model(bad, skill_probe=False),
+            _ctx(tmp_path), "spec", keys[0],
+            out_dir=str(tmp_path), wasm_path=str(_wasm(tmp_path)),
+            model=_model(bad, skill_probe=False),
         ))
 
 

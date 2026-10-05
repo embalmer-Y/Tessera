@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-10-04（三十三） · G1 实现批交付（DEC-45 方案 A）：APP 代码生成链落地——SMOKE3 真 LLM 全链双轮贯通（"需求→设计→编程→打包"AI 全链首次打通）；pytest 69+2s/ruff 全绿；MD0 关闭、MD1 解锁**
+  - **可靠性调研落地（owner 指令）**：Claude Code/Codex CLI/aider/Wink 调研 → 八条工程决策 R1-R8（docs/agent-codegen-reliability-01.md）——四道确定性门（编译→白名单面检查→尺寸→**双编译字节一致**）+ stderr 完整反馈回路 + 整文件再生 + 子进程时限/零执行/roots 白名单 + sha256/面报告入审计。
+  - **实装**：wasm_build 模块（零依赖 wasm 面解析器 + compile_app_c）+ `app_compile` 工具（auto）+ app_develop source_c 扩展（链内编译并入反馈回路）+ CI agent-checks clang 保障；测试 +11（无静默 skip）。
+  - **SMOKE3 ×2**：反馈回路 2 轮收敛；646B/456B 产物均合规；caps 精确最小权限。
+  - **余项**：MD1 demo 阶梯 D1-D7（模型侧+代码生成侧已就绪）→ 板级十一~十四（S3 生产化）→ Zephyr 升级 + P4 → MD2 混合。
 - **2026-10-04（三十二） · G1 仓外 spike 双 PASS + Q-25 已呈递（工具面门 ③，停门待裁）**：真 LLM（MiniMax-M3）写 APP C 源 → clang wasm32 **一轮编译通过**×2 轮（7.9s/12.6s，wasm 239/250B），导入面 ⊆ natives 白名单、导出面四回调齐；编译错误反馈回路模式与 MD0-1 同型。制成零依赖 wasm 面检查器（llvm-objdump-18 解析不了 strip 后 wasm——夹具对照校准）。**Q-25（decisions.md）**：新增 app_compile（auto 审批）+ app_develop 产物契约扩展（可选 source_c 字段，链内自动编译）——建议方案 A；B = 仅加工具不动高层链；C = LLM 直出 wasm（已排除）。**待 owner 裁决后进实现批。** 同批 CI 处置：native-build 间歇挂（#29；#28/#30 绿）——chmod 444 本地两种语义均 15/15 但 CI 偶发面未除尽（如实纠错），ffd50be 已补失败诊断转储，下次复发即可见真因。
 - **2026-10-04（三十一） · MD0-1 交付：Agent 真实 LLM 冒烟双 PASS——app_develop 真实 LLM 全链首次贯通（MiniMax-M3 @ minimax anthropic 兼容端点，owner 提供 API + 1M 上下文指令）；G2 关闭；冒烟拦下三产品缺陷同批修复；pytest/ruff 全绿**
   - **冒烟**（docs/agent-llm-smoke-01.md）：SMOKE1 = pydantic-ai→minimax 结构化输出管道 PASS；SMOKE2 = spec→真实 LLM（skills 渐进披露 + read_skill）→DevelopOutcome→manifest 硬校验→签名打包→复验 **全链 PASS ×2 轮复现**（56.3s/29.6s）。LLM 产出质量超预期：caps 精确最小权限、test_plan 八条自带军规风格（重放/限幅/越权/断链/review 门）——skills 注入生效。

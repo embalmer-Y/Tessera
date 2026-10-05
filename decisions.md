@@ -493,3 +493,7 @@
 ---
 
 - 2026-10-04 · **CI native-build 间歇失败处置（d4060f9 #29 同 1/15 症状；#28/#30 同 workflow 绿）**：如实纠错——chmod 444 在本地两种语义（长期树/全新克隆）均 15/15，但 CI 仍间歇挂，"真除根"结论尚不成立（剩余偶发面 = runner 资源/负载域，本地不可复现）。既有注解只抓到进度行、真实死因不可见（logs API 403）——ffd50be 补失败诊断转储（twister 尾部 40 行 + 套件 build.log 错误块 + nproc/free 环境上下文进 step 日志；注解首错匹配面扩至 Build failure）。下次复发即可定位真因。现状：#30（ffd50be）四 job 绿。
+
+- 2026-10-04 · **裁决：Q-25 → DEC-45（方案 A）**：owner 原文："按照方案A执行，请你再更多的研究其他 Agent Cli 的实现，学习他们的工程方法保证 coding 可靠性"。裁定：① 新增 MCP 工具 app_compile（auto 类）；② app_develop 产物契约扩展（可选 source_c，链内编译）；③ 附带研究指令 = 其他 Agent CLI 的 coding 可靠性工程方法调研并映射落地。
+
+- 2026-10-04 · **G1 实现批交付（DEC-45）：APP 代码生成链落地——SMOKE3 真 LLM 全链双轮贯通（"需求→设计→编程→打包"AI 全链首次打通）；pytest 69+2s / ruff 全绿**：① **可靠性调研 → 八条工程决策（R1-R8）全落地**（docs/agent-codegen-reliability-01.md：Claude Code 可运行验证/Stop hooks 门、Codex OS 级沙箱、aider 编辑格式分级+lint/test 回路、Wink 故障分类）——验证阶梯四道确定性门（编译→白名单面检查→尺寸→**双编译字节一致**〔确定性自证，合同 9 精神延伸〕）+ stderr 完整反馈回路（预算 3）+ 整文件再生（弱格式域 whole 最可靠）+ 子进程时限/零执行/roots 白名单 + 产物 sha256/面报告入审计；② 实装：tools_tsap/wasm_build.py（零依赖 wasm 面解析器〔llvm-objdump-18 解析不了 strip 后 wasm，夹具对照校准〕+ compile_app_c 全检查链）+ app_compile 工具（auto）+ app_develop source_c 扩展（wasm_path 变可选，编译并入反馈回路，输出 compiled/compile_facts）+ CI agent-checks clang 显式保障；③ 测试 +11（69 passed，**无静默 skip**——板级十教训）；④ SMOKE3 ×2：第 1 轮 heap_kb=0 经反馈回路修正第 2 轮通过；两轮 646B/456B 均合规（白名单导入/四回调/双编译一致）；caps 精确最小权限 [gpio:write:0]；⑤ **MD0 前置全部完成**（真实 LLM 冒烟 + G1）——MD1 demo 阶梯解锁。

@@ -28,6 +28,7 @@ from tessera_agent.tools_sim import runner as sim_runner
 from tessera_agent.tools_sim.scenario import scenario_validate
 from tessera_agent.tools_tsap import tools as tsap_tools
 from tessera_agent.tools_tsap.manifest import TsapManifest
+from tessera_agent.tools_tsap.wasm_build import compile_app_c
 
 
 @dataclass
@@ -73,7 +74,7 @@ class FirmwareDomainPack(DomainPackBase):
         "sim_validate_scenario", "sim_run",
         "tsap_keygen", "tsap_package", "tsap_verify",
         "deploy_discover", "deploy_status", "deploy_push_app",
-        "app_develop", "app_deploy",
+        "app_develop", "app_deploy", "app_compile",
     ])
     skills: list[str] = field(default_factory=lambda: [
         "tessera-workflow", "tessera-build", "tessera-tsap", "tessera-safety",
@@ -272,19 +273,38 @@ class FirmwareDomainPack(DomainPackBase):
 
         # ---- app_*（MA3.2 高层链，DEC-34；消费上述原子工具的实现）----------
         @mcp.tool
+        @audited("app_compile")
+        async def app_compile(source_c: str, out_dir: str = "agent/build",
+                              required_exports: list[str] | None = None,
+                              max_bytes: int = 16384) -> dict:
+            """C 源 → wasm32 自由固件 + 面检查（DEC-45/Q-25 A；auto 类——本地
+            确定性构建，无网络无部署）。检查链全部 fail-closed：clang 固定
+            flags 编译（stderr 如实回传供 LLM 反馈回路）→ 导入面 ⊆ natives
+            白名单 → 必需导出齐 → 尺寸上限 → 双编译字节一致（确定性自证）。
+            产物不执行。"""
+            def work() -> dict:
+                return compile_app_c(source_c, out_dir, ctx.roots(),
+                                     required_exports=required_exports,
+                                     max_bytes=max_bytes)
+            return await asyncio.to_thread(work)
+
+        @mcp.tool
         @audited("app_develop")
-        async def app_develop(spec: str, wasm_path: str, key_path: str,
-                              out_dir: str = "agent/build") -> dict:
-            """高层链：需求 spec → 计划/manifest（结构化校验）→ TSAP 打包签名 →
-            复验（confirm 类；长任务句柄）。skills 渐进披露注入编排会话；
-            V1 边界：wasm 产物由调用方提供（wasm 工具链 = M2b.2）。"""
-            args = {"spec": spec, "wasm_path": wasm_path, "key_path": key_path,
-                    "out_dir": out_dir}
+        async def app_develop(spec: str, key_path: str,
+                              out_dir: str = "agent/build",
+                              wasm_path: str | None = None) -> dict:
+            """高层链：需求 spec →（LLM：计划/manifest + source_c C 源）→
+            manifest 硬校验 + 链内编译（导入白名单/导出面/尺寸/确定性，
+            DEC-45）→ TSAP 打包签名 → 复验（confirm 类；长任务句柄）。
+            skills 渐进披露注入编排会话；校验/编译错误反馈回路（预算 3）。
+            wasm_path 可选 = 调用方自带产物路径（source_c 缺省时必需）。"""
+            args = {"spec": spec, "key_path": key_path, "out_dir": out_dir,
+                    "wasm_path": wasm_path}
 
             async def body(task) -> dict:
                 log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
                 return await app_chain.app_develop(
-                    ctx, spec, wasm_path, key_path, out_dir, log_fn=log,
+                    ctx, spec, key_path, out_dir, wasm_path=wasm_path, log_fn=log,
                 )
 
             return await spawn("app_develop", args, body)

@@ -41,6 +41,8 @@ jobs:
           python-version: "3.12"
       - name: 安装 agent（钉版，DEC-38 #1）
         run: pip install -e "agent[dev]"
+      - name: 确保 clang（DEC-45 app_compile/wasm_build 测试硬依赖）
+        run: if ! clang --version; then sudo apt-get update && sudo apt-get install -y clang; fi
       - name: ruff lint（Q-19 #11，含 asyncio 阻塞检查）
         run: ruff check agent
       - name: pytest（agent，L7）
