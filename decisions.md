@@ -499,3 +499,18 @@
 - 2026-10-04 · **G1 实现批交付（DEC-45）：APP 代码生成链落地——SMOKE3 真 LLM 全链双轮贯通（"需求→设计→编程→打包"AI 全链首次打通）；pytest 69+2s / ruff 全绿**：① **可靠性调研 → 八条工程决策（R1-R8）全落地**（docs/agent-codegen-reliability-01.md：Claude Code 可运行验证/Stop hooks 门、Codex OS 级沙箱、aider 编辑格式分级+lint/test 回路、Wink 故障分类）——验证阶梯四道确定性门（编译→白名单面检查→尺寸→**双编译字节一致**〔确定性自证，合同 9 精神延伸〕）+ stderr 完整反馈回路（预算 3）+ 整文件再生（弱格式域 whole 最可靠）+ 子进程时限/零执行/roots 白名单 + 产物 sha256/面报告入审计；② 实装：tools_tsap/wasm_build.py（零依赖 wasm 面解析器〔llvm-objdump-18 解析不了 strip 后 wasm，夹具对照校准〕+ compile_app_c 全检查链）+ app_compile 工具（auto）+ app_develop source_c 扩展（wasm_path 变可选，编译并入反馈回路，输出 compiled/compile_facts）+ CI agent-checks clang 显式保障；③ 测试 +11（69 passed，**无静默 skip**——板级十教训）；④ SMOKE3 ×2：第 1 轮 heap_kb=0 经反馈回路修正第 2 轮通过；两轮 646B/456B 均合规（白名单导入/四回调/双编译一致）；caps 精确最小权限 [gpio:write:0]；⑤ **MD0 前置全部完成**（真实 LLM 冒烟 + G1）——MD1 demo 阶梯解锁。
 
 - 2026-10-05 · **MD1.1 交付（部分，如实）：demo 阶梯第一批 D1/D2/D3/D5/D7——五 demo 真 LLM 生成全过（产物入仓 agent/demos/）+ 验证基础设施全通 + D1/D2/D5 判据 PASS（D1 含 res=0 全链首证）；D3/D7 被 P1 缺陷阻塞（docs/demos-01.md）；pytest 69+2s/ruff 全绿**：① 生成链：五 spec → MiniMax-M3 → source_c → 链内编译 → 签名包，全部白名单合规（199-283B）；app_develop 健壮性两补：数组字段 {"item":X} 传输伪影三处确定性解包（schema BeforeValidator/链内/提示）+ 链外回路预算 3→4；② 载体：deploybench 并入 PWM 通道（板级九绑定，D3 限幅判据）+ 连续部署修复（DB6 alive 循环持续检测后续激活——板级十单次部署设计缺陷在 MD1 暴露）；③ **三项 demo 基础设施知识**：linkmon 判活 = host 心跳 publish（…/sys/hb-host 1s——此前所有 client 未发过 = 通道永远 SAFE 态写全 -4，判据盲区；md1_run3 心跳模板固化）；冷启装载时序（init 写必然落 SAFE 窗——行为写应放 tick/evt）；audit 64 环/16 快照窗口语义；④ **P1 缺陷登记（阻塞 D3/D7，专项 MD1.1b）**：连续激活流中写 meta copy0（seq 较小侧轮转）的激活在暖复位后装载旧 slot——三轮统计 D3(3rd)3/3、D7(5th)3/3 复现，写 copy1 的 0%，单推成功；esptool dump 证写已落盘 + activate 回读过 + 逻辑审计无果 → 定位方向 = 真机 flash 读路径复位前后差异/erase-write 时序窗；sim twister 仅覆盖 2 轮 meta 写（≥3 轮用例入 MD1.1b）。
+
+- 2026-10-05 · **MD1.1b 交付（owner 指令"先解决该缺陷"）：P1 根治——meta 双副本读的共享缓冲 bug（一行修复）；metabench 受控复现六轮定位；真机五 demo 全 PASS（MD1.1 完整收口）；twister 15/15（65 用例）/L5/pytest 69+2s 全绿**：① **根因**：ts_store_meta_read 两次 read_rec 共用一个 data 缓冲——copy0 的 body 被 copy1 读取覆盖；当选 copy0（s0>=s1，即第 3/5/7… 次写后的启动）时 memcpy 给调用方的是 copy1 旧内容。触发面 = "双副本皆有效且 copy0 较新"（D3/D7 铁律 100% 的机制解释；板级五以来存在但 2 轮测试从未覆盖该分支）。修复 = data0/data1 分缓冲。② **metabench**（新载体 firmware/tests/metabench）：六轮写+暖复位+双副本十六进制打印——修复前 boot 盘上双副本正确而 meta_read 返回旧值（读路径缺陷铁证）；修复后六轮全对。③ **回归补口**：framework.store meta 往返 2→6 轮（≥3 轮覆盖 copy0 较新分支）；appmgr staged 用例此前**骑在 bug 上**（依赖陈旧读值碰巧对齐期望）——补 store reset 显式净基线。④ **D3 判据修正两处**：deploybench 通道上限 5000Hz|700‰→1000Hz|700‰（打包域 hz 占高 16 位，hz 域不重叠的限幅永不触发——打包域限幅语义留痕）；audit 聚合采样（斜坡周期 4s vs 16 条快照 1.6s，单快照抽样运气）；D7 装载谓词放宽 state∈{3,4}（装载后 2s 即回滚，==3 窗口撞不上）。⑤ 观察项：deploybench watch 同槽重推不触发复位（回滚后 meta 翻槽，再部署落回同槽——五连部署序天然换槽不受影响；手动重推场景需先翻转或硬复位，登记不动手）。**真机终态：D1/D2/D3/D5/D7 全 PASS（D3 限幅 23 条 -12+700‰ 聚合实证；D7 state=4 回滚确认）。**
+
+#### Q-26 · 音视频传输 demo（zenoh）+ SD 卡读写 demo：硬件前置 + 能力面扩展（门 ③——ts_perm_v1 权限类扩展）
+
+**背景**：owner 指令 demo 增加这两类。现状事实：① xiao_esp32s3（当前板）**无摄像头/麦克风/SD 卡座**——Seeed 的 Sense 版才带 OV2640 摄像头 + PDM 麦克风；② 固件 natives 面 = 六函数（gpio×2/pwm/adc/time/log），**无任何音视频采集与文件系统能力**；③ 两者都要求 ts_api_v1 扩展新权限类（如 av/fs）= ts_perm_v1 文法变更 = 权限模型变更（review 门 ③）+ zenoh 侧大块数据传输面（当前遥测 payload 上限 128B，视频帧需 MB 级分片策略）。
+
+**选项**：
+- **AV 传输**：A) owner 确认有/购 XIAO ESP32S3 **Sense** 版（带 OV2640 摄像头+麦克风，约 ¥60）——DVP 摄像头驱动 + JPEG 帧捕获 + zenoh 分片 pub（新事件/遥测类）；B) 无 Sense 用外接 I2S 麦克风模块先做**音频流** demo（音频先行，视频随 Sense 到货）；C) 两者都等硬件。
+- **SD 卡**：A) 外接 microSD SPI 模块（约 ¥5-10）+ Zephyr disk/FS subsystem + ts-fs natives（文件枚举/读写 API，新 fs 权限类）——SD 槽位走 ts-periph 描述符注册（uid 逻辑名）；B) 暂不做。
+- 建议：AV=A（Sense 版）或 B（音频先行）；SD=A。都需 owner 提供硬件；固件侧批 = natives/白名单/权限类扩展（本 Q 批准后实施）。
+
+**影响**：ts_perm_v1 加类（av/fs）+ manifest 白名单扩展 + natives 白名单 NATIVE_WHITELIST 同步 + zenoh 大 payload 分片策略（视频帧 ~20-50KB/帧 vs 当前 128B 遥测——需分块遥测或专用帧通道）+ 两个新 demo（D-AV/D-SD）入 MD 批。
+
+---

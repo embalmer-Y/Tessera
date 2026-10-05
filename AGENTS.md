@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-10-05（三十五） · MD1.1b 交付：P1 根治（meta 双副本读共享缓冲 bug，一行修复）+ metabench 受控复现载体入库 + 真机五 demo 全 PASS（MD1.1 完整收口）；twister 15/15/L5/pytest 全绿。**Q-26 已呈递：音视频传输 + SD 卡 demo（owner 指令）——xiao_esp32s3 无摄像头/麦克风/SD 座，需 owner 硬件（Sense 版/microSD SPI 模块）+ natives 权限类扩展（门 ③）**
+  - **根因**：ts_store_meta_read 两次 read_rec 共用一个 data 缓冲——copy0 body 被 copy1 覆盖；选 copy0（s0>=s1）时返回旧内容。触发面 = 双副本皆有效且 copy0 较新（第 3/5/7… 次写后启动）= D3/D7 铁律的机制解释；板级五以来存在，2 轮测试从未覆盖。修复 = 分缓冲；sim 用例 2→6 轮堵口。
+  - **过程修正**：appmgr staged 用例此前骑 bug（依赖陈旧读值）——补 store reset 显式基线；D3 判据两修（通道上限 1000Hz|700‰——打包域 hz 高位语义；audit 聚合采样）；D7 谓词放宽 state∈{3,4}。
+  - **真机终态**：D1/D2/D3/D5/D7 全 PASS（D3 限幅 23 条 -12+700‰ 实证；D7 state=4 回滚确认）。
+  - **待 owner**：Q-26 裁决（AV=A/B/C、SD=A/B——硬件确认 + 权限类扩展批准）；观察项 = watch 同槽重推不复位（五连部署序不受影响）。
 - **2026-10-05（三十四） · MD1.1 部分交付（如实）：五 demo 真 LLM 生成全过（产物入仓）+ D1/D2/D5 真机判据 PASS（D1 含 res=0 全链首证：心跳→链路 ACTIVE→写落硬件）；**D3/D7 被 P1 缺陷阻塞**——连续激活写 meta copy0 的暖复位装载错位（3/3 复现铁律，物理 dump 证写落盘，逻辑审计无果，专项 MD1.1b）**
   - **基础设施三知识**：linkmon 判活 = host 心跳 publish（非 query——此前全盲区，md1_run3 心跳模板）；冷启装载 init 写必然落 SAFE 窗（行为写放 tick/evt）；audit 64 环/16 快照窗口。
   - **载体**：deploybench 并 PWM 通道（D3 限幅判据）+ 连续部署修复；app_develop 数组伪影三处解包 + 回路预算 4。

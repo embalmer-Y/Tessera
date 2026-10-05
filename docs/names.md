@@ -233,3 +233,5 @@
 - 2026-10-04 · **G1 交付登记（DEC-45）**：app_compile（MCP 工具，auto 类：C 源→wasm+面检查）；wasm_build（agent 模块：compile_app_c / wasm_func_surface / NATIVE_WHITELIST 六白名单）；source_c（DevelopOutcome 字段：LLM 产 C 源）；SMOKE3（真 LLM 代码生成全链冒烟代号）；R1-R8（Agent CLI 可靠性调研→工程决策映射，docs/agent-codegen-reliability-01.md）；agent-codegen-reliability-01（docs/ 报告）。
 
 - 2026-10-05 · **MD1.1 交付登记**：agent/demos/D1-D7（demo 产物族：spec/app.c/app.wasm/manifest.json/*.tsap/md1.pub——私钥仓外）；hb-host 心跳（Agent→板链路判活 publish 面，md1_run3 模板）；demos-01（docs/ 报告）；MD1.1b（P1 专项：连续激活 copy0 装载错位）；dbpwm（deploybench PWM 通道 uid）。
+
+- 2026-10-05 · **MD1.1b 交付登记**：metabench（firmware/tests/ P1 受控复现载体：六轮 meta 写+复位读+双副本十六进制打印；MB* console 行）；data0/data1（meta.c 分缓冲修复标识）；D-AV / D-SD（音视频/SD 卡 demo 代号——Q-26 呈递）；Sense 版（XIAO ESP32S3 Sense，带 OV2640+PDM 麦——Q-26 硬件选项）。

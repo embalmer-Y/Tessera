@@ -137,8 +137,10 @@ ZTEST(framework_store, test_meta_roundtrip_and_tear)
 	/* 空：读失败（双副本皆无） */
 	zassert_equal(ts_store_meta_read(buf, &len), TS_E_IO);
 
-	/* 写读往返 ×2（seq 递增切换副本） */
-	for (int round = 0; round < 2; round++) {
+	/* 写读往返 ×6（seq 递增切换副本；≥3 轮覆盖"copy0 较新"读取路径——
+	 * MD1.1b/P1 回归：此前共用读缓冲使第 3/5 轮后读回旧副本内容，
+	 * 真机连续部署 100% 复现，2 轮用例从未覆盖该分支） */
+	for (int round = 0; round < 6; round++) {
 		uint8_t w[32];
 
 		for (int i = 0; i < 32; i++) {
@@ -152,8 +154,8 @@ ZTEST(framework_store, test_meta_roundtrip_and_tear)
 		zassert_ok(memcmp(r, w, 32), "round %d", round);
 	}
 
-	/* 撕裂注入：破坏活动副本 → 另一副本接管 */
-	zassert_equal(ts_store_meta_corrupt_test(1), TS_OK); /* 第 2 次写在 copy1 */
+	/* 撕裂注入：破坏活动副本 → 另一副本接管（6 轮末活动副本 = copy1） */
+	zassert_equal(ts_store_meta_corrupt_test(1), TS_OK);
 	uint8_t r[64];
 
 	zassert_equal(ts_store_meta_read(r, &len), TS_OK, "单副本损坏可恢复");

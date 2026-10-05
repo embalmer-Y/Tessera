@@ -110,21 +110,28 @@ ts_res_t ts_store_meta_read(void *buf, uint16_t *len)
 	if (buf == NULL || len == NULL) {
 		return TS_E_PARAM;
 	}
-	uint8_t data[CONFIG_TS_STORE_META_MAX];
+	/* MD1.1b 修复（P1）：两副本体须分缓冲——此前共用一个 data，copy0 的
+	 * body 被 copy1 的读取覆盖；当选 copy0（s0>=s1，即第 3/5/7… 次写后的
+	 * 启动）时 memcpy 给调用方的是 copy1 的旧内容。触发面 = "双副本皆
+	 * 有效且 copy0 较新"（真机连续部署 D3/D7 100% 复现的根因；metabench
+	 * 六轮受控复现——盘上双副本 dump 正确而 meta_read 返回旧值，留痕
+	 * docs/demos-01.md §4 / MD1.1b 报告）。 */
+	uint8_t data0[CONFIG_TS_STORE_META_MAX];
+	uint8_t data1[CONFIG_TS_STORE_META_MAX];
 	uint32_t s0, s1;
 	uint16_t l0, l1;
 
-	bool ok0 = read_rec(0, &s0, &l0, data) == TS_OK;
-	bool ok1 = read_rec(1, &s1, &l1, data) == TS_OK;
+	bool ok0 = read_rec(0, &s0, &l0, data0) == TS_OK;
+	bool ok1 = read_rec(1, &s1, &l1, data1) == TS_OK;
 
 	if (!ok0 && !ok1) {
 		return TS_E_IO; /* 双副本皆损：调用方进 fail-safe/缺省安全态（LLD §3） */
 	}
 	if (ok0 && (!ok1 || s0 >= s1)) {
-		memcpy(buf, data, l0);
+		memcpy(buf, data0, l0);
 		*len = l0;
 	} else {
-		memcpy(buf, data, l1);
+		memcpy(buf, data1, l1);
 		*len = l1;
 	}
 	return TS_OK;

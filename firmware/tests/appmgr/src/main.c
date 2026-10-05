@@ -162,6 +162,10 @@ ZTEST(framework_appmgr, test_staged_install_chain)
 	size_t len = build_minimal_pkg(pkg, sizeof(pkg), 1);
 	uint8_t root_key[32] = {0};
 
+	/* MD1.1b：store 一并复位取确定基线（active=0 → 目标 slot 1）——此前
+	 * 沿用前序用例的 meta 且依赖旧读缺陷返回的陈旧 active_slot 才碰巧
+	 * 对齐期望；meta 读修复后陈旧值消失，须显式净基线（军规 7 留痕） */
+	ts_store_test_reset();
 	zassert_true(len > 0, "pkg built");
 
 	/* 尺寸域：过小/过大拒绝 */

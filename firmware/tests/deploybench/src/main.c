@@ -147,7 +147,7 @@ static const ts_out_ch_t db_pwm = {
 	.poweron = {.u = PWM_PACK(1000, 0)},
 	.linkloss = {.u = PWM_PACK(1000, 0)},
 	.fault = {.u = PWM_PACK(1000, 0)},
-	.limits = {.min = PWM_PACK(1000, 0), .max = PWM_PACK(5000, 700),
+	.limits = {.min = PWM_PACK(1000, 0), .max = PWM_PACK(1000, 700),
 		   .slew_per_ms = 0},
 };
 static const ts_hal_dev_desc_t db_pwm_dev = {
