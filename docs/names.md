@@ -237,3 +237,5 @@
 - 2026-10-05 · **MD1.1b 交付登记**：metabench（firmware/tests/ P1 受控复现载体：六轮 meta 写+复位读+双副本十六进制打印；MB* console 行）；data0/data1（meta.c 分缓冲修复标识）；D-AV / D-SD（音视频/SD 卡 demo 代号——Q-26 呈递）；Sense 版（XIAO ESP32S3 Sense，带 OV2640+PDM 麦——Q-26 硬件选项）。
 
 - 2026-10-05 · **MD1.2a 交付登记**：sdbench（firmware/tests/ SD bring-up 载体；SD* console 行）；sense 板变体（xiao_esp32s3/esp32s3/procpu/sense——Zephyr 官方 Sense DT：OV2640+DVP+SD 槽全就绪）；DEC-46（Q-26 裁决：硬件即板载）；cambench（MD1.2b 摄像头 bring-up 载体代号）。
+
+- 2026-10-05 · **MD1.2b 交付登记**：cambench（firmware/tests/ 摄像头 bring-up 载体；CB* console 行）；frame.raw（cambench 首帧落盘工件）；video_buffer_aligned_alloc 池路径（V1 摄像头缓冲唯一路径——外部静态缓冲不可用）。

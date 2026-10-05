@@ -6,6 +6,9 @@
 
 ## 1. 当前状态
 
+- **2026-10-05（三十七） · MD1.2b 交付：OV2640 摄像头 bring-up 真机全链 PASS（CB PASS：QQVGA RGB565 ×4 帧真实捕获 + 首帧 38400B 落 SD 校验——与 MD1.2a 能力闭环）**
+  - **路径事实**：外部静态 video_buffer 路径当前不可用（gdma "DMA capable: 0" 报错，根因未钉死留观察项）；**官方 video_buffer_aligned_alloc 池路径一次通**——V1 一律走池路径。Kconfig 门槛实测：DMA_ESP32_MAX_DESCRIPTOR_NUM 48 / VIDEO_BUFFER_POOL_HEAP_SIZE 256KB / NUM_MAX 6。
+  - **MD1.2 余项**：MD1.2d（zenoh 视频帧分片传输 + ts-fs/ts-av natives/权限类扩展——门 ③ 呈递）；MD1.2c（PDM 音频驱动扩展评估）；D-SD/D-AV demo 随能力面。
 - **2026-10-05（三十六） · DEC-46（Q-26 裁决：硬件即板载 Sense 版）+ MD1.2a 交付：SD 卡 bring-up 真机全链 PASS（7.5GB 卡 + FatFS + 32KB 写读校验）**；Zephyr 支持面钉死：摄像头 ✓（官方 Sense 板变体 + video_esp32_dvp + ov2640 全在树）、SD ✓（本批实证）、音频 PDM ✗（i2s_esp32 无 PDM，驱动扩展批）
   - **关键事实**：v4.4 树内官方 `xiao_esp32s3/esp32s3/procpu/sense` 板变体——摄像头+SD 的 DT 全就绪（OV2640 I2C@0x30 / lcd_cam DVP / spi2 CS21 SD 槽），换板名即点亮；sdbench 载体入库（教训：大缓冲禁上主栈）。
   - **MD1.2 切分**：b=cambench（OV2640 DVP 帧捕获 + JPEG）→ c=音频（PDM 驱动扩展评估呈递）→ d=zenoh 传输面（视频帧分片策略 + ts-fs/ts-av natives/权限类扩展走门 ③）。
