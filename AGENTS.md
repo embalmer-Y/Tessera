@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-10-06（三十八） · impl-review-02 交付：全库风险审查（owner 指令）——3 高/8 中/N 低登记（docs/impl-review-02.md，IR2-xx 编号族）；未裁决 Q = 零实证；零代码改动，处置建议呈 owner**
+  - **高 3 项**：IR2-01 看门狗合同（合同 4）整体空转——WAMR 无执行边界/健康探针同线程/wdt 生产零注册零喂狗/注册窗口被 boot 序阻断/全库无硬件 WDT（system_fail 后永久挂死）；IR2-02 固件 COSE 验签结构桩——生产恒拒安装、TEST 放行任意未签名 wasm+自声明 caps（**当前全部真机验证均 TEST 语义，生产语义从未点亮**）；IR2-03 Agent PC 读面外泄链——#include 探读+stderr 回喂 LLM、wasm_path/key_path 读入路径不受 roots 白名单（白名单只管写出不管读入）。
+  - **中 8 项**：L5 裸 pwm_set 正则盲区（IR2-04）/estop ISR 覆盖窗口（IR2-05）/app_stop 强杀持锁死锁（IR2-06）/回滚链不闭环+meta 双损静默（IR2-07）/审计 actor 恒 0（IR2-08）/任务取消不杀子进程组（IR2-09）/并发 out_dir 交叉污染（IR2-10）/zenoh key 注入（IR2-11）。
+  - **正面实证**：写入路径唯一、六 native 权限 fail-closed 无绕过、**DEC-40/41/42 全部已实现**（此前疑未实现，审查澄清）、meta P1 修复在位、断链物理落值、密钥零泄漏复核；CI 四 job 绿（6a6e38c）。
+  - **待 owner**：处置排期拍板（建议序：看门狗接线批〔含设计决策，门①呈递〕→ PC 读面加固批〔纯工程〕→ 验签实装批〔门③，TSAP 头摘要=文件格式〕→ 小项打包）；MD1.2d 呈递仍为既定下一单元，与上述的并行/调序由 owner 定。
 - **2026-10-05（三十七） · MD1.2b 交付：OV2640 摄像头 bring-up 真机全链 PASS（CB PASS：QQVGA RGB565 ×4 帧真实捕获 + 首帧 38400B 落 SD 校验——与 MD1.2a 能力闭环）**
   - **路径事实**：外部静态 video_buffer 路径当前不可用（gdma "DMA capable: 0" 报错，根因未钉死留观察项）；**官方 video_buffer_aligned_alloc 池路径一次通**——V1 一律走池路径。Kconfig 门槛实测：DMA_ESP32_MAX_DESCRIPTOR_NUM 48 / VIDEO_BUFFER_POOL_HEAP_SIZE 256KB / NUM_MAX 6。
   - **MD1.2 余项**：MD1.2d（zenoh 视频帧分片传输 + ts-fs/ts-av natives/权限类扩展——门 ③ 呈递）；MD1.2c（PDM 音频驱动扩展评估）；D-SD/D-AV demo 随能力面。

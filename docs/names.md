@@ -239,3 +239,5 @@
 - 2026-10-05 · **MD1.2a 交付登记**：sdbench（firmware/tests/ SD bring-up 载体；SD* console 行）；sense 板变体（xiao_esp32s3/esp32s3/procpu/sense——Zephyr 官方 Sense DT：OV2640+DVP+SD 槽全就绪）；DEC-46（Q-26 裁决：硬件即板载）；cambench（MD1.2b 摄像头 bring-up 载体代号）。
 
 - 2026-10-05 · **MD1.2b 交付登记**：cambench（firmware/tests/ 摄像头 bring-up 载体；CB* console 行）；frame.raw（cambench 首帧落盘工件）；video_buffer_aligned_alloc 池路径（V1 摄像头缓冲唯一路径——外部静态缓冲不可用）。
+
+- 2026-10-06 · **impl-review-02 交付登记**：impl-review-02（docs/ 报告：全库风险审查，M0→MD1.2b 已交付内容）；IR2-xx（审查发现编号族——与 impl-review-01 的 IR-xx 以 IR2 前缀区分，编号不复用）。
