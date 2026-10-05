@@ -6,6 +6,10 @@
 
 ## 1. 当前状态
 
+- **2026-10-05（三十四） · MD1.1 部分交付（如实）：五 demo 真 LLM 生成全过（产物入仓）+ D1/D2/D5 真机判据 PASS（D1 含 res=0 全链首证：心跳→链路 ACTIVE→写落硬件）；**D3/D7 被 P1 缺陷阻塞**——连续激活写 meta copy0 的暖复位装载错位（3/3 复现铁律，物理 dump 证写落盘，逻辑审计无果，专项 MD1.1b）**
+  - **基础设施三知识**：linkmon 判活 = host 心跳 publish（非 query——此前全盲区，md1_run3 心跳模板）；冷启装载 init 写必然落 SAFE 窗（行为写放 tick/evt）；audit 64 环/16 快照窗口。
+  - **载体**：deploybench 并 PWM 通道（D3 限幅判据）+ 连续部署修复；app_develop 数组伪影三处解包 + 回路预算 4。
+  - **下一步（建议序）**：**MD1.1b（P1 专项定位：copy0 模式受控复现 + ≥3 轮 meta sim 用例）** → 补 D3/D7 → MD1.2（D4/D6：ADC 通道入部署链 + D5 深化事件订阅面）。
 - **2026-10-04（三十三） · G1 实现批交付（DEC-45 方案 A）：APP 代码生成链落地——SMOKE3 真 LLM 全链双轮贯通（"需求→设计→编程→打包"AI 全链首次打通）；pytest 69+2s/ruff 全绿；MD0 关闭、MD1 解锁**
   - **可靠性调研落地（owner 指令）**：Claude Code/Codex CLI/aider/Wink 调研 → 八条工程决策 R1-R8（docs/agent-codegen-reliability-01.md）——四道确定性门（编译→白名单面检查→尺寸→**双编译字节一致**）+ stderr 完整反馈回路 + 整文件再生 + 子进程时限/零执行/roots 白名单 + sha256/面报告入审计。
   - **实装**：wasm_build 模块（零依赖 wasm 面解析器 + compile_app_c）+ `app_compile` 工具（auto）+ app_develop source_c 扩展（链内编译并入反馈回路）+ CI agent-checks clang 保障；测试 +11（无静默 skip）。

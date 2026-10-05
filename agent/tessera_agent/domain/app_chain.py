@@ -15,9 +15,9 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator
 from pydantic_ai import Agent
 
 from tessera_agent.common.errors import TA_E_ARGS, TA_E_TSAP, TaError
@@ -29,8 +29,23 @@ from tessera_agent.tools_tsap import tools as tsap_tools
 from tessera_agent.tools_tsap.manifest import TsapManifest
 from tessera_agent.tools_tsap.wasm_build import compile_app_c
 
+
+def _unwrap_item(v: object) -> object:
+    """{"item": X} 传输伪影解包（见 DevelopOutcome 文档串）；其余原样。"""
+    if isinstance(v, dict) and set(v) == {"item"}:
+        inner = v["item"]
+        return inner if isinstance(inner, list) else [inner]
+    return v
+
+
+TolerantStrList = Annotated[list[str], BeforeValidator(_unwrap_item)]
+
 # 来源: DEC-38 #3——结构化输出重试预算 3
 OUTPUT_RETRIES = 3
+# 来源: MD1.1 实证（2026-10-04）——链外校验/编译反馈回路预算：manifest 多类
+# 瑕疵 + 编译错误的叠加下 3 轮偶不够（MiniMax-M3 实测：数组伪影解包后仍需
+# 2-3 轮修字段级错误）；预算独立于结构化重试，放宽到 4。
+CHAIN_RETRIES = 4
 # 来源: MD0-1 真实 LLM 冒烟（2026-10-02，MiniMax-M3）——思考型模型的推理段
 # 会先耗尽 anthropic SDK 的 provider 缺省输出上限（UnexpectedModelBehavior
 # "token limit exceeded before any response"），链路对真实端点开箱不可用。
@@ -43,15 +58,19 @@ OUTPUT_MAX_TOKENS_WITH_CODE = 32768
 
 class DevelopOutcome(BaseModel):
     """app_develop 结构化产物（LLD-A02 §4 PlanDto 的 MA3 落地形态；
-    DEC-45 扩展：source_c 可选——LLM 直接产 C 源，链内编译为 wasm）。"""
+    DEC-45 扩展：source_c 可选——LLM 直接产 C 源，链内编译为 wasm）。
+
+    列表字段经 _unwrap_item 容错（MD1.1 实证：MiniMax-M3 结构化输出的
+    数组偶发被包成 {"item": X}——工具调用序列化层伪影；确定性解包，
+    非掩盖：纯 {"item"} 包装才解，其余形态原样交校验）。"""
 
     dto_version: int = 1
     requirements_summary: str
     manifest: dict[str, Any]
     source_c: str | None = None
-    safety_notes: list[str] = []
-    test_plan: list[str] = []
-    steps: list[str] = []
+    safety_notes: TolerantStrList = []
+    test_plan: TolerantStrList = []
+    steps: TolerantStrList = []
 
 
 def _develop_system_prompt() -> str:
@@ -66,6 +85,10 @@ def _develop_system_prompt() -> str:
         "caps 是字符串数组，文法 ts_perm_v1：\"class:op:instances\"，"
         "class∈{gpio,pwm,adc,power,msg,sys}，op∈{read,write,set}，"
         "instances=实例号（0-3 或 0,2 或 0-3）——例如 [\"pwm:set:0\", \"gpio:write:0\"]。",
+        # MD1.1 实证（MiniMax-M3）：结构化输出的数组字段偶发被包成
+        # {"item": ...}（传输层 XML 伪影）——显式禁包装
+        "caps 与 exports 必须是 JSON 数组字面量（如 [\"gpio:write:0\"]、"
+        "[\"health_ping\",\"app_tick\"]）；严禁 {\"item\": ...} 之类的对象包装。",
         # DEC-45（G1）：source_c 主路径——整文件再生（aider 编辑格式分级结论：
         # 小文件域 whole 最可靠，避免部分编辑错位/elision）
         "source_c = 完整单文件 C 源（wasm32 自由固件，非 diff/片段）：",
@@ -124,11 +147,25 @@ async def app_develop(
     history: list[Any] | None = None
     feedback = ''
     compiled: dict[str, Any] | None = None
-    for attempt in range(1, OUTPUT_RETRIES + 1):
+
+    def _normalize_manifest(m: dict[str, Any]) -> dict[str, Any]:
+        """传输伪影归一化（MD1.1 实证，MiniMax-M3）：结构化输出的数组字段
+        偶发被包成 {"item": X}（工具调用序列化层伪影，非模型逻辑错误）——
+        确定性解包 + 留痕；其余畸形留给反馈回路（R6：不掩盖根因）。"""
+        out = dict(m)
+        for f in ("caps", "exports"):
+            v = out.get(f)
+            if isinstance(v, dict) and set(v) == {"item"}:
+                out[f] = v["item"] if isinstance(v["item"], list) else [v["item"]]
+                log(f'传输伪影已解包：{f} 的 item 包装（留痕）')
+        return out
+
+    for attempt in range(1, CHAIN_RETRIES + 1):
         result = await agent.run(spec if history is None else
                                  f'产物校验失败，请修正后重新给出完整产物：\n{feedback}',
                                  message_history=history)
         outcome: DevelopOutcome = result.output
+        outcome.manifest = _normalize_manifest(outcome.manifest)
         history = result.all_messages()
         try:
             TsapManifest(**outcome.manifest)
@@ -143,7 +180,7 @@ async def app_develop(
             compiled = None
             log(f'产物校验失败（尝试 {attempt}/{OUTPUT_RETRIES}）：{feedback[:120]}')
     else:
-        msg = f"产物非法（{OUTPUT_RETRIES} 次反馈后仍未通过）: {feedback}"
+        msg = f"产物非法（{CHAIN_RETRIES} 次反馈后仍未通过）: {feedback}"
         raise TaError(TA_E_TSAP, msg, domain="app_develop",
                       detail={"manifest": outcome.manifest})
     log(f'plan（第 {attempt} 轮通过）: {outcome.requirements_summary[:80]}')

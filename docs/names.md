@@ -231,3 +231,5 @@
 - 2026-10-02 · **板级十交付登记**：deploybench（firmware/tests/ 部署 E2E 板侧载体；DB* console 行——前缀撞名自查：现有 PB/NB/NBR/EB/BB/PS/PP 之外新增 DB，无碰撞）；board-deploy-01（docs/ 报告）；DEPLOY*（client.py 判定行前缀）；dbn/dbc（部署目标逻辑名）；com.tessera.e2e（E2E app_id，与 sim E2E 同名同夹具〔native_app.wasm〕）；app_init/app_tick/app_evt（manifest exports 权威名——板级十对齐 LLD §4，弃 init/tick/evt 漂移）；教训 27（dev-env：手抄二进制数组禁令 + 分区残留态）。
 
 - 2026-10-04 · **G1 交付登记（DEC-45）**：app_compile（MCP 工具，auto 类：C 源→wasm+面检查）；wasm_build（agent 模块：compile_app_c / wasm_func_surface / NATIVE_WHITELIST 六白名单）；source_c（DevelopOutcome 字段：LLM 产 C 源）；SMOKE3（真 LLM 代码生成全链冒烟代号）；R1-R8（Agent CLI 可靠性调研→工程决策映射，docs/agent-codegen-reliability-01.md）；agent-codegen-reliability-01（docs/ 报告）。
+
+- 2026-10-05 · **MD1.1 交付登记**：agent/demos/D1-D7（demo 产物族：spec/app.c/app.wasm/manifest.json/*.tsap/md1.pub——私钥仓外）；hb-host 心跳（Agent→板链路判活 publish 面，md1_run3 模板）；demos-01（docs/ 报告）；MD1.1b（P1 专项：连续激活 copy0 装载错位）；dbpwm（deploybench PWM 通道 uid）。

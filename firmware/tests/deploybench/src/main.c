@@ -130,13 +130,28 @@ static const uint8_t prov_blob[] = {
 	0x70, 0x00,
 };
 
-/* APP 部署目标通道（e2e manifest caps = gpio:write:0-3 → inst 0） */
+/* APP 部署目标通道（gpio inst 0 = dbled；PWM inst 1 = dbpwm）
+ * MD1.1 增 PWM 通道：D3 呼吸灯 demo 限幅判据（limits max = 5000Hz|700‰，
+ * periphbench PP3 同款——超限请求 → 落 700‰ + 审计 res=TS_E_RANGE） */
 static const ts_out_ch_t db_led = {
 	.uid = "dbled", .kind = TS_CH_GPIO,
 	.poweron = {.b = false}, .linkloss = {.b = false}, .fault = {.b = false},
 };
 static const ts_hal_dev_desc_t db_dev = {
 	.uid = "dbled", .kind = TS_DEV_GPIO_OUT,
+};
+/* PWM 打包域（LLD-ts-hal §3）：高 16 = hz/100、低 16 = permille */
+#define PWM_PACK(hz, pm) ((((hz) / 100U) << 16) | (pm))
+static const ts_out_ch_t db_pwm = {
+	.uid = "dbpwm", .kind = TS_CH_PWM,
+	.poweron = {.u = PWM_PACK(1000, 0)},
+	.linkloss = {.u = PWM_PACK(1000, 0)},
+	.fault = {.u = PWM_PACK(1000, 0)},
+	.limits = {.min = PWM_PACK(1000, 0), .max = PWM_PACK(5000, 700),
+		   .slew_per_ms = 0},
+};
+static const ts_hal_dev_desc_t db_pwm_dev = {
+	.uid = "dbpwm", .kind = TS_DEV_PWM,
 };
 
 /* ---- 部署观测线程：激活检测 → 暖复位 → APP 运行宣告 --------------------- */
@@ -162,15 +177,33 @@ static void deploy_watch(void *p1, void *p2, void *p3)
 	}
 	if (info.app_id[0] != '\0' && info.state == TS_APP_ACTIVE) {
 		/* 复位后路径：步骤 8 已自 slot 装载并运行（Agent 侧 get-app
-		 * 对拍 state=ACTIVE + app_id） */
+		 * 对拍 state=ACTIVE + app_id）。MD1.1 修复：运行中持续检测
+		 * 后续激活（连续部署场景——板级十单次部署设计在 MD1 暴露：
+		 * alive 循环不再看激活 = 第 2 个起 demo 永远 STAGED）。 */
+		uint8_t loaded = info.active_slot;
+
 		printk("DB6 app running app_id=%s slot=%u t=%u\n",
 		       info.app_id, info.active_slot,
 		       (unsigned)k_uptime_get_32());
 		printk("DB PASS\n");
-		for (;;) {
-			k_msleep(10000);
-			printk("DB alive t=%u net=%d\n",
-			       (unsigned)k_uptime_get_32(), (int)ts_net_state());
+		for (int i = 0;; i++) {
+			k_msleep(2000);
+			ts_app_info_t cur;
+
+			if (ts_appmgr_get_info(&cur) == TS_OK &&
+			    cur.state == TS_APP_STAGED &&
+			    cur.active_slot != loaded) {
+				printk("DB4 activated slot=%u（2s 后暖复位装载）\n",
+				       cur.active_slot);
+				k_msleep(2000);
+				printk("DB5 warm reboot\n");
+				sys_reboot(SYS_REBOOT_WARM);
+			}
+			if (i % 5 == 0) {
+				printk("DB alive t=%u net=%d\n",
+				       (unsigned)k_uptime_get_32(),
+				       (int)ts_net_state());
+			}
 		}
 	}
 
@@ -247,8 +280,15 @@ int main(void)
 		printk("DB FAIL prov\n");
 		return 1;
 	}
+	/* PWM 后端 init 须在通道注册前（板级九纪律：缺绑定 = -ENODEV 如实上报） */
+	if (ts_drv_pwm_init() != 0) {
+		printk("DB FAIL pwm init\n");
+		return 1;
+	}
 	(void)ts_safety_register_channel(&db_led);
 	(void)ts_hal_register_dev(&db_dev);
+	(void)ts_safety_register_channel(&db_pwm);
+	(void)ts_hal_register_dev(&db_pwm_dev);
 	ts_core_boot(); /* noreturn：net_init → zenoh 命令面 + 步骤 8 slot 装载 */
 	return 0;
 }

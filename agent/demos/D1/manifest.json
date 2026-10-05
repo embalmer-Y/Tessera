@@ -1,0 +1,15 @@
+{
+ "app_id": "led.blink.demo",
+ "app_ver": "1.0.0",
+ "min_fw_ver": "1.0.0",
+ "caps": [
+  "gpio:write:0"
+ ],
+ "stack_kb": 8,
+ "heap_kb": 1,
+ "exports": [
+  "health_ping",
+  "app_init",
+  "app_tick"
+ ]
+}

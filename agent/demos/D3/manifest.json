@@ -1,0 +1,14 @@
+{
+ "app_id": "demo.pwm.breath",
+ "app_ver": "0.1.0",
+ "min_fw_ver": "1.0.0",
+ "caps": [
+  "pwm:set:1"
+ ],
+ "stack_kb": 16,
+ "heap_kb": 4,
+ "exports": [
+  "health_ping",
+  "app_tick"
+ ]
+}
