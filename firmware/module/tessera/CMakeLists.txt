@@ -43,6 +43,7 @@ zephyr_library_sources_ifdef(CONFIG_TS_HAL
   src/hal/perm.c
   src/hal/api.c
   src/hal/input.c
+
 )
 
 zephyr_library_sources_ifdef(CONFIG_TS_APPMGR
@@ -73,6 +74,10 @@ zephyr_library_sources_ifdef(CONFIG_TS_NET_ZENOH
 zephyr_library_sources_ifdef(CONFIG_TS_POWER
   src/power/slots.c
   src/power/budget.c
+)
+
+zephyr_library_sources_ifdef(CONFIG_TS_HAL_FS
+  src/hal/fs.c
 )
 
 zephyr_library_sources_ifdef(CONFIG_TS_PERIPH

@@ -251,3 +251,5 @@
 - 2026-10-06 · **看门狗实施批登记（DEC-48）**：DEC-48（Q-28 裁决：全部建议值）；wdtbench（firmware/tests/ 真机载体；WB* console 行——撞名自查：WB 未占用）；TS_WDT_NET_PERIOD_MS / TS_WDT_APPMGR_PERIOD_MS / TS_WDT_SYWORK_PERIOD_MS / TS_WDT_CHANNEL_MS（Kconfig 新默认：2000/1000/1000/5000）；TS_APP_INSTR_INIT / TS_APP_INSTR_TICK（Kconfig 指令预算：1,000,000/200,000）；ts_safety_commit_a（公共 API：带 actor 归因的提交）；wdt.spin.bench（夹具 app_id，wdt_pkg.h 机械生成）；wdt0/chosen zephyr,watchdog（esp32s3 硬件 WDT 接线约定）；WATCHDOG（Zephyr WDT 子系统根符号——CONFIG_WDT 不存在，教训）。
 
 - 2026-10-06 · **PC 读面加固批登记**：_gate_source / _read_within（agent 侧读面白名单双门：预处理 include 禁令 + 路径白名单）；IR2-03 处置态 = 已根治（impl-review-02 高项①消账；IR2-04/09/10/11 同批消账）。
+
+- 2026-10-07 · **MD1.2e 交付登记**：ts_fs_list / ts_fs_read / ts_fs_write / ts_fs_delete（公共 API + natives，DEC-47④）；TS_PERM_CLASS_FS / TS_PERM_OP_LIST / TS_PERM_OP_DELETE（ts_perm_v1 新类与新 op）；fs_paths（manifest 新字段：路径前缀白名单）；ts_fs_paths_bind / ts_fs_path_allowed（绑定与裁决 API）；TS_HAL_FS / TS_HAL_FS_PATHS_MAX（Kconfig）；framework.app test_05_fs_gates。

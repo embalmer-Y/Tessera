@@ -88,7 +88,101 @@ static int32_t native_log_write(wasm_exec_env_t env, uint32_t ctx_opaque,
 	return TS_OK;
 }
 
+/* ---- ts-fs natives（DEC-47④，MD1.2e）--------------------------------
+ * wasm 指针参数一律 validate_app_addr 后经 addr_app_to_native 落主机指针
+ * （native_log_write 同纪律）。读类返回：>= 0 = 字节数；< 0 = ts_res_t。 */
+#ifdef CONFIG_TS_HAL_FS
+static char fs_path_buf[96];
+
+static const char *fs_path_in(wasm_module_inst_t inst, uint32_t off, uint32_t len)
+{
+	if (len == 0 || len >= sizeof(fs_path_buf) ||
+	    !wasm_runtime_validate_app_addr(inst, off, len)) {
+		return NULL;
+	}
+	const char *src = (const char *)wasm_runtime_addr_app_to_native(inst, off);
+
+	memcpy(fs_path_buf, src, len);
+	fs_path_buf[len] = '\0';
+	if (memchr(fs_path_buf, '\0', len) != NULL) {
+		return NULL; /* 内嵌 NUL = 非法路径 */
+	}
+	return fs_path_buf;
+}
+
+static int32_t native_fs_read(wasm_exec_env_t env, uint32_t ctx_opaque,
+			      uint32_t path_off, uint32_t path_len,
+			      uint32_t off, uint32_t buf_off, uint32_t cap)
+{
+	ARG_UNUSED(ctx_opaque);
+	wasm_module_inst_t inst = wasm_runtime_get_module_inst(env);
+	const char *path = fs_path_in(inst, path_off, path_len);
+	uint8_t *host;
+
+	if (path == NULL || cap == 0 || cap > 0xFFFF ||
+	    !wasm_runtime_validate_app_addr(inst, buf_off, cap)) {
+		return TS_E_PARAM;
+	}
+	host = (uint8_t *)wasm_runtime_addr_app_to_native(inst, buf_off);
+	uint16_t n = (uint16_t)cap;
+	ts_res_t r = ts_fs_read(ctx_of(env), path, off, host, &n);
+
+	return (r == TS_OK) ? (int32_t)n : (int32_t)r;
+}
+
+static int32_t native_fs_write(wasm_exec_env_t env, uint32_t ctx_opaque,
+			       uint32_t path_off, uint32_t path_len,
+			       uint32_t off, uint32_t data_off, uint32_t len)
+{
+	ARG_UNUSED(ctx_opaque);
+	wasm_module_inst_t inst = wasm_runtime_get_module_inst(env);
+	const char *path = fs_path_in(inst, path_off, path_len);
+	const uint8_t *host;
+
+	if (path == NULL || len > 0xFFFF ||
+	    (len > 0 && !wasm_runtime_validate_app_addr(inst, data_off, len))) {
+		return TS_E_PARAM;
+	}
+	host = (const uint8_t *)wasm_runtime_addr_app_to_native(inst, data_off);
+	return (int32_t)ts_fs_write(ctx_of(env), path, off, host, (uint16_t)len);
+}
+
+static int32_t native_fs_list(wasm_exec_env_t env, uint32_t ctx_opaque,
+			      uint32_t dir_off, uint32_t dir_len,
+			      uint32_t out_off, uint32_t cap)
+{
+	ARG_UNUSED(ctx_opaque);
+	wasm_module_inst_t inst = wasm_runtime_get_module_inst(env);
+	const char *dir = fs_path_in(inst, dir_off, dir_len);
+	char *host;
+
+	if (dir == NULL || cap < 2 || cap > 0xFFFF ||
+	    !wasm_runtime_validate_app_addr(inst, out_off, cap)) {
+		return TS_E_PARAM;
+	}
+	host = (char *)wasm_runtime_addr_app_to_native(inst, out_off);
+	uint16_t n = (uint16_t)cap;
+	ts_res_t r = ts_fs_list(ctx_of(env), dir, host, n, &n);
+
+	return (r == TS_OK) ? (int32_t)n : (int32_t)r;
+}
+
+static int32_t native_fs_delete(wasm_exec_env_t env, uint32_t ctx_opaque,
+				uint32_t path_off, uint32_t path_len)
+{
+	ARG_UNUSED(ctx_opaque);
+	wasm_module_inst_t inst = wasm_runtime_get_module_inst(env);
+	const char *path = fs_path_in(inst, path_off, path_len);
+
+	if (path == NULL) {
+		return TS_E_PARAM;
+	}
+	return (int32_t)ts_fs_delete(ctx_of(env), path);
+}
+#endif /* CONFIG_TS_HAL_FS */
+
 /* wasm 导入符号表（namespace "env"；签名 = wasm 参数/返回类型） */
+
 static NativeSymbol ts_native_syms[] = {
 	{"ts_gpio_write", native_gpio_write, "(iii)i", NULL},
 	{"ts_gpio_read", native_gpio_read, "(ii)i", NULL},
@@ -96,6 +190,12 @@ static NativeSymbol ts_native_syms[] = {
 	{"ts_adc_read", native_adc_read, "(ii)i", NULL},
 	{"ts_time_ms", native_time_ms, "(i)I", NULL},
 	{"ts_log_write", native_log_write, "(iiii)i", NULL},
+#ifdef CONFIG_TS_HAL_FS
+	{"ts_fs_read", native_fs_read, "(iiiiii)i", NULL},
+	{"ts_fs_write", native_fs_write, "(iiiiii)i", NULL},
+	{"ts_fs_list", native_fs_list, "(iiiii)i", NULL},
+	{"ts_fs_delete", native_fs_delete, "(iiii)i", NULL},
+#endif
 };
 
 bool ts_app_natives_register(void)

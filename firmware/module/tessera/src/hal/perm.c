@@ -29,6 +29,7 @@ static int parse_class(const char *s, size_t len)
 	if (len == 3 && strncmp(s, "pwm", 3) == 0) return TS_PERM_CLASS_PWM;
 	if (len == 3 && strncmp(s, "adc", 3) == 0) return TS_PERM_CLASS_ADC;
 	if (len == 5 && strncmp(s, "power", 5) == 0) return TS_PERM_CLASS_POWER;
+	if (len == 2 && strncmp(s, "fs", 2) == 0) return TS_PERM_CLASS_FS; /* DEC-47⑤ */
 	if (len == 3 && strncmp(s, "msg", 3) == 0) return TS_PERM_CLASS_MSG;
 	if (len == 3 && strncmp(s, "sys", 3) == 0) return TS_PERM_CLASS_SYS;
 	return -1;
@@ -39,6 +40,8 @@ static int parse_op(const char *s, size_t len)
 	if (len == 4 && strncmp(s, "read", 4) == 0) return TS_PERM_OP_READ;
 	if (len == 5 && strncmp(s, "write", 5) == 0) return TS_PERM_OP_WRITE;
 	if (len == 3 && strncmp(s, "set", 3) == 0) return TS_PERM_OP_SET;
+	if (len == 4 && strncmp(s, "list", 4) == 0) return TS_PERM_OP_LIST; /* DEC-47⑤ */
+	if (len == 6 && strncmp(s, "delete", 6) == 0) return TS_PERM_OP_DELETE;
 	return -1;
 }
 

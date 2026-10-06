@@ -31,6 +31,7 @@ typedef enum {
 	TS_PERM_CLASS_PWM,
 	TS_PERM_CLASS_ADC,
 	TS_PERM_CLASS_POWER,
+	TS_PERM_CLASS_FS,   /* DEC-47⑤：文件系统（ts-fs 能力面，MD1.2e） */
 	TS_PERM_CLASS_MSG,
 	TS_PERM_CLASS_SYS,
 	TS_PERM_CLASS_COUNT,
@@ -40,6 +41,8 @@ typedef enum {
 	TS_PERM_OP_READ,
 	TS_PERM_OP_WRITE,
 	TS_PERM_OP_SET,
+	TS_PERM_OP_LIST,   /* DEC-47⑤：fs 专用（list） */
+	TS_PERM_OP_DELETE, /* DEC-47⑤：fs 专用（delete） */
 	TS_PERM_OP_COUNT,
 } ts_perm_op_t;
 
@@ -60,6 +63,33 @@ void ts_perm_table_init(ts_perm_table_t *table);
 /** 绑定 ctx → perm 表（ts-appmgr 加载 APP 时调用；一对一绑定）。 */
 ts_res_t ts_hal_bind_context(ts_ctx_t *ctx, uint16_t app_id, const ts_perm_table_t *table);
 void ts_hal_unbind_context(ts_ctx_t *ctx);
+
+/* ---- ts-fs 能力面（DEC-47④⑤，MD1.2e）-------------------------------------
+ * 路径授权 = manifest fs_paths 前缀白名单（';' 分隔 CSV，经
+ * ts_fs_paths_bind 绑定到 ctx）；class 位图只管 op 开关。fail-closed：
+ * 未绑定/无前缀匹配 = TS_E_PERM。无句柄（无泄漏面）；V1 = 已挂载 FAT。 */
+
+/** 绑定 fs_paths 白名单（CSV："/SD:/apps;/SD:/tmp"）到 app_id 对应 ctx。
+ * 覆盖式（重复绑定 = 替换）；V1 单活跃 APP。 */
+ts_res_t ts_fs_paths_bind(uint16_t app_id, const char *csv);
+
+/** ts_ctx_t 形态的绑定入口（appmgr 装载链用）。 */
+ts_res_t ts_fs_paths_bind_ctx(ts_ctx_t c, const char *csv);
+
+/** 路径前缀白名单裁决（内部/测试用；含边界：前缀后须 '/' 或恰好等长）。 */
+ts_res_t ts_fs_path_allowed(ts_ctx_t c, const char *path);
+
+/** 目录列举：names 以 ';' 连接写入 out（截断到 cap），*out_len = 实际长度。 */
+ts_res_t ts_fs_list(ts_ctx_t c, const char *dir, char *out, uint16_t cap, uint16_t *out_len);
+
+/** 读文件 @off：*len 入=容量 出=实际读得。 */
+ts_res_t ts_fs_read(ts_ctx_t c, const char *path, uint32_t off, uint8_t *buf, uint16_t *len);
+
+/** 写文件 @off（不存在则创建；无 O_APPEND 语义）。 */
+ts_res_t ts_fs_write(ts_ctx_t c, const char *path, uint32_t off, const uint8_t *data, uint16_t len);
+
+/** 删除文件（目录非空 = 拒绝——由 FS 后端语义决定）。 */
+ts_res_t ts_fs_delete(ts_ctx_t c, const char *path);
 
 /* ---- ts_api_v1（APP 可见的全部导入符号，LLD-ts-hal §3）------------------ */
 

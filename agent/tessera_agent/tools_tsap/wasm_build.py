@@ -33,6 +33,7 @@ from tessera_agent.tools_tsap.tools import _resolve_within
 NATIVE_WHITELIST = frozenset({
     "ts_gpio_write", "ts_gpio_read", "ts_pwm_set", "ts_adc_read",
     "ts_time_ms", "ts_log_write",
+    "ts_fs_read", "ts_fs_write", "ts_fs_list", "ts_fs_delete",  # DEC-47④（MD1.2e）
 })
 
 # 框架回调（runtime lookup：health_ping 必有；app_init/app_tick/app_evt

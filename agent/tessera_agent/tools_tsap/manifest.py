@@ -33,6 +33,21 @@ class TsapManifest(BaseModel):
     stack_kb: int = Field(ge=1, le=64)  # 上限 DEC-27：8KB 栈（KB 口径 ≤64）
     heap_kb: int = Field(ge=1, le=4096)  # 每板动态（DEC-27；Agent 侧上限防滥用）
     exports: list[str]
+    # DEC-47⑤（MD1.2e）：ts-fs 路径前缀白名单（绝对路径、无 ..；缺省 = 无 fs 授权）
+    fs_paths: list[str] | None = None
+
+    @field_validator("fs_paths")
+    @classmethod
+    def _fs_paths(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return v
+        if not v:
+            return None  # 空数组归一为缺省
+        for p in v:
+            if not re.match(r"^/[A-Za-z0-9._/-]{0,62}/?$", p) or ".." in p:
+                msg = f"非法 fs_paths 条目: {p!r}（须绝对路径，禁 ..）"
+                raise ValueError(msg)
+        return sorted(set(v))
 
     @field_validator("app_ver", "min_fw_ver")
     @classmethod
@@ -73,6 +88,8 @@ class TsapManifest(BaseModel):
             "heap_kb": self.heap_kb,
             "exports": self.exports,
         }
+        if self.fs_paths:
+            m["fs_paths"] = self.fs_paths  # DEC-47⑤：仅在有授权时携带
         return cbor2.dumps(m, canonical=True)
 
     @classmethod
@@ -89,4 +106,5 @@ class TsapManifest(BaseModel):
             stack_kb=int(m["stack_kb"]),
             heap_kb=int(m["heap_kb"]),
             exports=list(m["exports"]),
+            fs_paths=list(m["fs_paths"]) if m.get("fs_paths") else None,
         )

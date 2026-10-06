@@ -205,4 +205,58 @@ ZTEST(framework_app, test_04_boot_slot_load)
 	zassert_equal(ts_appmgr_app_stop(), TS_OK);
 }
 
+/* ---- ts-fs 能力面（DEC-47④⑤，MD1.2e）------------------------------------
+ * 双层裁决 fail-closed：class/op 位图 + fs_paths 前缀白名单（边界语义：
+ * 前缀后须 '/' 或恰好等长——防前缀绕过）；native_sim 无挂载盘 →
+ * 授权路径走到后端报 TS_E_IO（IO 面），未授权路径在门内即拒 TS_E_PERM。 */
+ZTEST(framework_app, test_05_fs_gates)
+{
+	ts_perm_table_t table;
+	ts_ctx_t ctx;
+
+	ts_perm_table_init(&table);
+	zassert_equal(ts_perm_parse("fs:read:0", &table), TS_OK, "fs 类解析");
+	zassert_equal(ts_perm_parse("fs:write:0", &table), TS_OK);
+	zassert_equal(ts_perm_parse("fs:list:0", &table), TS_OK);
+	zassert_equal(ts_perm_parse("fs:delete:0", &table), TS_OK);
+	zassert_equal(ts_perm_parse("fs:append:0", &table), TS_E_PARAM,
+		      "未知 op fail-closed");
+	zassert_equal(ts_hal_bind_context(&ctx, 0x5a, &table), TS_OK);
+
+	/* 未绑定 fs_paths：一切路径拒绝（参数合法 → 门内拒绝） */
+	uint8_t b0[4];
+	uint16_t n0 = sizeof(b0);
+
+	zassert_equal(ts_fs_read(ctx, "/SD:/x", 0, b0, &n0), TS_E_PERM,
+		      "未绑定白名单 = 拒绝");
+
+	zassert_equal(ts_fs_paths_bind_ctx(ctx, "/SD:/apps;/SD:/tmp"), TS_OK);
+	/* 前缀边界：等长 ✓ / 子路径 ✓ / 前缀绕过 ✗ */
+	zassert_equal(ts_fs_path_allowed(ctx, "/SD:/apps"), TS_OK);
+	zassert_equal(ts_fs_path_allowed(ctx, "/SD:/apps/a.txt"), TS_OK);
+	zassert_equal(ts_fs_path_allowed(ctx, "/SD:/apps-secret"), TS_E_PERM,
+		      "前缀绕过防护");
+	zassert_equal(ts_fs_path_allowed(ctx, "/SD:/etc"), TS_E_PERM);
+	zassert_equal(ts_fs_path_allowed(ctx, "SD:/apps"), TS_E_PARAM,
+		      "非绝对路径");
+
+	/* 授权路径 + 位图 op 通过 → 后端（native_sim 无挂载 → TS_E_IO） */
+	uint8_t b[4];
+	uint16_t n = sizeof(b);
+
+	zassert_equal(ts_fs_read(ctx, "/SD:/apps/a.txt", 0, b, &n), TS_E_IO,
+		      "授权读 → 后端 IO（无挂载，如实）");
+	/* read 类 op 未授权路径：门内拒绝 */
+	zassert_equal(ts_fs_read(ctx, "/SD:/etc/a", 0, b, &n), TS_E_PERM);
+
+	/* class 位图缺 write op（新 ctx 只授 read）→ 门内拒绝 */
+	ts_perm_table_init(&table);
+	zassert_equal(ts_perm_parse("fs:read:0", &table), TS_OK);
+	zassert_equal(ts_hal_bind_context(&ctx, 0x5b, &table), TS_OK);
+	zassert_equal(ts_fs_paths_bind_ctx(ctx, "/SD:/apps"), TS_OK);
+	zassert_equal(ts_fs_write(ctx, "/SD:/apps/a", 0, b, 0), TS_E_PERM,
+		      "op 位图缺 write = 拒绝");
+	ts_hal_unbind_context(&ctx);
+}
+
 ZTEST_SUITE(framework_app, NULL, NULL, NULL, NULL, NULL);

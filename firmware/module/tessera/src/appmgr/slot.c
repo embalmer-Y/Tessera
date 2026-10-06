@@ -7,6 +7,9 @@
 #include <ts/store.h>
 #include <ts/tsap.h>
 #include <zephyr/kernel.h>
+#ifdef CONFIG_TS_HAL_FS
+#include <ts/hal.h> /* ts_fs_paths_bind（DEC-47⑤） */
+#endif
 
 ts_app_info_t current_app;
 bool initialized;
@@ -105,6 +108,9 @@ ts_res_t ts_appmgr_health_fail(void)
 
 static uint8_t boot_wasm_buf[CONFIG_TS_APP_LOAD_MAX];
 static char boot_caps[160];
+#ifdef CONFIG_TS_HAL_FS
+static char boot_fs_paths[CONFIG_TS_HAL_FS_PATHS_MAX]; /* DEC-47⑤ */
+#endif
 
 ts_res_t ts_appmgr_boot_start(void)
 {
@@ -204,6 +210,39 @@ ts_res_t ts_appmgr_boot_start(void)
 				return TS_E_PARAM;
 			}
 			/* V1 消耗运行时常量（见上注释） */
+#ifdef CONFIG_TS_HAL_FS
+		} else if (strcmp(key, "fs_paths") == 0) {
+			/* DEC-47⑤（MD1.2e）：路径前缀白名单（数组 → ';' CSV；
+			 * fail-closed：越界/非绝对路径条目拒绝装载） */
+			uint32_t n;
+
+			if (!ts_cbor_array_open(&r, &n)) {
+				return TS_E_PARAM;
+			}
+			boot_fs_paths[0] = '\0';
+			size_t plen = 0;
+
+			for (uint32_t j = 0; j < n; j++) {
+				char pfx[64];
+
+				if (!ts_cbor_tstr(&r, pfx, sizeof(pfx)) ||
+				    pfx[0] != '/' ||
+				    strstr(pfx, "..") != NULL) {
+					return TS_E_PARAM;
+				}
+				size_t l = strlen(pfx);
+
+				if (plen + l + 2 >= sizeof(boot_fs_paths)) {
+					return TS_E_PARAM;
+				}
+				if (plen > 0) {
+					boot_fs_paths[plen++] = ';';
+				}
+				memcpy(boot_fs_paths + plen, pfx, l);
+				plen += l;
+				boot_fs_paths[plen] = '\0';
+			}
+#endif /* CONFIG_TS_HAL_FS */
 		} else if (strcmp(key, "exports") == 0) {
 			uint32_t n;
 
@@ -228,6 +267,11 @@ ts_res_t ts_appmgr_boot_start(void)
 	/* V1 运行时数值 app_id = 1（单活跃 APP；审计字符串归因在 current_app） */
 	ts_res_t sr = ts_appmgr_app_start(1, boot_wasm_buf, wl, boot_caps);
 
+#ifdef CONFIG_TS_HAL_FS
+	if (sr == TS_OK && boot_fs_paths[0] != '\0') {
+		(void)ts_fs_paths_bind(1, boot_fs_paths); /* DEC-47⑤：路径白名单随载绑定 */
+	}
+#endif
 	if (sr == TS_OK) {
 		current_app.state = TS_APP_ACTIVE; /* STAGED →（加载周期）→ ACTIVE */
 		current_app.active_slot = meta.active_slot;

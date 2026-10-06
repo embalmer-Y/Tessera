@@ -142,6 +142,22 @@ config TS_HAL
 	help
 	  design/LLD-ts-hal.md (M2b). ts_perm_v1 grammar + ts_api_v1 + input monitor.
 
+config TS_HAL_FS
+	bool "ts-fs capability surface (ts_fs_* natives, DEC-47)"
+	depends on TS_HAL
+	select FILE_SYSTEM
+	default n
+	help
+	  DEC-47 (MD1.2e): handle-less file API over a mounted FAT.
+	  fs_paths prefix whitelist bound from manifest at load time.
+
+config TS_HAL_FS_PATHS_MAX
+	int "ts-fs: fs_paths whitelist CSV capacity (bytes)"
+	depends on TS_HAL_FS
+	default 256
+	help
+	  Source: DEC-47 (MD1.2e). Semicolon-separated absolute prefixes.
+
 if TS_HAL
 
 config TS_HAL_MAX_INSTANCES

@@ -6,6 +6,9 @@
 
 ## 1. 当前状态
 
+- **2026-10-07（四十四） · MD1.2e 交付（排期表单元 4，DEC-47④⑤）：ts-fs 能力面——四 natives（无句柄）+ fs 权限类（list/read/write/delete op）+ fs_paths 前缀白名单（manifest/校验器/固件三方同步 + 前缀边界防绕过）；twister 15/15（66 用例）/agent 74+2s/L5 全绿**
+  - **双层裁决 fail-closed**：class/op 位图 + fs_paths 白名单（未绑定=全拒；"/SD:/apps" 不授权 "/SD:/apps-secret"）；越权 PERM_DENIED 留痕；`TS_HAL_FS` 门控（默认 n；未使能构建拒收含 fs_paths 的 manifest）。
+  - 真机 FAT 读写验证随 **MD1.2f（D-SD demo，下一单元）**：真 LLM 生成 + Sense 板真机判据。
 - **2026-10-06（四十三） · PC 读面加固批交付（排期表单元 3，纯工程无 Q）：IR2-03 根治 + IR2-04/09/10/11 并入——agent pytest 74+2s/ruff/L5 6/6 全绿**
   - **五道门**：①`_gate_source` 拒绝一切 #include/__has_include（预处理读面封死——外泄链根除；放宽走门③）②`_read_within` 读面白名单（wasm/包路径须在 roots；密钥豁免=仓外密钥纪律）③max_bytes 服务端钳制 16384 ④zenoh key 段白名单 `[A-Za-z0-9._-]` ⑤clang Popen 进程组击杀 + 取消路径杀组 + 同 out_dir 互斥锁；L5 正则补裸 pwm_set（负样本无误报）。
   - **下一单元（排期表 4）**：MD1.2e——ts-fs 能力面（DEC-47④⑤：ts_fs 四 natives + fs 类 + fs_paths 白名单三方同步 + agent 白名单/manifest 同步 + 用例）。
