@@ -83,8 +83,11 @@ def _develop_system_prompt() -> str:
         # 格式（{'perm': 'pwm:0#set'}），manifest 硬校验 fail-closed 拦下但链路
         # 不可用；文法短小，直接入提示消除对 skill 阅读的依赖。
         "caps 是字符串数组，文法 ts_perm_v1：\"class:op:instances\"，"
-        "class∈{gpio,pwm,adc,power,msg,sys}，op∈{read,write,set}，"
-        "instances=实例号（0-3 或 0,2 或 0-3）——例如 [\"pwm:set:0\", \"gpio:write:0\"]。",
+        "class∈{gpio,pwm,adc,power,fs,msg,sys}，op∈{read,write,set,list,delete}，"
+        "instances=实例号（0-3 或 0,2 或 0-3）——例如 [\"pwm:set:0\", "
+        "\"gpio:write:0\", \"fs:read:0\"]。"
+        "fs 类的路径授权用 manifest 可选字段 fs_paths（绝对路径前缀白名单数组，"
+        "如 [\"/SD:/apps-data\"]——未列前缀的路径运行时拒绝）。",
         # MD1.1 实证（MiniMax-M3）：结构化输出的数组字段偶发被包成
         # {"item": ...}（传输层 XML 伪影）——显式禁包装
         "caps 与 exports 必须是 JSON 数组字面量（如 [\"gpio:write:0\"]、"
@@ -99,7 +102,13 @@ def _develop_system_prompt() -> str:
         "int ts_gpio_write(int ctx,int inst,int v)；int ts_gpio_read(int ctx,int inst)；"
         "int ts_pwm_set(int ctx,int inst,int hz,int permille)；"
         "int ts_adc_read(int ctx,int inst)；unsigned long long ts_time_ms(int ctx)；"
-        "int ts_log_write(int ctx,int lvl,const char* msg,int len)。",
+        "int ts_log_write(int ctx,int lvl,const char* msg,int len)；"
+        "int ts_fs_read(int ctx,const char* path,int path_len,int off,char* buf,int cap)；"
+        "int ts_fs_write(int ctx,const char* path,int path_len,int off,const char* data,int len)；"
+        "int ts_fs_list(int ctx,const char* dir,int dir_len,char* out,int cap)；"
+        "int ts_fs_delete(int ctx,const char* path,int path_len)。",
+        "（fs natives 仅当 manifest caps 含对应 fs:op 且 fs_paths 覆盖路径时可用；"
+        "返回 >=0 为字节数、<0 为错误码；路径缓冲在 wasm 线性内存内。）",
         "③ 约束：禁 WASI/stdio/全局构造/随机/墙钟；静态状态用 file-scope 变量；"
         "确定性（同输入序列同输出）。无源码需求时 source_c 置 null。",
         "安全合同内化：输出经保护层限幅、确定性（禁随机/墙钟分支）、越权拒绝留痕。",
@@ -153,7 +162,7 @@ async def app_develop(
         偶发被包成 {"item": X}（工具调用序列化层伪影，非模型逻辑错误）——
         确定性解包 + 留痕；其余畸形留给反馈回路（R6：不掩盖根因）。"""
         out = dict(m)
-        for f in ("caps", "exports"):
+        for f in ("caps", "exports", "fs_paths"):  # fs_paths（MD1.2f 实证同伪影）
             v = out.get(f)
             if isinstance(v, dict) and set(v) == {"item"}:
                 out[f] = v["item"] if isinstance(v["item"], list) else [v["item"]]

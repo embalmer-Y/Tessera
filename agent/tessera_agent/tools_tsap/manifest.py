@@ -44,7 +44,7 @@ class TsapManifest(BaseModel):
         if not v:
             return None  # 空数组归一为缺省
         for p in v:
-            if not re.match(r"^/[A-Za-z0-9._/-]{0,62}/?$", p) or ".." in p:
+            if not re.match(r"^/[A-Za-z0-9._:/-]{0,62}/?$", p) or ".." in p:
                 msg = f"非法 fs_paths 条目: {p!r}（须绝对路径，禁 ..）"
                 raise ValueError(msg)
         return sorted(set(v))
