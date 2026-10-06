@@ -48,10 +48,13 @@ jobs:
       - name: pytest（agent，L7；失败摘要进注解——可观测性，ffd50be 同理）
         run: |
           set +e
-          pytest agent/tests -v --tb=short 2>&1 | tee /tmp/pytest.log
+          pytest agent/tests -vv --tb=short 2>&1 | tee /tmp/pytest.log
           rc=${PIPESTATUS[0]}
           if [ "$rc" -ne 0 ]; then
             grep -E '^(FAILED|ERROR)' /tmp/pytest.log | head -10 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            grep -E '^E ' /tmp/pytest.log | head -10 | while IFS= read -r line; do
               echo "::error::${line}"
             done
             tail -30 /tmp/pytest.log
