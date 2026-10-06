@@ -109,3 +109,35 @@ class TestCompileAppC:
     def test_empty_source(self, tmp_path):
         with pytest.raises(TaError, match="source_c 为空"):
             compile_app_c("  ", str(tmp_path / "o"), [str(tmp_path)])
+
+    # ---- IR2-03 加固批（DEC-48 排期表单元 3）--------------------------------
+
+    def test_include_gate_system(self, tmp_path):
+        """#include 系统头 = 预处理读面，拒绝（自由固件零依赖）。"""
+        with pytest.raises(TaError, match="#include"):
+            compile_app_c("#include <stdio.h>\n" + GOOD_C,
+                          str(tmp_path / "o"), [str(tmp_path)])
+
+    def test_include_gate_absolute_path(self, tmp_path):
+        """绝对路径 #include = 主机任意文件探读，拒绝。"""
+        with pytest.raises(TaError, match="#include"):
+            compile_app_c('#include "/etc/passwd"\n' + GOOD_C,
+                          str(tmp_path / "o"), [str(tmp_path)])
+
+    def test_has_include_probe_gate(self, tmp_path):
+        """__has_include 可作文件存在性探针，拒绝。"""
+        with pytest.raises(TaError, match="include"):
+            compile_app_c("#if __has_include(<stdlib.h>)\n#endif\n" + GOOD_C,
+                          str(tmp_path / "o"), [str(tmp_path)])
+
+    def test_max_bytes_server_clamp(self, tmp_path):
+        """调用方传超大 max_bytes 不可放宽服务端钳制（DEFAULT_MAX_BYTES）。"""
+        pad = ",".join(str(i % 251) for i in range(20000))
+        src = (f"const unsigned char pad[20000] __attribute__((used)) = {{{pad}}};\n"
+               "__attribute__((export_name(\"app_tick\"))) "
+               "int app_tick(void){ return pad[0]; }\n"
+               "__attribute__((export_name(\"health_ping\"))) "
+               "int health_ping(void){ return 0; }\n")
+        with pytest.raises(TaError, match="超上限 16384"):
+            compile_app_c(src, str(tmp_path / "o"), [str(tmp_path)],
+                          max_bytes=10**9)

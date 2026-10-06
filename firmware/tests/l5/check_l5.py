@@ -29,8 +29,10 @@ TIME_FILE = MODULE_SRC / "core" / "time.c"
 
 OUTPUT_DRIVER_RE = re.compile(
     r"\b(gpio_pin_set(?:_raw|_dt)?|gpio_port_set_bits_raw|gpio_port_clear_bits_raw"
-    r"|pwm_set_(?:cycles|duty|pulse|ticks)(?:_dt)?)\s*\("
+    r"|pwm_set(?:_(?:cycles|duty|pulse|ticks))?(?:_dt)?)\s*\("
 )
+# 注（IR2-04/DEC-48 批）：覆盖裸 pwm_set(——本库 PWM 落驱动即此形态
+#（driver_dispatch.c），原正则只匹配带后缀变体 = 机械防线缺口。
 CH_INIT_RE = re.compile(r"\bts_out_ch_t\s+\w+\s*=\s*\{")
 FORBIDDEN_TIME_RE = re.compile(
     r"\b(srand|rand|random)\s*\(|\btime\s*\(|\blocaltime\s*\(|\bgmtime\s*\("

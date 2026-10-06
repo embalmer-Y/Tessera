@@ -105,6 +105,26 @@ def test_tsap_package_verify_roundtrip(tmp_path: Path, keypair: tuple[Path, Path
     assert eo.value.code == TA_E_POLICY
 
 
+def test_tsap_read_paths_roots(tmp_path: Path, keypair: tuple[Path, Path],
+                               wasm_blob: Path):
+    """IR2-03（impl-review-02）读面白名单：wasm/包路径越界拒绝
+    （堵"读任意主机文件打包外送"通道）；密钥路径豁免（仓外密钥纪律）。"""
+    priv, _pub = keypair
+    out = tmp_path / "pkg"
+    # wasm 输入在白名单外 → 拒
+    with pytest.raises(TaError, match="wasm 输入.*越界"):
+        tsap_package("/etc/hosts", VALID_MANIFEST, str(priv), str(out),
+                     [str(tmp_path)])
+    # 合法打包后：包路径在白名单外 verify → 拒（roots 提供时）
+    r = tsap_package(str(wasm_blob), VALID_MANIFEST, str(priv), str(out),
+                     [str(tmp_path)])
+    with pytest.raises(TaError, match="包路径.*越界"):
+        tsap_verify(r["package_path"], str(_pub), ["/nonexistent-root"])
+    # 同包同钥，roots 覆盖 → 通过（回归不破）
+    v = tsap_verify(r["package_path"], str(_pub), [str(tmp_path)])
+    assert v["valid"] is True
+
+
 def test_tsap_tamper_matrix(tmp_path: Path, keypair: tuple[Path, Path], wasm_blob: Path):
     priv, pub = keypair
     out = tmp_path / "pkg"

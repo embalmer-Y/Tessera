@@ -6,6 +6,9 @@
 
 ## 1. 当前状态
 
+- **2026-10-06（四十三） · PC 读面加固批交付（排期表单元 3，纯工程无 Q）：IR2-03 根治 + IR2-04/09/10/11 并入——agent pytest 74+2s/ruff/L5 6/6 全绿**
+  - **五道门**：①`_gate_source` 拒绝一切 #include/__has_include（预处理读面封死——外泄链根除；放宽走门③）②`_read_within` 读面白名单（wasm/包路径须在 roots；密钥豁免=仓外密钥纪律）③max_bytes 服务端钳制 16384 ④zenoh key 段白名单 `[A-Za-z0-9._-]` ⑤clang Popen 进程组击杀 + 取消路径杀组 + 同 out_dir 互斥锁；L5 正则补裸 pwm_set（负样本无误报）。
+  - **下一单元（排期表 4）**：MD1.2e——ts-fs 能力面（DEC-47④⑤：ts_fs 四 natives + fs 类 + fs_paths 白名单三方同步 + agent 白名单/manifest 同步 + 用例）。
 - **2026-10-06（四十二） · 看门狗实施批交付（DEC-48 落地，排期表单元 2）：IR2-01 根治——四层防线全接线 + 真机三整循环自证；twister 15/15/L5/pytest 全绿**
   - **四层防线**：L1 三源喂狗接线（静态预注册+动态激活；SYWORK/NET/APPMGR 喂狗点）｜L2 WAMR 指令配额（metering 上游开关零补丁；超限异常走既有回滚）｜L3 task_wdt 通道（5s，NULL 回调→自动 sys_reboot）+ 硬件回退（esp32s3 wdt0，MWDT ≈10s）｜L4 noinit 留痕强实现 + system_fail→通道过期→复位闭环。
   - **真机（wdtbench，WB* 行）**：死循环 APP state=3→配额终止→state=4 回滚 rb=1 + 系统存活（WB PASS）；sysworkq 自旋→5s 复位（WB0 重现铁证）——75s 三整循环。限制如实：task_wdt 直通复位无 noinit 留痕（ISR 不可写 flash）。

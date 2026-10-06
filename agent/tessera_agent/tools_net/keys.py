@@ -9,10 +9,13 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
 import cbor2
+
+from tessera_agent.common.errors import TA_E_ARGS, TaError
 
 # ---- kind 注册表（唯一权威 = LLD-ts-net §4.4；Agent 侧镜像）----------------
 KIND_SYS_REQUEST = 1    # 请求区间 1-15：1 = sys 命令（op 分流）
@@ -31,15 +34,35 @@ HOLDER_MAX = 24
 TO_MAX_MS = 5000
 
 
+# IR2-11（impl-review-02）zenoh key 表达式注入防御：node/cube/uid 段只允许
+# 无键语义字符（禁 / * # $ 与空白——含之可越出目标 cube 键空间）
+_SEG_RE = re.compile(r"^[A-Za-z0-9._-]{1,48}$")
+
+
+def _validate_seg(name: str, val: str) -> None:
+    if not isinstance(val, str) or not _SEG_RE.fullmatch(val):
+        raise TaError(TA_E_ARGS,
+                      f"非法 {name}: {val!r}（允许 [A-Za-z0-9._-]，长 1-48）",
+                      domain="net")
+
+
 def key_prefix(node: str, cube: str) -> str:
+    _validate_seg("node", node)
+    _validate_seg("cube", cube)
     return f"tessera/{node}/{cube}"
 
 
 def key_sys(node: str, cube: str, cmd: str) -> str:
+    _validate_seg("node", node)
+    _validate_seg("cube", cube)
+    _validate_seg("cmd", cmd)
     return f"tessera/{node}/{cube}/sys/{cmd}"
 
 
 def key_cmd(node: str, cube: str, uid: str) -> str:
+    _validate_seg("node", node)
+    _validate_seg("cube", cube)
+    _validate_seg("uid", uid)
     return f"tessera/{node}/{cube}/{uid}/cmd"
 
 

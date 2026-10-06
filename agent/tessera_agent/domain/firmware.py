@@ -210,7 +210,8 @@ class FirmwareDomainPack(DomainPackBase):
         @audited("tsap_verify")
         async def tsap_verify(package_path: str, pub_key_path: str) -> dict:
             """TSAP 包全量反向验证（容器头 + COSE 双实现 + manifest 解码）。"""
-            return tsap_tools.tsap_verify(package_path, pub_key_path)
+            # IR2-03：包路径读面白名单（ctx.roots）
+            return tsap_tools.tsap_verify(package_path, pub_key_path, ctx.roots())
 
         # ---- deploy_*（MA3.1，LLD-A06；同步 zenoh 面经 to_thread 桥接）------
         @mcp.tool

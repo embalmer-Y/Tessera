@@ -79,6 +79,16 @@ async def run_proc(
         pump_task.cancel()
         msg = f"子进程超时（{timeout_s}s）: {' '.join(cmd[:3])}…"
         raise TaError(TA_E_TIMEOUT, msg, domain="proc", retryable=True) from None
+    except asyncio.CancelledError:
+        # IR2-09（impl-review-02）：任务取消（task_cancel/TTL 到期）同样杀整
+        # 进程组——仅 cancel 协程会留下孤儿（west/clang 继续占 CPU/写产物）。
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            proc.kill()
+        await proc.wait()
+        pump_task.cancel()
+        raise
 
     await pump_task
     tail = log_lines[-40:]

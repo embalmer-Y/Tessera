@@ -198,7 +198,7 @@ async def app_develop(
         pkg = tsap_tools.tsap_package(wasm, outcome.manifest, key_path, out_dir,
                                       ctx.roots())
         pub = str(Path(key_path).expanduser().with_suffix(".pub"))
-        tsap_tools.tsap_verify(pkg["package_path"], pub)
+        tsap_tools.tsap_verify(pkg["package_path"], pub, ctx.roots())  # IR2-03
         return pkg, pub
 
     pkg, pub = await asyncio.to_thread(_package_and_verify)
@@ -235,7 +235,7 @@ async def app_deploy(
         raise TaError(TA_E_ARGS, msg, domain="app_deploy")
 
     # S5：复验 → 定位 → 推送 → 确认
-    tsap_tools.tsap_verify(package_path, pub_key_path)
+    tsap_tools.tsap_verify(package_path, pub_key_path, ctx.roots())  # IR2-03
     log("tsap_verify PASS")
 
     def work() -> dict[str, Any]:

@@ -33,6 +33,20 @@ def _resolve_within(out_dir: str, allowed_roots: list[str]) -> Path:
     raise TaError(TA_E_POLICY, msg, domain="tsap")
 
 
+def _read_within(path_str: str, allowed_roots: list[str], what: str) -> Path:
+    """读入路径白名单（IR2-03/impl-review-02：读面对偶）——外送内容载体
+    （wasm/TSAP 包）的读文件必须落在 allowed_roots 内，堵"读任意主机文件
+    打包外送"通道。注：签名密钥/公钥不走本检查——密钥纪律常在仓库外
+    （私钥内容永不出进程；公钥为公开材料）。"""
+    real = Path(os.path.expanduser(path_str)).resolve()
+    for root in allowed_roots:
+        r = Path(os.path.expanduser(root)).resolve()
+        if real == r or str(real).startswith(str(r) + os.sep):
+            return real
+    msg = f"{what} 越界（白名单外）: {path_str}"
+    raise TaError(TA_E_POLICY, msg, domain="tsap")
+
+
 def tsap_keygen(name: str, out_dir: str, allowed_roots: list[str]) -> dict:
     """Ed25519 开发密钥对生成（strict 类）。私钥仅写文件 0600，不进返回/日志。 """
     if not re.fullmatch(r"[a-zA-Z0-9._-]{1,48}", name):
@@ -57,7 +71,7 @@ def tsap_package(
     wasm_path: str, manifest: dict, key_path: str, out_dir: str, allowed_roots: list[str]
 ) -> dict:
     """打包签名（confirm 类，句柄化）。返回 {package_path, manifest_digest, signer_impl…}。"""
-    wasm = Path(os.path.expanduser(wasm_path))
+    wasm = _read_within(wasm_path, allowed_roots, "wasm 输入")  # IR2-03 读面白名单
     if not wasm.is_file():
         msg = f"wasm 不存在: {wasm_path}"
         raise TaError(TA_E_ARGS, msg, domain="tsap")
@@ -96,9 +110,15 @@ def tsap_package(
     }
 
 
-def tsap_verify(package_path: str, pub_key_path: str) -> dict:
-    """全量反向验证（auto 类）：容器 → COSE 双实现验签 → manifest 解码。"""
+def tsap_verify(package_path: str, pub_key_path: str,
+                allowed_roots: list[str] | None = None) -> dict:
+    """全量反向验证（auto 类）：容器 → COSE 双实现验签 → manifest 解码。
+
+    IR2-03：allowed_roots 提供时强制 package_path 白名单（LLM 可控的
+    内容载体）；pub_key_path 豁免（公开材料，见 _read_within 注）。"""
     pkg = Path(os.path.expanduser(package_path))
+    if allowed_roots is not None:
+        pkg = _read_within(package_path, allowed_roots, "包路径")
     if not pkg.is_file():
         msg = f"包不存在: {package_path}"
         raise TaError(TA_E_ARGS, msg, domain="tsap")

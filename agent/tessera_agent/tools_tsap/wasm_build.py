@@ -17,7 +17,11 @@ docs/agent-codegen-reliability-01.md）：
 from __future__ import annotations
 
 import hashlib
+import os
+import re
+import signal
 import subprocess
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -118,19 +122,56 @@ def wasm_func_surface(path: str | Path) -> tuple[set[str], set[str]]:
 
 # ---- 编译 + 面检查 ------------------------------------------------------------
 
+# IR2-03（impl-review-02）预处理读面封死：自由固件零 include（natives 经
+# extern 声明）；#include 与 __has_include 可探读/回显主机任意文件（clang
+# 诊断含被包含源文本 → stderr 回喂 LLM），一律拒绝。放宽须走门 ③。
+_INCLUDE_RE = re.compile(r"^\s*#\s*include\b", re.MULTILINE)
+
+# 同 out_dir 串行化（IR2-10）：固定文件名 app.c/app.wasm 在并发编译下会
+# 交叉污染双编译一致性检查——按真实路径互斥。
+_DIR_LOCKS: dict[str, threading.Lock] = {}
+_DIR_LOCKS_GUARD = threading.Lock()
+
+
+def _dir_lock(real: Path) -> threading.Lock:
+    with _DIR_LOCKS_GUARD:
+        return _DIR_LOCKS.setdefault(str(real), threading.Lock())
+
+
+def _gate_source(source_c: str) -> None:
+    if _INCLUDE_RE.search(source_c) or "__has_include" in source_c:
+        raise TaError(
+            TA_E_ARGS,
+            "source_c 含 #include/__has_include（自由固件零依赖：natives 经 "
+            "extern 声明；禁预处理读面）",
+            domain="app_compile",
+        )
+
+
 def _run_clang(c_path: Path, wasm_path: Path, timeout_s: float) -> None:
-    """clang 编译；失败/超时 → TaError（stderr 完整保留，供 LLM 反馈回路）。"""
+    """clang 编译；失败/超时 → TaError（stderr 完整保留，供 LLM 反馈回路）。
+
+    IR2-09：start_new_session + 超时杀整进程组（clang 派生孙进程不遗留；
+    proc.py 同纪律）。"""
+    proc = subprocess.Popen(
+        [CLANG, *CLANG_FLAGS, "-o", str(wasm_path), str(c_path)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        start_new_session=True,
+    )
     try:
-        r = subprocess.run(
-            [CLANG, *CLANG_FLAGS, "-o", str(wasm_path), str(c_path)],
-            capture_output=True, text=True, timeout=timeout_s, check=False)
-    except subprocess.TimeoutExpired as exc:
-        msg = f"clang 编译超时（>{timeout_s}s，进程已终止）"
-        raise TaError(TA_E_TSAP, msg, domain="app_compile") from exc
-    if r.returncode != 0:
-        msg = f"clang 编译失败（exit {r.returncode}）"
+        _out, err = proc.communicate(timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+        except (ProcessLookupError, PermissionError, OSError):
+            proc.kill()
+        proc.communicate()
+        msg = f"clang 编译超时（>{timeout_s}s，进程组已终止）"
+        raise TaError(TA_E_TSAP, msg, domain="app_compile") from None
+    if proc.returncode != 0:
+        msg = f"clang 编译失败（exit {proc.returncode}）"
         raise TaError(TA_E_TSAP, msg, domain="app_compile",
-                      detail={"stderr": r.stderr[-4000:], "stdout": r.stdout[-1000:]})
+                      detail={"stderr": (err or "")[-4000:], "stdout": ""})
 
 
 def compile_app_c(
@@ -150,18 +191,21 @@ def compile_app_c(
     """
     if not source_c or not source_c.strip():
         raise TaError(TA_E_ARGS, "source_c 为空", domain="app_compile")
+    _gate_source(source_c)
+    # IR2-03 服务端钳制：调用方（含 LLM）传大值不可放宽固件装载上限
+    max_bytes = min(int(max_bytes), DEFAULT_MAX_BYTES)
     real = _resolve_within(out_dir, allowed_roots)
     real.mkdir(parents=True, exist_ok=True)
     c_path = real / "app.c"
     wasm_path = real / "app.wasm"
     wasm2_path = real / "app.wasm.check"
-    c_path.write_text(source_c, encoding="utf-8")
-
-    _run_clang(c_path, wasm_path, timeout_s)
-    # 确定性自证：同源重编译逐字节比对（R5；不一致 = 环境泄漏）
-    _run_clang(c_path, wasm2_path, timeout_s)
-    deterministic = wasm_path.read_bytes() == wasm2_path.read_bytes()
-    wasm2_path.unlink()
+    with _dir_lock(real):  # IR2-10：同 out_dir 串行（防交叉污染）
+        c_path.write_text(source_c, encoding="utf-8")
+        _run_clang(c_path, wasm_path, timeout_s)
+        # 确定性自证：同源重编译逐字节比对（R5；不一致 = 环境泄漏）
+        _run_clang(c_path, wasm2_path, timeout_s)
+        deterministic = wasm_path.read_bytes() == wasm2_path.read_bytes()
+        wasm2_path.unlink()
     if not deterministic:
         msg = "双编译产物字节不一致（编译环境非确定性——拒绝）"
         raise TaError(TA_E_TSAP, msg, domain="app_compile")
