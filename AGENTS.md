@@ -6,6 +6,10 @@
 
 ## 1. 当前状态
 
+- **2026-10-06（四十一） · Q-28 呈递停门（排期表单元 1）：看门狗接线批方案（IR2-01 根治）——四层防线 + 6 项新默认值，门 ① 等 owner 裁决**
+  - **四层防线**：L1 ts_wdt 三源软看门狗（静态预注册+动态激活修复注册窗口冲突）→ L2 APP 执行边界 = WAMR 指令配额（`WAMR_BUILD_INSTRUCTION_METERING=1` 上游开关零补丁；超限异常走既有健康失败→回滚，无 abort 无死锁面）→ L3 Zephyr task_wdt + 硬件回退（esp32 MWDT，软巡检卡死兜底）→ L4 system_fail noinit 故障留痕（IR2-R6 同批）+ 停喂硬 WDT 真复位。
+  - **建议默认值**：喂狗周期 SYWORK/NET/APPMGR = 1000/2000/1000ms；指令预算 init/tick/evt = 1M/200k/200k；TASK_WDT_MIN_TIMEOUT=5000 + FALLBACK_DELAY=5000（硬 WDT ≈10s，与 TS_HARD_WDT_CAP_MS 对齐）。
+  - **待 owner**：Q-28 六子项裁决（①静态预注册 ②喂狗点 ③指令配额〔核心选型 A/B/C〕 ④task_wdt+回退 ⑤回归面 ⑥并入 IR2-05/08）。批准后单元 2 = 看门狗实施批。
 - **2026-10-06（四十） · DEC-47（Q-27 裁决：六子项全部按建议值；上游 issue 暂不提）+ 计划修订批（v1.25 排期表建立）——MD1.2 实现批解锁**
   - **裁定**：①专用帧分片通道 ②1KB chunk/≥4ms 打拍/重试≤5×20ms/JPEG 优先 ③ts_av_capture 最小面 ④ts_fs 四函数 ⑤ts_perm_v1 新类 av/fs + fs_paths 白名单 ⑥同步面含 ts_net_publish 新 native。排期指令 = 审查债按推荐序 + MD1.2 实现批按 v1.25 §7 表。
   - **排期表（plan §7）**：1 看门狗呈递（Q-28，门①）→ 2 看门狗实施（并 IR2-05/08）→ 3 PC 读面加固（并 IR2-04）→ 4 MD1.2e ts-fs 面 → 5 MD1.2f D-SD demo → 6 MD1.2g ts-av+publish 面 → 7 MD1.2h D-AV demo → 8 验签呈递（Q-29，门③）→ 9 验签实施 → 10 MD1.2c PDM → 11 后续候选（MD2/G3 输入面/P4 门⑤/板级余项）。
