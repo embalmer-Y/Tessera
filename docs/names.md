@@ -243,3 +243,5 @@
 - 2026-10-06 · **impl-review-02 交付登记**：impl-review-02（docs/ 报告：全库风险审查，M0→MD1.2b 已交付内容）；IR2-xx（审查发现编号族——与 impl-review-01 的 IR-xx 以 IR2 前缀区分，编号不复用）。
 
 - 2026-10-06 · **MD1.2d 呈递批登记**：avbench（firmware/tests/ 视频帧 zenoh 分片传输真机载体；AV* console 行——前缀撞名自查：现有 AV 未占用，无碰撞）；av-transport-01（docs/ 报告）；Q-27 六子项（MD1.2d 呈递：传输通道/分片参数/ts-av 面/ts-fs 面/ts_perm_v1 扩展/同步面）；ts_av_capture / ts_fs_list·read·write·delete / ts_net_publish（Q-27 提案 natives——批准后生效）；fs_paths（ts_perm_v1 提案新字段）；avbench/frame（bench 键空间，非产品 keyspace）；Z_BATCH_UNICAST_SIZE（zenoh-pico 静态批缓冲 2048——chunk 上限根因）。
+
+- 2026-10-06 · **DEC-47 + 计划修订批登记**：DEC-47（Q-27 裁决：六子项全部建议值 + 上游 issue 暂不提）；MD1.2e/f/g/h（MD1.2 实现批单元名：ts-fs 面/D-SD demo/ts-av+publish 面/D-AV demo）；Q-28（看门狗接线呈递——IR2-01 根治，门①）；Q-29（验签实装呈递——TSAP 头摘要+ed25519+生产 prov 通道，门③）；ts-fs / ts-av（能力面模块代号）。

@@ -1,6 +1,6 @@
 # docs/project-plan.md · Tessera 统一项目开发计划
 
-> **版本**：v1.24 · 2026-10-06（v1.0 · 2026-09-22 · 依 owner 指令与 **DEC-39** 建立）.
+> **版本**：v1.25 · 2026-10-06（v1.0 · 2026-09-22 · 依 owner 指令与 **DEC-39** 建立）.
 > **权威顺序**：owner 最新裁决（decisions.md DEC）> `FOUNDING_PROMPT.md` > 本计划。计划变更走修订记录；里程碑进出走 review 门（流程 §2.4-②）。
 > **结构**：双轨并行——**轨道 A（固件框架，M 系）** 与 **轨道 B（AI Agent，MA 系）**；交叉依赖见 §4；实施节奏（单会话一交付单元，军规/流程 §2.3）建议排序见 §7。
 
@@ -52,10 +52,23 @@
 - `docs/dev-environment.md`：WSL 目录规范（`~/project/{tessera,zephyrproject,logs}`）+ 固件 venv；**MA0 起增补 agent venv（`~/project/agent-venv`，DR-19）**。
 - CI：`.github/workflows/ci.yml`（repo-checks → 固件构建/twister → **agent lint+pytest（MA0 接入）**）。
 
-## 7. 会话交付单元建议排序（单会话一单元，流程 §2.3）
+## 7. 会话交付单元建议排序（v1.25 · DEC-47 后排期表；每会话一单元）
 
-M1 → MA1 → M2a → MA2 → M2b → M3a → MA3 → M3b → 板级（S3）→ …
-（原则：依赖就绪先行的最小单元；任一里程碑 DoD 全绿才进下一个；M/MA 交替推进双轨。）
+| 序 | 单元 | 内容 | 门 |
+|---|------|------|----|
+| 1 | **看门狗呈递批（Q-28）** | IR2-01 根治方案：TS_WDT 三源注册+喂狗点接线 / wdt_start 后注册窗口的启动序修复 / 真机 task WDT 使能与 system_fail 复位闭环 / APP 执行边界选型（WAMR 超时 vs 喂狗点 vs 独立看护） | 门① 呈递停门 |
+| 2 | 看门狗实施批 | Q-28 裁决后实现 + 真机验证 + 回归；**并入小项**：estop ISR 复查平移（IR2-05，channel.c 补 irq_lock 复查范式）+ 审计 actor 透传（IR2-08） | — |
+| 3 | PC 读面加固批 | IR2-03 根治（纯工程）：读入路径 roots 白名单 / include 隔离（-nostdinc+显式路径）/ stderr 过滤回喂 / start_new_session+killpg / out_dir 并发隔离 / max_bytes 服务端钳制 / node·cube 字符白名单；**并入**：L5 裸 pwm_set 正则（IR2-04） | — |
+| 4 | **MD1.2e** | ts-fs 能力面（DEC-47④⑤）：ts_fs_list/read/write/delete 四 natives + fs 权限类 + `fs_paths` 前缀白名单（manifest/校验器/固件三方）+ agent NATIVE_WHITELIST/manifest 同步 + twister/sim 用例 | 已裁（DEC-47） |
+| 5 | MD1.2f | D-SD demo：真 LLM 生成（ts-fs natives 面）+ 真机判据 | — |
+| 6 | MD1.2g | ts-av + publish 能力面（DEC-47③⑥）：ts_av_capture + av 权限类 + ts_net_publish（读类+速率限制）+ 分片纪律落点 + agent 同步 + 用例 | 已裁（DEC-47） |
+| 7 | MD1.2h | D-AV demo：JPEG 帧格式（OV2640 硬件压缩）+ 真 LLM 生成 + PC 侧帧重组消费端 + 真机判据（1KB chunk/4ms 打拍/重试——av-transport-01 实测参数） | — |
+| 8 | **验签呈递批（Q-29）** | IR2-02 根治方案：TSAP 头摘要字段（文件格式变更）+ ed25519 真验签 + 生产 prov 烧录通道（板级十一）同批 | 门③ 呈递停门 |
+| 9 | 验签实施批 | Q-29 裁决后实现 + 真机部署链复验 | — |
+| 10 | MD1.2c | PDM 音频：i2s_esp32 驱动扩展评估（hal_espressif i2s_pdm 组件接入——若涉上游组件集成走相应门） | 视方案 |
+| 11 | 后续候选 | MD2 混合 demo（D8/D9）/ 输入面 G3 批（D4/D6 依赖）/ Zephyr 升级评估 + P4 适配 / 板级余项（poweron 落驱动、MCUmgr OTA） | 门⑤（升级/P4） |
+
+（原则不变：依赖就绪先行的最小单元；任一单元 DoD 全绿才进下一个；观察项——zenoh-pico Zephyr 集成尺寸钩子上游 issue 暂不提〔DEC-47〕。）
 
 ## 8. 执行纪律（不变）
 
@@ -64,6 +77,7 @@ M1 → MA1 → M2a → MA2 → M2b → M3a → MA3 → M3b → 板级（S3）→
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.25 · 2026-10-06：**DEC-47（Q-27 裁决：六子项全部按建议值——专用帧分片通道/1KB+4ms+重试+JPEG/ts_av_capture/ts_fs×4/fs_paths 白名单/含 ts_net_publish 新 native；上游 issue 暂不提）** + 排期表建立（§7：看门狗呈递 Q-28 → 实施 → PC 加固 → MD1.2e-h → 验签呈递 Q-29 → 实施 → MD1.2c → 后续候选）。
 - v1.24 · 2026-10-06：impl-review-02（全库风险审查 3 高/8 中/IR2-xx 登记，处置排期待 owner）+ MD1.2d 呈递批（avbench 传输 spike 真机 PASS：≤1KB chunk + 4ms 打拍 + 分片重试零错误、1KB 档 172KB/s、PSRAM 视频池实证；**Q-27 六子项呈递停门**——natives/权限类/分片通道设计待裁）。
 - v1.23 · 2026-10-05：MD1.2b——摄像头 bring-up PASS（CB PASS：官方池路径 + Kconfig 门槛实测；外部静态缓冲路径不可用留观察项）。
 - v1.22 · 2026-10-05：DEC-46（Q-26 裁决：硬件即板载 Sense 版）+ MD1.2a（SD bring-up PASS：官方 Sense 板变体 DT 全就绪 + sdbench 载体；支持面结论：摄像头 ✓/SD ✓/PDM ✗）。

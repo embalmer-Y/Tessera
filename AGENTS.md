@@ -6,6 +6,10 @@
 
 ## 1. 当前状态
 
+- **2026-10-06（四十） · DEC-47（Q-27 裁决：六子项全部按建议值；上游 issue 暂不提）+ 计划修订批（v1.25 排期表建立）——MD1.2 实现批解锁**
+  - **裁定**：①专用帧分片通道 ②1KB chunk/≥4ms 打拍/重试≤5×20ms/JPEG 优先 ③ts_av_capture 最小面 ④ts_fs 四函数 ⑤ts_perm_v1 新类 av/fs + fs_paths 白名单 ⑥同步面含 ts_net_publish 新 native。排期指令 = 审查债按推荐序 + MD1.2 实现批按 v1.25 §7 表。
+  - **排期表（plan §7）**：1 看门狗呈递（Q-28，门①）→ 2 看门狗实施（并 IR2-05/08）→ 3 PC 读面加固（并 IR2-04）→ 4 MD1.2e ts-fs 面 → 5 MD1.2f D-SD demo → 6 MD1.2g ts-av+publish 面 → 7 MD1.2h D-AV demo → 8 验签呈递（Q-29，门③）→ 9 验签实施 → 10 MD1.2c PDM → 11 后续候选（MD2/G3 输入面/P4 门⑤/板级余项）。
+  - **下一会话**：单元 1 = 看门狗接线批 Q-28 呈递（IR2-01 根治方案：三源喂狗/启动序/真机 task WDT 复位闭环/APP 执行边界选型——停门等裁）。
 - **2026-10-06（三十九） · MD1.2d 呈递批交付：avbench 传输 spike 真机 PASS（AV PASS + PC 侧支持档 4/4 帧完整重组双绿）+ Q-27 呈递停门——六子项设计决策待 owner 裁决（门 ③：权限模型/公共 API/协议面）**
   - **实测四设计事实**（docs/av-transport-01.md）：①chunk ≤1KB 钉死（>2KB 走 zenoh-pico 碎片路径系统性失败——Z_BATCH_UNICAST_SIZE=2048 静态头不可覆盖）；②发送打拍 ≥4ms 必须（背靠背崩，z_put -100 errno=0）；③BLOCK 语义在 Zephyr 端背压下不保数据——分片级应用层重试（≤5×20ms）必须；④视频池 256KB 入 PSRAM + DVP DMA 接受 PSRAM 缓冲 + WiFi/zenoh/视频池三合一 DRAM 共存（系统堆 188416 档）。吞吐：1KB 档 172KB/s（QQVGA RGB565 ≈4.5fps；JPEG 提频在 Q-27②）。
   - **Q-27 六子项**（decisions.md，建议值齐）：①专用帧分片通道（A）②1KB/4ms/重试≤5×20ms/JPEG 优先 ③ts_av_capture 最小面（A）④ts_fs 四函数无句柄面（A）⑤ts_perm_v1 新类 av/fs + **fs_paths 路径前缀白名单字段**（A）⑥同步面（NATIVE_WHITELIST/manifest/L5/kind 注册表/内存表 + ts_net_publish 新 native）。
