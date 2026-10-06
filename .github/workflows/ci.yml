@@ -45,8 +45,18 @@ jobs:
         run: if ! clang --version; then sudo apt-get update && sudo apt-get install -y clang; fi
       - name: ruff lint（Q-19 #11，含 asyncio 阻塞检查）
         run: ruff check agent
-      - name: pytest（agent，L7）
-        run: pytest agent/tests -v
+      - name: pytest（agent，L7；失败摘要进注解——可观测性，ffd50be 同理）
+        run: |
+          set +e
+          pytest agent/tests -v --tb=short 2>&1 | tee /tmp/pytest.log
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" -ne 0 ]; then
+            grep -E '^(FAILED|ERROR)' /tmp/pytest.log | head -10 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            tail -30 /tmp/pytest.log
+          fi
+          exit "$rc"
 
   native-build:
     runs-on: ubuntu-24.04
