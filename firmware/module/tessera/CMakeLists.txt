@@ -110,6 +110,8 @@ if(CONFIG_TS_APP_WAMR)
   set(WAMR_BUILD_INTERP 1)
   set(WAMR_BUILD_FAST_INTERP 1)       # DEC-25：fast 解释器
   set(WAMR_BUILD_AOT 0)               # DEC-25：AOT = Agent 构建期选项，不入固件
+  set(WAMR_BUILD_INSTRUCTION_METERING 1) # DEC-48③（Q-28③A）：指令配额（超限异常
+  # 走既有健康失败/回滚路径；上游开关零补丁）
   set(WAMR_BUILD_JIT 0)
   set(WAMR_BUILD_LIBC_BUILTIN 1)
   set(WAMR_BUILD_LIBC_WASI 0)         # DEC-25：WASI 全关

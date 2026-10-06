@@ -66,6 +66,10 @@ ts_res_t ts_safety_register_channel(const ts_out_ch_t *ch);
  * 非 ACTIVE 态 → TS_E_STATE；限流拒绝 → TS_E_RANGE；slew 拆分后返回实际落值。 */
 ts_res_t ts_safety_commit(const char *uid, ts_out_value_t v);
 
+/** [thread] 同 ts_safety_commit，审计 actor 归因（IR2-08/DEC-48⑥）：ts-hal
+ * 侧传入调用方 app_id（ts_ctx_opaque.app_id）；actor=0 = system。 */
+ts_res_t ts_safety_commit_a(const char *uid, ts_out_value_t v, uint16_t actor);
+
 /** [any] 影子值读回（不经驱动）。 */
 ts_res_t ts_safety_readback(const char *uid, ts_out_value_t *out);
 

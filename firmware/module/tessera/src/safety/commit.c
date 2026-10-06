@@ -30,7 +30,8 @@ void ts_safety_write_unlock(void)
 static ts_audit_entry_t audit_ring[CONFIG_TS_SAFETY_AUDIT_DEPTH];
 static uint32_t audit_head, audit_count, audit_dropped;
 
-static void audit_append(int ch_idx, ts_ch_kind_t kind, ts_out_value_t v, ts_res_t res)
+static void audit_append(int ch_idx, ts_ch_kind_t kind, ts_out_value_t v, ts_res_t res,
+			 uint16_t actor)
 {
 	uint32_t next = (audit_head + 1) % CONFIG_TS_SAFETY_AUDIT_DEPTH;
 
@@ -43,7 +44,7 @@ static void audit_append(int ch_idx, ts_ch_kind_t kind, ts_out_value_t v, ts_res
 		.t_ms = ts_time_ms(),
 		.ch_idx = (uint16_t)(ch_idx >= 0 ? ch_idx : 0xFFFF),
 		.res = res,
-		.actor = 0, /* M1 恒 system；M2 起 ts-hal 注入调用者 app_id（DEC-30②） */
+		.actor = actor, /* IR2-08（DEC-48⑥）：调用方归因（0=system；ts-hal 注入 app_id） */
 		.kind = (uint8_t)kind,
 		._rsv = 0,
 		.value_u = ts_value_encode(kind, v),
@@ -51,7 +52,7 @@ static void audit_append(int ch_idx, ts_ch_kind_t kind, ts_out_value_t v, ts_res
 	audit_head = next;
 }
 
-static ts_res_t commit_impl(const char *uid, ts_out_value_t v);
+static ts_res_t commit_impl(const char *uid, ts_out_value_t v, uint16_t actor);
 
 ts_res_t ts_safety_commit(const char *uid, ts_out_value_t v)
 {
@@ -59,7 +60,18 @@ ts_res_t ts_safety_commit(const char *uid, ts_out_value_t v)
 		return TS_E_PERM; /* [thread] API（ISR 禁入，LLD-00 §3） */
 	}
 	ts_safety_write_lock();
-	ts_res_t r = commit_impl(uid, v);
+	ts_res_t r = commit_impl(uid, v, 0);
+	ts_safety_write_unlock();
+	return r;
+}
+
+ts_res_t ts_safety_commit_a(const char *uid, ts_out_value_t v, uint16_t actor)
+{
+	if (k_is_in_isr()) {
+		return TS_E_PERM; /* [thread] API（ISR 禁入，LLD-00 §3） */
+	}
+	ts_safety_write_lock();
+	ts_res_t r = commit_impl(uid, v, actor);
 	ts_safety_write_unlock();
 	return r;
 }
@@ -67,10 +79,10 @@ ts_res_t ts_safety_commit(const char *uid, ts_out_value_t v)
 ts_res_t ts_safety_commit_locked(const char *uid, ts_out_value_t v)
 {
 	/* 调用方已持 write_lock（DEC-43：预算检查-提交原子化路径） */
-	return commit_impl(uid, v);
+	return commit_impl(uid, v, 0);
 }
 
-static ts_res_t commit_impl(const char *uid, ts_out_value_t v)
+static ts_res_t commit_impl(const char *uid, ts_out_value_t v, uint16_t actor)
 {
 	int i = ts_ch_find(uid);
 	if (i < 0) {
@@ -80,11 +92,11 @@ static ts_res_t commit_impl(const char *uid, ts_out_value_t v)
 	const ts_out_ch_t *ch = s->desc;
 
 	if (s->state != TS_ST_ACTIVE) {
-		audit_append(i, ch->kind, v, TS_E_STATE); /* 安全态下写入被拒（合同 3） */
+		audit_append(i, ch->kind, v, TS_E_STATE, actor); /* 安全态下写入被拒（合同 3） */
 		return TS_E_STATE;
 	}
 	if (atomic_get(&ts_forced) != 0) {
-		audit_append(i, ch->kind, v, TS_E_STATE);
+		audit_append(i, ch->kind, v, TS_E_STATE, actor);
 		return TS_E_STATE; /* fail-safe 锁存期 */
 	}
 
@@ -120,7 +132,7 @@ static ts_res_t commit_impl(const char *uid, ts_out_value_t v)
 
 	/* 3) 限流（TS_CH_POWER）：请求电流超限 → 整笔拒绝（LLD §4-5） */
 	if (ch->kind == TS_CH_POWER && v.pwr.en && v.pwr.ma > ch->limits.current_limit_ma) {
-		audit_append(i, ch->kind, v, TS_E_RANGE);
+		audit_append(i, ch->kind, v, TS_E_RANGE, actor);
 		return TS_E_RANGE;
 	}
 
@@ -142,7 +154,7 @@ static ts_res_t commit_impl(const char *uid, ts_out_value_t v)
 		res = TS_E_STATE;
 	}
 
-	audit_append(i, ch->kind, v, res);
+	audit_append(i, ch->kind, v, res, actor);
 	return res;
 }
 

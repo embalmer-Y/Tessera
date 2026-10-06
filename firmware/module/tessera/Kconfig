@@ -15,10 +15,40 @@ config TS_CORE
 	bool "ts-core: boot orchestration / event bus / time / WDT framework"
 	depends on TS_MODULE
 	default y
+	select TASK_WDT
 	help
-	  design/LLD-ts-core.md (M1).
+	  design/LLD-ts-core.md (M1). TASK_WDT selected per DEC-48 (Q-28):
+	  task_wdt channel as L3 backstop for the soft patrol (NULL callback
+	  => auto sys_reboot on channel expiry).
 
 if TS_CORE
+
+config TS_WDT_NET_PERIOD_MS
+	int "ts-wdt: NET source feed period (ms)"
+	default 2000
+	help
+	  Source: DEC-48 (Q-28②). Tolerates 10x 200ms net_wq poll period.
+
+config TS_WDT_APPMGR_PERIOD_MS
+	int "ts-wdt: APPMGR source feed period (ms)"
+	default 1000
+	help
+	  Source: DEC-48 (Q-28②). Tolerates 10x 100ms APP tick period.
+
+config TS_WDT_SYWORK_PERIOD_MS
+	int "ts-wdt: SYWORK source feed period (ms)"
+	default 1000
+	help
+	  Source: DEC-48 (Q-28②). Fed by the patrol callback itself.
+
+config TS_WDT_CHANNEL_MS
+	int "ts-wdt: task_wdt channel timeout (ms)"
+	depends on TASK_WDT
+	default 5000
+	help
+	  Source: DEC-48 (Q-28④). Aligned with TASK_WDT_MIN_TIMEOUT; HW
+	  fallback (if enabled by board) times out at MIN+DELAY ~= 10s
+	  (matches TS_HARD_WDT_CAP_MS, DEC-22/27 lineage).
 
 config TS_CORE_EVT_QUEUE_DEPTH
 	int "ISR event post queue depth"
@@ -212,6 +242,24 @@ config TS_APP_HEALTH_FAILS
 	default 3
 	help
 	  Source: DEC-27 (LLD-ts-appmgr 4).
+
+config TS_APP_INSTR_INIT
+	int "WASM instruction budget for app_init call"
+	depends on TS_APP_WAMR
+	default 1000000
+	help
+	  Source: DEC-48 (Q-28③). WAMR instruction metering quota; quota
+	  exhaustion raises "instruction limit exceeded" and rides the
+	  existing health-fail/rollback path (~100-200ms upper bound at
+	  board-bench-02 interpreter throughput).
+
+config TS_APP_INSTR_TICK
+	int "WASM instruction budget for app_tick/app_evt/health calls"
+	depends on TS_APP_WAMR
+	default 200000
+	help
+	  Source: DEC-48 (Q-28③). ~20-40ms upper bound per call at
+	  board-bench-02 interpreter throughput; calibrate via bench.
 
 config TS_APP_MBOX_DEPTH
 	int "Per-APP event mailbox depth (drop-oldest)"

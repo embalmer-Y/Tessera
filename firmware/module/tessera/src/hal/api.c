@@ -56,10 +56,11 @@ ts_res_t ts_gpio_write(ts_ctx_t c, uint8_t inst, bool v)
 	const ts_hal_dev_desc_t *d = find_dev(inst, TS_DEV_GPIO_OUT);
 
 	if (d == NULL) return TS_E_NOTFOUND;
-	/* 唯一写路径：经 ts-safety 保护层（合同 2） */
+	/* 唯一写路径：经 ts-safety 保护层（合同 2）；actor = 调用方 app_id
+	 * （IR2-08/DEC-48⑥：审计归因） */
 	ts_out_value_t val = {.b = v};
 
-	return ts_safety_commit(d->uid, val);
+	return ts_safety_commit_a(d->uid, val, c.app_id);
 }
 
 ts_res_t ts_gpio_read(ts_ctx_t c, uint8_t inst, bool *out)
@@ -96,7 +97,7 @@ ts_res_t ts_pwm_set(ts_ctx_t c, uint8_t inst, uint32_t hz, uint16_t permille)
 	uint32_t u = ((uint32_t)(hz / 100) << 16) | (permille & 0xFFFFU);
 	ts_out_value_t val = {.u = u};
 
-	return ts_safety_commit(d->uid, val);
+	return ts_safety_commit_a(d->uid, val, c.app_id);
 }
 
 /* ---- 真机 ADC 输入后端（板级九；LLD-ts-hal §3 输入侧） ---------------------

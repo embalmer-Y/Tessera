@@ -12,6 +12,13 @@
 #define NOINIT_HDR     6
 #define NOINIT_MAX_REC 250 /* 分区 256B 内（结构性） */
 
+/* DEC-48 L4（Q-28④）：system_fail 复位原因留痕——强实现覆盖 force.c 弱桩
+ * （TS_STORE=n 构建回落弱桩）。reason = TS_FAIL_* 编码（safety.h）。 */
+void ts_store_noinit_record(uint32_t reason)
+{
+	ts_store_noinit_put(&reason, sizeof(reason));
+}
+
 void ts_store_noinit_put(const void *rec, uint16_t len)
 {
 	if (rec == NULL || len == 0 || len > NOINIT_MAX_REC) {

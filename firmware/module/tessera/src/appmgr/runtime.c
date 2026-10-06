@@ -75,6 +75,10 @@ static bool call0(struct ts_app_rt *r, wasm_function_inst_t fn)
 {
 	uint32_t argv[1] = {0};
 
+	/* DEC-48③（Q-28③A）：每次调用前设指令配额——超限抛
+	 * "instruction limit exceeded" → 返回 false → 既有健康失败/回滚路径
+	 * （无 abort、无持锁死锁面）。tick/evt/health 共用 TICK 预算。 */
+	wasm_runtime_set_instruction_count_limit(r->env, CONFIG_TS_APP_INSTR_TICK);
 	return wasm_runtime_call_wasm(r->env, fn, 0, argv);
 }
 
@@ -83,6 +87,7 @@ static bool call1(struct ts_app_rt *r, wasm_function_inst_t fn, uint32_t arg,
 {
 	uint32_t argv[1] = {arg};
 
+	wasm_runtime_set_instruction_count_limit(r->env, CONFIG_TS_APP_INSTR_TICK);
 	if (!wasm_runtime_call_wasm(r->env, fn, 1, argv)) {
 		return false;
 	}
@@ -116,9 +121,12 @@ static void app_thread_entry(void *p1, void *p2, void *p3)
 	ARG_UNUSED(p3);
 	struct ts_app_rt *r = &rt;
 
+	ts_wdt_feed(TS_WDT_APPMGR); /* DEC-48②：线程入口激活喂狗源 */
 	if (r->fn_init != NULL) {
 		uint32_t ret = 0;
 
+		wasm_runtime_set_instruction_count_limit(r->env,
+							 CONFIG_TS_APP_INSTR_INIT);
 		if (!call1(r, r->fn_init, r->app_id, &ret)) {
 			/* 失败可见性（军规 7 如实上报）：WAMR 异常文本留痕 */
 			const char *exc = wasm_runtime_get_exception(r->inst);
@@ -137,6 +145,7 @@ static void app_thread_entry(void *p1, void *p2, void *p3)
 	uint32_t v;
 
 	while (atomic_get(&r->running) != 0) {
+		ts_wdt_feed(TS_WDT_APPMGR); /* DEC-48②：主循环喂狗（≤20ms 轮询上界） */
 		if (k_msgq_get(&app_mb, &v, K_MSEC(20)) == 0) {
 			r->evt_seen++;
 			r->last_evt = (int32_t)v;

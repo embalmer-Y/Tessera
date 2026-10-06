@@ -111,12 +111,20 @@ ZTEST(framework_core, test_wdt_math_and_failover)
 
 	zassert_equal(ts_evt_subscribe(TS_EVT_WDT_WARN, wdt_warn_cb, NULL), TS_OK);
 
+	/* DEC-48① 激活语义：注册未喂狗（未激活）的源不参与逾期判定 */
+	virt_now = 1300;
+	zassert_equal(ts_wdt_patrol_once(), TS_WDT_COUNT,
+		      "inactive source ignored (DEC-48 activation)");
+
+	/* 首次 feed = 激活（时间戳 1300） */
+	ts_wdt_feed(TS_WDT_NET);
+
 	/* 未逾期：返回 TS_WDT_COUNT */
-	virt_now = 1050;
+	virt_now = 1350;
 	zassert_equal(ts_wdt_patrol_once(), TS_WDT_COUNT, "no overdue at +50ms");
 
 	/* 虚拟时钟推进 150ms → NET 逾期（period 100）→ 警告 + 逾期源 */
-	virt_now = 1151;
+	virt_now = 1451;
 	warn_seen = 0;
 	zassert_equal(ts_wdt_patrol_once(), TS_WDT_NET, "NET overdue at +151ms");
 	zassert_equal(warn_seen, 1, "WDT_WARN published");

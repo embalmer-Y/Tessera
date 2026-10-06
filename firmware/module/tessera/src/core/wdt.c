@@ -1,17 +1,37 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /*
- * 看门狗框架（LLD-ts-core §5）：喂狗注册表 + sysworkq 巡检。
+ * 看门狗框架（LLD-ts-core §5；DEC-48 接线批）：喂狗注册表 + sysworkq 巡检。
  * 合同 4：每子系统独立喂狗（可定位卡死来源）；逾期 → WDT_WARN → system_fail。
+ * DEC-48 四层防线落点：
+ *   L1 本软看门狗三源（静态预注册 + 动态激活——注册窗口与启动序解耦：
+ *       boot 步骤 3 启动巡检，子系统首次 feed 激活各自源）；
+ *   L3 Zephyr task_wdt 通道（callback=NULL → 过期即 sys_reboot——软巡检
+ *       自身卡死兜底；硬件回退经 CONFIG_TASK_WDT_HW_FALLBACK + 板级
+ *       chosen zephyr,watchdog——kernel 死透时 MWDT 最后兜底）；
+ *   L4 system_fail noinit 留痕（强实现 store/noinit.c）+ 停机后通道无人
+ *       喂 → sys_reboot（k_sleep 不停 k_timer）。注：task_wdt 直通复位路径
+ *       无 noinit 留痕（ISR 上下文不可写 flash）——该极端场景归因缺失，
+ *       如实在 impl-review-02/DEC-48 登记；常规逾期经巡检 → system_fail
+ *       → 有留痕。
  */
 #include <ts/core.h>
 #include <ts/safety.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/atomic.h>
+#include <zephyr/sys/printk.h>
+#ifdef CONFIG_TASK_WDT
+#include <zephyr/device.h>
+#include <zephyr/task_wdt/task_wdt.h>
+#endif
+#if defined(CONFIG_TS_STORE)
+#include <ts/store.h>
+#endif
 
 struct wdt_src {
 	uint32_t period_ms;
 	atomic_t last_feed32; /* ts_time_ms 低 32 位；无符号差值对回绕安全 */
 	bool registered;
+	bool active; /* DEC-48①：首次 feed 激活——未激活源不参与逾期判定 */
 };
 
 static struct wdt_src srcs[TS_WDT_COUNT];
@@ -19,6 +39,10 @@ static bool started;
 
 /* 硬 WDT 超时 = min(2×max(periods), 10000ms)（来源: DEC-22 / DEC-27） */
 #define TS_HARD_WDT_CAP_MS 10000
+
+#ifdef CONFIG_TASK_WDT
+static int twdt_ch = -1;
+#endif
 
 static uint32_t elapsed_since(const struct wdt_src *s)
 {
@@ -46,6 +70,7 @@ void ts_wdt_feed(ts_wdt_src_t src)
 {
 	if (src < TS_WDT_COUNT) {
 		atomic_set(&srcs[src].last_feed32, (atomic_val_t)(uint32_t)ts_time_ms());
+		srcs[src].active = true; /* DEC-48①：首次喂狗 = 激活 */
 	}
 }
 
@@ -53,7 +78,7 @@ void ts_wdt_feed(ts_wdt_src_t src)
 ts_wdt_src_t ts_wdt_patrol_once(void)
 {
 	for (int s = 0; s < TS_WDT_COUNT; s++) {
-		if (!srcs[s].registered) {
+		if (!srcs[s].registered || !srcs[s].active) {
 			continue;
 		}
 		if (elapsed_since(&srcs[s]) > srcs[s].period_ms) {
@@ -83,12 +108,19 @@ static void patrol_work_cb(struct k_work *work)
 {
 	struct k_work_delayable *d = k_work_delayable_from_work(work);
 
+	ts_wdt_feed(TS_WDT_SYWORK); /* DEC-48②：巡检自身运行 = sysworkq 活性证明 */
+#ifdef CONFIG_TASK_WDT
+	if (twdt_ch >= 0) {
+		task_wdt_feed(twdt_ch); /* L3：软巡检卡死 → 通道过期 → sys_reboot */
+	}
+#endif
 	ts_safety_estop_deferred_publish(); /* estop 事后补发（合同 5，复用巡检节奏） */
 	ts_wdt_src_t overdue = ts_wdt_patrol_once();
 
 	if (overdue != TS_WDT_COUNT) {
 		ts_safety_system_fail(TS_FAIL_WDT(overdue));
-		/* 停止重排巡检（停喂语义由 system_fail 停机保证） */
+		/* 停止重排巡检（停喂语义由 system_fail 停机保证；DEC-48④：停机后
+		 * task_wdt 通道无人喂 → sys_reboot 复位闭环） */
 		return;
 	}
 	uint32_t delay = ts_wdt_patrol_period_ms();
@@ -118,6 +150,46 @@ ts_res_t ts_wdt_start(void)
 	if (started) {
 		return TS_E_STATE;
 	}
+	/* DEC-48①：三源静态预注册（Kconfig 周期，Q-28② 裁定；注册表此后不可变
+	 * ——零并发面）。激活 = 各子系统首次 ts_wdt_feed。 */
+	srcs[TS_WDT_NET].registered = true;
+	srcs[TS_WDT_NET].period_ms = CONFIG_TS_WDT_NET_PERIOD_MS;
+	atomic_set(&srcs[TS_WDT_NET].last_feed32, (atomic_val_t)(uint32_t)ts_time_ms());
+	srcs[TS_WDT_APPMGR].registered = true;
+	srcs[TS_WDT_APPMGR].period_ms = CONFIG_TS_WDT_APPMGR_PERIOD_MS;
+	atomic_set(&srcs[TS_WDT_APPMGR].last_feed32, (atomic_val_t)(uint32_t)ts_time_ms());
+	srcs[TS_WDT_SYWORK].registered = true;
+	srcs[TS_WDT_SYWORK].period_ms = CONFIG_TS_WDT_SYWORK_PERIOD_MS;
+	atomic_set(&srcs[TS_WDT_SYWORK].last_feed32, (atomic_val_t)(uint32_t)ts_time_ms());
+
+#ifdef CONFIG_TASK_WDT
+	const struct device *hw = NULL;
+
+#if defined(CONFIG_TASK_WDT_HW_FALLBACK) && DT_HAS_CHOSEN(zephyr_watchdog)
+	hw = DEVICE_DT_GET(DT_CHOSEN(zephyr_watchdog));
+#endif
+	task_wdt_init(hw);
+	/* callback=NULL → 通道过期 = sys_reboot(COLD)（task_wdt.c 语义） */
+	twdt_ch = task_wdt_add(CONFIG_TS_WDT_CHANNEL_MS, NULL, NULL);
+#endif
+
+#if defined(CONFIG_TS_STORE)
+	{ /* L4 观测：上次异常复位留痕读出（system_fail 路径写入；task_wdt
+	   * 直通复位无留痕——见文件头注）。 */
+		uint8_t rec[8];
+		uint16_t len = sizeof(rec);
+		bool fresh = true;
+
+		if (ts_store_noinit_get(rec, &len, &fresh) == TS_OK && !fresh &&
+		    len >= sizeof(uint32_t)) {
+			uint32_t reason = (uint32_t)rec[0] | ((uint32_t)rec[1] << 8) |
+					  ((uint32_t)rec[2] << 16) | ((uint32_t)rec[3] << 24);
+
+			printk("[wdt] 上次异常复位留痕 reason=0x%08x（noinit 归因）\n",
+			       reason);
+		}
+	}
+#endif
 	started = true;
 	k_work_init_delayable(&patrol_work, patrol_work_cb);
 	k_work_reschedule_for_queue(&k_sys_work_q, &patrol_work,

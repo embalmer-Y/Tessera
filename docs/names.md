@@ -247,3 +247,5 @@
 - 2026-10-06 · **DEC-47 + 计划修订批登记**：DEC-47（Q-27 裁决：六子项全部建议值 + 上游 issue 暂不提）；MD1.2e/f/g/h（MD1.2 实现批单元名：ts-fs 面/D-SD demo/ts-av+publish 面/D-AV demo）；Q-28（看门狗接线呈递——IR2-01 根治，门①）；Q-29（验签实装呈递——TSAP 头摘要+ed25519+生产 prov 通道，门③）；ts-fs / ts-av（能力面模块代号）。
 
 - 2026-10-06 · **Q-28 呈递登记**：四层防线（Q-28 方案框架：L1 软看门狗/L2 指令配额/L3 task_wdt+硬件回退/L4 noinit 留痕+真复位）；WAMR_BUILD_INSTRUCTION_METERING（WAMR 上游 cmake 开关——指令配额编译门）；wasm_runtime_set_instruction_count_limit（WAMR API：每次调用前设预算）；instruction limit exceeded（超限异常文本——走既有健康失败/回滚路径）；wdtbench（真机载体代号——Q-28 批交付）；静态预注册+动态激活（ts_wdt 注册窗口修复方案）；TS_WDT_SYWORK 喂狗点（patrol_work_cb 顶部）。
+
+- 2026-10-06 · **看门狗实施批登记（DEC-48）**：DEC-48（Q-28 裁决：全部建议值）；wdtbench（firmware/tests/ 真机载体；WB* console 行——撞名自查：WB 未占用）；TS_WDT_NET_PERIOD_MS / TS_WDT_APPMGR_PERIOD_MS / TS_WDT_SYWORK_PERIOD_MS / TS_WDT_CHANNEL_MS（Kconfig 新默认：2000/1000/1000/5000）；TS_APP_INSTR_INIT / TS_APP_INSTR_TICK（Kconfig 指令预算：1,000,000/200,000）；ts_safety_commit_a（公共 API：带 actor 归因的提交）；wdt.spin.bench（夹具 app_id，wdt_pkg.h 机械生成）；wdt0/chosen zephyr,watchdog（esp32s3 硬件 WDT 接线约定）；WATCHDOG（Zephyr WDT 子系统根符号——CONFIG_WDT 不存在，教训）。

@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-10-06（四十二） · 看门狗实施批交付（DEC-48 落地，排期表单元 2）：IR2-01 根治——四层防线全接线 + 真机三整循环自证；twister 15/15/L5/pytest 全绿**
+  - **四层防线**：L1 三源喂狗接线（静态预注册+动态激活；SYWORK/NET/APPMGR 喂狗点）｜L2 WAMR 指令配额（metering 上游开关零补丁；超限异常走既有回滚）｜L3 task_wdt 通道（5s，NULL 回调→自动 sys_reboot）+ 硬件回退（esp32s3 wdt0，MWDT ≈10s）｜L4 noinit 留痕强实现 + system_fail→通道过期→复位闭环。
+  - **真机（wdtbench，WB* 行）**：死循环 APP state=3→配额终止→state=4 回滚 rb=1 + 系统存活（WB PASS）；sysworkq 自旋→5s 复位（WB0 重现铁证）——75s 三整循环。限制如实：task_wdt 直通复位无 noinit 留痕（ISR 不可写 flash）。
+  - **并入小项**：IR2-05（set_link/recover irq_lock 复查平移）+ IR2-08（commit_a actor 归因，hal 传 app_id）。
+  - **下一单元（排期表 3）**：PC 读面加固批（IR2-03 根治 + L5 正则 IR2-04 并入；纯工程无 Q）。
 - **2026-10-06（四十一） · Q-28 呈递停门（排期表单元 1）：看门狗接线批方案（IR2-01 根治）——四层防线 + 6 项新默认值，门 ① 等 owner 裁决**
   - **四层防线**：L1 ts_wdt 三源软看门狗（静态预注册+动态激活修复注册窗口冲突）→ L2 APP 执行边界 = WAMR 指令配额（`WAMR_BUILD_INSTRUCTION_METERING=1` 上游开关零补丁；超限异常走既有健康失败→回滚，无 abort 无死锁面）→ L3 Zephyr task_wdt + 硬件回退（esp32 MWDT，软巡检卡死兜底）→ L4 system_fail noinit 故障留痕（IR2-R6 同批）+ 停喂硬 WDT 真复位。
   - **建议默认值**：喂狗周期 SYWORK/NET/APPMGR = 1000/2000/1000ms；指令预算 init/tick/evt = 1M/200k/200k；TASK_WDT_MIN_TIMEOUT=5000 + FALLBACK_DELAY=5000（硬 WDT ≈10s，与 TS_HARD_WDT_CAP_MS 对齐）。

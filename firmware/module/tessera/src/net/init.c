@@ -29,6 +29,7 @@ static void net_tick(struct k_work *work)
 	struct k_work_delayable *d = k_work_delayable_from_work(work);
 	uint64_t now = ts_time_ms();
 
+	ts_wdt_feed(TS_WDT_NET); /* DEC-48②：net_wq 每轮喂狗（首次 = 激活） */
 	(void)ts_net_session_poll(now);
 	ts_net_linkmon_tick(now);
 	ts_net_pub_telem(now);

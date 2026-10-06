@@ -107,8 +107,20 @@ void ts_safety_set_link(bool up)
 		} else if (!up && s->state == TS_ST_ACTIVE) {
 			/* 断链：ACTIVE → SAFE_LINKLOSS。声明值落驱动（HLD §4.5-S2；
 			 * 板级九修复——此前仅改 shadow，物理输出滞留断链前值 = 合同 3
-			 * 欠账）。shadow 改写 + 恢复不回写（DR-04）不变。 */
-			ts_drivers[s->desc->kind].write(s->desc, &s->desc->linkloss);
+			 * 欠账）。shadow 改写 + 恢复不回写（DR-04）不变。
+			 * IR2-05（DEC-48⑥）：estop ISR 可在持锁检查与写驱动之间抢入
+			 * ——irq_lock 末段复查 forced（commit.c IR-02 范式平移）；
+			 * 抢入后本通道保持 SAFE_FAULT（fault 语义不丢失）。 */
+			if (atomic_get(&ts_forced) != 0) {
+				continue;
+			}
+			unsigned int key = irq_lock();
+
+			if (atomic_get(&ts_forced) == 0) {
+				ts_drivers[s->desc->kind].write(s->desc,
+								&s->desc->linkloss);
+			}
+			irq_unlock(key);
 			s->shadow = s->desc->linkloss;
 			s->have_last = false;
 			set_state(i, TS_ST_SAFE_LINKLOSS);
@@ -167,8 +179,20 @@ ts_res_t ts_safety_channel_recover(const char *uid)
 	}
 	struct ts_ch_slot *s = &ts_ch_table[i];
 
-	/* 物理重附 = 重新上电语义：回 poweron 值；链路已立 → ACTIVE */
-	ts_drivers[s->desc->kind].write(s->desc, &s->desc->poweron);
+	/* 物理重附 = 重新上电语义：回 poweron 值；链路已立 → ACTIVE。
+	 * IR2-05（DEC-48⑥）：estop ISR 可在第二次检查与写驱动之间抢入——
+	 * irq_lock 末段复查 forced；抢入则放弃迁移（通道保持 SAFE_FAULT）。 */
+	unsigned int key = irq_lock();
+	bool forced_now = atomic_get(&ts_forced) != 0;
+
+	if (!forced_now) {
+		ts_drivers[s->desc->kind].write(s->desc, &s->desc->poweron);
+	}
+	irq_unlock(key);
+	if (forced_now) {
+		ts_safety_write_unlock();
+		return TS_E_STATE;
+	}
 	s->shadow = s->desc->poweron;
 	s->have_last = false;
 	set_state(i, atomic_get(&ts_link_up) ? TS_ST_ACTIVE : TS_ST_SAFE_POWERON);
