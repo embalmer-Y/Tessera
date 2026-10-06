@@ -540,6 +540,13 @@
 
 **建议**：①A + ②{1KB/4ms/重试≤5×20ms/JPEG 优先} + ③A + ④A + ⑤A + ⑥如上（含 ts_net_publish 新 native）。
 
+**调研补充（2026-10-06 · owner 指令"zenoh-pico 限制查官方数据重新评估"；全部可复核）**：
+- **版本面**：1.10.1（2025-09-07）为 **zenoh-pico 最新 release**——本项目已钉最新（DR-22），"升级解决碎片问题"路径不存在。1.10.0/1.10.1 changelog 自含碎片/批处理修复（#1305/#1306 fragment header reliability、#1166 batching segfault）——该区域上游活跃修复中。
+- **官方配置语义**（zenoh-pico readthedocs config 页 + 仓库 CMakeLists.txt:307-308）：`Z_BATCH_UNICAST_SIZE`（默认 2048）官方描述 = "Any packet bigger than this **will be fragmented if possible**"——>2KB 走碎片是**设计行为**非缺陷；`Z_FRAG_MAX_SIZE`（默认 4096）= **接收侧**去碎片缓冲（"Any packet bigger than this cannot be received"）——即板端将来**收**大消息同样受 4096 默认上限（对称约束）；`Z_FEATURE_BATCH_TX_MUTEX`（默认 OFF）官方自述"提吞吐但风险 = 阻断 keepalive 致断连"——不采纳。
+- **官方覆盖途径核实**：尺寸 token 的官方变更途径 = zenoh-pico 自身 CMake cache 变量（`-DBATCH_UNICAST_SIZE=…`）经 config.h.in 生成；**Zephyr 模块集成路径（zephyr/CMakeLists.txt）不做 config.h 再生成、无尺寸覆盖钩子**（本地源码核实——Zephyr 构建用 checked-in 快照 config.h，只映射 Z_FEATURE_* 开关）。抬批尺寸在 Zephyr 上无官方途径（需上游改进集成或本地补丁——后者违反零补丁纪律）。
+- **上游已知议题（GitHub issues）**：**#1200（开放中，2026-04）**——payload 超批尺寸且 Z_FEATURE_FRAGMENTATION=0 时 z_put **静默返回 Z_OK**（上游已知批尺寸交互面缺陷——本项目实测为碎片开启下的 -100 失败，同问题族）；**#1129（2026-01）**——大传输中 socket 被关（与本项目 ENOTCONN 后续失败模式吻合）；#979（已关，19 评论）——碎片路径跨版本回归史；#295/#291——碎片数据重拷/大样本接收失败（历史）。
+- **重新评估结论**：子项②建议值**不变且加强**——"chunk ≤1KB" 从"实测如此"升级为"实测 + 官方设计语义 + 上游已知议题"三重印证（≤1KB 使消息永不进碎片路径 = 始终运行在最稳路径；2KB 批/4KB 重组上限是官方为受限设备设计的默认约束）；PC 侧 router（Rust zenohd）rx 上限非瓶颈（本仓 router 配置实证 rx_buffer 65535/max_message_size 1GB）。**新增可选子项供裁**：是否就"Zephyr 集成缺尺寸覆盖钩子"提上游 issue（非 V1 阻塞——1KB chunk + JPEG 帧已满足 D-AV 需求；仅作上游回馈记录）。
+
 **影响**：ts_perm_v1 文法（caps 结构加 fs_paths 字段——manifest/校验器/固件三方同步）；公共 API 面 +4~5 natives（ts_fs×4 / ts_av_capture / ts_net_publish）；DEC-42 kind 注册表 +av 类；固件 appmgr natives 接线 + 视频池板级配置；agent 工具链白名单/manifest 同步；D-AV/D-SD demo 解锁（MD1.2 实现批）；内存预算表更新。**全部为 V1 新增面，不动既有安全合同语义**（natives 全走 perm fail-closed 既有机制）。
 
 ---
