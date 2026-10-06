@@ -241,3 +241,5 @@
 - 2026-10-05 · **MD1.2b 交付登记**：cambench（firmware/tests/ 摄像头 bring-up 载体；CB* console 行）；frame.raw（cambench 首帧落盘工件）；video_buffer_aligned_alloc 池路径（V1 摄像头缓冲唯一路径——外部静态缓冲不可用）。
 
 - 2026-10-06 · **impl-review-02 交付登记**：impl-review-02（docs/ 报告：全库风险审查，M0→MD1.2b 已交付内容）；IR2-xx（审查发现编号族——与 impl-review-01 的 IR-xx 以 IR2 前缀区分，编号不复用）。
+
+- 2026-10-06 · **MD1.2d 呈递批登记**：avbench（firmware/tests/ 视频帧 zenoh 分片传输真机载体；AV* console 行——前缀撞名自查：现有 AV 未占用，无碰撞）；av-transport-01（docs/ 报告）；Q-27 六子项（MD1.2d 呈递：传输通道/分片参数/ts-av 面/ts-fs 面/ts_perm_v1 扩展/同步面）；ts_av_capture / ts_fs_list·read·write·delete / ts_net_publish（Q-27 提案 natives——批准后生效）；fs_paths（ts_perm_v1 提案新字段）；avbench/frame（bench 键空间，非产品 keyspace）；Z_BATCH_UNICAST_SIZE（zenoh-pico 静态批缓冲 2048——chunk 上限根因）。

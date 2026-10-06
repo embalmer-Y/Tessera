@@ -96,7 +96,7 @@
 - **半写 slot 无执行窗口**：先整槽抹除（`pkg.c:59-64`）+ verify 收满（`:105-106`）+ active_slot 仅经掉电安全 meta 双副本切换（擦→写→回读 memcmp）。
 - **estop 直达路径纯净**：`force.c:18-33` 仅原子置位+逐通道直写，无队列/锁/分配/协议栈；L5 check_5 机械禁用符号。
 - **PC 侧写出面纪律**：subprocess 全列表传参无 shell/eval；out_dir `..`/绝对/symlink 逃逸拦截（有测试）；strict/confirm 审批闸真实生效（超时自动 deny）；CHAIN_RETRIES 有界；config 不打印密钥；私钥 0600 不进日志/返回值；push 强制先验签后上传（双实现验签）；产物不执行。
-- **密钥纪律复核（本审查）**：`git grep -i goodluck` = 0、`git grep eyJhbGci` = 0、`agent/config.toml` gitignore 生效（`.gitignore:33`）。
+- **密钥纪律复核（本审查）**：WiFi 凭证串与 API 密钥 JWT 前缀两项 `git grep` 模式在全库均 0 命中（模式串本身不入本文档，防验证信号污染）、`agent/config.toml` gitignore 生效（`.gitignore:33`）。
 - **预算 TOCTOU 闭合**：`power/slots.c:86-113` 全程 write_lock + commit_locked，记账单源 safety readback；power 通道 linkloss/fault 恒关断不可放宽。
 
 ## 7. 未裁决项与实现债盘点（2026-10-06 现状）

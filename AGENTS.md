@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-10-06（三十九） · MD1.2d 呈递批交付：avbench 传输 spike 真机 PASS（AV PASS + PC 侧支持档 4/4 帧完整重组双绿）+ Q-27 呈递停门——六子项设计决策待 owner 裁决（门 ③：权限模型/公共 API/协议面）**
+  - **实测四设计事实**（docs/av-transport-01.md）：①chunk ≤1KB 钉死（>2KB 走 zenoh-pico 碎片路径系统性失败——Z_BATCH_UNICAST_SIZE=2048 静态头不可覆盖）；②发送打拍 ≥4ms 必须（背靠背崩，z_put -100 errno=0）；③BLOCK 语义在 Zephyr 端背压下不保数据——分片级应用层重试（≤5×20ms）必须；④视频池 256KB 入 PSRAM + DVP DMA 接受 PSRAM 缓冲 + WiFi/zenoh/视频池三合一 DRAM 共存（系统堆 188416 档）。吞吐：1KB 档 172KB/s（QQVGA RGB565 ≈4.5fps；JPEG 提频在 Q-27②）。
+  - **Q-27 六子项**（decisions.md，建议值齐）：①专用帧分片通道（A）②1KB/4ms/重试≤5×20ms/JPEG 优先 ③ts_av_capture 最小面（A）④ts_fs 四函数无句柄面（A）⑤ts_perm_v1 新类 av/fs + **fs_paths 路径前缀白名单字段**（A）⑥同步面（NATIVE_WHITELIST/manifest/L5/kind 注册表/内存表 + ts_net_publish 新 native）。
+  - **待 owner**：Q-27 裁决（批准 → MD1.2 实现批：natives/权限类/分片通道 + D-AV/D-SD demo）；impl-review-02 处置排期仍待拍板（看门狗接线批→PC 读面加固→验签实装〔含 TSAP 头摘要=文件格式门③〕）。
+  - 回归：repo pytest 2/L5 6/6/agent pytest 69+2s/ruff 全绿；avbench 为真机载体（无 twister 面）。
 - **2026-10-06（三十八） · impl-review-02 交付：全库风险审查（owner 指令）——3 高/8 中/N 低登记（docs/impl-review-02.md，IR2-xx 编号族）；未裁决 Q = 零实证；零代码改动，处置建议呈 owner**
   - **高 3 项**：IR2-01 看门狗合同（合同 4）整体空转——WAMR 无执行边界/健康探针同线程/wdt 生产零注册零喂狗/注册窗口被 boot 序阻断/全库无硬件 WDT（system_fail 后永久挂死）；IR2-02 固件 COSE 验签结构桩——生产恒拒安装、TEST 放行任意未签名 wasm+自声明 caps（**当前全部真机验证均 TEST 语义，生产语义从未点亮**）；IR2-03 Agent PC 读面外泄链——#include 探读+stderr 回喂 LLM、wasm_path/key_path 读入路径不受 roots 白名单（白名单只管写出不管读入）。
   - **中 8 项**：L5 裸 pwm_set 正则盲区（IR2-04）/estop ISR 覆盖窗口（IR2-05）/app_stop 强杀持锁死锁（IR2-06）/回滚链不闭环+meta 双损静默（IR2-07）/审计 actor 恒 0（IR2-08）/任务取消不杀子进程组（IR2-09）/并发 out_dir 交叉污染（IR2-10）/zenoh key 注入（IR2-11）。
