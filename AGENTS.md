@@ -6,6 +6,8 @@
 
 ## 1. 当前状态
 
+- **2026-10-07（四十五） · MD1.2f 交付（排期表单元 5）：D-SD demo 真机全链 PASS——真 LLM 生成 ts-fs APP → Sense 板 SD 五步状态机 + 宿主独立复核双证据（n=68 内容验证 + deny 文件物理不存在）；真机首验抓出 fs_paths 绑定形态缺陷并根治；twister 15/15（66 用例）/agent 74+2s/L5 全绿**
+  - **下一单元（排期表 6）**：MD1.2g——ts-av + ts_net_publish 能力面（DEC-47③⑥：ts_av_capture 最小面 + av 权限类 + publish native + 速率限制 + agent 同步 + 用例）。
 - **2026-10-07（四十四） · MD1.2e 交付（排期表单元 4，DEC-47④⑤）：ts-fs 能力面——四 natives（无句柄）+ fs 权限类（list/read/write/delete op）+ fs_paths 前缀白名单（manifest/校验器/固件三方同步 + 前缀边界防绕过）；twister 15/15（66 用例）/agent 74+2s/L5 全绿**
   - **双层裁决 fail-closed**：class/op 位图 + fs_paths 白名单（未绑定=全拒；"/SD:/apps" 不授权 "/SD:/apps-secret"）；越权 PERM_DENIED 留痕；`TS_HAL_FS` 门控（默认 n；未使能构建拒收含 fs_paths 的 manifest）。
   - 真机 FAT 读写验证随 **MD1.2f（D-SD demo，下一单元）**：真 LLM 生成 + Sense 板真机判据。

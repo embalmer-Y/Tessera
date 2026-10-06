@@ -17,10 +17,7 @@
 
 /* fs_paths 白名单（V1 单活跃 APP = 单条目存储；CSV 覆盖式） */
 static char bound_paths[CONFIG_TS_HAL_FS_PATHS_MAX];
-static uint16_t bound_app = 0xFFFF;
-
-static ts_ctx_t bound_ctx;
-static bool ctx_bound;
+static uint16_t bound_app = 0xFFFF; /* 0xFFFF = 未绑定（V1 单活跃：app_id 匹配即授权域） */
 
 ts_res_t ts_fs_paths_bind(uint16_t app_id, const char *csv)
 {
@@ -34,19 +31,12 @@ ts_res_t ts_fs_paths_bind(uint16_t app_id, const char *csv)
 	}
 	memcpy(bound_paths, csv, n + 1);
 	bound_app = app_id;
-	ctx_bound = false; /* ctx 形态绑定随装载链刷新 */
 	return TS_OK;
 }
 
 ts_res_t ts_fs_paths_bind_ctx(ts_ctx_t c, const char *csv)
 {
-	ts_res_t r = ts_fs_paths_bind(c.app_id, csv);
-
-	if (r == TS_OK) {
-		bound_ctx = c;
-		ctx_bound = true;
-	}
-	return r;
+	return ts_fs_paths_bind(c.app_id, csv);
 }
 
 ts_res_t ts_fs_path_allowed(ts_ctx_t c, const char *path)
@@ -54,7 +44,7 @@ ts_res_t ts_fs_path_allowed(ts_ctx_t c, const char *path)
 	if (path == NULL || path[0] != '/') {
 		return TS_E_PARAM;
 	}
-	if (!ctx_bound || c.app_id != bound_app || bound_paths[0] == '\0') {
+	if (bound_app == 0xFFFF || c.app_id != bound_app || bound_paths[0] == '\0') {
 		return TS_E_PERM; /* 未绑定 = 拒绝（fail-closed） */
 	}
 	const char *p = bound_paths;
