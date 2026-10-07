@@ -59,6 +59,7 @@ static bool stream_started;
 static int ensure_stream(void)
 {
 	if (!device_is_ready(AV_CAM)) {
+		printk("[av] camera not ready\n");
 		return TS_E_IO;
 	}
 	struct video_format fmt = {
@@ -71,6 +72,8 @@ static int ensure_stream(void)
 	};
 
 	if (video_set_format(AV_CAM, &fmt) != 0) {
+		printk("[av] set_format fail (%ux%u fmt=%d)\n",
+		       av_cfg.w, av_cfg.h, (int)fmt.pixelformat);
 		return TS_E_IO;
 	}
 	const uint32_t frame_bytes = (uint32_t)av_cfg.w * av_cfg.h * 2;
@@ -80,16 +83,21 @@ static int ensure_stream(void)
 			frame_bytes, 32, K_NO_WAIT);
 
 		if (vb == NULL) {
+			printk("[av] buf alloc fail\n");
 			return TS_E_NOMEM;
 		}
 		vb->type = VIDEO_BUF_TYPE_OUTPUT;
 		if (video_enqueue(AV_CAM, vb) != 0) {
+			printk("[av] enqueue fail\n");
 			return TS_E_IO;
 		}
 	}
 	if (video_stream_start(AV_CAM, VIDEO_BUF_TYPE_OUTPUT) != 0) {
+		printk("[av] stream start fail\n");
 		return TS_E_IO;
 	}
+	printk("[av] stream started (%ux%u fmt=%s)\n", av_cfg.w, av_cfg.h,
+	       av_cfg.fmt == TS_AV_FMT_JPEG ? "jpeg" : "rgb565");
 	stream_started = true;
 	return TS_OK;
 }
@@ -121,6 +129,8 @@ ts_res_t ts_av_capture(ts_ctx_t c, uint8_t *buf, uint32_t cap, uint32_t *len)
 	/* 超时须 < TS_WDT_APPMGR_PERIOD_MS（DEC-48）：采集停顿先以 TS_E_IO
 	 * 失败返回，不升级为看门狗复位。 */
 	if (video_dequeue(AV_CAM, &vb, K_MSEC(CONFIG_TS_HAL_AV_TIMEOUT_MS)) != 0) {
+		printk("[av] dequeue timeout (%dms)\n",
+		       CONFIG_TS_HAL_AV_TIMEOUT_MS);
 		return TS_E_IO;
 	}
 	ts_res_t r = TS_OK;
@@ -134,10 +144,7 @@ ts_res_t ts_av_capture(ts_ctx_t c, uint8_t *buf, uint32_t cap, uint32_t *len)
 	video_enqueue(AV_CAM, vb);
 	return r;
 #else
-	ARG_UNUSED(c);
-	ARG_UNUSED(buf);
-	ARG_UNUSED(cap);
-	ARG_UNUSED(len);
+	printk("[av] no camera chosen (stub path)\n");
 	return TS_E_IO; /* 无摄像头（native_sim/测试板）：如实失败 */
 #endif
 }

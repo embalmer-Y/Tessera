@@ -6,6 +6,8 @@
 
 ## 1. 当前状态
 
+- **2026-10-07（四十八） · MD1.2h 部分交付（排期表单元 B，如实）：D-AV demo 链路 90%——真 LLM 一轮生成 PASS（demo.d.av rgb565 7046B）+ avdemo 载体入库 + 真机实证：安装/ACTIVE ✓、真帧捕获 ✓（cap r=0 len=38400）、分片发布 ✓（c=0..4 r=0）；**DA PASS 被 DAV1 阻塞（APP 线程无声冻结，3/3 复现——看门狗安全链按设计收口：APPMGR 逾期→system_fail→noinit 留痕 0x20001→task_wdt 复位）；DAV2 = 上游 esp32 DVP 无 JPEG 变长帧支持（pitch=0→零长 DMA），demo 走 DEC-47② RGB565 保底**；新增 B2 专项批（DAV1 调试）；CI/回归全绿（twister 15/15〔68〕/L5/pytest/ruff）**
+  - **下一单元（C）**：Q-29 验签呈递批（门③ 停门）——TSAP 头摘要字段（文件格式变更）+ ed25519 真验签 + 生产 prov 烧录通道方案。
 - **2026-10-07（四十七） · MD1.2g 交付（排期表单元 A，DEC-47③⑥）：ts-av + ts_net_publish 能力面——ts_av_capture 阻塞取帧 + ts_net_publish 分片发布（avq：chunk≤1KB/打拍 4ms/重试≤5×20ms 全 DEC-47② 值）+ av:read 权限类 + manifest av_fmt/av_w/av_h 三方同步（与 caps av: 互为充要）；并入复检发现②（fs_paths 长度对齐 pfx[68]+总长前置校验）与④（回归脚本 WAMR chmod 444 加固——并行全量 15/15 无竞态实证）；twister 15/15（68 用例，+2）/agent 76+2s/L5 6/6/ruff 全绿**
   - **架构落点**：hal/av.c（权限+配置绑定+官方池路径捕获；无摄像头板 TS_E_IO 如实）+ net/avq.c（APP 线程入队 / net_wq 单线程冲刷 = zenoh-pico 并发规避；信封 {fid,cid,n,crc32,d}；满队 BUSY 背压 + DOWN 自弃）；key = `…/av/<app_id>/frame`（数值 stream 防注入）。
   - **下一单元（B）**：MD1.2h——D-AV demo（OV2640 JPEG 硬件压缩 + 真 LLM 生成 APP + PC 侧帧重组消费端 + 真机判据）。

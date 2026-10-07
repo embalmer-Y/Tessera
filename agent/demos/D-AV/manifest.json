@@ -1,0 +1,18 @@
+{
+ "app_id": "demo.d.av",
+ "app_ver": "0.1.0",
+ "min_fw_ver": "0.1.0",
+ "caps": [
+  "av:read:0"
+ ],
+ "stack_kb": 32,
+ "heap_kb": 8,
+ "exports": [
+  "health_ping",
+  "app_init",
+  "app_tick"
+ ],
+ "av_fmt": "rgb565",
+ "av_w": 160,
+ "av_h": 120
+}
