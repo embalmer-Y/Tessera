@@ -6,6 +6,9 @@
 
 ## 1. 当前状态
 
+- **2026-10-07（四十六） · 规划批交付（owner 指令）：范围调整 + 计划 v1.30——硬件阶段三排除出开发范围；剩余全量单元重排 A…J 连续开发，每单元后汇报总/阶段进度；复检发现落点登记（IR2-07→D、IR2-06→F、fs_paths 对齐→A、ts_fs 边缘→impl-review-02 §8 附记）**
+  - **排期表（plan §7 v1.30）**：A MD1.2g（ts-av+publish 面）→ B MD1.2h（D-AV demo）→ C 验签呈递（Q-29，门③停门）→ D 验签实施（并 IR2-07）→ E PDM 评估 → F 输入面 G3（并 IR2-06/estop 沿）→ G 板级余项（poweron/MCUmgr OTA）→ H G4/G5 → I MD2 → J Zephyr 升级+P4（门⑤停门）。
+  - **下一单元（A）**：MD1.2g——ts_av_capture 最小面 + av 权限类 + ts_net_publish（打拍≥4ms=速率限制/chunk≤1KB/分片重试≤5×20ms——DEC-47② 值直用，无新 Q）+ kind/内存表/L5 同步 + agent 白名单/manifest/提示词 + 用例；并入 fs_paths 长度对齐。
 - **2026-10-07（四十五） · MD1.2f 交付（排期表单元 5）：D-SD demo 真机全链 PASS——真 LLM 生成 ts-fs APP → Sense 板 SD 五步状态机 + 宿主独立复核双证据（n=68 内容验证 + deny 文件物理不存在）；真机首验抓出 fs_paths 绑定形态缺陷并根治；twister 15/15（66 用例）/agent 74+2s/L5 全绿**
   - **下一单元（排期表 6）**：MD1.2g——ts-av + ts_net_publish 能力面（DEC-47③⑥：ts_av_capture 最小面 + av 权限类 + publish native + 速率限制 + agent 同步 + 用例）。
 - **2026-10-07（四十四） · MD1.2e 交付（排期表单元 4，DEC-47④⑤）：ts-fs 能力面——四 natives（无句柄）+ fs 权限类（list/read/write/delete op）+ fs_paths 前缀白名单（manifest/校验器/固件三方同步 + 前缀边界防绕过）；twister 15/15（66 用例）/agent 74+2s/L5 全绿**

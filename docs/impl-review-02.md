@@ -111,3 +111,14 @@
 **已裁未完成（实现债，非待裁）**：固件 ed25519 验签（IR2-02，M2b.2 TODO）；看门狗接线（IR2-01，合同 4 债）；estop 触发沿 prov 接线（M2a 遗留）；input monitor→APP mailbox 路由（G3）；单活跃 APP 语义（G4）；模拟深度（G5）；审计 actor 归因（IR2-08）。
 
 **存量观察项**（登记在案未动）：外部静态 video_buffer DMA 报错根因未钉死（V1 已锁池路径）；deploybench watch 同槽重推不触发复位（五连部署序不受影响）；CI native-build 偶发面（诊断转储就位待复发）；ESP32-S3 SMP 上游（DEC-19 跟进机制内关注）。
+
+## 8. 附记（2026-10-07 复检 · owner 指令"检查错误或忽略"）
+
+新鲜回归全绿（CI 四 job @ce98bac；L5 6/6；agent pytest 74+2s；repo pytest 2；ruff；密钥双 grep 零）。本地 twister 14/15 的唯一 errored = framework.wamr 构建竞态（deps/wamr version.cmake 并行互踩——板级四已登记；单套件复跑 1/1 绿 + CI 同提交绿双证据排除代码回归）。新登记（低危，登记不动手——军规 9）：
+
+- **ts_fs_write off 越过 EOF 间隙语义**：FAT 上越过 EOF 写入时间隙为未初始化旧簇数据（无句柄面无预填）——真实消费需连续写时由 APP 顺序写（off=累计长度）规避；如需语义收紧（E_RANGE 或零填）随真实需求再裁。
+- **ts_fs_list 截断尾分隔符**：容量截断落在条目名中间的边界上可遗留尾 ';'（消费端解析按空段忽略即可）。
+- **fs_paths 绑定无 stop 解绑**：app_stop 后 bound_app 保持——V1 单活跃 APP 且 natives 随实例销毁不可达，无越权面；多活跃 APP 语义（G4）落地时必须重设计绑定形态。
+- **fs_paths 条目长度边缘**：agent 校验器允许 64 字符条目 vs 固件走查缓冲 pfx[64] 实收 ≤63——超长条目打包通过但 boot 拒载（fail-closed 方向安全；表现 = APP 静默不装载难排查）→ 修复落点 = 排期表单元 A（MD1.2g）对齐。
+
+处置排期修订见 project-plan v1.30（IR2-07→单元 D；IR2-06→单元 F）。

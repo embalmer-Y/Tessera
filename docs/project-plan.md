@@ -1,6 +1,6 @@
 # docs/project-plan.md · Tessera 统一项目开发计划
 
-> **版本**：v1.29 · 2026-10-07（v1.0 · 2026-09-22 · 依 owner 指令与 **DEC-39** 建立）.
+> **版本**：v1.30 · 2026-10-07（v1.0 · 2026-09-22 · 依 owner 指令与 **DEC-39** 建立）.
 > **权威顺序**：owner 最新裁决（decisions.md DEC）> `FOUNDING_PROMPT.md` > 本计划。计划变更走修订记录；里程碑进出走 review 门（流程 §2.4-②）。
 > **结构**：双轨并行——**轨道 A（固件框架，M 系）** 与 **轨道 B（AI Agent，MA 系）**；交叉依赖见 §4；实施节奏（单会话一交付单元，军规/流程 §2.3）建议排序见 §7。
 
@@ -8,7 +8,7 @@
 
 1. **阶段一 · 固件框架**（native_sim 上可运行）：M0 → M1 → M2a → M2b → M3a → M3b → 板级移植。
 2. **阶段二 · AI Agent + 模拟器**：MA0 → MA1 → MA2 → MA3。
-3. **阶段三 · 硬件立方体定型**：连接器/结构/电源（依赖软件形态验证）。
+3. **阶段三 · 硬件立方体定型**：连接器/结构/电源——**已按 owner 2026-10-07 指令排除出开发范围**（v1.30；板级固件面〔S3 余项/P4 适配〕仍属轨道 A 保留）。
 
 双轨并行不改变阶段内容顺序，仅执行节奏并行（DEC-39）；北极星（DEC-33：多域 → 机器人/Galatea 自生产）为方向约束，不进 V1 里程碑。
 
@@ -52,23 +52,22 @@
 - `docs/dev-environment.md`：WSL 目录规范（`~/project/{tessera,zephyrproject,logs}`）+ 固件 venv；**MA0 起增补 agent venv（`~/project/agent-venv`，DR-19）**。
 - CI：`.github/workflows/ci.yml`（repo-checks → 固件构建/twister → **agent lint+pytest（MA0 接入）**）。
 
-## 7. 会话交付单元建议排序（v1.25 · DEC-47 后排期表；每会话一单元）
+## 7. 交付单元排期表（v1.30 · 2026-10-07 owner 指令重构：排除硬件阶段三、按规划连续开发、每单元后汇报总/阶段进度；每会话一单元）
 
 | 序 | 单元 | 内容 | 门 |
 |---|------|------|----|
-| 1 | **看门狗呈递批（Q-28）** | IR2-01 根治方案：TS_WDT 三源注册+喂狗点接线 / wdt_start 后注册窗口的启动序修复 / 真机 task WDT 使能与 system_fail 复位闭环 / APP 执行边界选型（WAMR 超时 vs 喂狗点 vs 独立看护） | 门① 呈递停门 |
-| 2 | 看门狗实施批 | Q-28 裁决后实现 + 真机验证 + 回归；**并入小项**：estop ISR 复查平移（IR2-05，channel.c 补 irq_lock 复查范式）+ 审计 actor 透传（IR2-08） | — |
-| 3 | PC 读面加固批 | IR2-03 根治（纯工程）：读入路径 roots 白名单 / include 隔离（-nostdinc+显式路径）/ stderr 过滤回喂 / start_new_session+killpg / out_dir 并发隔离 / max_bytes 服务端钳制 / node·cube 字符白名单；**并入**：L5 裸 pwm_set 正则（IR2-04） | — |
-| 4 | **MD1.2e** | ts-fs 能力面（DEC-47④⑤）：ts_fs_list/read/write/delete 四 natives + fs 权限类 + `fs_paths` 前缀白名单（manifest/校验器/固件三方）+ agent NATIVE_WHITELIST/manifest 同步 + twister/sim 用例 | 已裁（DEC-47） |
-| 5 | MD1.2f | D-SD demo：真 LLM 生成（ts-fs natives 面）+ 真机判据 | — |
-| 6 | MD1.2g | ts-av + publish 能力面（DEC-47③⑥）：ts_av_capture + av 权限类 + ts_net_publish（读类+速率限制）+ 分片纪律落点 + agent 同步 + 用例 | 已裁（DEC-47） |
-| 7 | MD1.2h | D-AV demo：JPEG 帧格式（OV2640 硬件压缩）+ 真 LLM 生成 + PC 侧帧重组消费端 + 真机判据（1KB chunk/4ms 打拍/重试——av-transport-01 实测参数） | — |
-| 8 | **验签呈递批（Q-29）** | IR2-02 根治方案：TSAP 头摘要字段（文件格式变更）+ ed25519 真验签 + 生产 prov 烧录通道（板级十一）同批 | 门③ 呈递停门 |
-| 9 | 验签实施批 | Q-29 裁决后实现 + 真机部署链复验 | — |
-| 10 | MD1.2c | PDM 音频：i2s_esp32 驱动扩展评估（hal_espressif i2s_pdm 组件接入——若涉上游组件集成走相应门） | 视方案 |
-| 11 | 后续候选 | MD2 混合 demo（D8/D9）/ 输入面 G3 批（D4/D6 依赖）/ Zephyr 升级评估 + P4 适配 / 板级余项（poweron 落驱动、MCUmgr OTA） | 门⑤（升级/P4） |
+| A | **MD1.2g** | ts-av + ts_net_publish 能力面（DEC-47③⑥：ts_av_capture 最小面 + av 权限类 + ts_net_publish〔打拍≥4ms=速率限制、chunk≤1KB、分片重试≤5×20ms——DEC-47② 值直用〕+ kind 注册表/内存表/L5 同步 + agent 白名单/manifest/提示词 + 用例）；**并入**：fs_paths 条目长度对齐（复检发现②：agent≤64 vs 固件≤63） | 已裁（DEC-47） |
+| B | **MD1.2h** | D-AV demo：JPEG 帧格式（OV2640 硬件压缩）+ 真 LLM 生成 + PC 侧帧重组消费端 + 真机判据（1KB chunk/4ms 打拍/重试——av-transport-01 实测参数） | — |
+| C | **验签呈递批（Q-29）** | IR2-02 根治方案：TSAP 头摘要字段（文件格式变更）+ ed25519 真验签 + 生产 prov 烧录通道（板级余项同批） | 门③ 呈递停门 |
+| D | 验签实施批 | Q-29 裁决后实现 + 真机部署链复验；**并入 IR2-07**（回滚闭环：目标槽验证/回滚后重载/meta 双损如实失败） | — |
+| E | MD1.2c | PDM 音频驱动扩展评估（hal_espressif i2s_pdm 组件接入——视方案定门） | 视方案 |
+| F | 输入面 G3 批 | input monitor→APP mailbox 路由 + D4/D6 输入 demo；**并入**：IR2-06（app_stop 强杀持锁死锁面）+ estop 触发沿 prov 化 | — |
+| G | 板级余项批 | 注册期 poweron 值落驱动 + MCUmgr 固件 OTA（DEC-07/23 已裁） | — |
+| H | G4/G5 批 | 单活跃 APP 语义收口 + 模拟器深度增强 | — |
+| I | MD2 混合 demo | D8/D9（依赖 F 输入面就绪） | — |
+| J | Zephyr 升级评估 + P4 | v4.4.0 → 最新 stable 升级评估（含 zenoh-pico 联动）→ 呈递；批准后 P4 适配（实板终验需 owner 提供 P4 板） | 门⑤ 呈递停门 |
 
-（原则不变：依赖就绪先行的最小单元；任一单元 DoD 全绿才进下一个；观察项——zenoh-pico Zephyr 集成尺寸钩子上游 issue 暂不提〔DEC-47〕。）
+（原则不变：依赖就绪先行的最小单元；任一单元 DoD 全绿才进下一个；门项到点即停等 owner〔C 门③、J 门⑤、E 视方案〕；观察项——zenoh-pico Zephyr 集成尺寸钩子上游 issue 暂不提〔DEC-47〕、native-build 偶发面、外部静态 video_buffer 根因、watch 同槽重推。复检发现③〔ts_fs 语义边缘〕见 impl-review-02 §8 附记——登记不动手。）
 
 ## 8. 执行纪律（不变）
 
@@ -77,6 +76,8 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.30 · 2026-10-07：**owner 指令重构排期**——硬件阶段三排除出开发范围（板级固件面保留）；剩余全量单元重排 A…J（A MD1.2g → B MD1.2h → C Q-29 呈递〔门③〕→ D 验签实施〔并入 IR2-07〕→ E PDM 评估 → F 输入面 G3〔并入 IR2-06/estop 沿〕→ G 板级余项〔poweron/MCUmgr OTA〕→ H G4/G5 → I MD2 → J Zephyr 升级+P4〔门⑤〕）；连续开发授权 + 每单元后汇报总/阶段进度。复检发现落点：②fs_paths 长度对齐→单元 A；①IR2-06/07 排期缺口→D/F；③ts_fs 语义边缘→impl-review-02 §8 附记；④本地回归脚本 WAMR 预处理→仓外工具。
+
 - v1.29 · 2026-10-07：MD1.2f——D-SD demo 真机全链 PASS（真 LLM ts-fs APP；宿主独立复核双证据；真机首验根治 fs_paths 绑定形态缺陷；提示词/校验器/解包三处 fs 面同步）。
 
 - v1.28 · 2026-10-07：MD1.2e——ts-fs 能力面交付（DEC-47④⑤：四 natives + fs 类 + fs_paths 白名单三方同步；twister 15/15〔66 用例〕）。
