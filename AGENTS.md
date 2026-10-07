@@ -6,6 +6,9 @@
 
 ## 1. 当前状态
 
+- **2026-10-07（五十） · 验签实施批交付（排期表单元 D，DEC-49 落地 + IR2-07 并入）：TSAP v2 + 固件真 ed25519 验签（tweetnacl 809 行公版内置）+ TEST 语义收口（固定测试根）+ 回滚闭环（目标槽验签/暖复位重载/meta 双损如实）——**IR2-02 消账（最后高风险项）+ 生产部署链语义首次点亮**；twister 15/15（70 用例）/agent 76+2s/L5/ruff 全绿；真机 dsdbench DS PASS 全链复验（xtensa 首跑真验签）**
+  - **过程三教训**（真机拦下留档）：tweetnacl m 出参不可与 sm 别名（验证前暂存写）；Sig_structure bstr 头按 payload 实长选；**net_wq/主栈 4096 被验签深度压穿**（EXCCAUSE 28 迟爆——net_wq→8192 + benches/生产 app 主栈 8192）。
+  - **下一单元（E）**：MD1.2c——PDM 音频驱动扩展评估（hal_espressif i2s_pdm 组件接入，视方案定门）。
 - **2026-10-07（四十九） · Q-29 呈递停门（排期表单元 C，门③）：IR2-02 根治方案四子项呈 owner——①固件真验签（建议内置极简 C ed25519 verify；PSA 作实施首查）②TSAP v2 头摘要字段（fmt_ver=2 + 32B sha256）③生产 prov 烧录通道（esptool 直写脚本）④TEST 语义收口（真验签 + 测试根）**；批准后单元 D 实施（并入 IR2-07 回滚闭环）**
   - **待 owner**：Q-29 裁决（decisions.md Q-29 全文：背景/选项/建议/影响——按建议或逐项例外）。
 - **2026-10-07（四十八） · MD1.2h 部分交付（排期表单元 B，如实）：D-AV demo 链路 90%——真 LLM 一轮生成 PASS（demo.d.av rgb565 7046B）+ avdemo 载体入库 + 真机实证：安装/ACTIVE ✓、真帧捕获 ✓（cap r=0 len=38400）、分片发布 ✓（c=0..4 r=0）；**DA PASS 被 DAV1 阻塞（APP 线程无声冻结，3/3 复现——看门狗安全链按设计收口：APPMGR 逾期→system_fail→noinit 留痕 0x20001→task_wdt 复位）；DAV2 = 上游 esp32 DVP 无 JPEG 变长帧支持（pitch=0→零长 DMA），demo 走 DEC-47② RGB565 保底**；新增 B2 专项批（DAV1 调试）；CI/回归全绿（twister 15/15〔68〕/L5/pytest/ruff）**

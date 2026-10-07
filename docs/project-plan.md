@@ -1,6 +1,6 @@
 # docs/project-plan.md · Tessera 统一项目开发计划
 
-> **版本**：v1.32 · 2026-10-07（v1.0 · 2026-09-22 · 依 owner 指令与 **DEC-39** 建立）.
+> **版本**：v1.33 · 2026-10-07（v1.0 · 2026-09-22 · 依 owner 指令与 **DEC-39** 建立）.
 > **权威顺序**：owner 最新裁决（decisions.md DEC）> `FOUNDING_PROMPT.md` > 本计划。计划变更走修订记录；里程碑进出走 review 门（流程 §2.4-②）。
 > **结构**：双轨并行——**轨道 A（固件框架，M 系）** 与 **轨道 B（AI Agent，MA 系）**；交叉依赖见 §4；实施节奏（单会话一交付单元，军规/流程 §2.3）建议排序见 §7。
 
@@ -60,7 +60,7 @@
 | B | **MD1.2h** ◐ | D-AV demo：JPEG 帧格式（OV2640 硬件压缩）+ 真 LLM 生成 + PC 侧帧重组消费端 + 真机判据——**部分交付 2026-10-07**：链路 90% 打通（真 LLM 一轮过 + 真帧捕获 + 分片发布实证）；JPEG = DAV2 上游缺口（esp32 DVP 不支持变长帧）→ RGB565 保底；DA PASS 被 DAV1 缺陷阻塞（APP 线程冻结，看门狗链按设计收口） | — |
 | B2 | **DAV1 专项批** | av 流压力下 APP 线程冻结调试：addr2line + 控制变量二分（avq 深度/禁冲刷/独立会话对照）；完成后补 D-AV 全链 PASS 判据 | — |
 | C | **验签呈递批（Q-29）** ⏸ | IR2-02 根治方案：TSAP 头摘要字段（文件格式变更）+ ed25519 真验签 + 生产 prov 烧录通道（板级余项同批）——**已呈递 2026-10-07，门③ 停门待 owner 裁决**（四子项建议：内置 C verify / fmt_ver=2+32B sha256 / esptool 直写 / TEST 真验签） | 门③ 呈递停门 |
-| D | 验签实施批 | Q-29 裁决后实现 + 真机部署链复验；**并入 IR2-07**（回滚闭环：目标槽验证/回滚后重载/meta 双损如实失败） | — |
+| D | 验签实施批 ✅ | Q-29 裁决后实现 + 真机部署链复验；**并入 IR2-07**（回滚闭环：目标槽验证/回滚后重载/meta 双损如实失败） | — |
 | E | MD1.2c | PDM 音频驱动扩展评估（hal_espressif i2s_pdm 组件接入——视方案定门） | 视方案 |
 | F | 输入面 G3 批 | input monitor→APP mailbox 路由 + D4/D6 输入 demo；**并入**：IR2-06（app_stop 强杀持锁死锁面）+ estop 触发沿 prov 化 | — |
 | G | 板级余项批 | 注册期 poweron 值落驱动 + MCUmgr 固件 OTA（DEC-07/23 已裁） | — |
@@ -77,6 +77,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.33 · 2026-10-07：验签实施批（单元 D）交付——TSAP v2（flags+32B sha256 摘要）+ 固件真 ed25519（tweetnacl 内置，PSA 首查无 ed25519）+ TEST 语义收口（固定测试根）+ IR2-07 回滚闭环（目标槽验签/暖复位/meta 双损如实）；板级"生产 prov 通道"消账（flash_prov.py esptool 直写）；三过程教训（m 别名/bstr 头/栈深 8192）；twister 15/15（70 用例）；真机 DS PASS 复验。**IR2-02 消账——impl-review-02 高风险三项全部清零**。
 - v1.32 · 2026-10-07：MD1.2h（单元 B）**部分交付**——真机链路 90%（真 LLM/真帧捕获/分片发布）；**DAV1**（APP 线程冻结缺陷，3/3 复现——看门狗链按设计收口）与 **DAV2**（上游 esp32 DVP 无 JPEG 变长帧支持——demo 走 RGB565 保底）登记；新增 **B2 专项批**（DAV1 调试 + D-AV 全链判据补全）；avdemo 载体与 agent/demos/D-AV/ 入仓。
 - v1.31 · 2026-10-07：MD1.2g（单元 A）交付——ts-av + ts_net_publish 能力面（DEC-47③⑥：av.c 采集/发布读类面 + avq 分片通道〔DEC-47② 值经 Kconfig〕+ av:read 权限类 + manifest av_* 三方同步 + test_06/test_12）；并入复检发现②（fs_paths 对齐）与④（回归脚本 WAMR 加固）；LLD-ts-hal v0.2.3 / LLD-ts-net v0.3.8 / LLD-ts-appmgr v0.5.3 / HLD §4.6 av 面增补；twister 15/15（68 用例）。
 

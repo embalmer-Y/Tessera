@@ -12,6 +12,7 @@
  * wamrdemo 实证；不重复销毁）。 */
 #include <string.h>
 #include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
 #include <zephyr/sys/atomic.h>
 #include <ts/appmgr.h>
 #include <ts/core.h> /* ts_time_ms：合同 9 时基（L5 禁 uptime） */
@@ -271,7 +272,21 @@ ts_res_t ts_appmgr_app_start(uint16_t app_id, const uint8_t *wasm,
 			rt.mod = mod_cache.mod; /* 内容一致 → 复用（见 mod_cache 注释：
 						 * boot 缓冲与测试夹具为同 wasm 两份拷贝） */
 		} else {
+#ifndef CONFIG_TS_TEST
 			return TS_E_STATE; /* 进程内换包不支持（怪癖规避——重启路径） */
+#else
+			/* TEST 构建：进程内换包放行（多夹具单测形态——sim 内存可
+			 * 承受旧模块驻留；生产路径换包恒经重启，不走此分支）。 */
+			rt.mod = wasm_runtime_load((uint8_t *)wasm, wasm_len,
+						   err, sizeof(err));
+			if (rt.mod == NULL) {
+				ts_hal_unbind_context(&rt.ctx);
+				return TS_E_IO;
+			}
+			mod_cache.src = wasm;
+			mod_cache.len = wasm_len;
+			mod_cache.mod = rt.mod;
+#endif
 		}
 	} else {
 		rt.mod = wasm_runtime_load((uint8_t *)wasm, wasm_len, err, sizeof(err));

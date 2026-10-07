@@ -19,9 +19,11 @@ extern const ts_net_transport_t ts_net_zenoh_transport;
 static struct k_work_delayable net_work;
 static bool started;
 
-/* 专用工作队列（结构性数值：栈 4096 覆盖 z_open/zenoh 声明路径；优先级 8 =
- * DEC-43 线程序 net > APP(10)，低于框架安全/核心路径） */
-static K_KERNEL_STACK_DEFINE(net_wq_stack, 4096);
+/* 专用工作队列（结构性数值：栈 8192 = zenoh 声明路径 + **DEC-49 tweetnacl
+ * 验签深度**（远程安装路径 sys/app-verify 在本队列执行：crypto_sign_open
+ * 局部 ~1KB + verify 管线 ~1.2KB——4096 实测被压穿〔dsdbench 真机
+ * EXCCAUSE 28 教训〕）；优先级 8 = DEC-43 线程序 net > APP(10)）。 */
+static K_KERNEL_STACK_DEFINE(net_wq_stack, 8192);
 static struct k_work_q net_wq;
 
 static void net_tick(struct k_work *work)

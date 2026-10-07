@@ -71,6 +71,7 @@ typedef struct {
 	uint8_t rollback_count;
 	uint16_t boot_gen;
 	uint32_t app_ver_u32; /* semver → u32 比较 */
+	uint8_t content_digest[32]; /* TSAP v2 头摘要（DEC-49②：boot 快校验对象） */
 } ts_appmgr_meta_t;
 
 ts_res_t ts_appmgr_meta_read(ts_appmgr_meta_t *meta);

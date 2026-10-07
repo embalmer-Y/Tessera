@@ -2,7 +2,8 @@
 """tsap_* 工具实现（LLD-A05 §3）。
 
 无签名不产出（合同"Agent 无豁免"硬点）：key 缺失/校验失败 → TA_E_TSAP，
-**不降级出未签名包**。容器 = TSAP v1（16B 头/大端，M2a 定稿，include/ts/tsap.h）。
+**不降级出未签名包**。容器 = TSAP v2（DEC-49②：16B 头 flags=1 + 32B
+sha256(manifest‖wasm) 摘要；v1 只读兼容——仅验签消费，固件已拒收）。
 """
 
 from __future__ import annotations
@@ -18,8 +19,12 @@ from tessera_agent.tools_tsap import cose
 from tessera_agent.tools_tsap.manifest import TsapManifest
 
 TSAP_MAGIC = 0x54534150  # "TSAP"（大端，M2a 定稿）
-TSAP_FMT_VER = 1
-TSAP_HEADER = struct.Struct(">IHIIH")  # magic|fmt_ver|manifest_len|wasm_len|rsv
+TSAP_FMT_VER = 2  # DEC-49②：v2 = 头 flags=1 + 32B sha256(manifest‖wasm)
+TSAP_FLAGS_DIGEST = 0x0001
+TSAP_DIGEST_SIZE = 32
+TSAP_CONTENT_OFF = 48  # 头 16 + 摘要 32
+TSAP_DIGEST_OFF = 16  # 摘要区起点（头 16B 之后）
+TSAP_HEADER = struct.Struct(">IHIIH")  # magic|fmt_ver|manifest_len|wasm_len|flags
 
 
 def _resolve_within(out_dir: str, allowed_roots: list[str]) -> Path:
@@ -94,8 +99,11 @@ def tsap_package(
     payload = manifest_cbor + wasm_bytes
     cose_bytes, signer = cose.sign_cross_verified(payload, d)
 
-    header = TSAP_HEADER.pack(TSAP_MAGIC, TSAP_FMT_VER, len(manifest_cbor), len(wasm_bytes), 0)
-    package = header + payload + cose_bytes
+    # DEC-49②：v2 容器 = 头（flags=1）+ sha256(manifest‖wasm) + payload + COSE
+    digest = hashlib.sha256(payload).digest()
+    header = TSAP_HEADER.pack(TSAP_MAGIC, TSAP_FMT_VER, len(manifest_cbor),
+                              len(wasm_bytes), TSAP_FLAGS_DIGEST)
+    package = header + digest + payload + cose_bytes
 
     out = _resolve_within(out_dir, allowed_roots)
     out.mkdir(parents=True, exist_ok=True)
@@ -126,20 +134,34 @@ def tsap_verify(package_path: str, pub_key_path: str,
     if len(data) < TSAP_HEADER.size:
         msg = "包长度不足（头 16B）"
         raise TaError(TA_E_TSAP, msg, domain="tsap")
-    magic, ver, mlen, wlen, _rsv = TSAP_HEADER.unpack_from(data, 0)
+    magic, ver, mlen, wlen, flags = TSAP_HEADER.unpack_from(data, 0)
     checks: list[str] = []
     if magic != TSAP_MAGIC:
         checks.append("magic")
-    if ver != TSAP_FMT_VER:
+    legacy = ver == 1  # v1 只读兼容期（DEC-49②：固件已拒收——仅验签/审计消费）
+    if ver not in (1, TSAP_FMT_VER):
         checks.append("fmt_ver")
-    cose_off = TSAP_HEADER.size + mlen + wlen
+    content_off = TSAP_HEADER.size if legacy else TSAP_CONTENT_OFF
+    if not legacy:
+        if flags != TSAP_FLAGS_DIGEST:
+            checks.append("flags")
+        elif len(data) < TSAP_CONTENT_OFF + mlen + wlen:
+            checks.append("lengths")
+    cose_off = content_off + mlen + wlen
     if cose_off >= len(data):
         checks.append("lengths")
     if checks:
         msg = f"容器头校验失败: {checks}"
         raise TaError(TA_E_TSAP, msg, domain="tsap", detail={"checks": checks})
 
-    manifest_cbor = data[TSAP_HEADER.size : TSAP_HEADER.size + mlen]
+    if not legacy:
+        # v2 头摘要对拍（DEC-49②：固件/PC/离线三方可独立校验）
+        if hashlib.sha256(data[TSAP_CONTENT_OFF:cose_off]).digest() != \
+                data[TSAP_DIGEST_OFF:TSAP_CONTENT_OFF]:
+            msg = "头摘要与内容不一致（sha256(manifest‖wasm)）"
+            raise TaError(TA_E_TSAP, msg, domain="tsap")
+
+    manifest_cbor = data[content_off : content_off + mlen]
     cose_bytes = data[cose_off:]
     pub = Path(os.path.expanduser(pub_key_path)).read_bytes()
     ok, impls = cose.verify_both(cose_bytes, pub)

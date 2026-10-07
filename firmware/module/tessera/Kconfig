@@ -259,6 +259,16 @@ config TS_APP_THREAD_STACK
 	  Host-side stack for WAMR interpreter C frames (experiment baseline:
 	  framework.wamr/wamrdemo); wasm app stack is separate (manifest mem).
 
+config TS_VERIFY_SCRATCH
+	int "TSAP v2 verify scratch buffer (bytes)"
+	depends on TS_APPMGR
+	default 8704
+	help
+	  Source: DEC-49 1/2. Holds sig(64) + Sig_structure prefix(24) + COSE
+	  embedded payload (= manifest+wasm) during ed25519 verification.
+	  Must cover the largest installable package payload (slot size minus
+	  header/digest/COSE framing); boards with small packages may lower it.
+
 config TS_APP_TICK_MS
 	int "APP tick period (ms)"
 	depends on TS_APP_WAMR

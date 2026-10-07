@@ -880,23 +880,16 @@ static size_t build_req_deploy(uint8_t *buf, size_t cap, const char *op, const c
 	return p;
 }
 
-/* 最小 TSAP 包（同 appmgr 测试构造：manifest 32 + wasm 64 + COSE 结构头 18） */
+/* 预签 v2 夹具（与 framework.appmgr 同源；DEC-49④ 真验签语义） */
+#include "../../appmgr/src/fixture_pkg.h"
+
 static size_t build_deploy_pkg(uint8_t *buf, size_t cap)
 {
-	uint32_t ml = 32, wl = 64;
-	size_t total = 16 + ml + wl + 18;
-
-	if (total > cap) return 0;
-	memset(buf, 0xAA, total);
-	buf[0] = 'T'; buf[1] = 'S'; buf[2] = 'A'; buf[3] = 'P';
-	buf[4] = 0; buf[5] = 1;
-	buf[6] = (uint8_t)(ml >> 24); buf[7] = (uint8_t)(ml >> 16);
-	buf[8] = (uint8_t)(ml >> 8); buf[9] = (uint8_t)ml;
-	buf[10] = (uint8_t)(wl >> 24); buf[11] = (uint8_t)(wl >> 16);
-	buf[12] = (uint8_t)(wl >> 8); buf[13] = (uint8_t)wl;
-	buf[16 + ml + wl] = 0xd2;
-	buf[16 + ml + wl + 1] = 0x84;
-	return total;
+	if (sizeof(fixture_pkg) > cap) {
+		return 0;
+	}
+	memcpy(buf, fixture_pkg, sizeof(fixture_pkg));
+	return sizeof(fixture_pkg);
 }
 
 /* 解回执 data 子图中的 uint 值（v1 平面 / v2 信封均可；值按类型消费跳过） */
@@ -952,7 +945,7 @@ static uint64_t resp_data_uint(const char *key)
 
 ZTEST(framework_net, test_10_deploy_face)
 {
-	static uint8_t pkg[512];
+	static uint8_t pkg[1024];
 	static uint8_t req[CONFIG_TS_NET_APP_CHUNK_MAX + 256];
 	size_t plen = build_deploy_pkg(pkg, sizeof(pkg));
 	size_t rlen;
@@ -1021,14 +1014,23 @@ ZTEST(framework_net, test_10_deploy_face)
 					  sizeof(resp), &resp_len),
 		      TS_E_PARAM);
 
-	/* verify：容器事实（TEST 构建结构级通过；manifest 32/wasm 64/cose_off 112） */
+	/* verify：容器事实（真验签通过；ml/wl 自夹具头动态断言） */
 	rlen = build_req_deploy(req, sizeof(req), "app-verify", "t-agent",
 				false, 0, false, 0, NULL, 0);
 	zassert_equal(ts_net_cmd_dispatch("sys/app-verify", req, rlen, resp,
 					  sizeof(resp), &resp_len),
 		      TS_OK);
-	zassert_equal(resp_data_uint("manifest_len"), 32);
-	zassert_equal(resp_data_uint("cose_off"), 16 + 32 + 64);
+	zassert_equal(resp_data_uint("manifest_len"),
+		      (((uint32_t)fixture_pkg[6] << 24) |
+		       ((uint32_t)fixture_pkg[7] << 16) |
+		       ((uint32_t)fixture_pkg[8] << 8) | fixture_pkg[9]));
+	zassert_equal(resp_data_uint("cose_off"),
+		      48 + (((uint32_t)fixture_pkg[6] << 24) |
+			    ((uint32_t)fixture_pkg[7] << 16) |
+			    ((uint32_t)fixture_pkg[8] << 8) | fixture_pkg[9]) +
+		      (((uint32_t)fixture_pkg[10] << 24) |
+		       ((uint32_t)fixture_pkg[11] << 16) |
+		       ((uint32_t)fixture_pkg[12] << 8) | fixture_pkg[13]));
 
 	/* activate（他人 src → 拒；本人 → OK） */
 	rlen = build_req_deploy(req, sizeof(req), "app-activate", "intruder",

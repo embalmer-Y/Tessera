@@ -231,16 +231,16 @@ ZTEST(framework_store, test_noinit)
 
 ZTEST(framework_store, test_tsap_header)
 {
-	uint8_t pkg[64];
+	uint8_t pkg[128];
 
 	memset(pkg, 0xA5, sizeof(pkg));
-	/* 头：magic | ver=1 | manifest_len=8 | wasm_len=16 | rsv=0（大端） */
+	/* v2 头：magic | ver=2 | manifest_len=8 | wasm_len=16 | flags=1（大端） */
 	pkg[0] = 'T';
 	pkg[1] = 'S';
 	pkg[2] = 'A';
 	pkg[3] = 'P';
 	pkg[4] = 0;
-	pkg[5] = 1;
+	pkg[5] = 2;
 	pkg[6] = 0;
 	pkg[7] = 0;
 	pkg[8] = 0;
@@ -249,22 +249,27 @@ ZTEST(framework_store, test_tsap_header)
 	pkg[11] = 0;
 	pkg[12] = 0;
 	pkg[13] = 16;
-	/* 14..15 rsv */
+	pkg[14] = 0;
+	pkg[15] = 1; /* TSAP_FLAGS_DIGEST（DEC-49②；16..47 = 摘要区） */
 	tsap_view_t v;
 
 	zassert_true(tsap_header_parse(pkg, sizeof(pkg), &v));
 	zassert_equal(v.manifest_len, 8);
 	zassert_equal(v.wasm_len, 16);
-	zassert_equal(v.wasm_off, 16 + 8);
-	zassert_equal(v.cose_off, 16 + 8 + 16);
+	zassert_equal(v.manifest_off, 48, "v2 内容起点 = 头 16 + 摘要 32");
+	zassert_equal(v.wasm_off, 48 + 8);
+	zassert_equal(v.cose_off, 48 + 8 + 16);
 
-	/* 坏 magic / 坏版本 / 长度越界 */
+	/* 坏 magic / 坏版本 / 未知 flags / 长度越界 */
 	pkg[0] = 'X';
 	zassert_false(tsap_header_parse(pkg, sizeof(pkg), &v));
 	pkg[0] = 'T';
-	pkg[5] = 2;
+	pkg[5] = 1; /* v1 = 拒收（DEC-49②） */
 	zassert_false(tsap_header_parse(pkg, sizeof(pkg), &v));
-	pkg[5] = 1;
+	pkg[5] = 2;
+	pkg[15] = 2; /* 未知 flags = 拒收 */
+	zassert_false(tsap_header_parse(pkg, sizeof(pkg), &v));
+	pkg[15] = 1;
 	pkg[9] = 0xFF; /* manifest_len=255 → cose_off+1 > len */
 	zassert_false(tsap_header_parse(pkg, sizeof(pkg), &v));
 	zassert_false(tsap_header_parse(pkg, 10, &v), "长度不足");

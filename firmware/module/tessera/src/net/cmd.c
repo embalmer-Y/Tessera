@@ -21,6 +21,7 @@
 #include <ts/safety.h>
 #include <ts/store.h>
 #include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
 #include "internal.h"
 
 #define CMD_TABLE_MAX  16 /* 7 基础 sys + 3 租约（DEC-41）+ 5 部署面（MA3.1）+ 余量 */

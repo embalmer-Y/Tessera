@@ -49,7 +49,15 @@ zephyr_library_sources_ifdef(CONFIG_TS_HAL
 zephyr_library_sources_ifdef(CONFIG_TS_APPMGR
   src/appmgr/pkg.c
   src/appmgr/slot.c
+  src/appmgr/verify.c
+  src/appmgr/crypto/tweetnacl.c
+  src/appmgr/crypto/tnacl_selftest.c
 )
+
+# tweetnacl（三方公版，crypto/PROVENANCE.md）：致密风格代码不适用本项目
+# 警告基线——单独降为 -w（其余编译选项不变）
+set_source_files_properties(src/appmgr/crypto/tweetnacl.c
+  PROPERTIES COMPILE_OPTIONS "-w")
 
 zephyr_library_sources_ifdef(CONFIG_TS_APP_WAMR
   src/appmgr/runtime.c
