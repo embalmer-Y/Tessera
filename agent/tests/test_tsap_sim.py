@@ -71,6 +71,39 @@ def test_manifest_roundtrip_and_validation():
             TsapManifest(**bad)
 
 
+def test_manifest_av_group_and_roundtrip():
+    """DEC-47③（MD1.2g）：caps av: 与 av_fmt/av_w/av_h 互为充要 + CBOR 往返。"""
+    good = {**VALID_MANIFEST, "caps": ["av:read:0"],
+            "av_fmt": "jpeg", "av_w": 160, "av_h": 120}
+    m = TsapManifest(**good)
+    data = m.to_cbor()
+    back = TsapManifest.from_cbor(data)
+    assert back.av_fmt == "jpeg" and back.av_w == 160 and back.av_h == 120
+
+    for bad in [
+        # caps 有 av: 但声明缺组（固件绑定要求三者齐备——fail-closed）
+        {**VALID_MANIFEST, "caps": ["av:read:0"], "av_fmt": "jpeg", "av_w": 160},
+        {**VALID_MANIFEST, "caps": ["av:read:0"]},
+        # 声明在但 caps 无 av: 能力
+        {**VALID_MANIFEST, "av_fmt": "jpeg", "av_w": 160, "av_h": 120},
+        # 值域（与固件走查 16..800 对齐）
+        {**VALID_MANIFEST, "caps": ["av:read:0"], "av_fmt": "jpeg",
+         "av_w": 8, "av_h": 120},
+        {**VALID_MANIFEST, "caps": ["av:read:0"], "av_fmt": "bmp",
+         "av_w": 160, "av_h": 120},
+    ]:
+        with pytest.raises(ValidationError):
+            TsapManifest(**bad)
+
+
+def test_manifest_fs_paths_total_cap():
+    """复检发现②（单元 A）：fs_paths 总长 ≤255B（固件绑定 CSV 容量 256B 含 NUL）。"""
+    seg = "/SD:/a" * 5 + "/x"  # 34B/条
+    many = [f"{seg}{i:02d}" for i in range(8)]  # >255B 总长
+    with pytest.raises(ValidationError):
+        TsapManifest(**{**VALID_MANIFEST, "caps": ["fs:read:0"], "fs_paths": many})
+
+
 def test_cose_cross_verification_four_quadrants(keypair: tuple[Path, Path]):
     priv, pub = keypair
     payload = b"manifest-bytes" + b"wasm-bytes"

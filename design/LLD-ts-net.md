@@ -40,6 +40,7 @@ int ts_net_key_tel(char *buf, size_t n, const char *uid);     /* …/<class>/<in
 int ts_net_key_evt(char *buf, size_t n, const char *uid);     /* …/<class>/<inst>/event   */
 int ts_net_key_hb  (char *buf, size_t n, bool host_dir);      /* …/sys/hb（cube→host）/ …/sys/hb-host（host→cube），DR-12 */
 int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>（命令面见 §4，DR-03） */
+int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>/frame（DEC-47① 专用帧分片通道；stream = 数值 app_id） */
 /* 前缀 tessera/<node>/<cube> 由 node/cube id 配置拼装；node 段为 DEC-02 预留层（Q-07） */
 ```
 
@@ -100,6 +101,7 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 
 ## 5. 发布（pub.c）
 
+- **av 分片通道 avq（DEC-47①②，MD1.2g，§5 增补）**：APP 大块数据（视频帧）发布面——`ts_net_avq_push`（hal 层 `ts_av_publish` 经权限门后调用）入队，net_wq 周期 `ts_net_avq_flush` 单线程冲刷；信封 = canonical CBOR 5 对 map `{fid, cid, n, crc(IEEE crc32), d(bstr)}`；chunk ≤ `TS_NET_PUBLISH_MAX_BYTES`（1024——永不进 zenoh-pico 碎片路径）；打拍 `TS_NET_PUBLISH_MIN_GAP_MS`（4ms）+ 分片重试 `≤5×20ms`（全部 DEC-47② avbench 实测值）；队深 `TS_NET_AVQ_DEPTH`（4）满 = TS_E_BUSY 背压；DOWN 期自弃 + 计数（pubq 同语义；消费端按 crc/帧序丢弃残帧）。key = `…/av/<app_id>/frame`（§3）。
 - 遥测：实例值变化（commit 审计缓冲消费）与周期快照〔DEC-27：200ms〕合流；缓冲深度〔DEC-27：8〕满则丢最旧并计数；**DOWN 期发布直接丢弃并计数**（不排队重放——防上电风暴与不确定时序）。pubq 单条 payload 上限 **128B**（impl-review-01 F-1 定容：DEC-42 信封头最坏 ~45B + 预算事件 3 对 extra ~51B——原 64B 系"单 extra 对"口径；内存影响 +512B 静态，计入 DEC-29 板级 RAM 预算复核）。
 - 事件：TS_EVT_* 选择性外发，**订阅七类**——estop 后补发 / 安全态迁移 / 越权留痕 / 输入变化 / periph 插拔 / periph 附着 / 功率预算拒绝（后三类 = impl-review-01 F-1 兑现，其中插拔归因为 LLD-ts-periph §3"key 下线通告"承诺；早前"容量四类全占"系对订阅表分桶语义的误读——`subs[id][CONFIG_TS_CORE_MAX_SUBS]` 按事件类型各 4 位）。合同 5/10 对外可见面。
 - **信封 v1（DEC-42，已实现）**：事件 payload = `{"ver":1, "kind":32+evt_id, "t_ms", "wall_ms", <extra 扁平键值对 0…3 个>}`——extra：安全态迁移 = `{"state"}`（按 uid 路由 `…/<uid>/event`）；periph 插拔 = `{"uid", "pkind"}`（按 uid 路由）；功率预算拒绝 = `{"requested_ma", "used_ma", "budget_ma"}`（路由 `…/sys/event`）；遥测 payload = `{"ver":1, "kind":96, "dev", "value_u", "wall_ms"}`（原 M3a.2 的设备种类键 `"kind"` 让位信封 kind，改名 `"dev"`——破坏性变更随本批与消费端同步切换）。消费端（host/Agent）对未知 kind **透传存储不解析**（§0 前向兼容落点）；固件产生端只产注册表内 kind。
@@ -138,6 +140,7 @@ int ts_net_key_sys (char *buf, size_t n, const char *cmd);    /* …/sys/<cmd>�
 
 ## 修订记录
 
+- v0.3.8 · 2026-10-07：MD1.2g（单元 A，DEC-47①②⑥）——§3 增 `ts_net_key_av`（专用帧分片通道 …/av/<id>/frame）；§5 增 avq（信封/打拍/重试/背压/DOWN 自弃语义）；cbor_min 增 put_bstr；Kconfig 增 TS_NET_PUBLISH_* 族与 TS_NET_AVQ_DEPTH（§7 同步——常量出处 = DEC-47②）。用例 framework.net test_12_avq。回归 twister 15/15（68 用例）。
 - v0.3.6 · 2026-09-26：DEC-43——§5 pubq 互斥（push/flush 并发安全；flush 锁内出队 + 锁外发送防传输阻塞反压；锁序 write_lock → pubq 单向无环）。回归 framework.conc test_03 + 全量 13/13（54 用例）。
 - v0.3.5 · 2026-09-25：impl-review-01 修复批（F-1/F-3/F-4）——§5 订阅扩至七类（periph 插拔/附着 + 功率预算拒绝归因外发，extra 扁平对 0…3 个）+ pubq 定容 128B（溯源见 §5）；§4.2 idem 回放判定置于 key/op 匹配后（跨 key 同 idem 拒绝）；§4.3 gated 按 suffix 回查回填 + sys_init 错误上抛。回归：twister 10/10（46 用例）/ L5 6/6 / pytest 全绿。
 - v0.1 · 2026-09-20：首版草案。

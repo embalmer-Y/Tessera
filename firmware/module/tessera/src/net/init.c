@@ -34,6 +34,7 @@ static void net_tick(struct k_work *work)
 	ts_net_linkmon_tick(now);
 	ts_net_pub_telem(now);
 	ts_net_pubq_flush(); /* 周期冲刷（CONNECTED 持续期；DOWN 期 pubq 自弃） */
+	ts_net_avq_flush();  /* av 分片通道冲刷（DEC-47①②，MD1.2g；同语义） */
 	k_work_reschedule_for_queue(&net_wq, d,
 				    K_MSEC(CONFIG_TS_NET_TELEM_INTERVAL_MS));
 }

@@ -196,6 +196,15 @@ bool ts_cbor_put_tstr(uint8_t *buf, size_t cap, size_t *pos, const char *s)
 	return ts_cbor_put_tstrn(buf, cap, pos, s, strlen(s));
 }
 
+bool ts_cbor_put_bstr(uint8_t *buf, size_t cap, size_t *pos, const uint8_t *b, uint32_t len)
+{
+	if (!put_head(buf, cap, pos, 2, len)) return false;
+	if (*pos + len > cap) return false;
+	memcpy(buf + *pos, b, len);
+	*pos += len;
+	return true;
+}
+
 bool ts_cbor_put_uint(uint8_t *buf, size_t cap, size_t *pos, uint64_t v)
 {
 	return put_head(buf, cap, pos, 0, v);

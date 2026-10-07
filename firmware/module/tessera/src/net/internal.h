@@ -65,6 +65,7 @@ bool ts_cbor_put_map(uint8_t *buf, size_t cap, size_t *pos, uint32_t pairs);
 bool ts_cbor_put_array(uint8_t *buf, size_t cap, size_t *pos, uint32_t items);
 bool ts_cbor_put_tstr(uint8_t *buf, size_t cap, size_t *pos, const char *s);
 bool ts_cbor_put_tstrn(uint8_t *buf, size_t cap, size_t *pos, const char *s, size_t n);
+bool ts_cbor_put_bstr(uint8_t *buf, size_t cap, size_t *pos, const uint8_t *b, uint32_t len);
 bool ts_cbor_put_uint(uint8_t *buf, size_t cap, size_t *pos, uint64_t v);
 bool ts_cbor_put_int(uint8_t *buf, size_t cap, size_t *pos, int64_t v);
 bool ts_cbor_put_bool(uint8_t *buf, size_t cap, size_t *pos, bool v);

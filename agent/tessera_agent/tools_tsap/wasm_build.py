@@ -28,12 +28,13 @@ from typing import Any
 from tessera_agent.common.errors import TA_E_ARGS, TA_E_TSAP, TaError
 from tessera_agent.tools_tsap.tools import _resolve_within
 
-# natives 白名单 = 固件 runtime 注册面（natives.c native_symbols[]，板级十
-# 对齐后六函数；沙箱边界：白名单外导入 = 一票拒绝 fail-closed）
+# natives 白名单 = 固件 runtime 注册面（natives.c native_symbols[]）；
+# 沙箱边界：白名单外导入 = 一票拒绝 fail-closed
 NATIVE_WHITELIST = frozenset({
     "ts_gpio_write", "ts_gpio_read", "ts_pwm_set", "ts_adc_read",
     "ts_time_ms", "ts_log_write",
     "ts_fs_read", "ts_fs_write", "ts_fs_list", "ts_fs_delete",  # DEC-47④（MD1.2e）
+    "ts_av_capture", "ts_net_publish",  # DEC-47③⑥（MD1.2g）
 })
 
 # 框架回调（runtime lookup：health_ping 必有；app_init/app_tick/app_evt

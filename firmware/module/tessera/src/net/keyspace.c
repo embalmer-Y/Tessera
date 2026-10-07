@@ -72,3 +72,14 @@ int ts_net_key_sys(char *buf, size_t n, const char *cmd)
 	if (w < 0 || (size_t)w >= sizeof(suf)) return -1;
 	return key_cat(buf, n, suf);
 }
+
+int ts_net_key_av(char *buf, size_t n, uint16_t app_id)
+{
+	/* DEC-47①（MD1.2g）：专用帧分片通道 …/av/<stream>/frame；
+	 * V1 stream = 数值 app_id（单活跃 = 1——避免字符串段注入面） */
+	char suf[24];
+	int w = snprintf(suf, sizeof(suf), "av/%u/frame", (unsigned)app_id);
+
+	if (w < 0 || (size_t)w >= sizeof(suf)) return -1;
+	return key_cat(buf, n, suf);
+}

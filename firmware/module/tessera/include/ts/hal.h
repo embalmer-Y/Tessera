@@ -32,6 +32,7 @@ typedef enum {
 	TS_PERM_CLASS_ADC,
 	TS_PERM_CLASS_POWER,
 	TS_PERM_CLASS_FS,   /* DEC-47⑤：文件系统（ts-fs 能力面，MD1.2e） */
+	TS_PERM_CLASS_AV,   /* DEC-47⑤：音视频采集/流通道（ts-av 能力面，MD1.2g） */
 	TS_PERM_CLASS_MSG,
 	TS_PERM_CLASS_SYS,
 	TS_PERM_CLASS_COUNT,
@@ -90,6 +91,29 @@ ts_res_t ts_fs_write(ts_ctx_t c, const char *path, uint32_t off, const uint8_t *
 
 /** 删除文件（目录非空 = 拒绝——由 FS 后端语义决定）。 */
 ts_res_t ts_fs_delete(ts_ctx_t c, const char *path);
+
+/* ---- ts-av 能力面（DEC-47③⑥，MD1.2g）-------------------------------------
+ * 最小采集面：阻塞取一帧到 APP 缓冲；格式/分辨率经 manifest 声明
+ * （av_fmt/av_w/av_h）→ ts_av_config_bind 随载绑定，未绑定 = TS_E_STATE
+ * fail-closed。采集/发布均为读类（合同 3 输入面——不经安全提交层）。
+ * 发布 = ts_av_publish 经 ts-net avq 分片通道（chunk≤1KB/打拍≥4ms/
+ * 重试≤5×20ms——DEC-47②）；权限 = av:read:0（DEC-47⑤）。 */
+
+typedef enum {
+	TS_AV_FMT_JPEG,   /* DEC-47②：JPEG 优先（OV2640 硬件压缩） */
+	TS_AV_FMT_RGB565, /* 演示保底（无压缩，QQVGA ~38KB/帧） */
+} ts_av_fmt_t;
+
+ts_res_t ts_av_config_bind(uint16_t app_id, ts_av_fmt_t fmt, uint16_t w, uint16_t h);
+ts_res_t ts_av_config_bind_ctx(ts_ctx_t c, ts_av_fmt_t fmt, uint16_t w, uint16_t h);
+
+/** 阻塞取一帧到 buf（≤cap；*len = 实际帧长；帧 > cap = TS_E_RANGE）。 */
+ts_res_t ts_av_capture(ts_ctx_t c, uint8_t *buf, uint32_t cap, uint32_t *len);
+
+/** 发布一分片（len ≤ CONFIG_TS_NET_PUBLISH_MAX_BYTES；入队即返回，
+ * 满队 TS_E_BUSY 由 APP 稍后重发本分片）。 */
+ts_res_t ts_av_publish(ts_ctx_t c, uint32_t frame_id, uint32_t chunk_id,
+		       uint32_t n_chunks, const uint8_t *data, uint32_t len);
 
 /* ---- ts_api_v1（APP 可见的全部导入符号，LLD-ts-hal §3）------------------ */
 

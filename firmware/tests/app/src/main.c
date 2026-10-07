@@ -259,4 +259,73 @@ ZTEST(framework_app, test_05_fs_gates)
 	ts_hal_unbind_context(&ctx);
 }
 
+/* ---- ts-av 能力面（DEC-47③⑥，MD1.2g）------------------------------------
+ * 读类 fail-closed：av:read:0 位图 + av_fmt/av_w/av_h 配置绑定（manifest
+ * 声明 → 随载绑定；未声明 = TS_E_STATE）。native_sim 无摄像头 chosen →
+ * 权限+配置齐全时走到后端报 TS_E_IO（IO 面）；权限/配置缺口在门内即拒。
+ * 发布面（TS_NET=y）：hal 权限/参数门 + avq 入队；发送/信封/重试语义在
+ * framework.net test_12_avq 覆盖。 */
+ZTEST(framework_app, test_06_av_gates)
+{
+	ts_perm_table_t table;
+	ts_ctx_t ctx;
+
+	/* av 类文法（op = read；DEC-47⑤） */
+	ts_perm_table_init(&table);
+	zassert_equal(ts_perm_parse("av:read:0", &table), TS_OK, "av 类解析");
+	zassert_equal(ts_perm_parse("av:capture:0", &table), TS_E_PARAM,
+		      "未知 op fail-closed（V1 av op = read）");
+	zassert_equal(ts_hal_bind_context(&ctx, 0x5c, &table), TS_OK);
+
+	/* 未绑定配置（manifest 未声明 av_*）：权限过、配置缺 → 拒绝 */
+	uint8_t b[64];
+	uint32_t n = 0;
+
+	zassert_equal(ts_av_capture(ctx, b, sizeof(b), &n), TS_E_STATE,
+		      "未声明格式 = 拒绝");
+
+	/* 配置绑定 + 参数域（分辨率界 16..800 与 agent 校验器对齐） */
+	zassert_equal(ts_av_config_bind_ctx(ctx, TS_AV_FMT_JPEG, 160, 120), TS_OK);
+	zassert_equal(ts_av_config_bind(0x5c, TS_AV_FMT_JPEG, 8, 120), TS_E_PARAM,
+		      "分辨率下界（<16）拒绝");
+	zassert_equal(ts_av_config_bind(0x5c, (ts_av_fmt_t)9, 160, 120), TS_E_PARAM,
+		      "未知格式拒绝");
+	zassert_equal(ts_av_capture(ctx, NULL, sizeof(b), &n), TS_E_PARAM);
+
+	/* 配置绑定域 = 声明它的 APP（其他 ctx → TS_E_STATE） */
+	ts_ctx_t other;
+
+	zassert_equal(ts_hal_bind_context(&other, 0x5d, &table), TS_OK);
+	zassert_equal(ts_av_capture(other, b, sizeof(b), &n), TS_E_STATE,
+		      "配置不属于本 APP");
+	ts_hal_unbind_context(&other);
+
+	/* 权限 + 配置齐全 → 后端（native_sim 无摄像头 chosen → TS_E_IO 如实） */
+	zassert_equal(ts_av_capture(ctx, b, sizeof(b), &n), TS_E_IO,
+		      "授权+配置 → 后端 IO（无摄像头，如实）");
+
+	/* 发布面（TS_NET=y 构建）：权限/参数门 + 入队语义（本构建无传输注入，
+	 * avq 只入队不发送——发送语义在 framework.net test_12 覆盖） */
+	ts_net_avq_reset();
+	zassert_equal(ts_av_publish(ctx, 1, 0, 2, b, 8), TS_OK, "授权分片入队");
+	zassert_equal(ts_av_publish(ctx, 1, 0, 2, b, 0), TS_E_PARAM, "len=0 拒绝");
+	zassert_equal(ts_av_publish(ctx, 1, 2, 2, b, 8), TS_E_PARAM, "cid>=n 拒绝");
+	static uint8_t big[CONFIG_TS_NET_PUBLISH_MAX_BYTES + 1];
+
+	memset(big, 1, sizeof(big));
+	zassert_equal(ts_av_publish(ctx, 1, 0, 2, big, sizeof(big)), TS_E_PARAM,
+		      "chunk > 1KB 拒绝（DEC-47②）");
+
+	/* 无 av 权限的 ctx：门内拒绝（留痕） */
+	ts_perm_table_init(&table);
+	zassert_equal(ts_perm_parse("gpio:read:0", &table), TS_OK);
+	zassert_equal(ts_hal_bind_context(&ctx, 0x5e, &table), TS_OK);
+	zassert_equal(ts_av_config_bind_ctx(ctx, TS_AV_FMT_JPEG, 160, 120), TS_OK);
+	zassert_equal(ts_av_capture(ctx, b, sizeof(b), &n), TS_E_PERM,
+		      "无 av:read = 拒绝");
+	zassert_equal(ts_av_publish(ctx, 1, 0, 2, b, 8), TS_E_PERM,
+		      "发布同受 av:read 门（DEC-47⑥ 读类）");
+	ts_hal_unbind_context(&ctx);
+}
+
 ZTEST_SUITE(framework_app, NULL, NULL, NULL, NULL, NULL);

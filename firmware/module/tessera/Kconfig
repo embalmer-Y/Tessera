@@ -158,6 +158,27 @@ config TS_HAL_FS_PATHS_MAX
 	help
 	  Source: DEC-47 (MD1.2e). Semicolon-separated absolute prefixes.
 
+config TS_HAL_AV
+	bool "ts-av capability surface (ts_av_capture/ts_net_publish natives, DEC-47)"
+	depends on TS_HAL
+	select VIDEO
+	default n
+	help
+	  DEC-47 3/6 (MD1.2g): minimal blocking frame capture into the APP
+	  buffer plus av-channel publish (both gated by av:read:0).
+	  Format/resolution declared via manifest (av_fmt/av_w/av_h).
+	  Camera via chosen zephyr,camera (official buffer-pool path,
+	  MD1.2b); boards without it fail TS_E_IO (fail-closed).
+
+config TS_HAL_AV_TIMEOUT_MS
+	int "ts-av: per-capture dequeue timeout in ms"
+	depends on TS_HAL_AV
+	default 400
+	help
+	  Coherence: must stay below TS_WDT_APPMGR_PERIOD_MS (default 1000,
+	  DEC-48) so a camera stall fails with TS_E_IO before the software
+	  watchdog escalates.
+
 if TS_HAL
 
 config TS_HAL_MAX_INSTANCES
@@ -290,6 +311,7 @@ endif # TS_APPMGR
 config TS_NET
 	bool "ts-net: zenoh session / keyspace / publish queue / link monitor"
 	depends on TS_CORE
+	select CRC
 	default y
 	help
 	  design/LLD-ts-net.md (M3a). Transport seam: logic (keyspace/pubq/
@@ -355,6 +377,40 @@ config TS_NET_APP_CHUNK_MAX
 	help
 	  Source: LLD-A06 3 (2KB default, 4KB ceiling from NeuroLink field data).
 	  Also sizes the zenoh query request buffer (chunk + envelope margin).
+
+config TS_NET_PUBLISH_MAX_BYTES
+	int "Max av chunk payload bytes (ts_net_publish native)"
+	default 1024
+	help
+	  Source: DEC-47 2 (av-transport-01): chunks stay <=1KB so zenoh-pico
+	  never enters its fragmentation path (Z_BATCH_UNICAST_SIZE=2048).
+
+config TS_NET_PUBLISH_MIN_GAP_MS
+	int "Pacing between av chunk puts in ms (avq flush)"
+	default 4
+	help
+	  Source: DEC-47 2: >=4ms pacing measured mandatory (back-to-back
+	  z_put fails with -100, errno=0, before reaching the syscall layer).
+
+config TS_NET_PUBLISH_RETRY_MAX
+	int "Av chunk publish retries per chunk (avq flush)"
+	default 5
+	help
+	  Source: DEC-47 2 (av-transport-01 field data).
+
+config TS_NET_PUBLISH_RETRY_DELAY_MS
+	int "Delay between av chunk retries in ms"
+	default 20
+	help
+	  Source: DEC-47 2 (av-transport-01 field data; <=5x20ms recovers
+	  from WiFi-degraded BLOCK drops).
+
+config TS_NET_AVQ_DEPTH
+	int "Av chunk queue depth (entries of MAX_BYTES+48)"
+	default 4
+	help
+	  Backpressure surface: APP publishing faster than the paced drain
+	  gets TS_E_BUSY (V1 single app; 4 x ~1KB DRAM).
 
 endif # TS_NET
 

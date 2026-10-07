@@ -30,6 +30,7 @@ static int parse_class(const char *s, size_t len)
 	if (len == 3 && strncmp(s, "adc", 3) == 0) return TS_PERM_CLASS_ADC;
 	if (len == 5 && strncmp(s, "power", 5) == 0) return TS_PERM_CLASS_POWER;
 	if (len == 2 && strncmp(s, "fs", 2) == 0) return TS_PERM_CLASS_FS; /* DEC-47⑤ */
+	if (len == 2 && strncmp(s, "av", 2) == 0) return TS_PERM_CLASS_AV; /* DEC-47⑤ */
 	if (len == 3 && strncmp(s, "msg", 3) == 0) return TS_PERM_CLASS_MSG;
 	if (len == 3 && strncmp(s, "sys", 3) == 0) return TS_PERM_CLASS_SYS;
 	return -1;

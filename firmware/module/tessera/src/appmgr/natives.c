@@ -7,8 +7,9 @@
  * 已知偏差（LLD-ts-appmgr 修订登记）：WAMR natives 为全局注册，
  * "未授权符号链接期不存在"的结构化装配留待 WAMR per-instance 支持；
  * 调用期拒绝不削弱合同 10（越权拒绝 + 留痕完整）。
- * V1 符号集 = ts-hal 已实现子集（gpio/pwm/adc/time/log）；msg/power_set
- * 随对应 hal API 实装后追加。
+ * V1 符号集 = ts-hal 已实现子集（gpio/pwm/adc/time/log + fs×4〔MD1.2e〕
+ * + av 采集/发布〔MD1.2g，DEC-47③⑥〕）；msg/power_set 随对应 hal API
+ * 实装后追加。
  * 读类返回约定：>= 0 = 值；< 0 = ts_res_t 错误码（err.h 负数）。 */
 #include <inttypes.h>
 #include <string.h>
@@ -181,6 +182,43 @@ static int32_t native_fs_delete(wasm_exec_env_t env, uint32_t ctx_opaque,
 }
 #endif /* CONFIG_TS_HAL_FS */
 
+/* ---- ts-av natives（DEC-47③⑥，MD1.2g）------------------------------
+ * 读类；权限/配置裁决在 hal/av.c（av:read:0 + av_fmt/av_w/av_h 绑定）。 */
+#ifdef CONFIG_TS_HAL_AV
+static int32_t native_av_capture(wasm_exec_env_t env, uint32_t ctx_opaque,
+				 uint32_t buf_off, uint32_t cap)
+{
+	ARG_UNUSED(ctx_opaque);
+	wasm_module_inst_t inst = wasm_runtime_get_module_inst(env);
+
+	if (cap == 0 || !wasm_runtime_validate_app_addr(inst, buf_off, cap)) {
+		return TS_E_PARAM;
+	}
+	uint8_t *dst = (uint8_t *)wasm_runtime_addr_app_to_native(inst, buf_off);
+	uint32_t len = 0;
+	ts_res_t r = ts_av_capture(ctx_of(env), dst, cap, &len);
+
+	return (r == TS_OK) ? (int32_t)len : (int32_t)r;
+}
+
+#ifdef CONFIG_TS_NET
+static int32_t native_net_publish(wasm_exec_env_t env, uint32_t ctx_opaque,
+				  uint32_t fid, uint32_t cid, uint32_t n,
+				  uint32_t buf_off, uint32_t len)
+{
+	ARG_UNUSED(ctx_opaque);
+	wasm_module_inst_t inst = wasm_runtime_get_module_inst(env);
+
+	if (len == 0 || !wasm_runtime_validate_app_addr(inst, buf_off, len)) {
+		return TS_E_PARAM;
+	}
+	const uint8_t *src = (const uint8_t *)wasm_runtime_addr_app_to_native(inst, buf_off);
+
+	return (int32_t)ts_av_publish(ctx_of(env), fid, cid, n, src, len);
+}
+#endif /* CONFIG_TS_NET */
+#endif /* CONFIG_TS_HAL_AV */
+
 /* wasm 导入符号表（namespace "env"；签名 = wasm 参数/返回类型） */
 
 static NativeSymbol ts_native_syms[] = {
@@ -195,6 +233,12 @@ static NativeSymbol ts_native_syms[] = {
 	{"ts_fs_write", native_fs_write, "(iiiiii)i", NULL},
 	{"ts_fs_list", native_fs_list, "(iiiii)i", NULL},
 	{"ts_fs_delete", native_fs_delete, "(iiii)i", NULL},
+#endif
+#ifdef CONFIG_TS_HAL_AV
+	{"ts_av_capture", native_av_capture, "(iii)i", NULL},
+#ifdef CONFIG_TS_NET
+	{"ts_net_publish", native_net_publish, "(iiiiii)i", NULL},
+#endif
 #endif
 };
 

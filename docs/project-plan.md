@@ -1,6 +1,6 @@
 # docs/project-plan.md · Tessera 统一项目开发计划
 
-> **版本**：v1.30 · 2026-10-07（v1.0 · 2026-09-22 · 依 owner 指令与 **DEC-39** 建立）.
+> **版本**：v1.31 · 2026-10-07（v1.0 · 2026-09-22 · 依 owner 指令与 **DEC-39** 建立）.
 > **权威顺序**：owner 最新裁决（decisions.md DEC）> `FOUNDING_PROMPT.md` > 本计划。计划变更走修订记录；里程碑进出走 review 门（流程 §2.4-②）。
 > **结构**：双轨并行——**轨道 A（固件框架，M 系）** 与 **轨道 B（AI Agent，MA 系）**；交叉依赖见 §4；实施节奏（单会话一交付单元，军规/流程 §2.3）建议排序见 §7。
 
@@ -56,7 +56,7 @@
 
 | 序 | 单元 | 内容 | 门 |
 |---|------|------|----|
-| A | **MD1.2g** | ts-av + ts_net_publish 能力面（DEC-47③⑥：ts_av_capture 最小面 + av 权限类 + ts_net_publish〔打拍≥4ms=速率限制、chunk≤1KB、分片重试≤5×20ms——DEC-47② 值直用〕+ kind 注册表/内存表/L5 同步 + agent 白名单/manifest/提示词 + 用例）；**并入**：fs_paths 条目长度对齐（复检发现②：agent≤64 vs 固件≤63） | 已裁（DEC-47） |
+| A | **MD1.2g** ✅ | ts-av + ts_net_publish 能力面（DEC-47③⑥：ts_av_capture 最小面 + av 权限类 + ts_net_publish〔打拍≥4ms=速率限制、chunk≤1KB、分片重试≤5×20ms——DEC-47② 值直用〕+ kind 注册表/内存表/L5 同步 + agent 白名单/manifest/提示词 + 用例）；**并入**：fs_paths 条目长度对齐（复检发现②：agent≤64 vs 固件≤63） | 已裁（DEC-47） |
 | B | **MD1.2h** | D-AV demo：JPEG 帧格式（OV2640 硬件压缩）+ 真 LLM 生成 + PC 侧帧重组消费端 + 真机判据（1KB chunk/4ms 打拍/重试——av-transport-01 实测参数） | — |
 | C | **验签呈递批（Q-29）** | IR2-02 根治方案：TSAP 头摘要字段（文件格式变更）+ ed25519 真验签 + 生产 prov 烧录通道（板级余项同批） | 门③ 呈递停门 |
 | D | 验签实施批 | Q-29 裁决后实现 + 真机部署链复验；**并入 IR2-07**（回滚闭环：目标槽验证/回滚后重载/meta 双损如实失败） | — |
@@ -76,6 +76,8 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.31 · 2026-10-07：MD1.2g（单元 A）交付——ts-av + ts_net_publish 能力面（DEC-47③⑥：av.c 采集/发布读类面 + avq 分片通道〔DEC-47② 值经 Kconfig〕+ av:read 权限类 + manifest av_* 三方同步 + test_06/test_12）；并入复检发现②（fs_paths 对齐）与④（回归脚本 WAMR 加固）；LLD-ts-hal v0.2.3 / LLD-ts-net v0.3.8 / LLD-ts-appmgr v0.5.3 / HLD §4.6 av 面增补；twister 15/15（68 用例）。
+
 - v1.30 · 2026-10-07：**owner 指令重构排期**——硬件阶段三排除出开发范围（板级固件面保留）；剩余全量单元重排 A…J（A MD1.2g → B MD1.2h → C Q-29 呈递〔门③〕→ D 验签实施〔并入 IR2-07〕→ E PDM 评估 → F 输入面 G3〔并入 IR2-06/estop 沿〕→ G 板级余项〔poweron/MCUmgr OTA〕→ H G4/G5 → I MD2 → J Zephyr 升级+P4〔门⑤〕）；连续开发授权 + 每单元后汇报总/阶段进度。复检发现落点：②fs_paths 长度对齐→单元 A；①IR2-06/07 排期缺口→D/F；③ts_fs 语义边缘→impl-review-02 §8 附记；④本地回归脚本 WAMR 预处理→仓外工具。
 
 - v1.29 · 2026-10-07：MD1.2f——D-SD demo 真机全链 PASS（真 LLM ts-fs APP；宿主独立复核双证据；真机首验根治 fs_paths 绑定形态缺陷；提示词/校验器/解包三处 fs 面同步）。

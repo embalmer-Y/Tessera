@@ -255,3 +255,5 @@
 - 2026-10-07 · **MD1.2e 交付登记**：ts_fs_list / ts_fs_read / ts_fs_write / ts_fs_delete（公共 API + natives，DEC-47④）；TS_PERM_CLASS_FS / TS_PERM_OP_LIST / TS_PERM_OP_DELETE（ts_perm_v1 新类与新 op）；fs_paths（manifest 新字段：路径前缀白名单）；ts_fs_paths_bind / ts_fs_path_allowed（绑定与裁决 API）；TS_HAL_FS / TS_HAL_FS_PATHS_MAX（Kconfig）；framework.app test_05_fs_gates。
 
 - 2026-10-07 · **MD1.2f 交付登记**：D-SD（demo 代号：SD 卡读写安全演示）；dsdbench（firmware/tests/ 真机载体；DS* console 行）；tessera.demo.d-sd（demo app_id）；dsd.txt / dsd-done.txt / dsd-deny.txt（判据工件路径）；apps-data（fs_paths 白名单工作目录约定）。
+
+- 2026-10-07 · **MD1.2g 交付登记（单元 A）**：ts_av_capture / ts_av_publish / ts_av_config_bind（ts-av 公共 API，hal/av.c）；TS_PERM_CLASS_AV（ts_perm_v1 新类，op = read）；TS_AV_FMT_JPEG / TS_AV_FMT_RGB565（采集格式枚举）；TS_HAL_AV / TS_HAL_AV_TIMEOUT_MS（Kconfig）；avq / ts_net_avq_push·flush·dropped·reset（av 分片通道队列，net/avq.c）；ts_net_key_av（key 构造：…/av/<id>/frame——DEC-47① 专用帧分片通道，stream = 数值 app_id）；TS_NET_PUBLISH_MAX_BYTES / MIN_GAP_MS / RETRY_MAX / RETRY_DELAY_MS / TS_NET_AVQ_DEPTH（Kconfig 族——出处 DEC-47②）；av_fmt / av_w / av_h（manifest 可选键，与 caps av: 互为充要）；framework.app test_06_av_gates / framework.net test_12_avq。

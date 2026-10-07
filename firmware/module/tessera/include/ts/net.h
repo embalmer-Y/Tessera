@@ -54,6 +54,7 @@ int ts_net_key_tel(char *buf, size_t n, const char *uid); /* …/<uid>/telemetry
 int ts_net_key_evt(char *buf, size_t n, const char *uid); /* …/<uid>/event    */
 int ts_net_key_hb(char *buf, size_t n, bool host_dir);    /* …/sys/hb[-host]（DR-12） */
 int ts_net_key_sys(char *buf, size_t n, const char *cmd); /* …/sys/<cmd>（DR-03） */
+int ts_net_key_av(char *buf, size_t n, uint16_t app_id);  /* …/av/<id>/frame（DEC-47①） */
 
 /* ---- 会话（LLD §2）------------------------------------------------------- */
 
@@ -79,6 +80,18 @@ ts_res_t ts_net_pubq_push_qos(const char *key, const uint8_t *payload, uint32_t 
 			      ts_net_qos_t qos);
 uint32_t ts_net_pubq_dropped(void); /* 累计丢弃（含 DOWN 期丢与溢出丢） */
 void ts_net_pubq_flush(void);       /* 经 transport 逐条发送（发送后清出） */
+
+/* ---- av 分片通道（DEC-47①②，MD1.2g；LLD §5）------------------------------
+ * APP 大块数据发布面（视频帧分片）：APP 线程入队（信封封装 fid/cid/n/crc/d，
+ * 满队 = TS_E_BUSY 背压）；net 线程周期冲刷（打拍 ≥TS_NET_PUBLISH_MIN_GAP_MS
+ * + 分片重试 ≤RETRY_MAX×RETRY_DELAY_MS——DEC-47② 实测值）。DOWN 期丢弃 +
+ * 计数（尽力而为；消费端按 crc/帧序丢弃残帧）。 */
+
+ts_res_t ts_net_avq_push(uint16_t app_id, uint32_t fid, uint32_t cid,
+			 uint32_t n_chunks, const uint8_t *data, uint32_t len);
+void ts_net_avq_flush(void);
+uint32_t ts_net_avq_dropped(void);
+void ts_net_avq_reset(void); /* 测试复位 */
 
 /* ---- 心跳监视（LLD §6，合同 3 判定源；合同 8 本地独立判定）---------------- */
 

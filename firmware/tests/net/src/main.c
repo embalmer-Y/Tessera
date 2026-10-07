@@ -3,6 +3,7 @@
  * 会话状态机 / linkmon→safety 断链-恢复集成（虚拟时钟确定性）。 */
 #include <stdio.h>
 #include <string.h>
+#include <zephyr/sys/crc.h>
 #include <zephyr/ztest.h>
 #include <ts/appmgr.h>
 #include <ts/core.h>
@@ -20,6 +21,7 @@ static int fake_open_fail;
 static int fake_close_calls;
 static int fake_pub_calls;
 static bool fake_up_v;
+static int fake_pub_fail; /* >0 = 接下来 N 次 publish 失败（重试路径注入） */
 static char last_key[64];
 static uint8_t last_payload[128]; /* = pubq PAYLOAD_MAX（F-1 预算事件 ~85B） */
 static uint32_t last_len;
@@ -39,6 +41,11 @@ static void fake_close(void)
 static ts_res_t fake_publish(const char *key, const uint8_t *p, uint32_t l,
 			     ts_net_qos_t qos)
 {
+	if (fake_pub_fail > 0) {
+		fake_pub_fail--;
+		fake_pub_calls++;
+		return TS_E_IO;
+	}
 	strcpy(prev_key, last_key);
 	memcpy(prev_payload, last_payload, sizeof(prev_payload));
 	prev_len = last_len;
@@ -1103,6 +1110,97 @@ ZTEST(framework_net, test_11_gated_backfill_idem_order)
 	zassert_equal(ts_net_cmd_dispatch("sys/get-info", req, rlen, resp,
 					  sizeof(resp), &resp_len),
 		      TS_OK, "同 key 同 idem 正常回放");
+}
+
+/* ---- L5：av 分片通道（DEC-47①②，MD1.2g）---------------------------------- */
+
+ZTEST(framework_net, test_12_avq)
+{
+	char key[64];
+
+	ts_net_test_reset();
+	fake_pub_calls = 0;
+	fake_pub_fail = 0;
+	ts_net_avq_reset();
+	zassert_equal(ts_net_set_ids("n1", "c1"), TS_OK);
+
+	/* key 构造：专用帧分片通道（DEC-47①；stream = 数值 app_id） */
+	zassert_true(ts_net_key_av(key, sizeof(key), 1) > 0);
+	zassert_equal(strcmp(key, "tessera/n1/c1/av/1/frame"), 0);
+
+	/* 参数门：chunk ≤1KB（DEC-47②）/ 分片序号域 / NULL */
+	const uint8_t chunk[8] = {1, 2, 3, 4, 5, 6, 7, 8};
+	static uint8_t big[CONFIG_TS_NET_PUBLISH_MAX_BYTES + 1];
+
+	memset(big, 1, sizeof(big));
+	zassert_equal(ts_net_avq_push(1, 1, 0, 2, NULL, 4), TS_E_PARAM);
+	zassert_equal(ts_net_avq_push(1, 1, 0, 2, big, sizeof(big)), TS_E_PARAM,
+		      "chunk > 1KB = 拒绝（永不进碎片路径）");
+	zassert_equal(ts_net_avq_push(1, 1, 2, 2, chunk, 8), TS_E_PARAM,
+		      "cid >= n = 拒绝");
+	zassert_equal(ts_net_avq_push(1, 1, 0, 0, chunk, 8), TS_E_PARAM,
+		      "n = 0 = 拒绝");
+
+	/* DOWN 期：flush 自弃 + 计数（pubq 同语义） */
+	zassert_equal(ts_net_avq_push(1, 7, 0, 2, chunk, 8), TS_OK);
+	zassert_equal(ts_net_avq_push(1, 7, 1, 2, chunk, 8), TS_OK);
+	ts_net_avq_flush();
+	zassert_equal(fake_pub_calls, 0, "DOWN 期不发送");
+	zassert_equal(ts_net_avq_dropped(), 2, "DOWN 期自弃计数");
+
+	/* CONNECTED：发送 + key + 信封逐字段解码（fid/cid/n/crc/d） */
+	ts_net_avq_reset();
+	fake_open_fail = 0;
+	fake_up_v = true;
+	ts_net_set_transport(&fake_t);
+	zassert_equal(ts_net_session_poll(0), TS_NET_CONNECTED);
+	zassert_equal(ts_net_avq_push(1, 9, 0, 3, chunk, 8), TS_OK);
+	int before = fake_pub_calls;
+
+	ts_net_avq_flush();
+	zassert_equal(fake_pub_calls, before + 1, "CONNECTED 发送");
+	zassert_equal(strcmp(last_key, "tessera/n1/c1/av/1/frame"), 0);
+
+	ts_cbor_rd_t r;
+	uint32_t pairs;
+	char k[8];
+	uint64_t v;
+	const uint8_t *d;
+	uint32_t dl;
+
+	ts_cbor_rd_init(&r, last_payload, last_len);
+	zassert_true(ts_cbor_map_open(&r, &pairs));
+	zassert_equal(pairs, 5);
+	zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "fid") == 0);
+	zassert_true(ts_cbor_uint(&r, &v) && v == 9);
+	zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "cid") == 0);
+	zassert_true(ts_cbor_uint(&r, &v) && v == 0);
+	zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "n") == 0);
+	zassert_true(ts_cbor_uint(&r, &v) && v == 3);
+	zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "crc") == 0);
+	zassert_true(ts_cbor_uint(&r, &v) && v == crc32_ieee(chunk, 8));
+	zassert_true(ts_cbor_tstr(&r, k, sizeof(k)) && strcmp(k, "d") == 0);
+	zassert_true(ts_cbor_bstr_ref(&r, &d, &dl) && dl == 8 &&
+		     memcmp(d, chunk, 8) == 0);
+
+	/* 队满背压：DEPTH 条入队后 E_BUSY（APP 稍后重发该分片） */
+	ts_net_avq_reset();
+	for (int i = 0; i < CONFIG_TS_NET_AVQ_DEPTH; i++) {
+		zassert_equal(ts_net_avq_push(1, 10, i, CONFIG_TS_NET_AVQ_DEPTH,
+					      chunk, 8), TS_OK);
+	}
+	zassert_equal(ts_net_avq_push(1, 10, 9, 10, chunk, 8), TS_E_BUSY,
+		      "队满 = 背压");
+
+	/* 重试路径：首次失败 → 重试成功送达（≤5×20ms——DEC-47②） */
+	ts_net_avq_reset();
+	fake_pub_fail = 1;
+	zassert_equal(ts_net_avq_push(1, 11, 0, 1, chunk, 8), TS_OK);
+	before = fake_pub_calls;
+	ts_net_avq_flush();
+	zassert_equal(fake_pub_calls, before + 2, "一次失败 + 重试成功");
+	zassert_equal(ts_net_avq_dropped(), 0, "重试成功不计丢弃");
+	fake_pub_fail = 0;
 }
 
 ZTEST_SUITE(framework_net, NULL, NULL, NULL, NULL, NULL);

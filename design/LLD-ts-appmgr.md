@@ -22,6 +22,8 @@ src/appmgr/
 | manifest(CBOR) | wasm 模块 | COSE_Sign1(ed25519, 覆盖 manifest‖wasm)
 manifest: { app_id(反域名串), app_ver(semver 串), min_fw_ver, capabilities[ts_perm_v1],
             mem:{stack_u16_kb, heap_u16_kb}, exports:{health_ping 必有, app_init/app_tick/app_evt 可选（§4 调用约定名——板级十对齐：早前 init/tick/evt 为笔误漂移，runtime.c lookup 即 app_*）} }
+可选键（DEC-47，MD1.2e/g）：fs_paths[绝对路径前缀]（fs 类路径白名单；有 fs: 能力时授权域）、
+            av_fmt("jpeg"|"rgb565")/av_w/av_h（与 caps 含 av: 互为充要——加载期 ts_av_config_bind 绑定）
 ```
 
 - 验签：根公钥在安全参数分区（烧录期写入，运行时只读，合同 10）；失败 → TS_E_INVALID_SIG + 留痕，不入 slot。
@@ -81,6 +83,7 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 
 - v0.5.2 · 2026-10-02：板级十第二修复——boot 装载成功路径补 initialized=true + active_slot=meta.active_slot（此前首次 get_info 惰性初始化盲写 state=STAGED 把 ACTIVE 打回〔装载结果被观测面抹掉〕，且 active_slot 不回填 = activate/get-app 槽位对拍必败；真机 DB6/get-app 对拍首证，docs/board-deploy-01.md）。
 
+- v0.5.3 · 2026-10-07：MD1.2g（单元 A，DEC-47③⑥）——§2 manifest 增可选键 av_fmt/av_w/av_h（与 caps av: 互为充要）+ fs_paths 补记（MD1.2e）；natives 面 +ts_av_capture/ts_net_publish（V1 符号集 = gpio×2/pwm/adc/time/log + fs×4 + av×2）；boot 走查增 av_* 键 + ts_av_config_bind 随载绑定。回归 twister 15/15（68 用例）。
 - v0.5.1 · 2026-10-02：板级十跨轨命名对齐——§2 manifest exports 名修正为 app_init/app_tick/app_evt（§4 调用约定/固件 runtime lookup/夹具 wasm 三方一致；Agent 侧 TsapManifest._EXPORTS_ALLOWED 同步修复——早前 init/tick/evt 漂移会拒绝一切真包，env 门控的 sim E2E 掩盖）。
 
 - v0.5 · 2026-10-01：板级六（PSRAM 挂接，docs/board-psram-01.md）——WAMR 实例堆统一为显式池：wasm_runtime_full_init(Alloc_With_Pool) 注入堆缓冲（事实修正：WAMR-2.4.5 的 WASM_ENABLE_GLOBAL_HEAP_POOL 旗标无消费者，wasm_runtime_init() 实为系统分配器——"64KB 池基线"从未生效；池模式下 64KB 结构性不可行〔线性内存一页即 64KB〕，TS_APP_WAMR_HEAP 默认 65536→262144）；TS_APP_PSRAM_HEAP（esp32s3 = SMH_REG_ATTR_EXTERNAL 分配 = HLD §4.6 分层纪律落点；其余 = 内部静态池）。

@@ -6,6 +6,9 @@
 
 ## 1. 当前状态
 
+- **2026-10-07（四十七） · MD1.2g 交付（排期表单元 A，DEC-47③⑥）：ts-av + ts_net_publish 能力面——ts_av_capture 阻塞取帧 + ts_net_publish 分片发布（avq：chunk≤1KB/打拍 4ms/重试≤5×20ms 全 DEC-47② 值）+ av:read 权限类 + manifest av_fmt/av_w/av_h 三方同步（与 caps av: 互为充要）；并入复检发现②（fs_paths 长度对齐 pfx[68]+总长前置校验）与④（回归脚本 WAMR chmod 444 加固——并行全量 15/15 无竞态实证）；twister 15/15（68 用例，+2）/agent 76+2s/L5 6/6/ruff 全绿**
+  - **架构落点**：hal/av.c（权限+配置绑定+官方池路径捕获；无摄像头板 TS_E_IO 如实）+ net/avq.c（APP 线程入队 / net_wq 单线程冲刷 = zenoh-pico 并发规避；信封 {fid,cid,n,crc32,d}；满队 BUSY 背压 + DOWN 自弃）；key = `…/av/<app_id>/frame`（数值 stream 防注入）。
+  - **下一单元（B）**：MD1.2h——D-AV demo（OV2640 JPEG 硬件压缩 + 真 LLM 生成 APP + PC 侧帧重组消费端 + 真机判据）。
 - **2026-10-07（四十六） · 规划批交付（owner 指令）：范围调整 + 计划 v1.30——硬件阶段三排除出开发范围；剩余全量单元重排 A…J 连续开发，每单元后汇报总/阶段进度；复检发现落点登记（IR2-07→D、IR2-06→F、fs_paths 对齐→A、ts_fs 边缘→impl-review-02 §8 附记）**
   - **排期表（plan §7 v1.30）**：A MD1.2g（ts-av+publish 面）→ B MD1.2h（D-AV demo）→ C 验签呈递（Q-29，门③停门）→ D 验签实施（并 IR2-07）→ E PDM 评估 → F 输入面 G3（并 IR2-06/estop 沿）→ G 板级余项（poweron/MCUmgr OTA）→ H G4/G5 → I MD2 → J Zephyr 升级+P4（门⑤停门）。
   - **下一单元（A）**：MD1.2g——ts_av_capture 最小面 + av 权限类 + ts_net_publish（打拍≥4ms=速率限制/chunk≤1KB/分片重试≤5×20ms——DEC-47② 值直用，无新 Q）+ kind/内存表/L5 同步 + agent 白名单/manifest/提示词 + 用例；并入 fs_paths 长度对齐。

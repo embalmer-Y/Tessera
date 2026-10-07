@@ -83,11 +83,13 @@ def _develop_system_prompt() -> str:
         # 格式（{'perm': 'pwm:0#set'}），manifest 硬校验 fail-closed 拦下但链路
         # 不可用；文法短小，直接入提示消除对 skill 阅读的依赖。
         "caps 是字符串数组，文法 ts_perm_v1：\"class:op:instances\"，"
-        "class∈{gpio,pwm,adc,power,fs,msg,sys}，op∈{read,write,set,list,delete}，"
+        "class∈{gpio,pwm,adc,power,fs,av,msg,sys}，op∈{read,write,set,list,delete}，"
         "instances=实例号（0-3 或 0,2 或 0-3）——例如 [\"pwm:set:0\", "
         "\"gpio:write:0\", \"fs:read:0\"]。"
         "fs 类的路径授权用 manifest 可选字段 fs_paths（绝对路径前缀白名单数组，"
-        "如 [\"/SD:/apps-data\"]——未列前缀的路径运行时拒绝）。",
+        "如 [\"/SD:/apps-data\"]——未列前缀的路径运行时拒绝）。"
+        "av 类（采集/流发布，MD1.2g）必须在 manifest 声明 av_fmt（\"jpeg\"|"
+        "\"rgb565\"）+ av_w + av_h（三者与 caps 含 \"av:read:0\" 互为充要）。",
         # MD1.1 实证（MiniMax-M3）：结构化输出的数组字段偶发被包成
         # {"item": ...}（传输层 XML 伪影）——显式禁包装
         "caps 与 exports 必须是 JSON 数组字面量（如 [\"gpio:write:0\"]、"
@@ -106,9 +108,17 @@ def _develop_system_prompt() -> str:
         "int ts_fs_read(int ctx,const char* path,int path_len,int off,char* buf,int cap)；"
         "int ts_fs_write(int ctx,const char* path,int path_len,int off,const char* data,int len)；"
         "int ts_fs_list(int ctx,const char* dir,int dir_len,char* out,int cap)；"
-        "int ts_fs_delete(int ctx,const char* path,int path_len)。",
+        "int ts_fs_delete(int ctx,const char* path,int path_len)；"
+        "int ts_av_capture(int ctx,char* buf,int cap)；"
+        "int ts_net_publish(int ctx,int frame_id,int chunk_id,"
+        "int n_chunks,const char* buf,int len)。",
         "（fs natives 仅当 manifest caps 含对应 fs:op 且 fs_paths 覆盖路径时可用；"
-        "返回 >=0 为字节数、<0 为错误码；路径缓冲在 wasm 线性内存内。）",
+        "返回 >=0 为字节数、<0 为错误码；路径缓冲在 wasm 线性内存内。）"
+        "（ts_av_capture 阻塞取一帧到 buf，返回帧长；仅当 caps 含 av:read:0 且 "
+        "manifest 声明 av_fmt/av_w/av_h 时可用。ts_net_publish 发布一分片：把帧"
+        "按 ≤1024 字节切块、frame_id 每帧自增、chunk_id/n_chunks 标注分片序；"
+        "宿主负责打拍与重试——连续调用无需自行等待；返回 <0 且为 -5（BUSY）时"
+        "稍后重发同一分片即可。）",
         "③ 约束：禁 WASI/stdio/全局构造/随机/墙钟；静态状态用 file-scope 变量；"
         "确定性（同输入序列同输出）。无源码需求时 source_c 置 null。",
         "安全合同内化：输出经保护层限幅、确定性（禁随机/墙钟分支）、越权拒绝留痕。",

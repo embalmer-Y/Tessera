@@ -7,8 +7,8 @@
 #include <ts/store.h>
 #include <ts/tsap.h>
 #include <zephyr/kernel.h>
-#ifdef CONFIG_TS_HAL_FS
-#include <ts/hal.h> /* ts_fs_paths_bind（DEC-47⑤） */
+#if defined(CONFIG_TS_HAL_FS) || defined(CONFIG_TS_HAL_AV)
+#include <ts/hal.h> /* ts_fs_paths_bind / ts_av_config_bind（DEC-47⑤③） */
 #endif
 
 ts_app_info_t current_app;
@@ -110,6 +110,11 @@ static uint8_t boot_wasm_buf[CONFIG_TS_APP_LOAD_MAX];
 static char boot_caps[160];
 #ifdef CONFIG_TS_HAL_FS
 static char boot_fs_paths[CONFIG_TS_HAL_FS_PATHS_MAX]; /* DEC-47⑤ */
+#endif
+#ifdef CONFIG_TS_HAL_AV
+static ts_av_fmt_t boot_av_fmt; /* DEC-47③（MD1.2g）：采集格式/分辨率随载绑定 */
+static uint16_t boot_av_w, boot_av_h;
+static uint8_t boot_av_set; /* 位掩码：1=fmt 2=w 4=h（全置 = 声明完整） */
 #endif
 
 ts_res_t ts_appmgr_boot_start(void)
@@ -223,7 +228,7 @@ ts_res_t ts_appmgr_boot_start(void)
 			size_t plen = 0;
 
 			for (uint32_t j = 0; j < n; j++) {
-				char pfx[64];
+				char pfx[68]; /* agent 校验器条目上限 64+NUL；68 对齐（复检发现②） */
 
 				if (!ts_cbor_tstr(&r, pfx, sizeof(pfx)) ||
 				    pfx[0] != '/' ||
@@ -243,6 +248,36 @@ ts_res_t ts_appmgr_boot_start(void)
 				boot_fs_paths[plen] = '\0';
 			}
 #endif /* CONFIG_TS_HAL_FS */
+#ifdef CONFIG_TS_HAL_AV
+		} else if (strcmp(key, "av_fmt") == 0) {
+			/* DEC-47③（MD1.2g）：采集格式（jpeg/rgb565——DEC-47② JPEG 优先） */
+			char f[8];
+
+			if (!ts_cbor_tstr(&r, f, sizeof(f))) {
+				return TS_E_PARAM;
+			}
+			if (strcmp(f, "jpeg") == 0) {
+				boot_av_fmt = TS_AV_FMT_JPEG;
+			} else if (strcmp(f, "rgb565") == 0) {
+				boot_av_fmt = TS_AV_FMT_RGB565;
+			} else {
+				return TS_E_PARAM;
+			}
+			boot_av_set |= 1U;
+		} else if (strcmp(key, "av_w") == 0 || strcmp(key, "av_h") == 0) {
+			uint64_t v;
+
+			if (!ts_cbor_uint(&r, &v) || v < 16 || v > 800) {
+				return TS_E_PARAM;
+			}
+			if (key[3] == 'w') {
+				boot_av_w = (uint16_t)v;
+				boot_av_set |= 2U;
+			} else {
+				boot_av_h = (uint16_t)v;
+				boot_av_set |= 4U;
+			}
+#endif /* CONFIG_TS_HAL_AV */
 		} else if (strcmp(key, "exports") == 0) {
 			uint32_t n;
 
@@ -270,6 +305,11 @@ ts_res_t ts_appmgr_boot_start(void)
 #ifdef CONFIG_TS_HAL_FS
 	if (sr == TS_OK && boot_fs_paths[0] != '\0') {
 		(void)ts_fs_paths_bind(1, boot_fs_paths); /* DEC-47⑤：路径白名单随载绑定 */
+	}
+#endif
+#ifdef CONFIG_TS_HAL_AV
+	if (sr == TS_OK && boot_av_set == 0x7) {
+		(void)ts_av_config_bind(1, boot_av_fmt, boot_av_w, boot_av_h); /* DEC-47③ */
 	}
 #endif
 	if (sr == TS_OK) {

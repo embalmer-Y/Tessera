@@ -179,6 +179,8 @@ Flash（按板可配，DEC-23）：bootloader 64KB ｜ 固件 slot ×2 ｜ APP s
 
 **PSRAM 分层纪律（DEC-27）**：框架安全数据（ts-safety 通道表/审计、ts-core、喂狗、zenoh 控制结构）**必须内部 SRAM**（保护与断链判定路径的响应上界不容外部 RAM 延迟）；**仅 APP 沙箱内存（WAMR 实例堆）可入外部 RAM**（APP 非硬实时路径，与"重实时在框架层"一致）。板级挂接：ESP32-S3 = `CONFIG_ESP_SPIRAM` + WAMR 池模式（Alloc_With_Pool）；P4/H7 外部 RAM 支持随 M2 核验；性能降幅与上限 M2 实测（AOT 缓解，DEC-25）。事实与来源见 R1 §5.6。
 
+**av 面增补（DEC-47，MD1.2b/g 实证）**：视频缓冲池 = VIDEO_BUFFER_POOL **256KB 入 PSRAM**（DVP DMA 接受 PSRAM 缓冲——板级 avbench 实证；官方池路径为 V1 唯一路径，外部静态缓冲路径不可用留观察项）；av 分片队列 = `TS_NET_AVQ_DEPTH`×(1KB+48B) ≈4KB **内部 DRAM**（net 层控制结构——分层纪律内）。
+
 ## 5. 可测试性设计（细则见 `docs/std/testing.md`）
 
 - native_sim 主平台：全模块在仿真上可运行；WDT/estop/供电均有仿真桩。

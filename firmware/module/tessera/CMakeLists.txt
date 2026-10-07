@@ -59,6 +59,7 @@ zephyr_library_sources_ifdef(CONFIG_TS_APP_WAMR
 zephyr_library_sources_ifdef(CONFIG_TS_NET
   src/net/keyspace.c
   src/net/pubq.c
+  src/net/avq.c
   src/net/session.c
   src/net/linkmon.c
   src/net/cmd.c
@@ -78,6 +79,10 @@ zephyr_library_sources_ifdef(CONFIG_TS_POWER
 
 zephyr_library_sources_ifdef(CONFIG_TS_HAL_FS
   src/hal/fs.c
+)
+
+zephyr_library_sources_ifdef(CONFIG_TS_HAL_AV
+  src/hal/av.c
 )
 
 zephyr_library_sources_ifdef(CONFIG_TS_PERIPH
