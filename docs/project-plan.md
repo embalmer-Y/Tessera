@@ -59,7 +59,7 @@
 | A | **MD1.2g** ✅ | ts-av + ts_net_publish 能力面（DEC-47③⑥：ts_av_capture 最小面 + av 权限类 + ts_net_publish〔打拍≥4ms=速率限制、chunk≤1KB、分片重试≤5×20ms——DEC-47② 值直用〕+ kind 注册表/内存表/L5 同步 + agent 白名单/manifest/提示词 + 用例）；**并入**：fs_paths 条目长度对齐（复检发现②：agent≤64 vs 固件≤63） | 已裁（DEC-47） |
 | B | **MD1.2h** ◐ | D-AV demo：JPEG 帧格式（OV2640 硬件压缩）+ 真 LLM 生成 + PC 侧帧重组消费端 + 真机判据——**部分交付 2026-10-07**：链路 90% 打通（真 LLM 一轮过 + 真帧捕获 + 分片发布实证）；JPEG = DAV2 上游缺口（esp32 DVP 不支持变长帧）→ RGB565 保底；DA PASS 被 DAV1 缺陷阻塞（APP 线程冻结，看门狗链按设计收口） | — |
 | B2 | **DAV1 专项批** | av 流压力下 APP 线程冻结调试：addr2line + 控制变量二分（avq 深度/禁冲刷/独立会话对照）；完成后补 D-AV 全链 PASS 判据 | — |
-| C | **验签呈递批（Q-29）** | IR2-02 根治方案：TSAP 头摘要字段（文件格式变更）+ ed25519 真验签 + 生产 prov 烧录通道（板级余项同批） | 门③ 呈递停门 |
+| C | **验签呈递批（Q-29）** ⏸ | IR2-02 根治方案：TSAP 头摘要字段（文件格式变更）+ ed25519 真验签 + 生产 prov 烧录通道（板级余项同批）——**已呈递 2026-10-07，门③ 停门待 owner 裁决**（四子项建议：内置 C verify / fmt_ver=2+32B sha256 / esptool 直写 / TEST 真验签） | 门③ 呈递停门 |
 | D | 验签实施批 | Q-29 裁决后实现 + 真机部署链复验；**并入 IR2-07**（回滚闭环：目标槽验证/回滚后重载/meta 双损如实失败） | — |
 | E | MD1.2c | PDM 音频驱动扩展评估（hal_espressif i2s_pdm 组件接入——视方案定门） | 视方案 |
 | F | 输入面 G3 批 | input monitor→APP mailbox 路由 + D4/D6 输入 demo；**并入**：IR2-06（app_stop 强杀持锁死锁面）+ estop 触发沿 prov 化 | — |
