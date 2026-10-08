@@ -232,9 +232,39 @@ def test_scenario_validation_matrix():
         assert scenario_validate(bad), why
 
 
+def test_sim_script_mapping():
+    """G5（单元 H）：inputs → replay 脚本行映射（ch 命名空间 + 配置面校验）。"""
+    from tessera_agent.tools_sim.runner import script_lines
+    from tessera_agent.tools_sim.scenario import SimInput
+
+    sc = Scenario(**{
+        "inputs": [
+            {"t_ms": 100, "ch": "link", "value": True},
+            {"t_ms": 150, "ch": "in:0", "value": 1200},
+            {"t_ms": 200, "ch": "rep_c", "value": 100},
+            {"t_ms": 230, "ch": "estop", "value": 0},
+        ],
+    })
+    assert script_lines(sc.inputs) == [
+        "100 link 1",
+        "150 input 0 1200",
+        "200 commit rep_c 100",
+        "230 estop",
+    ]
+    for bad, why in [
+        ([{"t_ms": 1, "ch": "rep_a", "value": 5}], "配置面"),
+        ([{"t_ms": 1, "ch": "in:5", "value": 5}], "越界"),
+        ([{"t_ms": 1, "ch": "in:0", "value": -3}], "非负"),
+    ]:
+        with pytest.raises(TaError, match=why):
+            script_lines([SimInput(**x) for x in bad])
+
+
 def test_sim_e2e(tmp_path: Path):
     """E2E：sim_run 真实 twister 双跑（约 2×构建/运行，分钟级）。
 
+    G5（单元 H）：inputs 经 replay_script.tsv 真正驱动重放（输入文件接口）——
+    期望 = 规格推导（slew 5/ms ×(Δt+1) → 100/155/100/7；in:0 变化回显恰一次）。
     启用：环境变量 TESSERA_SIM_E2E=1（默认跳过——CI 常规 job 不跑分钟级仿真；
     MA2 退出验证时显式开启，结果留痕于交付报告）。
     """
@@ -256,16 +286,23 @@ def test_sim_e2e(tmp_path: Path):
     )
     scenario = {
         "inputs": [
-            {"t_ms": 200, "ch": "rep_a", "value": 100},
-            {"t_ms": 210, "ch": "rep_a", "value": 300},
+            {"t_ms": 100, "ch": "link", "value": 1},
+            {"t_ms": 150, "ch": "in:0", "value": 1200},  # 基线拍（无回显）
+            {"t_ms": 200, "ch": "rep_c", "value": 100},
+            {"t_ms": 210, "ch": "rep_c", "value": 300},  # → 155（slew 界）
+            {"t_ms": 215, "ch": "in:0", "value": 800},   # 变化 → 回显
+            {"t_ms": 220, "ch": "rep_c", "value": 0},    # → 100
+            {"t_ms": 230, "ch": "estop", "value": 1},    # → fault 7（全通道）
         ],
-        # 固件内嵌场景的规格推导 golden（M1 replay：slew 5/ms → 100/155/100/7）
         "expectations": [
-            {"ch": "rep_a", "op": "eq", "value": 7},
-            {"ch": "rep_a", "op": "count", "value": 4},
+            {"ch": "rep_c", "op": "eq", "value": 7},
+            {"ch": "rep_c", "op": "count", "value": 4},
+            {"ch": "in:0", "op": "eq", "value": 800},
+            {"ch": "in:0", "op": "count", "value": 1},
         ],
     }
     report = asyncio.run(sim_run(cfg, scenario, task_id="e2e"))
     assert report["determinism"] is True
     assert report["evaluation"]["pass"] is True
-    assert report["writes"] == 4  # stdout 仅输出 rep_a 通道（M1 接口：单通道 JSONL）
+    # 写序列 = rep_c×4 + rep_d fault×1 + in:0 回显×1（输入文件模式纯净流）
+    assert report["writes"] == 6

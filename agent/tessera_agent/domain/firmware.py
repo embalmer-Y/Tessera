@@ -148,17 +148,24 @@ class FirmwareDomainPack(DomainPackBase):
 
             return await spawn("fw_pytest", args, body)
 
-        # ---- sim_*（MA2，LLD-A04）------------------------------------------
+        # ---- sim_*（MA2，LLD-A04；G5/单元 H 输入文件实装）--------------------
         @mcp.tool
         @audited("sim_validate_scenario")
         async def sim_validate_scenario(scenario: dict) -> dict:
-            """校验仿真场景 schema v1（inputs 升序/op 合法等）；返回错误清单（空=合法）。"""
+            """校验仿真场景 schema v1（inputs 升序/op 合法等）；返回错误清单（空=合法）。
+
+            inputs.ch 命名空间："link"(值 0|1) / "estop"(值忽略) /
+            "in:0"|"in:1"(ADC 注入 mv；首拍建基线无回显) / "rep_c"|"rep_d"(输出
+            通道直驱，slew 5/ms 限幅 0..1000)。expectations.ch 同域（输入回显
+            = "in:N" 通道）。"""
             return {"errors": scenario_validate(scenario)}
 
         @mcp.tool
         @audited("sim_run")
         async def sim_run(scenario: dict) -> dict:
-            """运行确定性重放仿真（framework.replay 双跑比对 + 期望评估；长任务句柄）。"""
+            """运行确定性重放仿真（inputs 落 replay_script.tsv 驱动固件脚本会话；
+            双跑比对 + 期望评估；长任务句柄）。期望值按规格推导（slew/限幅数学），
+            禁"跑一遍拿输出当基准"；ch 命名空间见 sim_validate_scenario。"""
             args = {"scenario": scenario}
             task_id = f"simrun-{secrets.token_hex(4)}"
 

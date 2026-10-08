@@ -1,4 +1,4 @@
-# LLD-A04 · 模拟器与重放（sim_*）· v0.1 草案
+# LLD-A04 · 模拟器与重放（sim_*）· v0.2
 
 > **上游**：HLD-agent §2/A04；决策 DEC-13（模拟深度 = native_sim + 外设桩，数字孪生-lite）、DEC-36②（句柄化）。固件侧对接：M1 交付的 L4 重放框架雏形、ts-periph 外设桩（M3b 扩展深度）。
 
@@ -33,4 +33,8 @@
 
 ## 6. 未决依赖
 
-- 固件 M1 L4 重放入口协议（§2 接口约定——MA2 前共同定稿）；固件 M3b 外设桩；Q-19 提案 12。
+- 固件 M1 L4 重放入口协议（§2 接口约定——**已于 G5/单元 H 实装定稿**，见 §7）；固件 M3b 外设桩；Q-19 提案 12。
+
+## 7. 修订记录
+
+- v0.2 · 2026-10-09（单元 H，G5）：**§2「输入文件进」接口实装**——runner 将 inputs 落 `replay_script.tsv`（构建目录 cwd），固件 `framework.replay` 新增脚本会话（`test_00_script_file_session`）：外部脚本在场按脚本驱动，不在场走内建脚本（twister/CI 全链覆盖）；JSONL 流 = 输出通道写（rep_c/rep_d）+ 输入回显（"in:N"），按 t_ms 归并（同拍序 = 回显→rep_c→rep_d，因果固定）。**ch 命名空间约定**（schema v1 内字符串域，无格式变更）：`link`（0|1）/ `estop` / `in:0|in:1`（ADC 注入 mv，首拍建基线无回显——传输级变化语义）/ `rep_c|rep_d`（输出直驱，slew 5/ms 限幅 0..1000）。scenario schema 未动（`channel_kind` 扩展位仍预留给 M3b 外设桩深度）。WAMR 进程内二次 boot_start 怪癖与重放无涉（replay 无 WAMR 装载；教训见 dev-env §5-28）。

@@ -314,3 +314,47 @@ ZTEST(framework_app, test_07_input_routing)
 	zassert_equal(st.evt_seen, 1, "input 事件路由进 mailbox（G3）");
 	zassert_equal(ts_appmgr_app_stop(), TS_OK);
 }
+
+/* ---- G4（单元 H）：激活即停——单活跃语义收口 --------------------------------
+ * 注：不经 boot_start 装载（直调 app_start）——进程内二次 boot_start 属
+ * WAMR 池怪癖第三型（实例化后导出查找恒空；dev-env §5 登记，装载路径 V1
+ * 经重启——与换包怪癖同族），本用例考察 activate 语义与装载来源无关；
+ * boot 单次装载链在 test_04，重载链（暖复位）在 persistbench。 */
+ZTEST(framework_app, test_08_activate_while_running)
+{
+	suite_setup_channel();
+	ts_store_test_reset();
+	ts_appmgr_test_reset();
+
+	const uint8_t root_key[32] = {0};
+	ts_app_info_t info;
+
+	/* 首装（建 meta/双槽事实）+ 直调启动：APP 运行中（撕裂态起点） */
+	zassert_equal(ts_appmgr_install(boot_pkg, sizeof(boot_pkg),
+					root_key, &info), TS_OK);
+	zassert_equal(ts_appmgr_app_start(9, app_wasm, app_wasm_len,
+					  "gpio:write:0-3"), TS_OK);
+	zassert_true(wait_gpio(true), "init 写 gpio=1");
+	zassert_true(ts_appmgr_app_running());
+
+	/* 二装（运行中安装 → 非活动槽）→ activate：旧缺陷 = 旧包继续运行 +
+	 * 观测面报 STAGED/新槽；G4 收口 = 激活即停（DR-14 升级停止语义）。 */
+	zassert_equal(ts_appmgr_install(boot_pkg, sizeof(boot_pkg),
+					root_key, &info), TS_OK);
+	zassert_false(ts_appmgr_app_running(), "激活即停（运行面收口）");
+	zassert_equal(info.state, TS_APP_STAGED);
+	zassert_equal(info.active_slot, 0, "meta 翻至 slot A（次装目标）");
+	ts_appmgr_meta_t meta;
+
+	zassert_equal(ts_appmgr_meta_read(&meta), TS_OK);
+	zassert_equal(meta.active_slot, 0, "持久面同步翻转");
+	zassert_equal(meta.rollback_count, 0, "新安装重置回滚计数");
+
+	/* 激活停后 WAMR 运行面健全：同模块直调重启可用（装载周期在真机经
+	 * 暖复位闭环——persistbench PB4/PB5 链）。 */
+	zassert_equal(ts_appmgr_app_start(9, app_wasm, app_wasm_len,
+					  "gpio:write:0-3"), TS_OK,
+		      "stop 后运行面可重启");
+	zassert_true(ts_appmgr_app_running());
+	zassert_equal(ts_appmgr_app_stop(), TS_OK);
+}

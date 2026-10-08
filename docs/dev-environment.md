@@ -113,6 +113,8 @@ python3.12 -m venv ~/project/agent-venv
 
 27. **手抄二进制数组禁令 + 板 bench 分区残留态（2026-10-02 板级十实证，docs/board-deploy-01.md）**：① **常量字节数组（prov blob 等）禁手抄改写**——丢字节后写通道"成功"返回但确定性解析 fail-closed（症状 = 烧入 OK + 永远 load 失败）；正确做法 = 脚本机械派生（源数组改字节）+ **生成期按消费方 schema 走查验证**（~/project/logs/gen_db_prov.py 模式）；定位法 = esptool read_flash 分区 dump + 独立解析器走查；② **换 bench 后 flash ts 分区残留上一 bench 的 prov/meta**（load=0 旧身份即沿旧身份上线）——板级流程须先 esptool erase_region 0x170000 0x14000（ts 五分区；fw_b 预留不动）；③ env 门控测试（默认 skip）掩盖跨轨漂移（exports 命名案例）——gated 测试须周期性真跑。
 
+28. **WAMR 进程内二次 boot_start 怪癖（2026-10-09 单元 H test_08 排障实证，隔离复现 + 控制变量五组）**：同一进程内 `ts_appmgr_boot_start` 第二次调用产出的实例**导出查找恒空**（`wasm_runtime_lookup_function` 对 health_ping/app_init 全 NULL → E_PARAM），与字节内容/指针/缓存命中无关（wasm 逐字节相同、mod_cache 命中、模块对象不变）；stop 后**直调** `ts_appmgr_app_start`（同模块重启）**不受影响**——判别律 =「进程内第二个 boot_start 必坏，直调免疫」。生产无暴露面（boot_start 每进程恰一次；重载 = 暖复位，persistbench PB4/PB5 链）；测试规避 = activate 语义经直调启动考察（tests/app test_08 注记）。教训 12 怪癖家族第三型；升级 WAMR 后撤实验验证。
+
 ### 2.x 工具链增补（2026-10-02，H7 内存评估批）
 
 - SDK 1.0.1 增装 **arm-zephyr-eabi**（命令 west sdk install -b ~/zephyr-sdk-1.0.1 -t arm-zephyr-eabi，需网络/VPN）——nucleo_h743zi 网面实构建已验证（docs/h7-memory-assessment.md）。
@@ -162,6 +164,7 @@ python3.12 -m venv ~/project/agent-venv
 
 ## 修订记录
 
+- v2.13 · 2026-10-09：单元 H（G4/G5）——§5 增教训 28（WAMR 进程内二次 boot_start 怪癖——判别律/规避/生产无暴露面定论）。
 - v2.12 · 2026-10-04：G1 批——§2 增 agent 测试 clang 硬依赖注记；agent-codegen-reliability-01 报告。
 - v2.11 · 2026-10-04：MD0-1 真实 LLM 冒烟——§2 增 Agent LLM 端点（minimax/anthropic 兼容/M3/1M 窗口 + 密钥纪律 + 复跑入口）；agent-llm-smoke-01 报告。
 - v2.10 · 2026-10-02：H7 内存评估批——§2 增 arm-zephyr-eabi 工具链；docs/h7-memory-assessment.md（S3 四配置实测 + H743 实构建 + 移植前置项）。

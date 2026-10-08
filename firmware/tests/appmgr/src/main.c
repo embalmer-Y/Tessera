@@ -201,6 +201,58 @@ ZTEST(framework_appmgr, test_fresh_system_no_app)
 	zassert_equal(ts_appmgr_boot_start(), TS_E_STATE, "boot 拒绝静默装载");
 }
 
+ZTEST(framework_appmgr, test_boot_quarantine_refusal)
+{
+	/* G4（单元 H）：隔离拒载 boot 面。判据以返回码区分：计数 == LIMIT
+	 * （第 3 次回滚落地态）→ 放行过隔离门（本套件 fixture wasm 非真字节
+	 * → 装载失败 E_IO = 已达装载路径的证明）；标记 LIMIT+1 → E_ROLLBACK_
+	 * LIMIT（门内即拒，未触装载）+ 观测面 QUARANTINED。
+	 * 本用例字典序居首——收尾复原空板（后续用例此前依赖套件级 setup 的
+	 * 处女 store）。 */
+	ts_store_test_reset();
+	ts_appmgr_test_reset();
+	ts_app_info_t info;
+
+	zassert_equal(ts_appmgr_install(fixture_pkg, sizeof(fixture_pkg),
+					root_key, &info), TS_OK);
+
+	ts_appmgr_meta_t meta;
+
+	zassert_equal(ts_appmgr_meta_read(&meta), TS_OK);
+	meta.rollback_count = TS_APPMGR_ROLLBACK_LIMIT;
+	zassert_equal(ts_appmgr_meta_write(&meta), TS_OK);
+	zassert_equal(ts_appmgr_boot_start(), TS_E_IO,
+		      "count=LIMIT：放行至装载（fixture wasm 非真 → E_IO）");
+
+	meta.rollback_count = TS_APPMGR_ROLLBACK_LIMIT + 1;
+	zassert_equal(ts_appmgr_meta_write(&meta), TS_OK);
+	zassert_equal(ts_appmgr_boot_start(), TS_E_ROLLBACK_LIMIT, "隔离拒载");
+	zassert_equal(ts_appmgr_get_info(&info), TS_OK);
+	zassert_equal(info.state, TS_APP_QUARANTINED, "观测面终态如实");
+	zassert_equal(info.rollback_count, TS_APPMGR_ROLLBACK_LIMIT,
+		      "运行时计数如实（meta 标记 = LIMIT+1 内部判据）");
+
+	/* rollback() 隔离分支持久化标记：count=LIMIT 起点 → meta 写 LIMIT+1 */
+	ts_store_test_reset();
+	ts_appmgr_test_reset();
+	zassert_equal(ts_appmgr_install(fixture_pkg, sizeof(fixture_pkg),
+					root_key, &info), TS_OK);
+	zassert_equal(ts_appmgr_install(fixture_pkg, sizeof(fixture_pkg),
+					root_key, &info), TS_OK, "双有效槽");
+	extern ts_app_info_t current_app;
+
+	current_app.state = TS_APP_ACTIVE;
+	current_app.rollback_count = TS_APPMGR_ROLLBACK_LIMIT;
+	zassert_equal(ts_appmgr_rollback(), TS_E_ROLLBACK_LIMIT);
+	zassert_equal(ts_appmgr_meta_read(&meta), TS_OK);
+	zassert_equal(meta.rollback_count, TS_APPMGR_ROLLBACK_LIMIT + 1,
+		      "隔离标记持久化（boot 拒载判据）");
+
+	/* 收尾复原（处女 store 归还后续用例） */
+	ts_store_test_reset();
+	ts_appmgr_test_reset();
+}
+
 /* ---- MA3.1：分步安装链（stage_begin/chunk/verify/activate，LLD-A06 §3）-- */
 
 ZTEST(framework_appmgr, test_staged_install_chain)

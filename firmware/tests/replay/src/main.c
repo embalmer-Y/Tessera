@@ -3,7 +3,8 @@
  * L4 确定性重放雏形（LLD-ts-core §7 / testing.md §2；HLD M1 交付）。
  *
  * MA2 对接接口（LLD-A04 §2 约定，随 M1 定稿）：
- *   输入 = 虚拟时钟驱动的脚本序列（V1 编译期内嵌；后续演进为输入文件）；
+ *   输入 = 虚拟时钟驱动的脚本序列（G5/单元 H：输入文件实装——外部
+ *   replay_script.tsv 在场则按脚本驱动，否则内建脚本 + 编译期 golden）；
  *   输出 = stdout JSONL 行（{"t_ms":..,"ch":..,"value_u":..}）+ 事件序列；
  *   判定 = ztest 断言（退出码表结果）。
  * 确定性（合同 9）：同一输入序列在两个相同通道上运行，写序列逐项一致，
@@ -11,6 +12,9 @@
  * golden 的来源 = 规格推导（slew/限幅/状态机的数学预期）。
  */
 #include <string.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <zephyr/ztest.h>
 #include <ts/core.h>
 #include <ts/hal.h>
@@ -80,8 +84,187 @@ static const ts_write_rec_t golden[] = {
 	{.t_ms = 230, .value_u = 7},
 };
 
+/* ---- G5（单元 H）：脚本文件会话（LLD-A04 §2「输入文件进」接口实装）--------
+ * 外部脚本 replay_script.tsv（cwd 相对）在场 → 按脚本驱动（runner 模式）；
+ * 不在场 → 内建脚本全链（twister/CI 覆盖解析/执行/JSONL）。
+ * 行格式（空白分隔）：<t_ms> link <0|1> | <t_ms> estop |
+ *   <t_ms> input <inst> <mv>（注入→poll_once；变化才发 INPUT_CHANGED——首
+ *   拍只建基线无回显，与固件 G3 传输级变化语义一致） |
+ *   <t_ms> commit <ch> <value>（输出通道 = rep_c/rep_d，slew 5/ms 0..1000）。
+ * JSONL = 输出通道写 + 输入回显（"in:<inst>"），按 t_ms 归并；同拍序 =
+ * 输入回显 → rep_c → rep_d（因果序固定——确定性）。 */
+
+#define SCRIPT_NAME     "replay_script.tsv"
+#define SCRIPT_MAX_LINES 128
+#define SCRIPT_LINE_LEN  96
+
+static const ts_out_ch_t ch_c = REPLAY_CH("rep_c");
+static const ts_out_ch_t ch_d = REPLAY_CH("rep_d");
+
+static const ts_hal_dev_desc_t script_adc_devs[] = {
+	{.uid = "adc0", .kind = TS_DEV_ADC},
+	{.uid = "adc1", .kind = TS_DEV_ADC},
+};
+
+static struct {
+	uint64_t t_ms;
+	uint32_t inst;
+	int32_t mv;
+} in_echo[SCRIPT_MAX_LINES];
+static size_t in_echo_n;
+
+static void in_echo_cb(const ts_evt_t *e, void *u)
+{
+	ARG_UNUSED(u);
+	if (e->data == NULL || e->len < sizeof(struct ts_input_evt)) {
+		return;
+	}
+	const struct ts_input_evt *p = e->data;
+
+	if (in_echo_n < SCRIPT_MAX_LINES) {
+		in_echo[in_echo_n].t_ms = e->t_ms;
+		in_echo[in_echo_n].inst = p->inst;
+		in_echo[in_echo_n].mv = p->new_mv;
+	}
+	in_echo_n++;
+}
+
+static void script_session_run(FILE *f)
+{
+	char line[SCRIPT_LINE_LEN];
+
+	ts_time_test_bind(&virt_src);
+	virt_now = 0;
+	ts_safety_test_reset();
+	for (size_t i = 0; i < sizeof(script_adc_devs) / sizeof(script_adc_devs[0]); i++) {
+		(void)ts_hal_register_dev(&script_adc_devs[i]);
+	}
+	zassert_equal(ts_safety_register_channel(&ch_c), TS_OK);
+	zassert_equal(ts_safety_register_channel(&ch_d), TS_OK);
+	zassert_equal(ts_evt_subscribe(TS_EVT_INPUT_CHANGED, in_echo_cb, NULL), TS_OK);
+	in_echo_n = 0;
+
+	unsigned long long t = 0;
+	char op[16], a1[24];
+	long long v = 0;
+
+	while (fgets(line, sizeof(line), f) != NULL) {
+		if (line[0] == '#' || line[0] == '\n' || line[0] == '\r') {
+			continue;
+		}
+		int n = sscanf(line, "%llu %15s %23s %lld", &t, op, a1, &v);
+
+		if (n < 2) {
+			zassert_true(false, "脚本行解析失败: %s", line);
+			continue;
+		}
+		virt_now = t;
+		if (strcmp(op, "link") == 0 && n >= 3) {
+			ts_safety_set_link(atoi(a1) != 0);
+		} else if (strcmp(op, "estop") == 0) {
+			ts_safety_force_all_fault();
+		} else if (strcmp(op, "input") == 0 && n >= 4) {
+			ts_hal_input_test_inject((uint32_t)atoi(a1), (int32_t)v);
+			ts_hal_input_poll_once();
+		} else if (strcmp(op, "commit") == 0 && n >= 4) {
+			ts_out_value_t ov = {.u = (uint32_t)v};
+
+			(void)ts_safety_commit(a1, ov); /* 拒绝（estop 锁/未知 uid）
+							 * = 无写——场景语义 */
+		} else {
+			zassert_true(false, "未知脚本操作: %s %s", op, a1);
+		}
+	}
+	fclose(f);
+
+	ts_write_rec_t wc[SCRIPT_MAX_LINES], wd[SCRIPT_MAX_LINES];
+	size_t nc = ts_driversim_writes(ch_c.uid, wc, SCRIPT_MAX_LINES);
+	size_t nd = ts_driversim_writes(ch_d.uid, wd, SCRIPT_MAX_LINES);
+	size_t i = 0, j = 0, k = 0;
+
+	while (i < nc || j < nd || k < in_echo_n) {
+		uint64_t te = (k < in_echo_n) ? in_echo[k].t_ms : UINT64_MAX;
+		uint64_t tc = (i < nc) ? wc[i].t_ms : UINT64_MAX;
+		uint64_t td = (j < nd) ? wd[j].t_ms : UINT64_MAX;
+
+		if (te <= tc && te <= td) {
+			printk("{\"t_ms\":%llu,\"ch\":\"in:%u\",\"value_u\":%lld}\n",
+			       (unsigned long long)in_echo[k].t_ms,
+			       (unsigned)in_echo[k].inst,
+			       (long long)in_echo[k].mv);
+			k++;
+		} else if (tc <= td) {
+			printk("{\"t_ms\":%llu,\"ch\":\"%s\",\"value_u\":%u}\n",
+			       (unsigned long long)wc[i].t_ms, ch_c.uid,
+			       wc[i].value_u);
+			i++;
+		} else {
+			printk("{\"t_ms\":%llu,\"ch\":\"%s\",\"value_u\":%u}\n",
+			       (unsigned long long)wd[j].t_ms, ch_d.uid,
+			       wd[j].value_u);
+			j++;
+		}
+	}
+	ts_time_test_bind(NULL);
+}
+
+ZTEST(framework_replay, test_00_script_file_session)
+{
+	FILE *f = fopen(SCRIPT_NAME, "r");
+	bool builtin = (f == NULL);
+
+	if (builtin) {
+		/* twister/CI 路径：内建脚本落临时文件后走同一读取链（glibc 严格
+		 * C 环境不露 fmemopen——文件路径即被测路径，等价且更真）*/
+		static const char builtin_script[] =
+			"100 link 1\n"
+			"150 input 0 1200\n"
+			"200 commit rep_c 100\n"
+			"210 commit rep_c 300\n"
+			"215 input 0 800\n"
+			"220 commit rep_c 0\n"
+			"230 estop\n";
+
+		f = fopen("replay_builtin.tsv", "w+");
+		zassert_not_null(f, "内建脚本临时文件");
+		zassert_equal(fwrite(builtin_script, 1, sizeof(builtin_script) - 1, f),
+			      sizeof(builtin_script) - 1, "内建脚本写入");
+		rewind(f);
+	}
+	script_session_run(f);
+	if (builtin) {
+		/* 内建脚本 golden（规格推导：slew 5/ms ×(Δt+1) → 100/155/100/7；
+		 * 输入 800@215 回显恰一次〔1200@150 为基线拍〕） */
+		zassert_equal(in_echo_n, 1, "输入变化回显恰一次");
+		zassert_equal(in_echo[0].t_ms, 215);
+		zassert_equal(in_echo[0].mv, 800);
+		ts_write_rec_t w[SCRIPT_MAX_LINES];
+		size_t n = ts_driversim_writes(ch_c.uid, w, SCRIPT_MAX_LINES);
+
+		zassert_equal(n, 4, "rep_c 写计数");
+		const uint32_t want_v[4] = {100, 155, 100, 7};
+		const uint64_t want_t[4] = {200, 210, 220, 230};
+		for (size_t q = 0; q < n && q < 4; q++) {
+			zassert_equal(w[q].value_u, want_v[q], "script golden v@%u", (unsigned)q);
+			zassert_equal(w[q].t_ms, want_t[q], "script golden t@%u", (unsigned)q);
+		}
+	}
+	/* 收尾清理（estop 锁存/link 态/通道注册表）——本会话先于 golden 运行，
+	 * 其残留会改变 golden 的规格推导前提（estop 后写入锁死 = 0 写）。 */
+	ts_safety_test_reset();
+}
+
 ZTEST(framework_replay, test_deterministic_replay)
 {
+	FILE *probe = fopen(SCRIPT_NAME, "r");
+
+	if (probe != NULL) {
+		fclose(probe);
+		/* G5：外部脚本在场（runner 模式）——本会话让位：其 JSONL 输出会
+		 * 混入脚本会话的采集流（评估以脚本产物为纯净对象）。twister
+		 * 路径（无脚本）照常执行 golden。 */
+		ztest_test_skip();
+	}
 	ts_time_test_bind(&virt_src);
 	virt_now = 0;
 	zassert_equal(ts_safety_register_channel(&ch_a), TS_OK);

@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""sim_run 执行器（LLD-A04 §2；M1 定稿的 L4 接口）。
+"""sim_run 执行器（LLD-A04 §2；M1 定稿的 L4 接口 + G5/单元 H 输入文件实装）。
 
-流程：校验场景 → west build 构建 framework.replay 镜像（native_sim；固件内嵌
-场景 + 双通道确定性自证）→ **直接执行测试二进制**（不经 twister——L4 契约 =
-stdout JSONL 写序列 + 退出码）→ 解析写序列 → 期望评估（eq/within/count）→
-**双跑比对**（两次运行写序列逐项一致 → determinism=true，合同 9 的 Agent 侧
-机械验证）→ 报告（timeline_digest = 写序列 sha256 重放指纹）。
+流程：校验场景 → west build 构建 framework.replay 镜像（native_sim）→
+**场景 inputs 落 replay_script.tsv（cwd = 构建目录；固件 test_00 脚本会话
+读取——"输入文件进"接口自此实装，编译期内嵌场景仅作 twister 内建兜底）** →
+直接执行测试二进制（stdout JSONL 写序列 + 退出码）→ 解析 → 期望评估
+（eq/within/count）→ 双跑比对（determinism，合同 9 Agent 侧机械验证）→
+报告（timeline_digest = 写序列 sha256 重放指纹）。
 """
 
 from __future__ import annotations
@@ -24,6 +25,45 @@ from tessera_agent.tools_sim.scenario import Scenario
 
 _JSONL_RE = re.compile(r'\{"t_ms":\d+,"ch":"[^"]+","value_u":\d+\}')
 _FW_BUILD_TIMEOUT_S = 1800  # 来源: DEC-38 #4（同 fw_build 档）
+
+# 脚本会话输出通道（固件 tests/replay test_00 注册面；LLD-A04 §1「通道名在
+# 固件测试配置面内」的 V1 事实）
+_SCRIPT_CHANNELS = frozenset({"rep_c", "rep_d"})
+
+
+def script_lines(inputs: list) -> list[str]:
+    """Scenario.inputs → 重放脚本行（G5/单元 H）。
+
+    ch 命名空间约定（与固件脚本会话的行格式一一对应）：
+      "link"   → ``<t> link <0|1>``（链路态）
+      "estop"  → ``<t> estop``（急停；value 忽略；全通道 fault 值落驱动）
+      "in:<n>" → ``<t> input <n> <mv>``（ADC 注入；首拍建基线无回显——
+                 传输级变化语义，变化才发 INPUT_CHANGED）
+      其他     → ``<t> commit <ch> <v>``（输出通道直驱；V1 = rep_c/rep_d，
+                 slew 5/ms 限幅 0..1000——期望值按规格推导）
+    """
+    lines: list[str] = []
+    for i in inputs:
+        v = int(i.value) if isinstance(i.value, bool) else int(i.value)
+        if i.ch == "link":
+            lines.append(f"{i.t_ms} link {v}")
+        elif i.ch == "estop":
+            lines.append(f"{i.t_ms} estop")
+        elif i.ch.startswith("in:"):
+            inst = i.ch[3:]
+            if not inst.isdigit() or int(inst) > 1:
+                msg = f"输入实例越界（V1 = in:0/in:1）: {i.ch}"
+                raise TaError(TA_E_ARGS, msg, domain="sim")
+            if v < 0:
+                msg = f"输入 mv 须非负（JSONL 采集域）: {i.ch}={v}"
+                raise TaError(TA_E_ARGS, msg, domain="sim")
+            lines.append(f"{i.t_ms} input {inst} {v}")
+        elif i.ch in _SCRIPT_CHANNELS:
+            lines.append(f"{i.t_ms} commit {i.ch} {v}")
+        else:
+            msg = f"输出通道不在固件脚本会话配置面（V1 = rep_c/rep_d）: {i.ch}"
+            raise TaError(TA_E_ARGS, msg, domain="sim")
+    return lines
 
 
 def _west_bin(cfg: AgentConfig) -> str:
@@ -103,9 +143,14 @@ async def sim_run(cfg: AgentConfig, scenario: dict, *, task_id: str, log_fn=None
         raise TaError(TA_E_ARGS, f"场景非法: {exc}", domain="sim") from exc
 
     base = cfg.workspace_repo / "agent" / "build" / task_id
-    await _replay_build(cfg, base / "build", log_fn)
-    run1 = await _replay_run_once(cfg, base / "build", log_fn)
-    run2 = await _replay_run_once(cfg, base / "build", log_fn)
+    build = base / "build"
+    await _replay_build(cfg, build, log_fn)
+    # 场景脚本落盘（cwd = 构建目录；固件脚本会话经 cwd 相对路径读取）——
+    # 留档任务目录便于排查（task_id 唯一，无跨任务残留）。
+    script = build / "replay_script.tsv"
+    script.write_text("\n".join(script_lines(sc.inputs)) + "\n", encoding="utf-8")
+    run1 = await _replay_run_once(cfg, build, log_fn)
+    run2 = await _replay_run_once(cfg, build, log_fn)
 
     determinism = run1 == run2  # 双跑逐项一致（合同 9 Agent 侧机械验证）
     evaluation = _evaluate(run1, sc.expectations)

@@ -75,6 +75,18 @@ ts_res_t ts_appmgr_rollback(void)
 	if (current_app.rollback_count >= TS_APPMGR_ROLLBACK_LIMIT) {
 		/* DEC-27 #9：超限 → QUARANTINED（终态，不循环回滚） */
 		current_app.state = TS_APP_QUARANTINED;
+		/* G4（单元 H）：隔离持久化——meta.rollback_count = LIMIT+1 为拒载
+		 * 标记（boot_start 判据；运行时计数仍如实 = LIMIT）。写失败留痕：
+		 * 本 boot 已隔离，重启后重走一次装载判定（不静默伪造终态）。 */
+		ts_appmgr_meta_t meta;
+
+		if (ts_appmgr_meta_read(&meta) == TS_OK &&
+		    meta.rollback_count <= TS_APPMGR_ROLLBACK_LIMIT) {
+			meta.rollback_count = TS_APPMGR_ROLLBACK_LIMIT + 1;
+			if (ts_appmgr_meta_write(&meta) != TS_OK) {
+				printk("[appmgr] quarantine marker persist failed\n");
+			}
+		}
 		const ts_evt_t evt = {.id = TS_EVT_APP_QUARANTINED, .t_ms = ts_time_ms()};
 		ts_evt_publish(&evt);
 		return TS_E_ROLLBACK_LIMIT;
@@ -154,6 +166,7 @@ static ts_av_fmt_t boot_av_fmt; /* DEC-47③（MD1.2g）：采集格式/分辨�
 static uint16_t boot_av_w, boot_av_h;
 static uint8_t boot_av_set; /* 位掩码：1=fmt 2=w 4=h（全置 = 声明完整） */
 #endif
+#endif /* CONFIG_TS_APP_WAMR（boot 装载缓冲区——仅 WAMR 构建需要） */
 
 ts_res_t ts_appmgr_boot_start(void)
 {
@@ -164,6 +177,22 @@ ts_res_t ts_appmgr_boot_start(void)
 		printk("[appmgr] boot: meta unreadable — no app loaded\n");
 		return TS_E_STATE;
 	}
+	/* G4（单元 H）：隔离拒载（LLD §2「QUARANTINED 拒载」的 boot 面）——
+	 * meta.rollback_count = LIMIT+1 为隔离持久化标记（rollback 拒绝第 4 次
+	 * 时写入）；跨重启不再装载已知坏链（旧缺陷：每次上电重载坏包 → 健康
+	 * 失败 → 再隔离，一次/boot 循环）。解除 = 新安装（activate 重置计数）。
+	 * 计数 == LIMIT（第 3 次回滚落地态）不拒——其目标版本仍可装载（与
+	 * runtime 语义一致：允许恰好 3 次回滚）。观测面如实报 QUARANTINED。 */
+	if (meta.rollback_count > TS_APPMGR_ROLLBACK_LIMIT) {
+		printk("[appmgr] boot: rollback_count=%u quarantined — no app loaded\n",
+		       meta.rollback_count);
+		current_app.active_slot = meta.active_slot;
+		current_app.rollback_count = TS_APPMGR_ROLLBACK_LIMIT;
+		current_app.state = TS_APP_QUARANTINED;
+		initialized = true;
+		return TS_E_ROLLBACK_LIMIT;
+	}
+#ifdef CONFIG_TS_APP_WAMR
 	uint8_t hdr[TSAP_HEADER_SIZE];
 
 	if (ts_store_slot_read(meta.active_slot, 0, hdr, sizeof(hdr)) != TS_OK) {
@@ -371,10 +400,7 @@ ts_res_t ts_appmgr_boot_start(void)
 		initialized = true;
 	}
 	return sr;
-}
 #else
-ts_res_t ts_appmgr_boot_start(void)
-{
 	return TS_E_STATE; /* WAMR 未编入（CONFIG_TS_APP_WAMR） */
-}
 #endif
+}

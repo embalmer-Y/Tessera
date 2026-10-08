@@ -6,6 +6,12 @@
 
 ## 1. 当前状态
 
+- **2026-10-09（五十六） · 单元 H（G4/G5）交付：单活跃 APP 语义收口 + 模拟器输入文件实装——twister 15/15（77 用例）/agent 77+2s/E2E/L5/ruff/板级构建全绿**
+  - G4：activate 即停运行 APP（DR-14——旧撕裂态：meta 翻转后旧包继续运行；deploybench DB4 观测线程 = 该缺陷的板侧 workaround 佐证）；隔离拒载（rollback 第 4 次拒时持久化 meta.rollback_count = LIMIT+1 → boot 拒载 + 观测面 QUARANTINED——旧缺陷 = 每次上电重载已知坏包）。
+  - G5：LLD-A04 §2「输入文件进」实装（M1 约定从未落地）——replay 脚本会话（link/estop/input/commit + JSONL 归并流）+ agent script_lines 映射（ch 命名空间：link/estop/in:N/rep_c/rep_d）；scenario schema v1 零变更。
+  - WAMR 怪癖第三型（dev-env 教训 28）：进程内二次 boot_start 实例导出查找恒空（直调免疫；生产无暴露面——重载 = 暖复位）。
+  - G2 维持 ◐：板活但 SMP UDP 回包仍被 Hyper-V 防火墙挡（owner UAC 一行待办不变）。
+  - 剩余单元：I（MD2 混合 demo D8/D9）→ J（Zephyr 升级评估 + P4，门⑤）+ B2（DAV1 专项）。
 - **2026-10-09（五十四） · G2 部分交付（MCUmgr OTA）：sysbuild+imgtool 签名+MCUboot 引导+真机 1.0.0 启动全链打通（647KB 签名镜像双 slot）；OTA 上传步骤待 owner 一行 UAC 开 Hyper-V 防火墙（WSL2 mirrored 入站 UDP 阻挡）；串口 SMP 在 S3 USB-JTAG 上不可用（平台限制登记）**
   - **待 owner**：管理员 PowerShell 运行 `New-NetFirewallHyperVRule -Name SMP -Direction Inbound -VMCreatorId '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -Protocol UDP -LocalPort Any -Action Allow` → 重跑 ota_client.py 即完成 OTA 全链（v1→upload v2→confirm→reset→v2）。
   - **下一单元（H）**：G4/G5——单活跃 APP 语义收口 + 模拟器深度增强。

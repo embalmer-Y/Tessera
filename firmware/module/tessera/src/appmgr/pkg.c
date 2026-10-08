@@ -143,6 +143,25 @@ ts_res_t ts_appmgr_stage_activate(ts_app_info_t *out)
 			       TSAP_DIGEST_SIZE) != TS_OK) {
 		return TS_E_IO;
 	}
+	/* G4（单元 H）：单活跃语义收口——激活 = 停运行 APP（DR-14 升级停止
+	 * 语义）。旧缺陷：翻转 meta 后旧包继续运行，观测面（sys/get-app）报
+	 * STAGED/新槽而运行时仍执行旧包 = 撕裂态；板侧以观测线程重启
+	 * workaround（deploybench DB4）。收敛后语义：激活即停，装载周期 =
+	 * 下次 boot（WAMR 换包怪癖〔已知偏差②〕——STAGED 待加载，不热换）。
+	 * 卡死（E_TIMEOUT）：生产照常翻转（WDT 升级重启后装载新槽收敛）；
+	 * TEST 如实失败返回（无复位面）。 */
+	if (ts_appmgr_app_running()) {
+		ts_res_t sr = ts_appmgr_app_stop();
+
+
+		if (sr != TS_OK) {
+			printk("[appmgr] activate: app_stop r=%d（stuck — abandon to "
+			       "WDT escalation）\n", (int)sr);
+#ifdef CONFIG_TS_TEST
+			return sr;
+#endif
+		}
+	}
 	/* 6. meta 原子切换（active_slot = staging slot + 摘要随载） */
 	ts_appmgr_meta_t meta;
 	ts_res_t mr = ts_appmgr_meta_read(&meta);

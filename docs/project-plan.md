@@ -64,7 +64,7 @@
 | E | MD1.2c | PDM 音频驱动扩展评估——**已交付 2026-10-07：结论缓办**（技术路径可行无消费者；docs/md12c-pdm-eval.md；重开触发四条件在档） | ✅ 评估 |
 | F | 输入面 G3 批 ✅ | input monitor ADC 真值化 + 事件→mailbox 路由 + D4/D6 demo 真机全链（D4-DONE/D6-DONE/clamp -12/rc=0）；并入 IR2-06 根治 + estop 沿 prov 化 + ts_wdt_deactivate（DEC-48 对称面） | — |
 | G | 板级余项批 ◐ | **G1 ✅** poweron 落驱动（真机寄存器证据）；**G2 ◐** MCUmgr OTA（sysbuild+签名+MCUboot 引导+真机 1.0.0 启动全通；OTA 上传待 owner 一行 UAC 开 Hyper-V 防火墙） | — |
-| H | G4/G5 批 | 单活跃 APP 语义收口 + 模拟器深度增强 | — |
+| H | G4/G5 批 ✅ | **单活跃 APP 语义收口**（activate 即停 DR-14 + 隔离拒载/标记持久化）+ **模拟器深度增强**（LLD-A04 §2 输入文件实装——scenario inputs 驱动重放 + ch 命名空间）——2026-10-09 交付：twister 15/15（77 用例）/agent/E2E/L5/ruff/板级构建全绿；WAMR 二次 boot_start 怪癖登记（dev-env 教训 28，生产无暴露面） | — |
 | I | MD2 混合 demo | D8/D9（依赖 F 输入面就绪） | — |
 | J | Zephyr 升级评估 + P4 | v4.4.0 → 最新 stable 升级评估（含 zenoh-pico 联动）→ 呈递；批准后 P4 适配（实板终验需 owner 提供 P4 板） | 门⑤ 呈递停门 |
 
@@ -77,6 +77,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.38 · 2026-10-09：单元 H（G4/G5）交付——G4 单活跃语义收口（激活即停 + 隔离拒载 + 标记持久化）；G5 模拟深度（输入文件实装 + 脚本会话 + ch 命名空间，scenario schema 零变更）；twister 77 用例全绿；WAMR 怪癖第三型登记（教训 28）。顺带登记：boardbench 板级构建 dram0 溢出 88KB @HEAD（先于本单元，栈增长族累积——复用需先内存再平）。
 - v1.37 · 2026-10-09：G2 部分交付——MCUmgr OTA 构建链与 MCUboot 引导全链打通（sysbuild + imgtool + 双 slot + SMP UDP 服务器 + 真机 1.0.0 自报）；OTA 上传待 owner 开 Hyper-V 防火墙（WSL2 mirrored 入站 UDP 阻挡）；串口 SMP 在 S3 USB-JTAG 上不可用（平台限制登记）。
 - v1.36 · 2026-10-08：G1 交付——poweron_init 直写驱动（板级九遗留收口；sim 用例 + inputdemo 真机寄存器证据 299‰@300‰）；单元 G 拆分：G2 = MCUmgr OTA 独立单元（mcuboot/SMP UDP/imgtool 签名/真机全链）。
 - v1.35 · 2026-10-08：输入面 G3 批（单元 F）交付——input monitor ADC 真值轮询（传输级变化语义，阈值归 APP）+ INPUT_CHANGED→mailbox 路由 + estop 沿 prov 化 + IR2-06 根治（弃管升级替代 abort）+ ts_wdt_deactivate；D4/D6 demo 真机全链（真 LLM 一轮过 + 悬空拾噪真值 + clamp/落驱动实证）；twister 15/15（73 用例）。**impl-review-02 高 3 + 中 8 全部清零**。
