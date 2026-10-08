@@ -34,6 +34,7 @@ ZTEST(framework_safety, test_safety_full_scenario)
 	ts_out_value_t rb = {0};
 	ts_ch_state_t st;
 
+	ts_safety_test_reset(); /* 容量算术敏感（fill 至 32）——显式净基线 */
 	ts_time_test_bind(&virt_src);
 	virt_now = 0;
 
@@ -191,4 +192,27 @@ ZTEST(framework_safety, test_estop_edge_mapping)
 	zassert_equal(ts_safety_estop_edge_of(2), GPIO_INT_EDGE_BOTH);
 	zassert_equal(ts_safety_estop_edge_of(99), GPIO_INT_EDGE_RISING,
 		      "未知 = fail-safe 上升");
+}
+
+/* ---- poweron 值落驱动（单元 G1）------------------------------------------- */
+ZTEST(framework_safety, test_poweron_writes_driver)
+{
+	/* 注册 → poweron_init：物理写序列第一笔 = 声明的 poweron 值
+	 * （板级九遗留收口——此前仅置 shadow）。 */
+	ts_safety_test_reset(); /* 后序 full_scenario 要填容量 32——先清台 */
+
+	static const ts_out_ch_t pc = {
+		.uid = "pw-ch", .kind = TS_CH_GPIO,
+		.poweron = {.b = true}, .linkloss = {.b = false},
+		.fault = {.b = false},
+	};
+
+	zassert_equal(ts_safety_register_channel(&pc), TS_OK);
+	zassert_equal(ts_safety_poweron_init(), TS_OK);
+
+	ts_write_rec_t w[4];
+	size_t n = ts_driversim_writes("pw-ch", w, 4);
+
+	zassert_equal(n, 1, "poweron 落驱动 = 恰一笔物理写");
+	zassert_equal(w[0].value_u, 1U, "写值 = 声明 poweron（GPIO true）");
 }

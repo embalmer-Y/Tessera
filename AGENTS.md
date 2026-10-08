@@ -6,6 +6,8 @@
 
 ## 1. 当前状态
 
+- **2026-10-08（五十三） · G1 交付（单元 G 拆分·前半）：注册期 poweron 值落驱动——poweron_init 直写驱动（板级九遗留收口）；真机 ID1a 寄存器证据 299‰@want 300 OK + D4/D6 不回归；twister 15/15（74 用例）/agent/L5/ruff 全绿**
+  - **下一单元（G2）**：MCUmgr 固件 OTA（DEC-23：mcuboot + 双 slot + SMP UDP + imgtool 签名 + PC 客户端 + 真机 OTA 全链——工作区 mcuboot 在位且 esp32s3 有板级支持；体量 1-2 会话）。
 - **2026-10-08（五十二） · 输入面 G3 批交付（排期表单元 F）：input monitor ADC 真值化 + 事件→APP mailbox 路由 + IR2-06 根治（弃管升级替代 abort）+ estop 沿 prov 化 + ts_wdt_deactivate（DEC-48① 对称面，真机拦下）；D4/D6 demo 真机全链（真 LLM 一轮过：D4-DONE reports=8 / D6-DONE changes=6 / clamp rc=-12 限幅实证 / 滞回输出 rc=0 落驱动）；twister 15/15（73 用例）/agent/L5/ruff 全绿——**impl-review-02 高 3 + 中 8 全部清零**
   - **下一单元（G）**：板级余项批——注册期 poweron 值落驱动 + MCUmgr 固件 OTA（DEC-07/23 已裁未实现）。
 - **2026-10-07（五十一） · MD1.2c 交付（排期表单元 E）：PDM 音频驱动扩展评估 = 缓办（docs/md12c-pdm-eval.md——技术路径可行〔esp32s3 i2s_ll PDM 寄存器层齐全 + 模块内驱动方案留档〕但 D 阶梯无音频消费者；重开触发四条件在档）——MD1.2 全子项收口（唯 h 的 DA PASS 待 B2）**

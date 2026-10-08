@@ -22,7 +22,8 @@
 #define PWM_PACK(hz, pm) ((((hz) / 100U) << 16) | (pm))
 static const ts_out_ch_t db_pwm = {
 	.uid = "dbpwm", .kind = TS_CH_PWM,
-	.poweron = {.u = PWM_PACK(1000, 0)},
+	/* poweron = 300‰（G1 判据取非零特异值——落驱动前 LEDC 复位缺省 0） */
+	.poweron = {.u = PWM_PACK(1000, 300)},
 	.linkloss = {.u = PWM_PACK(1000, 0)},
 	.fault = {.u = PWM_PACK(1000, 0)},
 	.limits = {.min = PWM_PACK(1000, 0), .max = PWM_PACK(1000, 700),
@@ -36,6 +37,24 @@ static const ts_hal_dev_desc_t db_adc_dev = {
 };
 
 static const uint8_t root_pub[32]; /* TEST 语义 = 固定测试根 */
+
+/* esp32s3 LEDC 寄存器直读（periphbench 同型——单元 G1 真机判据：
+ * boot 步骤 2 后、set_link 前物理 duty 已 = 声明 poweron 值）。 */
+#define LEDC_BASE 0x60019000U
+#define LEDC_REG(off) (*(volatile uint32_t *)(LEDC_BASE + (off)))
+#define LEDC_LSCH0_DUTY_R 0x10U
+#define LEDC_LSTIMER0_CONF 0xA0U
+
+static uint32_t duty_permille_hw(void)
+{
+	uint32_t res = LEDC_REG(LEDC_LSTIMER0_CONF) & 0xFU;
+	uint32_t duty = LEDC_REG(LEDC_LSCH0_DUTY_R) & 0x7FFFFU;
+
+	if (res == 0U) {
+		return 0xFFFFFFFFU; /* 未配置哨兵 */
+	}
+	return duty * 1000U / ((1U << res) * 16U);
+}
 
 /* 装载观测：D4 → stop → D6（进程内换包 = TEST 放行路径）→ 终态 */
 static void demo_watch(void *p1, void *p2, void *p3)
@@ -58,6 +77,16 @@ static void demo_watch(void *p1, void *p2, void *p3)
 		return;
 	}
 	printk("ID1 D4 ACTIVE app=%s\n", info.app_id);
+	/* G1 真机判据：set_link 前 LEDC 物理 duty 已 = 声明 poweron（300‰ ±3
+	 * 容差 = periphbench 同口径；改前此处 = 0——落驱动缺口的直接证据） */
+	k_msleep(10); /* 低数通道装载相位 */
+	{
+		uint32_t hw = duty_permille_hw();
+
+		printk("ID1a poweron-duty hw=%u‰ (want 300) %s\n", hw,
+		       (hw != 0xFFFFFFFFU && hw + 3 >= 300 && hw <= 303) ?
+		       "OK" : "MISMATCH");
+	}
 	/* 无网面部署：链路 ACTIVE 由 bench 显式声明（persistbench 同型——
 	 * 无 zenoh 则 linkmon 永不置位，输出写恒 E_STATE）。 */
 	(void)ts_safety_set_link(true);

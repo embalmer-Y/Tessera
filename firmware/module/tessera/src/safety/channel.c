@@ -86,7 +86,18 @@ static void set_state(size_t i, ts_ch_state_t next)
 ts_res_t ts_safety_poweron_init(void)
 {
 	for (size_t i = 0; i < ts_ch_count; i++) {
-		ts_ch_table[i].state = TS_ST_SAFE_POWERON;
+		struct ts_ch_slot *s = &ts_ch_table[i];
+
+		s->state = TS_ST_SAFE_POWERON;
+		/* 板级九遗留收口（单元 G1）：注册期 poweron 值落驱动——boot 步骤 2
+		 * 时物理输出即达声明的上电安全态（此前仅置 shadow：物理值依赖驱动
+		 * 复位缺省与声明一致的隐含假设，声明≠缺省即漂移）。单线程 boot
+		 * 上下文（无锁竞争）；直写与 estop/recover 同纪律（不经 commit——
+		 * 合同 1 三态落驱动的 poweron 面）。 */
+		if (s->desc != NULL) {
+			ts_drivers[s->desc->kind].write(s->desc, &s->desc->poweron);
+			s->shadow = s->desc->poweron;
+		}
 	}
 	return TS_OK;
 }
