@@ -8,9 +8,11 @@
 #include <string.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
 #include <errno.h>
 #include <ts/safety.h>
+#include <ts/store.h>
 #include "internal.h"
 
 static struct ts_ch_slot *slot_of(const ts_out_ch_t *ch)
@@ -222,14 +224,38 @@ ts_res_t ts_safety_estop_init(void)
 	if (!gpio_is_ready_dt(&estop_spec)) {
 		return TS_E_IO;
 	}
-	/* 触发沿随 prov 配置（M2a 接线；当前占位上升沿）——来源: LLD DR-11 */
+	/* 触发沿随 prov 配置（DR-11 prov 化收口，单元 F）：
+	 * estop_trigger_flags 0=上升（缺省，兼容既有行为）/1=下降/2=双沿/
+	 * 其他 = fail-safe 上升 + 留痕。boot 步骤 1 先于 net_init 的 prov
+	 * 装载——此处先显式 load（幂等只读；失败 = 缺省上升）。 */
+	(void)ts_store_prov_load();
+	const uint8_t flags = ts_store_prov()->estop_trigger_flags;
+
 	gpio_init_callback(&estop_cb, estop_isr, BIT(estop_spec.pin));
 	if (gpio_add_callback_dt(&estop_spec, &estop_cb) != 0) {
 		return TS_E_IO;
 	}
-	if (gpio_pin_interrupt_configure_dt(&estop_spec, GPIO_INT_EDGE_RISING) != 0) {
+	if (gpio_pin_interrupt_configure_dt(&estop_spec,
+					    ts_safety_estop_edge_of(flags)) != 0) {
 		return TS_E_IO;
 	}
 #endif
 	return TS_OK; /* 无节点板（native_sim/测试）空操作；生产板必须提供（M2+ 板级强化） */
+}
+
+/* estop 边沿映射（导出供 framework.safety 用例断言；单元 F）。 */
+int ts_safety_estop_edge_of(uint8_t flags)
+{
+	switch (flags) {
+	case 1:
+		return GPIO_INT_EDGE_FALLING;
+	case 2:
+		return GPIO_INT_EDGE_BOTH;
+	case 0:
+		return GPIO_INT_EDGE_RISING;
+	default:
+		printk("[estop] flags=%u unknown — fail-safe rising\n",
+		       (unsigned)flags);
+		return GPIO_INT_EDGE_RISING;
+	}
 }

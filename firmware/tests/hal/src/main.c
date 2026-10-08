@@ -163,6 +163,53 @@ ZTEST(framework_hal, test_05_pwm_param_range)
 
 /* ---- 实例注册边界（L1）--------------------------------------------------- */
 
+/* ---- input monitor（G3，单元 F）：注入驱动的变化语义 ---------------------- */
+static int inp_events;
+
+static void inp_cb(const ts_evt_t *evt, void *user)
+{
+	ARG_UNUSED(user);
+	if (evt->id == TS_EVT_INPUT_CHANGED) {
+		inp_events++;
+	}
+}
+
+ZTEST(framework_hal, test_08_input_monitor_change)
+{
+	static const ts_hal_dev_desc_t adc_dev = {
+		.uid = "inpadc", .kind = TS_DEV_ADC,
+	};
+	ts_res_t r = ts_hal_register_dev(&adc_dev);
+
+	zassert_equal(r, TS_OK);
+	zassert_equal(ts_evt_subscribe(TS_EVT_INPUT_CHANGED, inp_cb, NULL), TS_OK);
+
+	/* 注册表全局索引（前序用例已注册 led/pwm）——扫出 ADC 实例号 */
+	uint32_t adc_idx = 0;
+
+	for (uint32_t i = 0; i < ts_hal_dev_count(); i++) {
+		if (ts_hal_dev_get(i)->kind == TS_DEV_ADC) {
+			adc_idx = i;
+			break;
+		}
+	}
+
+	/* 基线拍（首拍只立基线不发事件） */
+	ts_hal_input_test_inject(adc_idx, 100);
+	ts_hal_input_poll_once();
+	zassert_equal(inp_events, 0, "首拍 = 基线");
+
+	/* 变化 → 事件 */
+	ts_hal_input_test_inject(adc_idx, 250);
+	ts_hal_input_poll_once();
+	zassert_equal(inp_events, 1, "变化即发（传输级语义）");
+
+	/* 不变 → 静默 */
+	ts_hal_input_test_inject(adc_idx, 250);
+	ts_hal_input_poll_once();
+	zassert_equal(inp_events, 1, "不变静默");
+}
+
 ZTEST(framework_hal, test_09_dev_registry_bounds)
 {
 	zassert_equal(ts_hal_register_dev(NULL), TS_E_PARAM);

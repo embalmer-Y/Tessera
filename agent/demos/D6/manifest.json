@@ -1,0 +1,17 @@
+{
+ "app_id": "demo.d6.hysteresis",
+ "app_ver": "0.1.0",
+ "min_fw_ver": "0.1.0",
+ "caps": [
+  "adc:read:0",
+  "pwm:set:1"
+ ],
+ "stack_kb": 16,
+ "heap_kb": 1,
+ "exports": [
+  "health_ping",
+  "app_init",
+  "app_tick",
+  "app_evt"
+ ]
+}

@@ -188,6 +188,23 @@ ts_res_t ts_adc_read(ts_ctx_t c, uint8_t inst, int32_t *mv)
 		return adc_sample_mv(mv) == 0 ? TS_OK : TS_E_IO;
 	}
 #endif
+		*mv = 0;
+		return TS_OK;
+}
+
+ts_res_t ts_adc_sample_fw(uint8_t inst, int32_t *mv)
+{
+	/* 框架侧采样（G3，单元 F）：input monitor 观测路径——无 ctx/权限面
+	 * （合同 3 观测侧；APP 侧仍走 ts_adc_read 权限裁决）。真后端判定与
+	 * ts_adc_read 同源（uid 匹配 + init）；未绑定 = 桩 0mV（sim 连续性）。 */
+	const ts_hal_dev_desc_t *d = find_dev(inst, TS_DEV_ADC);
+
+	if (d == NULL) return TS_E_NOTFOUND;
+#ifdef TS_ADC_REAL_AVAILABLE
+	if (real_adc_ready && strcmp(d->uid, real_adc_uid) == 0) {
+		return adc_sample_mv(mv) == 0 ? TS_OK : TS_E_IO;
+	}
+#endif
 	*mv = 0;
 	return TS_OK;
 }

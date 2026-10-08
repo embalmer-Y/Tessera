@@ -289,3 +289,28 @@ ZTEST(framework_app, test_06_av_gates)
 }
 
 ZTEST_SUITE(framework_app, NULL, NULL, NULL, NULL, NULL);
+
+/* ---- G3（单元 F）：INPUT_CHANGED → APP mailbox 路由 ----------------------- */
+ZTEST(framework_app, test_07_input_routing)
+{
+	ts_appmgr_app_test_reset();
+	zassert_equal(ts_appmgr_app_start(9, app_wasm, app_wasm_len,
+					  "gpio:write:0-3"), TS_OK);
+	k_sleep(K_MSEC(100)); /* APP 线程就位 */
+
+	const struct ts_input_evt p = {.inst = 0, .old_mv = 100, .new_mv = 1234};
+	const ts_evt_t evt = {
+		.id = TS_EVT_INPUT_CHANGED,
+		.t_ms = ts_time_ms(),
+		.data = &p,
+		.len = sizeof(p),
+	};
+	ts_evt_publish(&evt);
+	k_sleep(K_MSEC(150));
+
+	struct ts_app_rt_stats st;
+
+	ts_appmgr_app_stats(&st);
+	zassert_equal(st.evt_seen, 1, "input 事件路由进 mailbox（G3）");
+	zassert_equal(ts_appmgr_app_stop(), TS_OK);
+}

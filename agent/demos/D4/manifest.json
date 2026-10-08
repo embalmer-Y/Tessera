@@ -1,0 +1,16 @@
+{
+ "app_id": "demo.d4.adcreport",
+ "app_ver": "1.0.0",
+ "min_fw_ver": "1.0.0",
+ "caps": [
+  "adc:read:0"
+ ],
+ "stack_kb": 32,
+ "heap_kb": 8,
+ "exports": [
+  "health_ping",
+  "app_init",
+  "app_tick",
+  "app_evt"
+ ]
+}

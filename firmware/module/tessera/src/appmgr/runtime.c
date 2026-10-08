@@ -173,6 +173,37 @@ static void app_thread_entry(void *p1, void *p2, void *p3)
 
 /* ---- 公共 API -------------------------------------------------------------- */
 
+/* G3（单元 F）：input monitor → APP mailbox 路由。
+ * 订阅 TS_EVT_INPUT_CHANGED（一次性——evt 总线无退订 API，cb 内按
+ * rt.used/running 门控）；payload 编码进 32 位 mailbox 槽：
+ * (inst << 16) | (new_mv & 0xFFFF)——旧值/阈值语义归 APP。
+ * 回调在发布者上下文（sysworkq 输入轮询）执行；k_msgq_put(K_NO_WAIT)
+ * 线程安全，满 = 丢最旧 + 计数（DR-14）。 */
+static void input_evt_cb(const ts_evt_t *evt, void *user)
+{
+	ARG_UNUSED(user);
+	if (!rt.used || atomic_get(&rt.running) == 0) {
+		return;
+	}
+	if (evt->data == NULL || evt->len < sizeof(struct ts_input_evt)) {
+		return;
+	}
+	const struct ts_input_evt *p = evt->data;
+	const uint32_t payload = ((uint32_t)(p->inst & 0xFFFF) << 16) |
+				 ((uint32_t)p->new_mv & 0xFFFF);
+	(void)ts_appmgr_app_evt(payload);
+}
+
+static void input_route_subscribe(void)
+{
+	static bool done;
+
+	if (!done && ts_evt_subscribe(TS_EVT_INPUT_CHANGED, input_evt_cb,
+				      NULL) == TS_OK) {
+		done = true;
+	}
+}
+
 ts_res_t ts_appmgr_app_start(uint16_t app_id, const uint8_t *wasm,
 			     uint32_t wasm_len, const char *caps)
 {
@@ -333,6 +364,7 @@ ts_res_t ts_appmgr_app_start(uint16_t app_id, const uint8_t *wasm,
 	k_msgq_purge(&app_mb);
 	atomic_set(&rt.running, 1);
 	rt.used = true;
+	input_route_subscribe(); /* G3（单元 F）：INPUT_CHANGED → APP mailbox */
 	k_tid_t th = k_thread_create(&rt.thread, app_stack,
 				     K_THREAD_STACK_SIZEOF(app_stack),
 				     app_thread_entry, NULL, NULL, NULL,
@@ -357,12 +389,21 @@ ts_res_t ts_appmgr_app_stop(void)
 	}
 	atomic_set(&rt.running, 0); /* 停止投递；线程排空 mailbox 后自退 */
 	if (k_thread_join(&rt.thread, K_MSEC(APP_STOP_JOIN_MS)) != 0) {
-		k_thread_abort(&rt.thread); /* DR-14 强杀（2s 超时兜底） */
+		/* IR2-06 根治（单元 F）：join 超时 = 线程卡在不可中断点（native
+		 * 阻塞/持锁段）——**不 k_thread_abort**（在持锁点截断 = k_mutex
+		 * 无 owner-death 回收 → 全输出写路径永久死锁）。改为弃管升级：
+		 * 线程留在原地（不再喂 TS_WDT_APPMGR）→ 软看门狗逾期判定 →
+		 * system_fail（noinit 留痕归因）→ task_wdt 复位闭环（DEC-48 分
+		 * 层防线）。运行时资源（实例/env/rt.used）不回收——重启即净；
+		 * 如实登记（返回 E_TIMEOUT，调用方按健康失败/回滚语义处置）。 */
+		printk("[appmgr] app_stop: thread stuck — abandon to WDT escalation\n");
+		return TS_E_TIMEOUT;
 	}
 	wasm_runtime_destroy_exec_env(rt.env);
 	wasm_runtime_deinstantiate(rt.inst);
 	/* 模块进程级持有（mod_cache 怪癖规避——不 unload） */
 	ts_hal_unbind_context(&rt.ctx);
+	ts_wdt_deactivate(TS_WDT_APPMGR); /* 单元 F：停后无人喂 = 预期态 */
 	k_msgq_purge(&app_mb);
 	rt.used = false;
 	return TS_OK;

@@ -122,6 +122,10 @@ ts_res_t ts_wdt_register(ts_wdt_src_t src, uint32_t period_ms);
 /** [any] 原子更新 last_feed。 */
 void ts_wdt_feed(ts_wdt_src_t src);
 
+/** [thread] 去激活喂狗源（DEC-48① 对称面：APPMGR 随 APP 停止去激活——
+ *  停后无人喂 = 预期态不判逾期；下次 feed 重新激活）。单元 F。 */
+void ts_wdt_deactivate(ts_wdt_src_t src);
+
 /** [thread] 启动巡检（sysworkq 周期项，周期 = min(periods)/2）；硬件 WDT 超时 =
  * min(2×max(periods), 10s)（DEC-22/DEC-27）。逾期 → TS_EVT_WDT_WARN → system_fail。 */
 ts_res_t ts_wdt_start(void);

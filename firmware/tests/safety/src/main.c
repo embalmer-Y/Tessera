@@ -4,6 +4,7 @@
  * 说明：本套件为**有状态顺序场景**（注册表/forced 锁存为全局静态，estop 是终态），
  * ztest 用例执行顺序不保证 → 合并为单一顺序场景用例，断言链 = 规格链。
  */
+#include <zephyr/drivers/gpio.h>
 #include <zephyr/irq_offload.h>
 #include <zephyr/ztest.h>
 #include <stdio.h>
@@ -178,3 +179,16 @@ ZTEST(framework_safety, test_safety_full_scenario)
 }
 
 ZTEST_SUITE(framework_safety, NULL, NULL, NULL, NULL, NULL);
+
+/* ---- estop 边沿映射（DR-11 prov 化，单元 F）------------------------------ */
+ZTEST(framework_safety, test_estop_edge_mapping)
+{
+	extern int ts_safety_estop_edge_of(uint8_t flags);
+
+	zassert_equal(ts_safety_estop_edge_of(0), GPIO_INT_EDGE_RISING,
+		      "缺省 = 上升（兼容既有）");
+	zassert_equal(ts_safety_estop_edge_of(1), GPIO_INT_EDGE_FALLING);
+	zassert_equal(ts_safety_estop_edge_of(2), GPIO_INT_EDGE_BOTH);
+	zassert_equal(ts_safety_estop_edge_of(99), GPIO_INT_EDGE_RISING,
+		      "未知 = fail-safe 上升");
+}

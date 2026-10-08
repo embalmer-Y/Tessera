@@ -74,6 +74,16 @@ void ts_wdt_feed(ts_wdt_src_t src)
 	}
 }
 
+void ts_wdt_deactivate(ts_wdt_src_t src)
+{
+	/* 单元 F 补全（DEC-48① 动态激活的对称面）：APPMGR 源随 APP 停止去激活
+	 * ——stop 后无人喂是预期态，不得判逾期（真机 inputdemo 实证：stop 后
+	 * 1000ms 逾期 → system_fail 复位，D6 永不上场）。下次 feed 重新激活。 */
+	if (src < TS_WDT_COUNT) {
+		srcs[src].active = false;
+	}
+}
+
 /* 巡检：返回首个逾期源；无则 TS_WDT_COUNT。 */
 ts_wdt_src_t ts_wdt_patrol_once(void)
 {

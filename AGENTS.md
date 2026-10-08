@@ -6,6 +6,8 @@
 
 ## 1. 当前状态
 
+- **2026-10-08（五十二） · 输入面 G3 批交付（排期表单元 F）：input monitor ADC 真值化 + 事件→APP mailbox 路由 + IR2-06 根治（弃管升级替代 abort）+ estop 沿 prov 化 + ts_wdt_deactivate（DEC-48① 对称面，真机拦下）；D4/D6 demo 真机全链（真 LLM 一轮过：D4-DONE reports=8 / D6-DONE changes=6 / clamp rc=-12 限幅实证 / 滞回输出 rc=0 落驱动）；twister 15/15（73 用例）/agent/L5/ruff 全绿——**impl-review-02 高 3 + 中 8 全部清零**
+  - **下一单元（G）**：板级余项批——注册期 poweron 值落驱动 + MCUmgr 固件 OTA（DEC-07/23 已裁未实现）。
 - **2026-10-07（五十一） · MD1.2c 交付（排期表单元 E）：PDM 音频驱动扩展评估 = 缓办（docs/md12c-pdm-eval.md——技术路径可行〔esp32s3 i2s_ll PDM 寄存器层齐全 + 模块内驱动方案留档〕但 D 阶梯无音频消费者；重开触发四条件在档）——MD1.2 全子项收口（唯 h 的 DA PASS 待 B2）**
   - **下一单元（F）**：输入面 G3 批——input monitor→APP mailbox 路由 + D4/D6 输入 demo；并入 IR2-06（app_stop 持锁死锁面）+ estop 触发沿 prov 化。
 - **2026-10-07（五十） · 验签实施批交付（排期表单元 D，DEC-49 落地 + IR2-07 并入）：TSAP v2 + 固件真 ed25519 验签（tweetnacl 809 行公版内置）+ TEST 语义收口（固定测试根）+ 回滚闭环（目标槽验签/暖复位重载/meta 双损如实）——**IR2-02 消账（最后高风险项）+ 生产部署链语义首次点亮**；twister 15/15（70 用例）/agent 76+2s/L5/ruff 全绿；真机 dsdbench DS PASS 全链复验（xtensa 首跑真验签）**

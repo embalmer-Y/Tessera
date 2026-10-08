@@ -124,6 +124,25 @@ ts_res_t ts_adc_read(ts_ctx_t c, uint8_t inst, int32_t *mv);
 uint64_t ts_time_ms_api(ts_ctx_t c);
 ts_res_t ts_log_write(ts_ctx_t c, uint8_t lvl, const char *msg, uint32_t len);
 
+/* ---- 输入采集 input monitor（DR-02；G3 = 单元 F）------------------------- */
+
+/* TS_EVT_INPUT_CHANGED 载荷（单元 F v2：ADC 模拟面——旧 bool 载荷无消费者，
+ * pub.c 通用分支不解码；语义 = 传输级"变了"，阈值归 APP）。 */
+struct ts_input_evt {
+	uint32_t inst;   /* 注册表全局索引（= ts_adc_read 的 inst 域） */
+	int32_t old_mv;
+	int32_t new_mv;
+};
+
+/** 框架侧 ADC 采样（input monitor 观测路径，无权限面——合同 3 观测侧；
+ *  APP 侧读值走 ts_adc_read）。未绑定真后端 = 桩 0mV。 */
+ts_res_t ts_adc_sample_fw(uint8_t inst, int32_t *mv);
+
+#ifdef CONFIG_TS_TEST
+/** 测试注入：input monitor 轮询取注入值（驱动确定性变化序列）。 */
+void ts_hal_input_test_inject(uint32_t inst, int32_t mv);
+#endif
+
 /* ---- 实例注册（registry.c，ts-periph 调用）------------------------------ */
 
 typedef enum {
