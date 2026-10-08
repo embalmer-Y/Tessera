@@ -1,6 +1,6 @@
 # docs/project-plan.md · Tessera 统一项目开发计划
 
-> **版本**：v1.36 · 2026-10-08（v1.0 · 2026-09-22 · 依 owner 指令与 **DEC-39** 建立）.
+> **版本**：v1.37 · 2026-10-09（v1.0 · 2026-09-22 · 依 owner 指令与 **DEC-39** 建立）.
 > **权威顺序**：owner 最新裁决（decisions.md DEC）> `FOUNDING_PROMPT.md` > 本计划。计划变更走修订记录；里程碑进出走 review 门（流程 §2.4-②）。
 > **结构**：双轨并行——**轨道 A（固件框架，M 系）** 与 **轨道 B（AI Agent，MA 系）**；交叉依赖见 §4；实施节奏（单会话一交付单元，军规/流程 §2.3）建议排序见 §7。
 
@@ -63,7 +63,7 @@
 | D | 验签实施批 ✅ | Q-29 裁决后实现 + 真机部署链复验；**并入 IR2-07**（回滚闭环：目标槽验证/回滚后重载/meta 双损如实失败） | — |
 | E | MD1.2c | PDM 音频驱动扩展评估——**已交付 2026-10-07：结论缓办**（技术路径可行无消费者；docs/md12c-pdm-eval.md；重开触发四条件在档） | ✅ 评估 |
 | F | 输入面 G3 批 ✅ | input monitor ADC 真值化 + 事件→mailbox 路由 + D4/D6 demo 真机全链（D4-DONE/D6-DONE/clamp -12/rc=0）；并入 IR2-06 根治 + estop 沿 prov 化 + ts_wdt_deactivate（DEC-48 对称面） | — |
-| G | 板级余项批 ◐ | **G1 ✅ poweron 值落驱动**（真机 ID1a 299‰/want300 寄存器证据）；G2 = MCUmgr OTA（独立单元待开工：mcuboot 在位 + esp32s3 板级支持） | — |
+| G | 板级余项批 ◐ | **G1 ✅** poweron 落驱动（真机寄存器证据）；**G2 ◐** MCUmgr OTA（sysbuild+签名+MCUboot 引导+真机 1.0.0 启动全通；OTA 上传待 owner 一行 UAC 开 Hyper-V 防火墙） | — |
 | H | G4/G5 批 | 单活跃 APP 语义收口 + 模拟器深度增强 | — |
 | I | MD2 混合 demo | D8/D9（依赖 F 输入面就绪） | — |
 | J | Zephyr 升级评估 + P4 | v4.4.0 → 最新 stable 升级评估（含 zenoh-pico 联动）→ 呈递；批准后 P4 适配（实板终验需 owner 提供 P4 板） | 门⑤ 呈递停门 |
@@ -77,6 +77,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.37 · 2026-10-09：G2 部分交付——MCUmgr OTA 构建链与 MCUboot 引导全链打通（sysbuild + imgtool + 双 slot + SMP UDP 服务器 + 真机 1.0.0 自报）；OTA 上传待 owner 开 Hyper-V 防火墙（WSL2 mirrored 入站 UDP 阻挡）；串口 SMP 在 S3 USB-JTAG 上不可用（平台限制登记）。
 - v1.36 · 2026-10-08：G1 交付——poweron_init 直写驱动（板级九遗留收口；sim 用例 + inputdemo 真机寄存器证据 299‰@300‰）；单元 G 拆分：G2 = MCUmgr OTA 独立单元（mcuboot/SMP UDP/imgtool 签名/真机全链）。
 - v1.35 · 2026-10-08：输入面 G3 批（单元 F）交付——input monitor ADC 真值轮询（传输级变化语义，阈值归 APP）+ INPUT_CHANGED→mailbox 路由 + estop 沿 prov 化 + IR2-06 根治（弃管升级替代 abort）+ ts_wdt_deactivate；D4/D6 demo 真机全链（真 LLM 一轮过 + 悬空拾噪真值 + clamp/落驱动实证）；twister 15/15（73 用例）。**impl-review-02 高 3 + 中 8 全部清零**。
 - v1.34 · 2026-10-07：MD1.2c（单元 E）评估交付——PDM 缓办结论（上游面/实施路径/重开触发留档 docs/md12c-pdm-eval.md；D 阶梯无音频消费者）；**MD1.2 全子项收口**（唯 h 的 DA PASS 待 B2）。

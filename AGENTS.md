@@ -6,6 +6,9 @@
 
 ## 1. 当前状态
 
+- **2026-10-09（五十四） · G2 部分交付（MCUmgr OTA）：sysbuild+imgtool 签名+MCUboot 引导+真机 1.0.0 启动全链打通（647KB 签名镜像双 slot）；OTA 上传步骤待 owner 一行 UAC 开 Hyper-V 防火墙（WSL2 mirrored 入站 UDP 阻挡）；串口 SMP 在 S3 USB-JTAG 上不可用（平台限制登记）**
+  - **待 owner**：管理员 PowerShell 运行 `New-NetFirewallHyperVRule -Name SMP -Direction Inbound -VMCreatorId '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -Protocol UDP -LocalPort Any -Action Allow` → 重跑 ota_client.py 即完成 OTA 全链（v1→upload v2→confirm→reset→v2）。
+  - **下一单元（H）**：G4/G5——单活跃 APP 语义收口 + 模拟器深度增强。
 - **2026-10-08（五十三） · G1 交付（单元 G 拆分·前半）：注册期 poweron 值落驱动——poweron_init 直写驱动（板级九遗留收口）；真机 ID1a 寄存器证据 299‰@want 300 OK + D4/D6 不回归；twister 15/15（74 用例）/agent/L5/ruff 全绿**
   - **下一单元（G2）**：MCUmgr 固件 OTA（DEC-23：mcuboot + 双 slot + SMP UDP + imgtool 签名 + PC 客户端 + 真机 OTA 全链——工作区 mcuboot 在位且 esp32s3 有板级支持；体量 1-2 会话）。
 - **2026-10-08（五十二） · 输入面 G3 批交付（排期表单元 F）：input monitor ADC 真值化 + 事件→APP mailbox 路由 + IR2-06 根治（弃管升级替代 abort）+ estop 沿 prov 化 + ts_wdt_deactivate（DEC-48① 对称面，真机拦下）；D4/D6 demo 真机全链（真 LLM 一轮过：D4-DONE reports=8 / D6-DONE changes=6 / clamp rc=-12 限幅实证 / 滞回输出 rc=0 落驱动）；twister 15/15（73 用例）/agent/L5/ruff 全绿——**impl-review-02 高 3 + 中 8 全部清零**
