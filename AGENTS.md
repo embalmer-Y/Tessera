@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-10-09（五十八） · 单元 J（评估半）交付：Zephyr 升级评估 + Q-30 呈递——门⑤停门等 owner**
+  - 结论：v4.4.0 = 当前最新 stable（无落后）；**唯一硬驱动 = P4**（4.4.0 espressif HAL 无 esp32p4，不可移植；支持随 v4.5——main 已有 esp32p4/esp32p4x 双板）；zenoh 三方 1.10.1 已是上游最新（升级零联动）；qemu 元数据/DAV2 两缺口 main 未修（升级不解决，如实排除）。
+  - Q-30（门⑤）：建议 A = 4.5 正式发布后即升（DEC-19 既定方向；升级批 1-2 会话——最大迁移项 Espressif 板 DT 重构〔PSRAM 声明〕+ native_sim TAP 转 DT）；B = 等 4.6 LTS4（P4 冻结 + EOL 零裕量）；C = 不动（违 DEC-19）。附 P4 采购硅版本裁决点（v3.x 刷新 vs v1.3）。
+  - **禁区：Q-30 裁决前不动技术栈。** 评估底稿 = docs/zephyr-upgrade-eval-01.md。
+  - 剩余：B2（DAV1 + 查询面停滞）+ G2 OTA 上传（owner 防火墙）+ D8 clean-pass（随 B2）。
 - **2026-10-09（五十七） · 单元 I（MD2）：D9 全链 PASS + D8 ~90%（查询面停滞新发现）——twister 15/15（77）/agent/L5/ruff 全绿**
   - D9：sim（输入文件接口首批真消费者）+ 真机断链时间线全绿（armed 349‰→断链 block+硬件 0%→恢复 D9-DONE + evt×26 合同 3 证据）；LEDC 0% 特例/S3 位序 = 教训 29。
   - D8：三版本生命周期链路全证（部署/升级【G4 激活即停真机首证】/健康回滚/v2 复活 + hb 心跳后 rc=0 真落驱动）；**拦下 deploy.py v1 残留对拍公式（修复+测试）** + deploybench 内存重平（LOAD_MAX 4096/池 156672）。

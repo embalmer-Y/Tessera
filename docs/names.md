@@ -271,3 +271,5 @@
 - 2026-10-09 · **单元 H 登记（G4/G5 批）**：replay_script.tsv（重放脚本文件契约——LLD-A04 §2 输入文件接口载体；行格式 t_ms + link/estop/input/commit）；in:（scenario ch 命名空间前缀：ADC 注入/回显通道，V1 = in:0/in:1）；rep_c / rep_d（replay 脚本会话输出通道——golden 会话 rep_a/rep_b 之外独立注册）；script_lines（agent runner：inputs→脚本行映射 + 配置面校验）；test_00_script_file_session / test_boot_quarantine_refusal / test_08_activate_while_running（本单元三用例）；隔离标记（meta.rollback_count = LIMIT+1 = boot 拒载判据——运行时计数仍如实 LIMIT）。消费：G4（单活跃语义收口）/ G5（模拟深度）。
 
 - 2026-10-09 · **单元 I 登记（MD2：D8/D9）**：linkdemo（firmware/tests/ 真机载体：D9 断链时间线——LD*/D9* console 行）；d8_client.py（deploybench D8 网络驱动：三段部署链 + hb-host 心跳线程〔linkmon 判活——MD1 模式〕+ 动态 slot 链式期望）；demo.d9.linkloss / demo.d8.lifecycle（v1/v2/v2bad 三版本——D8 版本区分经 active_slot 链）；agent/scenarios/（d9-linkloss.json / d8-v1-ramp.json——LLD-A04 §1 场景入库首例）；d9 keep/block/out（D9 APP 判据行族）；LEDC 0% 特例路径（Zephyr pwm_led_esp32 duty 0/100 走 STOP——判据见教训 29）。消费：D8/D9（MD2 demo 阶梯收官两级）。
+
+- 2026-10-09 · **单元 J 登记**：zephyr-upgrade-eval-01（升级评估报告：钉版链对照/P4 阻塞性论证/迁移成本十项/选项 ABC）；Q-30（门⑤：Zephyr 4.5 升级时点 + P4 适配前置）；esp32p4x（Zephyr 板目标：P4 v3.x 硅变体——采购裁决点）；LTS4（= Zephyr 4.6，2027-04 计划）。消费：单元 J（技术栈门）。
