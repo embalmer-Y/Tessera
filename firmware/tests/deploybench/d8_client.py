@@ -34,9 +34,7 @@ REPO = HERE.parents[2]
 AGENT = REPO / "agent"
 sys.path.insert(0, str(AGENT))
 
-from tessera_agent.tools_net import (
-    deploy,
-    )
+from tessera_agent.tools_net import deploy, keys
 from tessera_agent.tools_net.zenoh_service import ZenohService
 
 ZENOHD = Path("~/project/tools/zenohd").expanduser()
@@ -89,15 +87,29 @@ def ensure_zenohd(port: int) -> subprocess.Popen | None:
 
 
 def find_cube(svc: ZenohService, timeout_s: float) -> dict:
+    """发现 dbn/dbc——通配发现失败时兜底点对点直查（B2 实测：暖复位后
+    路由器残留陈旧 queryable 声明〔死 peer 各拖 3s 超时〕，通配合并可
+    超时而直查单路可达；D8 的 node/cube 已知，无需通配）。"""
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
         try:
             cubes = deploy.discover(svc, timeout_s=3.0)
-        except Exception:  # noqa: BLE001 —— 重启窗口 zenoh 抖动兜底
-            cubes = []
-        for c in cubes:
-            if c["node_id"] == NODE and c["cube_id"] == CUBE:
-                return c
+            for c in cubes:
+                if c["node_id"] == NODE and c["cube_id"] == CUBE:
+                    return c
+        except Exception:  # noqa: BLE001, S110 —— 重启窗口 zenoh抖动兜底
+            pass
+        try:
+            _, pl = svc.query_one(f"tessera/{NODE}/{CUBE}/sys/get-info",
+                                  keys.envelope("get-info", "fc"),
+                                  timeout_s=4.0)
+            r = keys.parse_reply(pl)
+            if r.data.get("node") == NODE and r.data.get("cube") == CUBE:
+                return {"node_id": NODE, "cube_id": CUBE,
+                        "fw": r.data.get("fw"), "board": r.data.get("board"),
+                        "status": r.status}
+        except Exception:  # noqa: BLE001, S110 —— 直查兜底亦失败，下轮再试
+            pass
         time.sleep(1.0)
     raise SystemExit(f"D8 FAIL 未发现 {NODE}/{CUBE}（{timeout_s}s）")
 
@@ -126,7 +138,7 @@ def wait_for(svc: ZenohService, want_slot: int, want_state: int,
 
 
 def deploy_one(svc: ZenohService, name: str, pkg_dir: Path,
-               want_slot: int, pub: Path) -> None:
+               want_slot: int, pub: Path, wait_active: bool = True) -> None:
     pkg = next(pkg_dir.glob("*.tsap"))
     out = deploy.push_app(svc, NODE, CUBE, str(pkg), str(pub),
                           chunk_size=256, log_fn=log)
@@ -134,6 +146,8 @@ def deploy_one(svc: ZenohService, name: str, pkg_dir: Path,
     assert int(out["active_slot"]) == want_slot, \
         f"{name}: 目标槽 {out['active_slot']} != 预期 {want_slot}"
     log(f"{name} 推送完成 slot={out['active_slot']}（激活即停旧版——G4）")
+    if not wait_active:
+        return  # v2bad：瞬态 ACTIVE ~3s 即被健康回滚翻转——直接等终态
     time.sleep(8.0)  # DB4/DB5 板侧 2s 观测 + 暖复位 + 装载
     find_cube(svc, 60.0)
     ga = wait_for(svc, want_slot, TS_APP_ACTIVE, 0, 45.0, f"{name} 运行")
@@ -164,15 +178,19 @@ def main() -> int:
 
             for name, pkg_dir in PLAN:
                 slot ^= 1  # 目标槽 = 当前 active ^ 1
-                deploy_one(svc, name, pkg_dir, slot, pub)
+                deploy_one(svc, name, pkg_dir, slot, pub,
+                           wait_active=(name != "v2bad"))
                 if name == "v1":
                     log("D8a v1 初装运行（console: d8 v1 init / D8-DONE）")
                 elif name == "v2":
                     log("D8b v2 升级运行（console: d8 v2 init / D8-DONE）")
                 else:
-                    log("D8c-1 v2bad ACTIVE（console: d8bad init；~4s 健康回滚）")
-                    time.sleep(6.0)  # 探针 3×1000ms + rollback + 暖复位
-                    find_cube(svc, 60.0)
+                    # 坏版本：装载 → 健康探针 3 败 → 自动回滚（目标槽 v2 验签
+                    # 通过）→ 暖复位 → v2 复活。瞬态 ACTIVE ~3s 不作硬判据
+                    # （B2 实测：轮询窗错过瞬态 ≠ 失败——终态才是判据）。
+                    log("D8c-1 v2bad 已激活（console: d8bad init；~4s 健康回滚）")
+                    time.sleep(15.0)  # 探针 3×1000ms + rollback 验签 + 暖复位
+                    find_cube(svc, 90.0)
                     ga = wait_for(svc, slot ^ 1, TS_APP_ACTIVE, 1, 60.0,
                                   "回滚复活 v2")
                     log(f"D8c-2 v2 复活 slot={ga['active_slot']} "

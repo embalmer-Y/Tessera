@@ -273,3 +273,5 @@
 - 2026-10-09 · **单元 I 登记（MD2：D8/D9）**：linkdemo（firmware/tests/ 真机载体：D9 断链时间线——LD*/D9* console 行）；d8_client.py（deploybench D8 网络驱动：三段部署链 + hb-host 心跳线程〔linkmon 判活——MD1 模式〕+ 动态 slot 链式期望）；demo.d9.linkloss / demo.d8.lifecycle（v1/v2/v2bad 三版本——D8 版本区分经 active_slot 链）；agent/scenarios/（d9-linkloss.json / d8-v1-ramp.json——LLD-A04 §1 场景入库首例）；d9 keep/block/out（D9 APP 判据行族）；LEDC 0% 特例路径（Zephyr pwm_led_esp32 duty 0/100 走 STOP——判据见教训 29）。消费：D8/D9（MD2 demo 阶梯收官两级）。
 
 - 2026-10-09 · **单元 J 登记**：zephyr-upgrade-eval-01（升级评估报告：钉版链对照/P4 阻塞性论证/迁移成本十项/选项 ABC）；Q-30（门⑤：Zephyr 4.5 升级时点 + P4 适配前置）；esp32p4x（Zephyr 板目标：P4 v3.x 硅变体——采购裁决点）；LTS4（= Zephyr 4.6，2027-04 计划）。消费：单元 J（技术栈门）。
+
+- 2026-10-09 · **B2 批登记**：教训 29.5（zenoh locator/Reply API/陈旧声明三教训族）；qprobe.py / qstall_repro.py（仓外调试载体——双向探针/受控复现）；rollback_count 随载恢复（boot_start 装载路径语义补全）。消费：B2（查询面停滞根因批）。

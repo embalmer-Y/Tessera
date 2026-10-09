@@ -151,6 +151,16 @@ ZTEST(framework_app, test_04_boot_slot_load)
 	zassert_equal(ts_appmgr_install(boot_pkg, total, root_key, &inst_info),
 		      TS_OK, "install 预签包（真 ed25519）");
 
+	/* B2 批：回滚计数随载恢复——装载前改写 meta.count=2，装载后 get-app
+	 * 须如实报 2（旧缺陷 = 恒 0；flash 实测对拍拦下）。 */
+	{
+		ts_appmgr_meta_t m;
+
+		zassert_equal(ts_appmgr_meta_read(&m), TS_OK);
+		m.rollback_count = 2;
+		zassert_equal(ts_appmgr_meta_write(&m), TS_OK);
+	}
+
 	/* boot 装载（步骤 8 语义）：摘要快校验 + manifest 走查 + caps 组合 +
 	 * wasm → 运行 */
 	zassert_equal(ts_appmgr_boot_start(), TS_OK, "boot 装载");
@@ -160,6 +170,7 @@ ZTEST(framework_app, test_04_boot_slot_load)
 	ts_app_info_t after;
 	zassert_equal(ts_appmgr_get_info(&after), TS_OK);
 	zassert_equal(after.state, TS_APP_ACTIVE, "装载后 STAGED→ACTIVE");
+	zassert_equal(after.rollback_count, 2, "回滚计数随载恢复（B2）");
 	zassert_equal(strcmp(after.app_id, "com.tessera.fixture"), 0,
 		      "manifest app_id 提取");
 	zassert_equal(ts_appmgr_app_stop(), TS_OK);

@@ -393,6 +393,11 @@ ts_res_t ts_appmgr_boot_start(void)
 	if (sr == TS_OK) {
 		current_app.state = TS_APP_ACTIVE; /* STAGED →（加载周期）→ ACTIVE */
 		current_app.active_slot = meta.active_slot;
+		/* B2 批修正：回滚计数随载恢复（旧缺：仅恢复 state/slot——count
+		 * 停留 BSS 0，跨重启后 get-app 永远报 0；flash 实测 meta=1 而
+		 * 运行时报 0 即本缺陷。隔离拒载路径（上文）与 get_info 懒恢复
+		 * 均已各自恢复计数，唯本装载路径漏）。 */
+		current_app.rollback_count = meta.rollback_count;
 		/* 板级十修复：装载成功即占有 current_app——不置 initialized 时首次
 		 * get_info（观测线程/sys get-app）的惰性初始化会把 ACTIVE 打回
 		 * STAGED（懒路径盲写 state = 装载结果被观测面抹掉）；active_slot

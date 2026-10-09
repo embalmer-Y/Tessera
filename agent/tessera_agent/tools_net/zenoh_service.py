@@ -39,8 +39,13 @@ class ZenohService:
     def _run(self) -> None:
         try:
             conf = zenoh.Config()
+            # B2 批修正：zenoh 1.10.1 locator 正式语法 = "tcp/host:port"；
+            # 旧式 "tcp://host:port" 在 1.10.1 解析为协议 "tcp:" → 会话开失败
+            # （"Unicast not supported for tcp: protocol"）——中心归一化，
+            # 兼容历史调用方两种写法。
+            locator = self._locator.replace("://", "/")
             conf.insert_json5(
-                "connect", json.dumps({"endpoints": [self._locator]})
+                "connect", json.dumps({"endpoints": [locator]})
             )
             session = zenoh.open(conf)
         except BaseException as exc:  # noqa: BLE001
@@ -103,16 +108,37 @@ class ZenohService:
 
     def query(self, key: str, payload: bytes,
               timeout_s: float = QUERY_TIMEOUT_S) -> list[tuple[str, bytes]]:
-        """query → [(回执 key, 回执 payload)]；ERR 回执 = TaError（不留静默）。"""
+        """query → [(回执 key, 回执 payload)]；ERR 回执 = TaError（不留静默）。
+
+        eclipse-zenoh 1.10.1 Reply API = ok/err/replier_id（B2 批修正：旧代码
+        访问 err_payload 属性在 1.10.1 不存在——错误回执路径一踩即
+        AttributeError；且异常中断 get 迭代后会话疑似残留未消费状态，后续
+        调用挂起 =「查询面停滞」假象的 agent 侧根源。修复 = 按 1.10.1 取
+        err.payload + finally 排空迭代器）。"""
 
         def do(s: zenoh.Session) -> list[tuple[str, bytes]]:
             out: list[tuple[str, bytes]] = []
-            for r in s.get(key, payload=payload, timeout=timeout_s):
-                if r.ok is None:
-                    msg = f"query {key} 收到 ERR 回执: {bytes(r.err_payload)!r}"
-                    raise TaError(TA_E_ZENOH, msg, domain="zenoh")
-                out.append((str(r.ok.key_expr), bytes(r.ok.payload)))
-            return out
+            get = s.get(key, payload=payload, timeout=timeout_s)
+            try:
+                for r in get:
+                    if r.ok is None:
+                        err = getattr(r, "err", None)
+                        detail = b""
+                        try:
+                            detail = bytes(getattr(err, "payload", b"") or b"")
+                        except Exception:  # noqa: BLE001 —— err 载荷形态防御
+                            detail = b""
+                        msg = f"query {key} 收到 ERR 回执: {detail!r}"
+                        raise TaError(TA_E_ZENOH, msg, domain="zenoh")
+                    out.append((str(r.ok.key_expr), bytes(r.ok.payload)))
+                return out
+            finally:
+                # 异常路径也排空 get 迭代器（不留半消费内部状态）
+                try:
+                    for _ in get:
+                        pass
+                except Exception:  # noqa: BLE001 —— 排空兜底
+                    pass
 
         return self._call(do, timeout_s=timeout_s + 5.0)
 

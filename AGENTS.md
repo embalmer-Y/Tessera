@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-10-09（五十九） · B2 批（查询面半）交付：「查询面停滞」根因定论 = agent 侧双缺陷（板/路由无责）+ rollback_count 随载恢复存量缺陷修复——twister 15/15（77）/agent/L5/ruff 全绿**
+  - 根因（受控双向探针剥离）：zenoh locator 语法（tcp:// → tcp/ 归一化修复）+ Reply API 漂移（err_payload → err.payload + get 迭代排空）；环境放大器 = 暖复位后路由器陈旧 queryable 声明（NAT 拖死 TCP——教训 29.5；client 点对点直查兜底）。
+  - rollback_count 随载恢复（flash 实测 1 vs 运行时 0 拦下；boot_start 装载路径修复 + test_04 断言）。
+  - D8 各段双证齐（v1/v2 升级 G4/健康回滚 v2 复活 + count=1 对拍 ✓）；单跑 D8 PASS 行待网络平峰期（当晚 AP 关联 8→68s 劣化，如实登记）。DAV1 留独立会话。
+  - 剩余：Q-30 裁决（门⑤）→ 升级批 + P4；DAV1 会话；G2 OTA（owner 防火墙）；D8 单跑行（网络平峰期一跑即收）。
 - **2026-10-09（五十八） · 单元 J（评估半）交付：Zephyr 升级评估 + Q-30 呈递——门⑤停门等 owner**
   - 结论：v4.4.0 = 当前最新 stable（无落后）；**唯一硬驱动 = P4**（4.4.0 espressif HAL 无 esp32p4，不可移植；支持随 v4.5——main 已有 esp32p4/esp32p4x 双板）；zenoh 三方 1.10.1 已是上游最新（升级零联动）；qemu 元数据/DAV2 两缺口 main 未修（升级不解决，如实排除）。
   - Q-30（门⑤）：建议 A = 4.5 正式发布后即升（DEC-19 既定方向；升级批 1-2 会话——最大迁移项 Espressif 板 DT 重构〔PSRAM 声明〕+ native_sim TAP 转 DT）；B = 等 4.6 LTS4（P4 冻结 + EOL 零裕量）；C = 不动（违 DEC-19）。附 P4 采购硅版本裁决点（v3.x 刷新 vs v1.3）。
