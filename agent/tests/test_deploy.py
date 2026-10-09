@@ -108,8 +108,10 @@ class FakeCube:
             if st is None or st["hw"] < st["total"]:
                 return self._enc(rid, -4, {})
             magic, ver, mlen, wlen, _ = struct.unpack(">IHIIH", bytes(st["buf"][:16]))
+            # TSAP v2（DEC-49②）：内容区 = 头 16 + 摘要 32 = 48（与固件/固件
+            # 测试三方一致的权威布局；D8 真机对拍曾拦下 v1 残留公式）
             facts = {"manifest_len": mlen, "wasm_len": wlen,
-                     "cose_off": 16 + mlen + wlen}
+                     "cose_off": 48 + mlen + wlen}
             if self.facts_override:
                 facts.update(self.facts_override)
             st["verified"] = True

@@ -1,0 +1,16 @@
+{
+ "app_id": "demo.d8.lifecycle",
+ "app_ver": "2.1.0",
+ "min_fw_ver": "1.0.0",
+ "caps": [
+  "pwm:set:1"
+ ],
+ "exports": [
+  "health_ping",
+  "app_init",
+  "app_tick",
+  "app_evt"
+ ],
+ "stack_kb": 8,
+ "heap_kb": 4
+}

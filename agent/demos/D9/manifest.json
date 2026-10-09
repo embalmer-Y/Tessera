@@ -1,0 +1,17 @@
+{
+ "app_id": "demo.d9.linkloss",
+ "app_ver": "1.0.0",
+ "min_fw_ver": "1.0.0",
+ "caps": [
+  "adc:read:0",
+  "pwm:set:1"
+ ],
+ "stack_kb": "8",
+ "heap_kb": "4",
+ "exports": [
+  "health_ping",
+  "app_init",
+  "app_tick",
+  "app_evt"
+ ]
+}

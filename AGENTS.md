@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-10-09（五十七） · 单元 I（MD2）：D9 全链 PASS + D8 ~90%（查询面停滞新发现）——twister 15/15（77）/agent/L5/ruff 全绿**
+  - D9：sim（输入文件接口首批真消费者）+ 真机断链时间线全绿（armed 349‰→断链 block+硬件 0%→恢复 D9-DONE + evt×26 合同 3 证据）；LEDC 0% 特例/S3 位序 = 教训 29。
+  - D8：三版本生命周期链路全证（部署/升级【G4 激活即停真机首证】/健康回滚/v2 复活 + hb 心跳后 rc=0 真落驱动）；**拦下 deploy.py v1 残留对拍公式（修复+测试）** + deploybench 内存重平（LOAD_MAX 4096/池 156672）。
+  - 新登记（不动手）：健康回滚 WDT 竞态（verify 超 APPMGR 窗——呈递候选）；**查询面停滞**（长会话后 queryable 停响应——D8 唯一余项 clean-pass 受阻，B2 邻接）。
+  - 剩余：J（Zephyr 升级评估 + P4，门⑤呈递）+ B2（DAV1 + 查询面停滞）；G2 OTA 上传仍待 owner 防火墙。
 - **2026-10-09（五十六） · 单元 H（G4/G5）交付：单活跃 APP 语义收口 + 模拟器输入文件实装——twister 15/15（77 用例）/agent 77+2s/E2E/L5/ruff/板级构建全绿**
   - G4：activate 即停运行 APP（DR-14——旧撕裂态：meta 翻转后旧包继续运行；deploybench DB4 观测线程 = 该缺陷的板侧 workaround 佐证）；隔离拒载（rollback 第 4 次拒时持久化 meta.rollback_count = LIMIT+1 → boot 拒载 + 观测面 QUARANTINED——旧缺陷 = 每次上电重载已知坏包）。
   - G5：LLD-A04 §2「输入文件进」实装（M1 约定从未落地）——replay 脚本会话（link/estop/input/commit + JSONL 归并流）+ agent script_lines 映射（ch 命名空间：link/estop/in:N/rep_c/rep_d）；scenario schema v1 零变更。

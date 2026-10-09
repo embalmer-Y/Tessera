@@ -1,0 +1,61 @@
+{
+ "scenario_version": 1,
+ "inputs": [
+  {
+   "t_ms": 100,
+   "ch": "link",
+   "value": 1
+  },
+  {
+   "t_ms": 200,
+   "ch": "rep_c",
+   "value": 100
+  },
+  {
+   "t_ms": 300,
+   "ch": "rep_c",
+   "value": 200
+  },
+  {
+   "t_ms": 400,
+   "ch": "rep_c",
+   "value": 300
+  },
+  {
+   "t_ms": 500,
+   "ch": "rep_c",
+   "value": 400
+  },
+  {
+   "t_ms": 600,
+   "ch": "rep_c",
+   "value": 500
+  },
+  {
+   "t_ms": 700,
+   "ch": "rep_c",
+   "value": 600
+  },
+  {
+   "t_ms": 800,
+   "ch": "rep_c",
+   "value": 700
+  }
+ ],
+ "expectations": [
+  {
+   "ch": "rep_c",
+   "op": "eq",
+   "value": 700
+  },
+  {
+   "ch": "rep_c",
+   "op": "count",
+   "value": 7
+  }
+ ],
+ "meta": {
+  "board": "native_sim",
+  "seed": null
+ }
+}

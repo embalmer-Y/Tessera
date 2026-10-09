@@ -141,7 +141,10 @@ def push_app(
     local_facts = {
         "manifest_len": mlen,
         "wasm_len": wlen,
-        "cose_off": _TSAP_HDR.size + mlen + wlen,
+        # TSAP v2 布局（DEC-49②）：头 16 + 摘要 32 → 内容区 = 48（D8 真机
+        # 对拍拦下的存量缺陷——本行原为 v1 布局 16+ml+wl，网络链自板级十
+        # 后未跑、单元 D v2 迁移漏改此面）。
+        "cose_off": tsap_tools.TSAP_CONTENT_OFF + mlen + wlen,
     }
     log(f"tsap_verify PASS: {package_path}（{len(pkg)}B，分块 {chunk_size}B）")
 

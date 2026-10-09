@@ -113,7 +113,9 @@ python3.12 -m venv ~/project/agent-venv
 
 27. **手抄二进制数组禁令 + 板 bench 分区残留态（2026-10-02 板级十实证，docs/board-deploy-01.md）**：① **常量字节数组（prov blob 等）禁手抄改写**——丢字节后写通道"成功"返回但确定性解析 fail-closed（症状 = 烧入 OK + 永远 load 失败）；正确做法 = 脚本机械派生（源数组改字节）+ **生成期按消费方 schema 走查验证**（~/project/logs/gen_db_prov.py 模式）；定位法 = esptool read_flash 分区 dump + 独立解析器走查；② **换 bench 后 flash ts 分区残留上一 bench 的 prov/meta**（load=0 旧身份即沿旧身份上线）——板级流程须先 esptool erase_region 0x170000 0x14000（ts 五分区；fw_b 预留不动）；③ env 门控测试（默认 skip）掩盖跨轨漂移（exports 命名案例）——gated 测试须周期性真跑。
 
-28. **WAMR 进程内二次 boot_start 怪癖（2026-10-09 单元 H test_08 排障实证，隔离复现 + 控制变量五组）**：同一进程内 `ts_appmgr_boot_start` 第二次调用产出的实例**导出查找恒空**（`wasm_runtime_lookup_function` 对 health_ping/app_init 全 NULL → E_PARAM），与字节内容/指针/缓存命中无关（wasm 逐字节相同、mod_cache 命中、模块对象不变）；stop 后**直调** `ts_appmgr_app_start`（同模块重启）**不受影响**——判别律 =「进程内第二个 boot_start 必坏，直调免疫」。生产无暴露面（boot_start 每进程恰一次；重载 = 暖复位，persistbench PB4/PB5 链）；测试规避 = activate 语义经直调启动考察（tests/app test_08 注记）。教训 12 怪癖家族第三型；升级 WAMR 后撤实验验证。
+28. **WAMR 进程内二次 boot_start 怪癖（2026-10-09 单元 H test_08 排障实证，隔离复现 + 控制变量五组）**：同一进程内 `ts_appmgr_boot_start` 第二次调用产出的实例**导出查找恒空**（`wasm_runtime_lookup_function` 对 health_ping/app_init 全 NULL → E_PARAM），与字节内容/指针/缓存命中无关（wasm 逐字节相同、mod_cache 命中、模块对象不变）；stop 后**直调** `ts_appmgr_app_start`（同模块重启）**不受影响**——判别律 =「进程内第二个 boot_start 必坏，直调免疫」。**怪癖面 = native_sim（X86_32）实证；ESP32-S3（XTENSA）反证在先**——inputdemo（单元 F，2026-10-08）D4 经 ts_core_boot 装载后、D6 阶段同进程第二次 `ts_appmgr_boot_start` 真机装载运行成功（D6-DONE 实证）——怪癖按平台/条件未定，native_sim 侧规避如旧。生产无暴露面（boot_start 每进程恰一次；重载 = 暖复位，persistbench PB4/PB5 链）；测试规避 = activate 语义经直调启动考察（tests/app test_08 注记）。教训 12 怪癖家族第三型；升级 WAMR 后撤实验验证。
+
+29. **ESP32-S3 LEDC 判据三要点（2026-10-09 单元 I / D9 板上实证）**：① **duty 0%（与 100%）走 STOP 特例路径**——Zephyr `pwm_led_esp32`（pwm_led_esp32.c L339）不更新 DUTY 寄存器而是 SIG_OUT_EN=0 + IDLE_LV 直接输出（0% = 恒低）——**DUTY_R 读回判据仅在运行态有效**，0% 判据 = CONF0.SIG_OUT_EN==0 且 IDLE_LV==0（硬件确在 0%，寄存器视角不同）；② **S3 位序/偏移与初代 ESP32 不同**：LSCH0_CONF0@0x0000（HPOINT@0x4 / CONF1@0xC / DUTY_R@0x10），SIG_OUT_EN=BIT(2)、IDLE_LV=BIT(3)——**位定义一律查 `components/soc/esp32s3/register/soc/ledc_reg.h`，勿凭初代记忆**；③ 数值日志含 0 的 APP 代码生成（LLM）约束须显式「0 输出字符 '0'」+「单次 log 完整行」——两轮实证缺省生成的手写转换丢 0 值/只写前缀。
 
 ### 2.x 工具链增补（2026-10-02，H7 内存评估批）
 
@@ -164,6 +166,7 @@ python3.12 -m venv ~/project/agent-venv
 
 ## 修订记录
 
+- v2.14 · 2026-10-09：单元 I（MD2-D8/D9）——§5 增教训 29（LEDC 0% 特例路径/S3 位序/LLM 零值约束）。
 - v2.13 · 2026-10-09：单元 H（G4/G5）——§5 增教训 28（WAMR 进程内二次 boot_start 怪癖——判别律/规避/生产无暴露面定论）。
 - v2.12 · 2026-10-04：G1 批——§2 增 agent 测试 clang 硬依赖注记；agent-codegen-reliability-01 报告。
 - v2.11 · 2026-10-04：MD0-1 真实 LLM 冒烟——§2 增 Agent LLM 端点（minimax/anthropic 兼容/M3/1M 窗口 + 密钥纪律 + 复跑入口）；agent-llm-smoke-01 报告。
