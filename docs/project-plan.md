@@ -63,7 +63,7 @@
 | D | 验签实施批 ✅ | Q-29 裁决后实现 + 真机部署链复验；**并入 IR2-07**（回滚闭环：目标槽验证/回滚后重载/meta 双损如实失败） | — |
 | E | MD1.2c | PDM 音频驱动扩展评估——**已交付 2026-10-07：结论缓办**（技术路径可行无消费者；docs/md12c-pdm-eval.md；重开触发四条件在档） | ✅ 评估 |
 | F | 输入面 G3 批 ✅ | input monitor ADC 真值化 + 事件→mailbox 路由 + D4/D6 demo 真机全链（D4-DONE/D6-DONE/clamp -12/rc=0）；并入 IR2-06 根治 + estop 沿 prov 化 + ts_wdt_deactivate（DEC-48 对称面） | — |
-| G | 板级余项批 ◐ | **G1 ✅** poweron 落驱动（真机寄存器证据）；**G2 ◐** MCUmgr OTA（sysbuild+签名+MCUboot 引导+真机 1.0.0 启动全通；OTA 上传待 owner 一行 UAC 开 Hyper-V 防火墙） | — |
+| G | 板级余项批 ✅ | **G1 ✅** poweron 落驱动；**G2 ✅ 2026-10-10 完整收口**：OTA 全链真机 PASS（v1 运行→SMP 上传 v2→perm swap→v2 运行）——原防火墙诊断推翻，真凶 = 客户端双字节缺陷 + 板侧 smp_udp pre-IP 绑定（修复入仓）+ WSL mirrored 入站 UDP 缺陷（Windows 侧客户端绕行） | — |
 | H | G4/G5 批 ✅ | **单活跃 APP 语义收口**（activate 即停 DR-14 + 隔离拒载/标记持久化）+ **模拟器深度增强**（LLD-A04 §2 输入文件实装——scenario inputs 驱动重放 + ch 命名空间）——2026-10-09 交付：twister 15/15（77 用例）/agent/E2E/L5/ruff/板级构建全绿；WAMR 二次 boot_start 怪癖登记（dev-env 教训 28，生产无暴露面） | — |
 | I | MD2 混合 demo ◐ | **D9 ✅ 全链**（sim 输入文件首批真消费者 + 真机断链时间线全绿 + 合同 3 双证据）+ **D8 ◐ ~90%**（三版本链路全证：部署/升级 G4 即停/健康回滚/v2 复活 + hb 心跳后 rc=0 落驱动；**拦下并修复 deploy.py v1 残留对拍公式** + deploybench 内存重平；余 = clean-pass 单跑受查询面停滞阻塞——新发现登记 B2 邻接） | — |
 | J | Zephyr 升级评估 + P4 ◐ | **评估已交付（2026-10-09，docs/zephyr-upgrade-eval-01.md）：4.4.0=当前 stable；唯一硬驱动 = P4（4.4 HAL 无 esp32p4，支持随 4.5）；zenoh 1.10.1 已最新零联动**——Q-30 呈递**停门中**（建议 A：4.5 发布后即升；附 P4 硅版本裁决点）；批准后 = 升级批（1-2 会话）+ P4 适配批（另 1-2 会话 + owner P4 实板） | 门⑤ **停门等 owner** |
@@ -77,6 +77,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.42 · 2026-10-10：G2 完整收口（owner 开防火墙后触发）——四层排障（防火墙否定/WSL UDP 中继/客户端双字节/smp_udp pre-IP）+ OTA 全链 PASS；单元 G 全绿；Q-30 仍门⑤停门。
 - v1.41 · 2026-10-09：B2 批（查询面半）——停滞根因 = agent 侧（locator/Reply API）双缺陷修复 + rollback_count 随载恢复 + d8_client 加固；D8 差单跑 PASS 行（环境窗口）；DAV1 留独立会话。
 - v1.40 · 2026-10-09：单元 J（评估半）——升级评估交付 + Q-30 呈递停门（门⑤）：建议 4.5 发布后即升（P4 解锁）；P4 适配与硅版本裁决点附呈。
 - v1.39 · 2026-10-09：单元 I（MD2）——D9 全链 PASS（sim+真机+合同 3）；D8 部分交付（链路全证 + deploy.py v2 对拍修复 + 内存重平；查询面停滞 = 新观察项 B2 邻接）；教训 29（LEDC 0%/S3 位序）。

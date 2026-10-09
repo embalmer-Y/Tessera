@@ -150,6 +150,18 @@ int main(void)
 			  buf, sizeof(buf)) != NULL) {
 		printk("OTA2 ip=%s smp-udp :1337\n", buf);
 	}
+	/* G2 收口修正（B2 后续）：smp_udp 在 SYS_INIT 早期（WiFi 关联前）
+	 * 已启动——esp32 上 pre-IP 绑定的 UDP 套接字收不到后续到达的单播
+	 * （线上铁证：请求出线 + ARP 通 + 板零回包）。拿到地址后重启
+	 * smp_udp（close+open 重建套接字），绑定语义随 iface 就位。 */
+	{
+		extern int smp_udp_close(void);
+		extern int smp_udp_open(void);
+		int c = smp_udp_close();
+		int o = smp_udp_open();
+
+		printk("OTA2b smp_udp restart close=%d open=%d\n", c, o);
+	}
 	k_work_init_delayable(&ota_alive_work, ota_alive);
 	k_work_reschedule_for_queue(&k_sys_work_q, &ota_alive_work, K_SECONDS(10));
 

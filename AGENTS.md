@@ -6,6 +6,8 @@
 
 ## 1. 当前状态
 
+- **2026-10-10（六十） · G2 完整收口：MCUmgr OTA 全链真机 PASS（v1→上传 v2→perm swap→v2 运行）——单元 G 全绿；真凶四层定案（客户端双字节 + 板侧 smp_udp pre-IP 绑定修复入仓 + WSL mirrored 入站 UDP 缺陷 Windows 侧绕行；原防火墙诊断推翻）**
+  - 剩余：Q-30 裁决（门⑤）→ 升级批 + P4 适配；D8 单跑 PASS 行（网络已平，可补跑）；DAV1 会话。
 - **2026-10-09（五十九） · B2 批（查询面半）交付：「查询面停滞」根因定论 = agent 侧双缺陷（板/路由无责）+ rollback_count 随载恢复存量缺陷修复——twister 15/15（77）/agent/L5/ruff 全绿**
   - 根因（受控双向探针剥离）：zenoh locator 语法（tcp:// → tcp/ 归一化修复）+ Reply API 漂移（err_payload → err.payload + get 迭代排空）；环境放大器 = 暖复位后路由器陈旧 queryable 声明（NAT 拖死 TCP——教训 29.5；client 点对点直查兜底）。
   - rollback_count 随载恢复（flash 实测 1 vs 运行时 0 拦下；boot_start 装载路径修复 + test_04 断言）。
