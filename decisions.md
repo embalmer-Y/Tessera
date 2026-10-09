@@ -641,3 +641,6 @@
 
 
 - 2026-10-10 · **G2 完整收口（M0 以来最后一个硬件验证余项）：MCUmgr OTA 全链真机 PASS——v1.0.0 运行 → SMP UDP 上传 v2.0.0（1686 包/647344B）→ slot1 pending+permanent → 复位 → MCUboot「Swap type: perm」→ v2.0.0 运行（OTA0/alive 双证）**。排障战果（四层洋葱，逐层实证）：① **原「Hyper-V 防火墙」诊断推翻**——owner 已开规则（Get-NetFirewallHyperVProfile 实测 DefaultInbound=Allow，规则本就多余）；② **WSL mirrored 入站 UDP 中继缺陷**（独立铁证：宿主自发包至 192.168.2.90:9999 的 WSL 监听不达）→ 客户端移 Windows 侧运行（宿主栈状态化 UDP 正常）；③ **PC 客户端双字节缺陷（G2 全程零回包真凶）**：SMP 头组字段应为 u16（格式串少一个 H=7B 头被板静默丢）+ WRITE 操作码应为 2（旧值 1 = READ_RSP → 服务端 ENOTSUP=rc8——自定义组 64 read/write 探针一锤定音「WRITE 全灭 READ 全通」）；④ **smp_udp pre-IP 绑定缺陷（板侧）**：SYS_INIT 早期（WiFi 前）启动的 UDP 套接字在 esp32 上收不到后续单播（线上铁证：请求出线+ARP 通+板零回包；独立 :9999 探针口通 → 锁定 smp 层）→ 修复 = 拿到 IP 后 smp_udp close+open 重启（OTA2b）——入仓。附加：Zephyr 4.4 img state confirm 语义 = {hash, confirm:bool}（旧 test/confirm 双键 = EINVAL）；上传块 ≤ 512-CBOR 头（NETBUF_SIZE 截断静默丢）；首包擦槽 ~1s（长超时窗）。教训并入 29.5（zenoh/网络族）。v2 上传后 SMP 不应答 = 该镜像系 G2 期构建（无 OTA2b 修复）——台架胶水缺陷已定案，非新问题。
+
+
+- 2026-10-10 · **D8 单跑 PASS 行补收（单元 I 唯一余项闭环）**：网络平峰期一跑即过——v1 初装 → v2 升级（G4 激活即停）→ v2bad 健康回滚 → **v2 复活 slot 翻转 + rollback_count=1 终态对拍 ✓ → D8 PASS**（console + client 双源）。**MD2（D8/D9）自此全绿**；排期表 v1.30 全部单元 A–J 触达完毕（唯 Q-30 裁决与 DAV1 会话在外）。
