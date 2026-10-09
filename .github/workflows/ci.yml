@@ -2,7 +2,7 @@
 # Tessera CI（M0 骨架 + M1 L5/测试 + MA0 agent 接线；docs/std/testing.md §6）。
 # job 顺序：repo-checks → l5-checks（安全合同机械检查，一票否决）→ agent-checks
 #           → native-build → twister（L1/L2/L4）。
-# 注：Zephyr 依赖经 west 钉在 v4.4.0 tag（DEC-19）；agent 依赖钉版见 agent/pyproject.toml（DEC-38 #1）。
+# 注：Zephyr 依赖经 west 钉在 v4.5.0-rc1 tag（DEC-50：owner 裁决直接采用 rc1；正式版发布后平移）；agent 依赖钉版见 agent/pyproject.toml（DEC-38 #1）。
 name: ci
 
 on:
@@ -96,10 +96,10 @@ jobs:
             git cmake ninja-build gperf ccache device-tree-compiler \
             wget python3-dev python3-pip xz-utils file make \
             gcc gcc-multilib g++-multilib libmagic1
-      - name: 初始化 west 工作区（Zephyr v4.4.0，DEC-19）
+      - name: 初始化 west 工作区（Zephyr v4.5.0-rc1，DEC-50）
         run: |
           pip install west
-          west init -m https://github.com/zephyrproject-rtos/zephyr --mr v4.4.0 ~/ws
+          west init -m https://github.com/zephyrproject-rtos/zephyr --mr v4.5.0-rc1 ~/ws
           cd ~/ws && west update
           pip install -r ~/ws/zephyr/scripts/requirements.txt
       - name: 构建 firmware/app @ native_sim
