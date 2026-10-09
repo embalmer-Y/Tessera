@@ -77,6 +77,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.45 · 2026-10-10：D-AV 帧证据跨复位累计尝试——零帧交付（摄像头当晚彻底不出帧；方法〔generation 键累计〕已备）；Q-30 状态：v4.5.0-rc1 已 tag、正式版未发，建议 A 时点临近。
 - v1.44 · 2026-10-10：DAV1 交付——根因 = 上游 esp32 video 驱动内 SCCB I2C 轮询忙等（APP 自旋于 native；avq/zenoh 全链排除〔冻结先于任何发布〕）；防御链实证；诊断探针入仓；D-AV PASS 判据条件 = 摄像头硬件稳定度（owner 排线/抗扰）。
 - v1.42 · 2026-10-10：G2 完整收口（owner 开防火墙后触发）——四层排障（防火墙否定/WSL UDP 中继/客户端双字节/smp_udp pre-IP）+ OTA 全链 PASS；单元 G 全绿；Q-30 仍门⑤停门。
 - v1.41 · 2026-10-09：B2 批（查询面半）——停滞根因 = agent 侧（locator/Reply API）双缺陷修复 + rollback_count 随载恢复 + d8_client 加固；D8 差单跑 PASS 行（环境窗口）；DAV1 留独立会话。
