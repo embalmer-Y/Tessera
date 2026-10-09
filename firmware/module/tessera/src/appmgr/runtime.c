@@ -204,6 +204,55 @@ static void input_route_subscribe(void)
 	}
 }
 
+#ifdef CONFIG_XTENSA
+/* DAV1 诊断（B2 后续批）：APPMGR 软看门狗逾期警告时 dump 冻结线程状态与
+ * 栈内文本域字（返回地址候选——离线 addr2line 定位冻结点；av 流 APP 线程
+ * 冻结 3/3 复现的归因证据链；一次 dump 防洪泛）。Xtensa 非用户态无保存
+ * SP 字段（callee_saved 为哑结构）——全栈扫描法（公开 API）。 */
+static void wdt_warn_diag_cb(const ts_evt_t *e, void *user)
+{
+	ARG_UNUSED(user);
+	if (e->data == NULL || e->len < sizeof(ts_wdt_warn_evt_t)) {
+		return;
+	}
+	const ts_wdt_warn_evt_t *w = e->data;
+
+	if (w->src != TS_WDT_APPMGR || !rt.used) {
+		return;
+	}
+	static bool dumped;
+
+	if (dumped) {
+		return;
+	}
+	dumped = true;
+	char sb[48];
+	k_tid_t cur = k_current_get();
+	const char *cur_name = k_thread_name_get(cur);
+
+	printk("[appmgr] WDT-WARN diag: APP state=%s prio=%d | cur=%s cur_prio=%d\n",
+	       k_thread_state_str((k_tid_t)&rt.thread, sb, sizeof(sb)),
+	       (int)rt.thread.base.prio,
+	       cur_name != NULL ? cur_name : "?",
+	       (int)cur->base.prio);
+	/* 文本域字扫描（esp32s3：IRAM 0x40xxxxxx / IROM 0x42xxxxxx）——
+	 * 返回地址候选按栈顶近端优先输出（最近调用层在前），上限 40 条。 */
+	const uint32_t *st = (const uint32_t *)rt.thread.stack_info.start;
+	const size_t words = rt.thread.stack_info.size / sizeof(uint32_t);
+	int shown = 0;
+
+	for (size_t i = words; i > 0 && shown < 40; i--) {
+		uint32_t v = st[i - 1];
+
+		if ((v & 0xFF000000U) == 0x40000000U ||
+		    (v & 0xFF000000U) == 0x42000000U) {
+			printk("[appmgr] wf[%02d] +%04x %08x\n", shown++,
+			       (unsigned)((words - i) * 4U), v);
+		}
+	}
+}
+#endif
+
 ts_res_t ts_appmgr_app_start(uint16_t app_id, const uint8_t *wasm,
 			     uint32_t wasm_len, const char *caps)
 {
@@ -365,6 +414,9 @@ ts_res_t ts_appmgr_app_start(uint16_t app_id, const uint8_t *wasm,
 	atomic_set(&rt.running, 1);
 	rt.used = true;
 	input_route_subscribe(); /* G3（单元 F）：INPUT_CHANGED → APP mailbox */
+#ifdef CONFIG_XTENSA
+	(void)ts_evt_subscribe(TS_EVT_WDT_WARN, wdt_warn_diag_cb, NULL);
+#endif
 	k_tid_t th = k_thread_create(&rt.thread, app_stack,
 				     K_THREAD_STACK_SIZEOF(app_stack),
 				     app_thread_entry, NULL, NULL, NULL,

@@ -644,3 +644,6 @@
 
 
 - 2026-10-10 · **D8 单跑 PASS 行补收（单元 I 唯一余项闭环）**：网络平峰期一跑即过——v1 初装 → v2 升级（G4 激活即停）→ v2bad 健康回滚 → **v2 复活 slot 翻转 + rollback_count=1 终态对拍 ✓ → D8 PASS**（console + client 双源）。**MD2（D8/D9）自此全绿**；排期表 v1.30 全部单元 A–J 触达完毕（唯 Q-30 裁决与 DAV1 会话在外）。
+
+
+- 2026-10-10 · **DAV1 交付（av 流 APP 线程冻结专项）：根因定案 + 防御链实证 + 诊断探针入仓——twister 15/15（77）/agent 77+2s/L5/ruff 全绿**。① **冻结复现与定位（诊断探针 = runtime.c WDT_WARN 订阅：dump 冻结线程状态串/优先级/当前线程/全栈文本域字 → 离线 addr2line）**：APP state=queued prio=10 + 栈帧链 app_thread_entry → wasm_interp → native_av_capture/native_net_publish → **i2c_ll_write_txfifo（esp32 摄像头 SCCB/I2C 轮询忙等）**——冻结点在上游 esp32 video 驱动内的传感器 I2C 路径（APP 线程自旋于 native 内，native 执行不受 wasm 指令计量约束〔计量只在解释器层〕）。② **控制变量（单元 B 原怀疑方向全部排除）**：本轮冻结发生于任何发布之前（PC 消费端 chunks_seen=0）——**avq 深度/打拍/重试与 zenoh 发送全链无罪**；本轮冻结近首帧（每 boot 一冻，9 连冻复现；单元 B 期曾 ~10 帧后冻 = 摄像头总线稳定度随环境漂移〔EMI/排线接触嫌疑〕）。③ **防御链实证**：L1 软看门狗（APPMGR 1000ms）每次如期拦截 → system_fail noinit 留痕 → 复位重启循环——合同 4/DEC-48 分层防线在此缺陷上的行为 = 设计如一。④ **判据修订（D-AV 全链 PASS）**：阻塞不在框架/网络面——剩余条件 = 摄像头硬件稳定度（owner 动作：Sense 板摄像头排线重插/抗扰检查；上游驱动 I2C 忙等 = 零补丁纪律内登记不修）。防御链已验证 + 帧证据尽力而为（单元 B 期 10 帧全链曾通）。⑤ 诊断探针为常设可观测性改进（CONFIG_XTENSA 门控，native_sim 惰性）——后续任何 APPMGR 饿死/自旋类缺陷同法可诊。

@@ -275,3 +275,5 @@
 - 2026-10-09 · **单元 J 登记**：zephyr-upgrade-eval-01（升级评估报告：钉版链对照/P4 阻塞性论证/迁移成本十项/选项 ABC）；Q-30（门⑤：Zephyr 4.5 升级时点 + P4 适配前置）；esp32p4x（Zephyr 板目标：P4 v3.x 硅变体——采购裁决点）；LTS4（= Zephyr 4.6，2027-04 计划）。消费：单元 J（技术栈门）。
 
 - 2026-10-09 · **B2 批登记**：教训 29.5（zenoh locator/Reply API/陈旧声明三教训族）；qprobe.py / qstall_repro.py（仓外调试载体——双向探针/受控复现）；rollback_count 随载恢复（boot_start 装载路径语义补全）。消费：B2（查询面停滞根因批）。
+
+- 2026-10-10 · **DAV1 登记**：WDT-WARN 栈转储（runtime.c 诊断探针：APPMGR 饿死/自旋类缺陷的常设定位面——状态串/优先级/当前线程/全栈文本域字扫描 + 离线 addr2line）；SCCB 忙等（DAV1 根因：上游 esp32 video 驱动内摄像头 I2C 轮询——APP native 内自旋）。消费：DAV1（冻结专项）。
