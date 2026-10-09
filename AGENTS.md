@@ -6,6 +6,10 @@
 
 ## 1. 当前状态
 
+- **2026-10-10（六十四） · DEC-50 升级批交付：Zephyr v4.5.0-rc1 已上——twister 15/15（77）/agent/L5/ruff 全绿 + inputdemo 真机复验核心判据绿（ID1a 寄存器级 duty/WAMR APP 运行/G4 槽切换/输入真值流）**
+  - 仓库内适配三处（教训 30）：WAMR autoconf.h 包含域补 / 三 bench overlay 分区 mapped-partition 兼容串 + appcpu 冲突删 / deploybench 池再平 151552。zenoh-pico 1.10.1 + WAMR 2.4.5 钉版不动。
+  - **P4 适配批下会话开**（ESP32-P4-WIFI6-DEV-KIT：板目标选取 + 框架 bring-up）。正式 v4.5.0 发布后平移。
+  - 剩余：P4 适配批；D-AV 帧证据（摄像头硬件动作后一跑即收）。
 - **2026-10-10（六十三） · D-AV 帧证据累计尝试（零帧——摄像头当晚彻底不出帧，硬件动作前不可收）；Q-30 状态：v4.5.0-rc1 已 tag、正式版未发——owner 裁决 A 后即开升级批**
 - **2026-10-10（六十二） · DAV1 交付：根因定案 = 上游 esp32 video 驱动内摄像头 SCCB I2C 轮询忙等（APP 自旋于 native 内；avq/zenoh 排除——冻结先于任何发布）；L1 软看门狗防御链实证；诊断探针（WDT_WARN 栈转储）入仓为常设可观测性**
   - 排期表全部专项收口：A–J ✅/◐→**唯 Q-30 裁决在外**；D-AV PASS 判据条件 = 摄像头硬件稳定度（**owner 动作：Sense 板摄像头排线重插/抗扰**；上游 I2C 忙等零补丁纪律内登记）。

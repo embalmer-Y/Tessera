@@ -66,7 +66,7 @@
 | G | 板级余项批 ✅ | **G1 ✅** poweron 落驱动；**G2 ✅ 2026-10-10 完整收口**：OTA 全链真机 PASS（v1 运行→SMP 上传 v2→perm swap→v2 运行）——原防火墙诊断推翻，真凶 = 客户端双字节缺陷 + 板侧 smp_udp pre-IP 绑定（修复入仓）+ WSL mirrored 入站 UDP 缺陷（Windows 侧客户端绕行） | — |
 | H | G4/G5 批 ✅ | **单活跃 APP 语义收口**（activate 即停 DR-14 + 隔离拒载/标记持久化）+ **模拟器深度增强**（LLD-A04 §2 输入文件实装——scenario inputs 驱动重放 + ch 命名空间）——2026-10-09 交付：twister 15/15（77 用例）/agent/E2E/L5/ruff/板级构建全绿；WAMR 二次 boot_start 怪癖登记（dev-env 教训 28，生产无暴露面） | — |
 | I | MD2 混合 demo ◐ | **D9 ✅ 全链**（sim 输入文件首批真消费者 + 真机断链时间线全绿 + 合同 3 双证据）+ **D8 ◐ ~90%**（三版本链路全证：部署/升级 G4 即停/健康回滚/v2 复活 + hb 心跳后 rc=0 落驱动；**拦下并修复 deploy.py v1 残留对拍公式** + deploybench 内存重平；余 = clean-pass 单跑受查询面停滞阻塞——新发现登记 B2 邻接） | — |
-| J | Zephyr 升级评估 + P4 ◐ | **评估已交付（2026-10-09，docs/zephyr-upgrade-eval-01.md）：4.4.0=当前 stable；唯一硬驱动 = P4（4.4 HAL 无 esp32p4，支持随 4.5）；zenoh 1.10.1 已最新零联动**——Q-30 呈递**停门中**（建议 A：4.5 发布后即升；附 P4 硅版本裁决点）；批准后 = 升级批（1-2 会话）+ P4 适配批（另 1-2 会话 + owner P4 实板） | 门⑤ **停门等 owner** |
+| J | Zephyr 升级评估 + P4 ◐ | **评估 ✅ + 升级批 ✅（2026-10-10 DEC-50：rc1 已上——twister 15/15 + 三 bench 构建 + inputdemo 真机复验全绿；仓库内适配三处：WAMR autoconf 域/分区 mapped-partition+冲突删/池再平）**；**P4 适配批待开**（ESP32-P4-WIFI6-DEV-KIT——板目标选取+bring-up，下会话） | 门⑤ 已裁（DEC-50） |
 
 （原则不变：依赖就绪先行的最小单元；任一单元 DoD 全绿才进下一个；门项到点即停等 owner〔C 门③、J 门⑤、E 视方案〕；观察项——zenoh-pico Zephyr 集成尺寸钩子上游 issue 暂不提〔DEC-47〕、native-build 偶发面、外部静态 video_buffer 根因、watch 同槽重推。复检发现③〔ts_fs 语义边缘〕见 impl-review-02 §8 附记——登记不动手。）
 
@@ -77,6 +77,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.46 · 2026-10-10：DEC-50 裁决（rc1 直接采用 + P4=WIFI6-DEV-KIT）→ 升级批交付：v4.5.0-rc1 全回归绿 + inputdemo 真机复验核心判据绿；P4 适配批下会话开。
 - v1.45 · 2026-10-10：D-AV 帧证据跨复位累计尝试——零帧交付（摄像头当晚彻底不出帧；方法〔generation 键累计〕已备）；Q-30 状态：v4.5.0-rc1 已 tag、正式版未发，建议 A 时点临近。
 - v1.44 · 2026-10-10：DAV1 交付——根因 = 上游 esp32 video 驱动内 SCCB I2C 轮询忙等（APP 自旋于 native；avq/zenoh 全链排除〔冻结先于任何发布〕）；防御链实证；诊断探针入仓；D-AV PASS 判据条件 = 摄像头硬件稳定度（owner 排线/抗扰）。
 - v1.42 · 2026-10-10：G2 完整收口（owner 开防火墙后触发）——四层排障（防火墙否定/WSL UDP 中继/客户端双字节/smp_udp pre-IP）+ OTA 全链 PASS；单元 G 全绿；Q-30 仍门⑤停门。

@@ -650,3 +650,9 @@
 
 
 - 2026-10-10 · **D-AV 帧证据跨复位累计尝试（如实）：未收口——摄像头当晚零帧交付**。① 方法落地：dav_recv.py 增跨复位累计（fid 回卷 → generation 键，避免覆写/混装；窗口 240→900s，仓外工具）；② 实测：13 boot / 11 到 DA3 ACTIVE / 12 到「stream started」，**chunks_seen=0**——每 boot 摄像头 DMA 即「Frame dropped. No buffer available」且 APP 卡死于 SCCB（唯一可读 WDT-WARN 转储与 DAV1 同点位；其余 boot 的诊断输出被日志系统丢弃〔console 洪泛下 messages dropped〕）；③ 结论：帧证据收口**确实只剩摄像头硬件动作**（当晚较单元 B 期〔曾真帧+发布〕进一步劣化 = DAV1 环境漂移判断再证）；④ Q-30 状态更新：上游 **v4.5.0-rc1 已 tag**（正式 v4.5.0 未发）——建议 A 的执行时点临近，owner 裁决后即可进入升级批。
+
+
+- 2026-10-10 · **DEC-50（Q-30 裁决，owner 原文）**：「请你直接采用v4.5.0-rc1，P4板卡采用的是ESP32-P4-WIFI6-DEV-KIT最新版」。解读：① 升级时点 = **不等正式 v4.5.0，直接钉 v4.5.0-rc1**（建议 A 的 rc1 变体——DEC-19「跟进最新 stable」的时点裁量；正式版发布后再平移）；② **P4 载板 = ESP32-P4-WIFI6-DEV-KIT（最新版）**——适配批板目标按此选（含 C6 伴芯 WiFi6 套件；Zephyr 内 P4 无线面 = C6 伴芯路径，首批以有线/串口面 bring-up 为界，联网面后续批）。执行：升级批即开（工作区切换 + 全量回归 + 三 bench 真机复验）；P4 适配批随后独立批。
+
+
+- 2026-10-10 · **升级批交付（DEC-50：Zephyr v4.4.0 → v4.5.0-rc1）——native_sim twister 15/15（77 用例）全绿 + 三板级 bench 构建绿 + inputdemo 真机复验核心判据绿**。① 工作区：zephyr checkout v4.5.0-rc1 + west update 全模块 + west blobs fetch hal_espressif（教训 30①）；zenoh-pico 1.10.1 原样（三方钉版不随 Zephyr 动）+ WAMR 2.4.5 原样（TS_WAMR_DIR 外部依赖）。② 仓库内适配三处：模块 CMakeLists 补 WAMR autoconf.h 包含域（教训 30③）；三 bench overlay 分区节点补 mapped-partition 兼容串 + otabench 删默认布局 appcpu/lpcore 冲突分区（教训 30②）；deploybench 系统池 156672→151552（4.5 静态面再平）。③ **回归全绿**：twister native_sim 15/15（77——全测试面零代码改动过升级）+ agent 77+2s + L5 6/6 + ruff。④ 真机复验（inputdemo @ xiao_esp32s3，rc1 镜像）：boot 链（prov→install→装载→APP 运行）✓；**ID1a poweron-duty 寄存器级 299‰@300 OK**（LEDC 物理路径与 4.4 一致）✓；WAMR APP 双包顺序运行（D4 报告/事件真值流 → stop → D6 限幅 rc=-12 + 滞回装载）✓；G4 槽切换（ID2→ID3→ID4）✓——D4-DONE/D6-DONE 全链判据依赖物理噪声注入（单元 F 既有约束：当晚噪声带 15-31mV 不跨阈），框架面无回归。⑤ WAMR 怪癖家族撤实验：native_sim 双 boot_start 怪癖（教训 28）在 rc1 仍按规避（twister 各二进制单 boot 不触发；不属回归面）。正式 v4.5.0 发布后平移（delta 预期极小）。P4 适配批（ESP32-P4-WIFI6-DEV-KIT）下会话开。

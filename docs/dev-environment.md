@@ -164,9 +164,12 @@ python3.12 -m venv ~/project/agent-venv
 - **TAP 重建失效教训（2026-09-25）**：zeth 删除重建后为**新设备**——已运行固件的附着 fd 指向旧设备，连接恒 -102；重建 TAP 后须重启固件进程。WSL 网络栈刷新可能静默删除 zeth（含 IP），复跑前先 `ip addr show zeth` 核验。
 - Agent 部署 E2E 入口：`TESSERA_E2E_DEPLOY=1 ~/project/agent-venv/bin/python -m pytest agent/tests/test_deploy_e2e.py`（自建固件至 agent/build/deploy-e2e；需 TAP 在位 + zenohd 端口可拉起）。
 
+30. **Zephyr 4.4→4.5 升级批三教训（2026-10-10，DEC-50）**：① west update 后**必须 west blobs fetch hal_espressif**——4.5 起 espressif HAL 二进制库（bt/wifi blob）以 west blobs 管理，不随 update 拉取；缺失 = CMake「Blob isn't valid」且网络经代理较慢（开代理后重启 WSL 生效）；② **esp32 分区节点必须显式 compatible = "zephyr,mapped-partition"**（4.5 新绑定——无此串则 PARTITION_ID 宏不生成 = flash_map 取不到分区）；默认分区布局新增 appcpu/lpcore 分区（0x2C0000 起）与 ts 五分区重叠——overlay 须 /delete-node/ 清冲突；③ **WAMR 平台头裸 include autoconf.h**（4.5 移除 legacy 生成头路径）——模块 CMake 以 ZEPHYR_BINARY_DIR/include/generated/zephyr 补包含域（仓库内修复，CI 可复现，零上游补丁）。
+
 29.5（并入 29 同族补充）**zenoh 长会话网络面三教训（2026-10-09 B2 批实证）**：① **zenoh 1.10.1 locator 正式语法 = tcp/host:port**——旧式 tcp://host:port 在 zenoh-py 解析为协议 "tcp:" → 会话开失败（"Unicast not supported"）且表现为间歇（ZenohService 已中心归一化）；② **Reply API = ok/err/replier_id**（无 err_payload——旧代码错误回执路径一踩即 AttributeError，且异常中断 get 迭代后会话残留未消费状态，后续调用挂起 =「查询面停滞」假象）；③ **暖复位后路由器残留陈旧 queryable 声明**（板侧 TCP 经 WSL mirrored NAT，复位后 RST 不达路由器→死 peer 声明滞留）——通配发现查询被每个死 peer 拖 3s 超时可致整体超时；已知 node/cube 时用点对点直查绕过，或重启 zenohd 清台。
 
 ## 修订记录
+- v2.16 · 2026-10-10：**DEC-50 升级批——工作区钉版 Zephyr v4.4.0 → v4.5.0-rc1**（owner 裁决直接采用 rc1）。§5 增教训 30（升级批三件事：west blobs fetch hal_espressif 必做〔blob 不随 west update 拉取〕/分区节点须 compatible="zephyr,mapped-partition" + 默认布局 appcpu/lpcore 分区冲突删除/WAMR 裸 include <autoconf.h> 经新路径补包含域）。
 - v2.15 · 2026-10-09：B2 批——§5 增教训 29.5（zenoh locator/Reply API/陈旧声明三教训）；「查询面停滞」根因定论 = agent 侧双缺陷（板与路由器无责）。
 
 - v2.14 · 2026-10-09：单元 I（MD2-D8/D9）——§5 增教训 29（LEDC 0% 特例路径/S3 位序/LLM 零值约束）。

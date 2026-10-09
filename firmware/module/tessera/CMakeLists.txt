@@ -159,4 +159,9 @@ if(CONFIG_TS_APP_WAMR)
   # include_directories（仅本模块编译域可见）——Zephyr 下消费方须经
   # zephyr_include_directories 取到 wasm_export.h。
   zephyr_include_directories($ENV{TS_WAMR_DIR}/core/iwasm/include)
+  # v4.5 适配（升级批）：4.5 起移除 legacy 生成头路径——WAMR 平件
+  # platform_internal.h 仍裸 include <autoconf.h>（上游 2.4.5）。以新
+  # 路径（<generated>/zephyr/）补兼容包含域，仓库内修复（CI 可复现），
+  # 零上游补丁纪律不破。
+  zephyr_include_directories(${ZEPHYR_BINARY_DIR}/include/generated/zephyr)
 endif()
