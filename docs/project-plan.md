@@ -77,6 +77,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.48 · 2026-10-10：H7 移植批（构建级）交付（board-h7-01 v0.1）——owner 板裁决 mini_stm32h743（WeAct 核心板）即树内目标；h7bench 构建绿（FLASH 158KB/7.6%、sram0 68%）+ WAMR THUMBV7EM 映射（ARM 汇编 -mthumb 拒，教训入 §3）+ 五分区 128KB 扇区模式；回归 15/15（77）。真机判据待 owner 接板（ST-LINK + USART1）。
 - v1.47 · 2026-10-10：P4 适配批交付（board-p4-01）——ESP32-P4-WIFI6-DEV-KIT 框架 bring-up 真机全链 PASS（p4bench：五分区 @0x7E0000/console=uart0/main 栈 8192/WAMR RISCV32）；SDK riscv64 单工具链补装；存量缺陷两族修复（六 bench 兼容串 + persistbench v1 包）；回归全绿（twister 15/15〔77〕+ pytest + persistbench S3 构建）。J 单元收口。
 - v1.46 · 2026-10-10：DEC-50 裁决（rc1 直接采用 + P4=WIFI6-DEV-KIT）→ 升级批交付：v4.5.0-rc1 全回归绿 + inputdemo 真机复验核心判据绿；P4 适配批下会话开。
 - v1.45 · 2026-10-10：D-AV 帧证据跨复位累计尝试——零帧交付（摄像头当晚彻底不出帧；方法〔generation 键累计〕已备）；Q-30 状态：v4.5.0-rc1 已 tag、正式版未发，建议 A 时点临近。

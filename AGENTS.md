@@ -6,6 +6,9 @@
 
 ## 1. 当前状态
 
+- **2026-10-10（六十六） · H7 移植批（构建级）交付：板裁决落地（owner：mini_stm32h743 = WeAct MiniSTM32H743 核心板，树内目标）——h7bench 构建绿（FLASH 158KB/7.6%、sram0 349KB/68% 含 256KB WAMR 堆）+ WAMR THUMBV7EM 映射 + 五分区 128KB 扇区模式 + 回归 15/15（77）；真机判据待 owner 接板（ST-LINK + USART1，board-h7-01 §6 预案含 HSE 晶振疑点）**
+  - DEC-28 板卡目标集（S3→P4→H7）第三板开题即构建级绿；WAMR 三 ISA（xtensa/riscv32/thumbv7em）全数过编译。
+  - 真机收口后 H7 批完整退出；WAMR 堆迁 D2 SRAM / ETH 网面评估 = 后续批。
 - **2026-10-10（六十五） · P4 适配批交付：ESP32-P4-WIFI6-DEV-KIT（Waveshare）框架 bring-up 真机全链 PASS（p4bench：prov→v2 包安装→暖复位→flash 全状态自举→WAMR@RV32 ACTIVE→写链→P4B PASS）——排期表 A–J 全部收口**
   - 板面：目标 = esp32p4_wifi6_dev_kit/esp32p4/hpcore（v4.5 斜杠限定语法）；SDK 补装 riscv64-zephyr-elf（setup.sh -t 单组件）；WAMR 板映射登记 RISCV32；五分区 @0x7E0000（16M 默认布局 slot1 区）；console 重指 uart0（CH343 COM 口 = esptool 同口，单线判据）；MAIN_STACK_SIZE=8192（RV32 帧深，4096 安装链实测溢出）。
   - 顺带修复存量缺陷两族（教训 31）：六 bench overlay 缺 mapped-partition 兼容串（avdemo/dsdbench/linkdemo/metabench/persistbench/wdtbench——升级批漏网）；persistbench 自构造包为 v1 格式（DEC-49② 后即坏）——gen_p4b_pkg.py 机械生成 v2 包（测试根签名），v1 构造器删除。

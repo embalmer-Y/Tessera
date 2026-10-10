@@ -127,6 +127,13 @@ if(CONFIG_TS_APP_WAMR)
     # 声明仅取 word 长/ABI 元数据，fast 解释器目标无关。invokeNative 不
     # 参与构建（AOT=0），GENERAL 旗标不设。
     set(WAMR_BUILD_TARGET "RISCV32")
+  elseif(BOARD STREQUAL "mini_stm32h743")
+    # H7（H7 移植批）：Cortex-M7（Thumb-2）。target 取 THUMBV7EM 而非
+    # ARM——WAMR 的 invokeNative_arm.s 是 A32 汇编，Zephyr ARM 全 -mthumb
+    # 下汇编期即拒（lo register/寻址模式错误）；THUMB 分支选
+    # invokeNative_thumb.s。解释器-only（AOT=0）下该汇编不参与运行，
+    # 仅过链接（target 声明 = ABI 元数据）。
+    set(WAMR_BUILD_TARGET "THUMBV7EM")
   else()
     message(FATAL_ERROR "WAMR_BUILD_TARGET unmapped for board '${BOARD}'")
   endif()
