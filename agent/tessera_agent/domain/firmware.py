@@ -22,6 +22,7 @@ from tessera_agent.core.session import PolicyTable
 from tessera_agent.domain import app_chain
 from tessera_agent.platform import AppContext, DomainPackBase, MountAPI
 from tessera_agent.tools_diag import classify as diag_cls
+from tessera_agent.tools_diag import spec_gate as diag_spec_gate
 from tessera_agent.tools_fw import tools as fw
 from tessera_agent.tools_net import deploy as net_deploy
 from tessera_agent.tools_net.zenoh_service import ZenohService
@@ -76,7 +77,7 @@ class FirmwareDomainPack(DomainPackBase):
         "tsap_keygen", "tsap_package", "tsap_verify",
         "deploy_discover", "deploy_status", "deploy_push_app",
         "app_develop", "app_deploy", "app_compile",
-        "diag_classify",
+        "diag_classify", "spec_check",
     ])
     skills: list[str] = field(default_factory=lambda: [
         "tessera-workflow", "tessera-build", "tessera-tsap", "tessera-safety",
@@ -88,6 +89,7 @@ class FirmwareDomainPack(DomainPackBase):
         "app_develop": "confirm",
         "app_deploy": "strict",
         "diag_classify": "confirm",
+        "spec_check": "confirm",
     }))
     validators: list = field(default_factory=lambda: [validate_tsap_manifest])
     deployer: Any = field(default_factory=lambda: None)  # 组合根注入 router 配置
@@ -364,3 +366,15 @@ class FirmwareDomainPack(DomainPackBase):
             return {"category": result.category, "summary": result.summary,
                     "repair_hint": result.repair_hint,
                     "evidence": result.evidence}
+
+        @mcp.tool
+        @audited("spec_check")
+        async def spec_check(spec: str) -> dict:
+            """spec 质量门（NV-2，纯文本检查）：四节模板（【需求】【资源】
+            【判据】【安全声明】）完备性 + 判据引号串机读派生（repair_loop
+            的 pass_patterns 单一事实源）+ caps/fs_paths 文法提示。errors
+            级硬伤会在 app_develop 入口阻塞（不值得烧 LLM 轮次）。"""
+            r = diag_spec_gate.check_spec(spec)
+            return {"ok": r.ok, "templated": r.templated,
+                    "errors": r.errors, "warnings": r.warnings,
+                    "pass_patterns": r.pass_patterns}

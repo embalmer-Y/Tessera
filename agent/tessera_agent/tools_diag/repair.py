@@ -16,9 +16,10 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from tessera_agent.common.errors import TaError
+from tessera_agent.common.errors import TA_E_ARGS, TaError
 from tessera_agent.platform import AppContext
 from tessera_agent.tools_diag import classify as diag
+from tessera_agent.tools_diag import spec_gate
 
 #: 部署动作失败（找不到板/确认不一致）——部署链层，与 APP 代码无关
 #: （包结构问题在 tsap_verify 已拦），不消耗 LLM 修复轮次
@@ -41,7 +42,7 @@ async def repair_loop(
     spec: str,
     key_path: str,
     out_dir: str,
-    pass_patterns: list[str],
+    pass_patterns: list[str] | None = None,
     deploy_fn: Callable[[str], Awaitable[dict[str, Any]]],
     capture_fn: Callable[[], str],
     node: str | None = None,
@@ -52,6 +53,8 @@ async def repair_loop(
 ) -> dict[str, Any]:
     """spec →（生成/部署/抓取/分类，失败带反馈重生成）→ 判据 PASS。
 
+    :param pass_patterns: 判据子串；None = 从 spec【判据】节机读派生
+        （NV-2 质量门——spec 即判据单一事实源；派生不出 = 硬错）
     :param max_rounds: 修复轮次预算（默认 2 = 首修 + 兜底；来源 = NV-1
         设计值——历史失败形态单类缺陷一轮可修。越界代价 = LLM 轮次与
         时延；调用方可按需收紧/放宽）
@@ -62,6 +65,14 @@ async def repair_loop(
     from tessera_agent.domain import app_chain
 
     log = log_fn or (lambda s: None)
+    if pass_patterns is None:
+        gate = spec_gate.check_spec(spec)
+        pass_patterns = gate.pass_patterns
+        if not pass_patterns:
+            msg = ("spec 无可机读判据（【判据】节引号串缺失）且未显式给 "
+                   "pass_patterns——修复闭环无判据可依")
+            raise TaError(TA_E_ARGS, msg, domain="repair_loop",
+                          detail={"errors": gate.errors})
     history: list[dict[str, Any]] = []
 
     # 首轮生成（app_develop 内部已有产物校验反馈回路——格式/编译错误

@@ -25,6 +25,7 @@ from pydantic_ai import Agent
 from tessera_agent.common.errors import TA_E_ARGS, TA_E_TSAP, TaError
 from tessera_agent.platform import AppContext
 from tessera_agent.skills import loader as skill_loader
+from tessera_agent.tools_diag import spec_gate
 from tessera_agent.tools_net import deploy as net_deploy
 from tessera_agent.tools_net.zenoh_service import ZenohService
 from tessera_agent.tools_tsap import tools as tsap_tools
@@ -155,6 +156,16 @@ async def app_develop(
         tools_diag/repair.py 组装）。与链内产物校验回路（格式/编译错误）
         分层：本参数只承载「部署到真机后的运行时失败」上下文。"""
     log = log_fn or (lambda s: None)
+    # spec 质量门（NV-2）：四节模板检查 + 判据机读派生——errors 阻塞
+    # （判据不可测这类硬伤不值得烧 LLM 轮次），warnings 留痕不阻塞
+    # （旧式自由文本 spec 兼容）。
+    gate = spec_gate.check_spec(spec)
+    for w in gate.warnings:
+        log(f"spec-gate: {w}")
+    if gate.errors:
+        msg = f"spec 质量门未过：{'；'.join(gate.errors)}"
+        raise TaError(TA_E_ARGS, msg, domain="app_develop",
+                      detail={"errors": gate.errors})
     skills = skill_loader.load_skills()
     active = [s.name for s in skills]
     log(f"skills active: {active}")
