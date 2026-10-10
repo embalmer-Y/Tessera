@@ -6,6 +6,7 @@
 
 ## 1. 当前状态
 
+- **2026-10-10（六十九d） · D-AV 采集执行 + 新缺陷定案：owner 摄像头修复后帧已可采发（prov 覆盖根因亦修复）；主阻塞更新 = 4.5 下 zenoh-pico 板→路由 1KB 发送 100% 损坏（板侧 crc 正确/自环 20 无损/尺寸相关/4.4 曾通——4.5 回归，upstream 域，与 #121767 关联观察）**
 - **2026-10-10（六十九c） · D-AV @4.5 复测：S3=sense 版确认（stream started 实证）+ avdemo @4.5 首构建绿（池 94208）+ dav_recv 采集执行——零帧与 DAV1 同象（非 4.5 回归；收口条件维持 = owner 摄像头排线物理动作，方法持续有效）**
 - **2026-10-10（六十九b） · Zephyr upstream issue 提交：zephyrproject-rtos/zephyr#121767（esp_hosted 控制面通/数据面挂——P4 无线面缺陷上报，owner 授权 gh 提交）；上游回复后 P4 无线面复测为外部跟踪项**
 - **2026-10-10（六十九） · DEC-51（板卡集收缩 S3-only——P4/H7 搁置留档）+ persistbench S3 @4.5 真机复验 PASS（板级遗留项收口）：4.5 帧深致 verify 链 4096 栈挂死——修复 + 全 S3 bench 批量防御 8192；Zephyr esp_hosted 上游 issue 起草并提交（owner 授权）**
