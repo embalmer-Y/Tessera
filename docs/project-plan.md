@@ -70,13 +70,27 @@
 
 （原则不变：依赖就绪先行的最小单元；任一单元 DoD 全绿才进下一个；门项到点即停等 owner〔C 门③、J 门⑤、E 视方案〕；观察项——zenoh-pico Zephyr 集成尺寸钩子上游 issue 暂不提〔DEC-47〕、native-build 偶发面、外部静态 video_buffer 根因、watch 同槽重推。复检发现③〔ts_fs 语义边缘〕见 impl-review-02 §8 附记——登记不动手。）
 
-## 8. 执行纪律（不变）
+## 8. 版本 V0.1.0 · 编程链路完整性批（2026-10-11 owner 裁决；每会话一单元，连续开发至完成）
+
+> 范围出处：会话盘点建议四域五单元 + owner 新增"真实需求全流程编程测试"为版本验收（decisions 2026-10-11 版本方向批）。收口 = tag `fw-v0.1.0`（无既有 fw-v tag，首固件功能版本从 0.1.0 起，semver 0.x 开发期）。**不入本版**：v4.5.0 正式平移、#121767/#121774 上游跟进、多 APP 并行/逻辑节点并联（V2 级另立项）、PDM。
+
+| 序 | 单元 | 内容 | 门 |
+|---|------|------|----|
+| NV-1 | 部署后诊断闭环 | agent 侧判据回捕工具（串口窗口 + 分类器：PASS/无挂载/无安装/无 ACTIVE/无事件行/WDT 复位/卡死）+ 失败→feedback 注入 app_develop 重生成→重部署闭环（轮上限防失控）+ 分类器单测 + gated 真机验证（坏 spec 首轮必败→闭环救回 PASS） | — |
+| NV-2 | spec 质量门 | spec 模板（需求/资源/判据/安全声明四节）+ 静态检查器（判据可测性=有唯一判据行/caps 最小化提示/fs_paths 与 out 通道合法性）+ app_develop 入口集成 + 用例 | — |
+| NV-3 | sim↔real 对拍 | 同一 scenario 双跑（sim_run + 真机 bench）判据行机械 diff 工具 + 首个对拍基线（gated 真机面） | — |
+| NV-4 | 审计 flash 持久化 | DEC-30④「审计 V1 内存环形（掉电丢失）」语义变更：环形记录格式/分区布局/溢出策略 + 固件实施 + 真机掉电留存验证 | **Q-31 呈递门**（实施前呈 owner；逾时未裁该单元顺延不阻塞 NV-5/6） |
+| NV-5 | README | 仓库门面：项目一句话/架构分层图/ts-* 模块地图/快速上手（WSL 环境 + 三命令）/demo 一览（D 系列 + D-SD/D4/D6）/CI 徽章 | — |
+| NV-6 | 真实需求全流程编程测试 | **版本验收**：一个真实需求走完 spec→LLM 编程→编译打包→sim 模拟测试→部署→真机判据 PASS 全链（消费 NV-1/2/3 产物）；需求候选 = 立方体健康哨兵 APP（周期采样输入 + 阈值告警输出〔限幅内〕+ ts_net_publish 遥测上报）——实施时呈 owner 确认可换 | 验收判据 owner 可查 |
+
+## 9. 执行纪律（不变）
 
 - 规范套件（tag `std-v1`：testing/versioning/progress/coding）+ 军规十条 + 安全与确定性合同（AGENTS.md §6）。
 - 里程碑退出 = review 门（呈递 DoD 对照）；工具面/公共 API/安全合同变更 = 各自 review 门。
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.59 · 2026-10-11：owner 裁决版本方向——**V0.1.0 编程链路完整性批**（§9 新排期表 NV-1…NV-6：诊断闭环/spec 质量门/sim↔real 对拍/审计持久化〔Q-31 呈递门〕/README/真实需求全流程编程测试〔版本验收〕）；连续开发启动；收口目标 tag fw-v0.1.0。
 - v1.58 · 2026-10-11：批 A 收口——owner 换 SD 卡后 dsdbench D-SD 全链一次过（DS PASS：挂载/安装/APP ACTIVE/回读 n=68/白名单拒绝物理证据/列目录）——**批 A 11/11 全绿定格**（S3 全 bench @4.5.0-rc1 真机基线完整恢复）；impl-review-03 R1 处置完成；dev-env 教训 33 转正（ts-prov 换烧必擦）。
 - v1.57 · 2026-10-10：批 A 收尾专项——boardbench 全链 PASS（BB1 根因 = 9M 指令超 DEC-48③ 配额被健康链终止〔诊断探针实证〕；BUSY_ITERS 定 30000 + 注释定案；吞吐无 4.5 回归）；dsdbench 构建面通（/sense qualifier 正解——前判「4.5 迁移缺口」修正）+ SD 物理链路通——挂载写失败 = 介质层待 owner 查卡。
 - v1.56 · 2026-10-10：批 A 续——otabench 全链 PASS（4.5 mcumgr img API 适配定案：test 键移除/confirm 变 bool/同版镜像设计缺陷）+ estopbench/periphbench/psrambench/metabench/wdtbench 五件 PASS（safety.h estop 声明存量缺陷修复；boardbench 堆迁 PSRAM）；遗留：boardbench BB1 evt 链待查 + dsdbench fatfs/SDMMC 4.5 适配；批 A 主体收口（9 绿/2 遗留）。
