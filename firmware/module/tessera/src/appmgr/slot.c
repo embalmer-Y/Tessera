@@ -409,3 +409,19 @@ ts_res_t ts_appmgr_boot_start(void)
 	return TS_E_STATE; /* WAMR 未编入（CONFIG_TS_APP_WAMR） */
 #endif
 }
+
+#ifndef CONFIG_TS_APP_WAMR
+/* 无 WAMR 构建面（netbench 等：TS_APPMGR=y 供 sys/app 命令链，但无运行
+ * 时）。G4（单元 H）起 pkg.c 的 activate 路径引用本组符号——无 WAMR 面
+ * 无构建覆盖，P4 无线批（netbench @ esp32p4）链接实证修复。语义退化：
+ * 无运行时 = 恒无 APP 在跑；stop 无对象 = OK（无可停者）。 */
+bool ts_appmgr_app_running(void)
+{
+	return false;
+}
+
+ts_res_t ts_appmgr_app_stop(void)
+{
+	return TS_OK;
+}
+#endif

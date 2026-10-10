@@ -6,6 +6,9 @@
 
 ## 1. 当前状态
 
+- **2026-10-10（六十八） · P4 无线面批交付（半程 + 上游缺陷定案）：C6 伴芯固件链落地（esp-hosted-mcu v3.0.9 @ owner Windows EIM/IDF v6.1 + STREAM datapath 定值）+ P4 侧 esp_hosted RPC 全通真机证据（版本握手 v3.0.9/wifi_connect rc=0/associated 3/3 + C6 侧独立证据）；NB 全链判据挂起 = Zephyr 4.5 esp_hosted 驱动数据面缺陷（UDP/TCP 帧不通——DHCP 3/3 挂），上游域**
+  - 顺带修两存量缺陷：zenoh-pico version.h 包含域（生成头包含域提模块级）+ 无 WAMR 面 appmgr 符号桩；回归 15/15（77）+ pytest 2/2。
+  - 后续：上游 issue 呈递候选（owner 裁决）；P4 真外设绑定待开；H7 真机待 ST-LINK。
 - **2026-10-10（六十七） · P4 PSRAM 挂接批交付：p4psram 真机全链 PASS（P4P1 SMH 探针 0x48000060 读写一致 → WAMR 256KB 堆自 PSRAM 分配 → APP 全链 → P4P PASS）——board-p4-01 §7 第二项收口；H7 真机暂停（owner 暂无 ST-LINK，构建级已交付待器件）**
   - P4 SPIRAM = HEX 16 线（P4 专属 Kconfig 默认）；堆 256KB = S3 同值（DEC-27）；回归 twister 15/15（77）+ pytest 2/2。
   - P4 板余项：无线面（C6 伴芯 esp-hosted）/真外设绑定；D-AV 帧证据（待 owner 摄像头动作）。

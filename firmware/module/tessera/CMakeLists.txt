@@ -39,6 +39,16 @@ zephyr_library_sources_ifdef(CONFIG_TS_TEST
   src/store/prov_test.c
 )
 
+# v4.5 适配（升级批教训 30③，P4 无线面批扩为模块级）：4.5 移除 legacy 生成
+# 头路径——WAMR 平件 platform_internal.h 裸 include <autoconf.h>（上游
+# 2.4.5）与 zenoh-pico 平台头 zephyr.h 裸 include <version.h>（1.10.1，做
+# 内核版本分派）同族。以生成头新路径（<generated>/zephyr/）补兼容包含域
+# ——仓库内修复（CI 可复现），零上游补丁纪律不破。原 WAMR 条件块内的
+# 同名语句已并入本处（TS_APP_WAMR=n 的 netbench 面亦依赖——P4 无线批
+# 实证）。
+zephyr_include_directories(${ZEPHYR_BINARY_DIR}/include/generated/zephyr)
+
+
 zephyr_library_sources_ifdef(CONFIG_TS_HAL
   src/hal/perm.c
   src/hal/api.c
@@ -171,9 +181,5 @@ if(CONFIG_TS_APP_WAMR)
   # include_directories（仅本模块编译域可见）——Zephyr 下消费方须经
   # zephyr_include_directories 取到 wasm_export.h。
   zephyr_include_directories($ENV{TS_WAMR_DIR}/core/iwasm/include)
-  # v4.5 适配（升级批）：4.5 起移除 legacy 生成头路径——WAMR 平件
-  # platform_internal.h 仍裸 include <autoconf.h>（上游 2.4.5）。以新
-  # 路径（<generated>/zephyr/）补兼容包含域，仓库内修复（CI 可复现），
-  # 零上游补丁纪律不破。
-  zephyr_include_directories(${ZEPHYR_BINARY_DIR}/include/generated/zephyr)
+  # （v4.5 生成头包含域已提为模块级——见文件头部同名语句与注释。）
 endif()

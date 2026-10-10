@@ -285,3 +285,5 @@
 - 2026-10-10 · **H7 移植批登记（构建级）**：h7bench（firmware/tests/ 载体：H7 bring-up——H7B* console 行；persistbench 源级复用）；mini_stm32h743（树内板目标：WeAct Studio MiniSTM32H743 核心板，STM32H743VIT6）；THUMBV7EM（WAMR 板映射新条目——ARM target 在 -mthumb 下汇编期拒，THUMB 分支取 invokeNative_thumb.s）；com.tessera.h7b（H7 demo app_id）；board-h7-01.md（H7 bring-up 报告）；gen_h7_pkg.py（h7bench v2 包生成器，仓外）。消账：DEC-28 板卡目标集第三板开题（构建级绿；真机待板）。
 
 - 2026-10-10 · **P4 PSRAM 批登记**：p4psram（firmware/tests/ 载体：P4 PSRAM 挂接——P4P* console 行；psrambench 源级复用）；SPIRAM_MODE_HEX（P4 专属 16 线 PSRAM 模式——QUAD/OCT Kconfig 不可选）；EXTEMEM 0x48000000（P4 外部 RAM 地址域——S3 为 0x3c000000，探针断言随板改）。消费：board-p4-01 §7 第二项（PSRAM 挂接）。
+
+- 2026-10-10 · **P4 无线面批登记**：esp_hosted（Zephyr 4.5 驱动族：drivers/misc/esp_hosted_mcu〔RPC/SDIO 传输〕+ drivers/wifi/esp_hosted〔WiFi 管理栈对接〕）；esp-hosted-mcu v3.0.9（C6 协处理器固件仓库——owner Windows EIM 环境构建，工作副本 D:/Software/project/esp_hosted，仓外）；STREAM/PACKET/SW_AGGR（C6 SDIO datapath 三态——Zephyr host 语义 = STREAM，定值入 cp sdkconfig.defaults.esp32c6）；flash_c6.bat / build_c6.bat（C6 构建烧录脚本，仓外 esp_hosted 工作副本）；eh_cp_wifi_sta（cp 工程产物名）；CH340@COM9（owner 的 C6 烧录/console 串口工具）。消费：P4 无线面（半程——数据面缺陷定案登记 decisions）。

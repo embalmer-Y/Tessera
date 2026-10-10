@@ -77,6 +77,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.50 · 2026-10-10：P4 无线面批——链路半程达成（C6 固件链 + esp_hosted RPC 全通真机证据：版本握手/wifi connect/associated 3/3）；NB 全链判据挂起 = Zephyr esp_hosted 驱动数据面上游缺陷（DHCP/TCP 不通，定案登记）；顺带修两构建面存量缺陷；回归 15/15（77）。
 - v1.49 · 2026-10-10：P4 PSRAM 挂接批交付——p4psram 真机全链 PASS（SMH 0x48 域 + WAMR 256KB 堆入 PSRAM + APP 全链）；H7 真机暂停（owner 无 ST-LINK，已登记）；board-p4-01 §7 第二项收口。
 - v1.48 · 2026-10-10：H7 移植批（构建级）交付（board-h7-01 v0.1）——owner 板裁决 mini_stm32h743（WeAct 核心板）即树内目标；h7bench 构建绿（FLASH 158KB/7.6%、sram0 68%）+ WAMR THUMBV7EM 映射（ARM 汇编 -mthumb 拒，教训入 §3）+ 五分区 128KB 扇区模式；回归 15/15（77）。真机判据待 owner 接板（ST-LINK + USART1）。
 - v1.47 · 2026-10-10：P4 适配批交付（board-p4-01）——ESP32-P4-WIFI6-DEV-KIT 框架 bring-up 真机全链 PASS（p4bench：五分区 @0x7E0000/console=uart0/main 栈 8192/WAMR RISCV32）；SDK riscv64 单工具链补装；存量缺陷两族修复（六 bench 兼容串 + persistbench v1 包）；回归全绿（twister 15/15〔77〕+ pytest + persistbench S3 构建）。J 单元收口。
