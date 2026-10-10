@@ -6,6 +6,9 @@
 
 ## 1. 当前状态
 
+- **2026-10-10（六十七） · P4 PSRAM 挂接批交付：p4psram 真机全链 PASS（P4P1 SMH 探针 0x48000060 读写一致 → WAMR 256KB 堆自 PSRAM 分配 → APP 全链 → P4P PASS）——board-p4-01 §7 第二项收口；H7 真机暂停（owner 暂无 ST-LINK，构建级已交付待器件）**
+  - P4 SPIRAM = HEX 16 线（P4 专属 Kconfig 默认）；堆 256KB = S3 同值（DEC-27）；回归 twister 15/15（77）+ pytest 2/2。
+  - P4 板余项：无线面（C6 伴芯 esp-hosted）/真外设绑定；D-AV 帧证据（待 owner 摄像头动作）。
 - **2026-10-10（六十六） · H7 移植批（构建级）交付：板裁决落地（owner：mini_stm32h743 = WeAct MiniSTM32H743 核心板，树内目标）——h7bench 构建绿（FLASH 158KB/7.6%、sram0 349KB/68% 含 256KB WAMR 堆）+ WAMR THUMBV7EM 映射 + 五分区 128KB 扇区模式 + 回归 15/15（77）；真机判据待 owner 接板（ST-LINK + USART1，board-h7-01 §6 预案含 HSE 晶振疑点）**
   - DEC-28 板卡目标集（S3→P4→H7）第三板开题即构建级绿；WAMR 三 ISA（xtensa/riscv32/thumbv7em）全数过编译。
   - 真机收口后 H7 批完整退出；WAMR 堆迁 D2 SRAM / ETH 网面评估 = 后续批。

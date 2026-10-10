@@ -283,3 +283,5 @@
 - 2026-10-10 · **P4 适配批登记（单元 J 收口）**：p4bench（firmware/tests/ 真机载体：P4 bring-up——P4B* console 行；persistbench 源级复用）；esp32p4_wifi6_dev_kit/esp32p4/hpcore（v4.5 斜杠限定板目标——Waveshare ESP32-P4-WIFI6-DEV-KIT HP 核）；com.tessera.p4b（P4 bring-up demo app_id）；RISCV32（WAMR 板映射新条目——P4 HP 核 RV32，解释器-only 无 invokeNative 面）；board-p4-01.md（P4 bring-up 报告）；gen_p4b_pkg.py（p4bench/persistbench v2 包生成器，仓外——tsap_package 测试根签名 + C 头输出）。消账：J 单元 P4 面（DEC-28 板卡集 P4 首证）；DEC-49② 漏网修复（persistbench v1 包 + 六 bench 兼容串）。
 
 - 2026-10-10 · **H7 移植批登记（构建级）**：h7bench（firmware/tests/ 载体：H7 bring-up——H7B* console 行；persistbench 源级复用）；mini_stm32h743（树内板目标：WeAct Studio MiniSTM32H743 核心板，STM32H743VIT6）；THUMBV7EM（WAMR 板映射新条目——ARM target 在 -mthumb 下汇编期拒，THUMB 分支取 invokeNative_thumb.s）；com.tessera.h7b（H7 demo app_id）；board-h7-01.md（H7 bring-up 报告）；gen_h7_pkg.py（h7bench v2 包生成器，仓外）。消账：DEC-28 板卡目标集第三板开题（构建级绿；真机待板）。
+
+- 2026-10-10 · **P4 PSRAM 批登记**：p4psram（firmware/tests/ 载体：P4 PSRAM 挂接——P4P* console 行；psrambench 源级复用）；SPIRAM_MODE_HEX（P4 专属 16 线 PSRAM 模式——QUAD/OCT Kconfig 不可选）；EXTEMEM 0x48000000（P4 外部 RAM 地址域——S3 为 0x3c000000，探针断言随板改）。消费：board-p4-01 §7 第二项（PSRAM 挂接）。
