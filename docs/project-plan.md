@@ -78,7 +78,7 @@
 |---|------|------|----|
 | NV-1 | 部署后诊断闭环 ✅ | agent 侧判据回捕工具（串口窗口 + 分类器：PASS/无挂载/无安装/无 ACTIVE/无事件行/WDT 复位/卡死）+ 失败→feedback 注入 app_develop 重生成→重部署闭环（轮上限防失控）+ 分类器单测 + gated 真机验证（坏 spec 首轮必败→闭环救回 PASS）——**2026-10-11 交付**：tools_diag 三模块 + diag_classify MCP + 15 用例（全量 92+2s）；真机单迹 round1 pass（NV1 DONE 精确判据）；顺带根治 app_deploy 暖复位竞态 + manifest 伪影级联解包；观察项 = SYWORK 源 wdt 偶发复位（登记不动手） | — |
 | NV-2 | spec 质量门 ✅ | spec 模板（需求/资源/判据/安全声明四节）+ 静态检查器（判据可测性=有唯一判据行/caps 最小化提示/fs_paths 与 out 通道合法性）+ app_develop 入口集成 + 用例——**2026-10-11 交付**：spec_gate.py（判据引号串机读派生 = repair_loop 单一事实源；errors 阻塞/warnings 留痕；旧式 spec 兼容）+ spec_check MCP + workflow skill 模板节；pytest 103+2s（+11）/ruff 绿；真机消费面归 NV-6 验收 | — |
-| NV-3 | sim↔real 对拍 | 同一 scenario 双跑（sim_run + 真机 bench）判据行机械 diff 工具 + 首个对拍基线（gated 真机面） | — |
+| NV-3 | sim↔real 对拍 ✅ | 同一 scenario 双跑（sim_run + 真机 bench）判据行机械 diff 工具 + 首个对拍基线（gated 真机面）——**2026-10-11 交付（代码面）**：simreal_diff.py（写序列终态 ↔ 判据行读数语义对拍——形态不对等的 V1 诚实口径）+ MCP 工具；pytest 108+2s（+5）；**首基线随 NV-6 验收链产生**（全流程跑 sim→real 时留档） | — |
 | NV-4 | 审计 flash 持久化 | DEC-30④「审计 V1 内存环形（掉电丢失）」语义变更：环形记录格式/分区布局/溢出策略 + 固件实施 + 真机掉电留存验证 | **Q-31 呈递门**（实施前呈 owner；逾时未裁该单元顺延不阻塞 NV-5/6） |
 | NV-5 | README | 仓库门面：项目一句话/架构分层图/ts-* 模块地图/快速上手（WSL 环境 + 三命令）/demo 一览（D 系列 + D-SD/D4/D6）/CI 徽章 | — |
 | NV-6 | 真实需求全流程编程测试 | **版本验收**：一个真实需求走完 spec→LLM 编程→编译打包→sim 模拟测试→部署→真机判据 PASS 全链（消费 NV-1/2/3 产物）；需求候选 = 立方体健康哨兵 APP（周期采样输入 + 阈值告警输出〔限幅内〕+ ts_net_publish 遥测上报）——实施时呈 owner 确认可换 | 验收判据 owner 可查 |

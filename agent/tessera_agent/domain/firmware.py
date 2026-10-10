@@ -22,6 +22,7 @@ from tessera_agent.core.session import PolicyTable
 from tessera_agent.domain import app_chain
 from tessera_agent.platform import AppContext, DomainPackBase, MountAPI
 from tessera_agent.tools_diag import classify as diag_cls
+from tessera_agent.tools_diag import simreal_diff as diag_sr
 from tessera_agent.tools_diag import spec_gate as diag_spec_gate
 from tessera_agent.tools_fw import tools as fw
 from tessera_agent.tools_net import deploy as net_deploy
@@ -77,7 +78,7 @@ class FirmwareDomainPack(DomainPackBase):
         "tsap_keygen", "tsap_package", "tsap_verify",
         "deploy_discover", "deploy_status", "deploy_push_app",
         "app_develop", "app_deploy", "app_compile",
-        "diag_classify", "spec_check",
+        "diag_classify", "spec_check", "simreal_diff",
     ])
     skills: list[str] = field(default_factory=lambda: [
         "tessera-workflow", "tessera-build", "tessera-tsap", "tessera-safety",
@@ -90,6 +91,7 @@ class FirmwareDomainPack(DomainPackBase):
         "app_deploy": "strict",
         "diag_classify": "confirm",
         "spec_check": "confirm",
+        "simreal_diff": "confirm",
     }))
     validators: list = field(default_factory=lambda: [validate_tsap_manifest])
     deployer: Any = field(default_factory=lambda: None)  # 组合根注入 router 配置
@@ -378,3 +380,21 @@ class FirmwareDomainPack(DomainPackBase):
             return {"ok": r.ok, "templated": r.templated,
                     "errors": r.errors, "warnings": r.warnings,
                     "pass_patterns": r.pass_patterns}
+
+        @mcp.tool
+        @audited("simreal_diff")
+        async def simreal_diff(sim_writes: list[dict],
+                               real_console: str,
+                               channel_patterns: dict[str, str],
+                               tolerance: int = 0) -> dict:
+            """sim↔real 语义对拍（NV-3）：sim 重放写序列（sim_run 的
+            writes，L4 JSONL）各通道终态 vs 真机 console 判据行读数
+            （channel_patterns = {通道: 含一个捕获组的正则}，取最后一次
+            命中）——键值集机械 diff（数值容差 tolerance）。"""
+            chans = list(channel_patterns)
+            sim_map = diag_sr.normalize_sim(sim_writes, chans)
+            real_map = diag_sr.normalize_real(real_console, channel_patterns)
+            res = diag_sr.diff(sim_map, real_map, tolerance=tolerance)
+            return {"pass": res.pass_, "match": res.match,
+                    "mismatch": res.mismatch, "missing": res.missing,
+                    "sim_map": sim_map, "real_map": real_map}

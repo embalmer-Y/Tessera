@@ -6,6 +6,7 @@
 
 ## 1. 当前状态
 
+- **2026-10-11（七十七） · NV-3 交付（V0.1.0 单元 3/6）：sim↔real 语义对拍工具（写序列终态↔判据行读数键值 diff；D9 双证据机械化）+ simreal_diff MCP；pytest 108+2s；首基线随 NV-6 验收链产生。NV-4 审计持久化 Q-31 呈递门随续（逾时未裁顺延，NV-5 README 先行）**
 - **2026-10-11（七十六） · NV-2 交付（V0.1.0 单元 2/6）：spec 质量门——四节模板 + 【判据】节引号串机读派生（repair_loop pass_patterns 单一事实源，NV-1 手写双份风险收口）+ app_develop 入口分级集成（errors 阻塞/旧式兼容）+ spec_check MCP + workflow skill 模板节；pytest 103+2s/ruff 绿；真机消费面归 NV-6 验收。NV-3 sim↔real 对拍随续**
 - **2026-10-11（七十五） · NV-1 交付（V0.1.0 单元 1/6）：部署后诊断闭环——tools_diag 三模块（7 类失败分类器 + 串口抓取 + 修复闭环编排）+ app_develop repair_feedback + diag_classify MCP；真机单迹 round1 pass（真 LLM 生成→部署→NV1 DONE 精确判据）；顺带根治 app_deploy 暖复位竞态（30s 板回轮询）与 manifest 伪影级联解包（MD1.1 族完备化）；agent 92+2s/ruff 绿；观察项 = SYWORK 源 wdt 偶发复位（登记不动手）。NV-2 spec 质量门随续**
 - **2026-10-11（七十四） · owner 裁决版本方向：下一版本 V0.1.0 = 编程链路完整性批（plan §9 排期 NV-1 诊断闭环 / NV-2 spec 质量门 / NV-3 sim↔real 对拍 / NV-4 审计持久化〔Q-31 呈递门，逾时顺延〕 / NV-5 README / NV-6 真实需求全流程编程测试〔版本验收〕）；收口 = tag fw-v0.1.0；连续开发启动——规划批已落盘，NV-1 随续**
