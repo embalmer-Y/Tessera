@@ -6,6 +6,7 @@
 
 ## 1. 当前状态
 
+- **2026-10-10（七十二） · 批 A 续：otabench 全链 PASS（img-ver 2.0.0 swap——4.5 mcumgr img API 适配定案）+ estop/periph/psram/meta/wdt 五件 PASS——批 A 主体收口（9 绿 + 2 遗留：boardbench BB1 evt 链、dsdbench fatfs/SDMMC 4.5 适配）；safety.h estop 声明存量缺陷修复（真机 estop 面首次被构建覆盖）**
 - **2026-10-10（七十一） · 批 A 首批：netbench/linkdemo/deploybench（DB+D8 双证）@4.5 真机 PASS + otabench 半程（SMP 上传链绿，swap 待查）；netbench 池 153600 调档；ts-prov 覆盖第三坑登记；批 A 续 = otabench swap + 小 bench 七件**
 - **2026-10-10（七十） · issue #121774（esp32 video 停摆）提交 + impl-review-03 呈 owner：会话 8 提交审查全通过（证据齐全/缺陷自报）；风险 R1（S3 真机回归覆盖不全——deploybench/otabench/netbench 等 @4.5 未复跑）为最高优先；下一步候选批 A（S3 全 bench @4.5 真机回归）建议优先，批 C（产品化新方向）待 owner 裁决**
 - **2026-10-10（六十九d） · D-AV 采集执行 + 新缺陷定案：owner 摄像头修复后帧已可采发（prov 覆盖根因亦修复）；主阻塞更新 = 4.5 下 zenoh-pico 板→路由 1KB 发送 100% 损坏（板侧 crc 正确/自环 20 无损/尺寸相关/4.4 曾通——4.5 回归，upstream 域，与 #121767 关联观察）**

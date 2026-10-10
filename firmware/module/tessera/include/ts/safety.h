@@ -101,6 +101,12 @@ ts_res_t ts_safety_summary(ts_safety_summary_t *out);
 
 /* ---- estop 与 fail-safe 直达（LLD-ts-safety §5）——合同 5/8 --------------- */
 
+/** [thread] estop 触发边沿映射（prov estop_trigger_flags → GPIO 边沿；
+ * 未知值 fail-safe 上升）。前置声明：driver_dispatch.c 内 estop 初始化
+ * 先用后定义（真机 estop 面编译依赖——批 A 续实证修复：native 面 DT 无
+ * estop 节点编不到该路径，存量缺陷自单元 F 引入起未被构建面覆盖）。 */
+int ts_safety_estop_edge_of(uint8_t flags);
+
 /** [ISR] estop GPIO 回调直接调用：原子置 forced → 逐通道直写 fault 值。
  * 调用图内禁分配/队列/锁/协议栈（L5 机械检查目标）。 */
 void ts_safety_force_all_fault(void);
