@@ -50,7 +50,12 @@
 #define MB_SAMPLES 8u
 #define CONC_ON 0
 #else
-#define BUSY_ITERS 300000u
+/* BUSY_ITERS 配额耦合（批 A 收尾定案）：300000 iters ≈ 9M 指令超 DEC-48③
+ * 指令配额 → wasm 异常 → APP 被健康链终止（BB1 静默死——evt_seen 停 1、
+ * health_fails 累积、running=0；诊断探针实证）。配额引入（Q-28③A）晚于
+ * 本 bench 定参且 4.4 期未复跑——非 4.5 回归（30000 档 1189ns/iter 与
+ * 4.4 时代 1043ns 同量级 = 吞吐无回归）。30000 = 配额内最大量级样本。 */
+#define BUSY_ITERS 30000u
 #define RT_N 20000u
 #define WR_N 5000u
 #define MB_SAMPLES 300u

@@ -77,6 +77,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.57 · 2026-10-10：批 A 收尾专项——boardbench 全链 PASS（BB1 根因 = 9M 指令超 DEC-48③ 配额被健康链终止〔诊断探针实证〕；BUSY_ITERS 定 30000 + 注释定案；吞吐无 4.5 回归）；dsdbench 构建面通（/sense qualifier 正解——前判「4.5 迁移缺口」修正）+ SD 物理链路通——挂载写失败 = 介质层待 owner 查卡。
 - v1.56 · 2026-10-10：批 A 续——otabench 全链 PASS（4.5 mcumgr img API 适配定案：test 键移除/confirm 变 bool/同版镜像设计缺陷）+ estopbench/periphbench/psrambench/metabench/wdtbench 五件 PASS（safety.h estop 声明存量缺陷修复；boardbench 堆迁 PSRAM）；遗留：boardbench BB1 evt 链待查 + dsdbench fatfs/SDMMC 4.5 适配；批 A 主体收口（9 绿/2 遗留）。
 - v1.55 · 2026-10-10：批 A 首批（owner 裁决开工）：netbench（池 153600 调档）/linkdemo/deploybench（DB+D8 双证——B2 遗留单跑 PASS 补齐）三件 @4.5 真机 PASS + otabench 半程（上传链绿，swap 待查）；ts-prov 覆盖第三次（教训 33 候选）。
 - v1.54 · 2026-10-10：issue #121774（esp32 video 停摆）提交登记；impl-review-03（会话 8 提交审查 + 风险清单 R1-R6 + 下一步候选批 A-D）呈 owner 讨论。
