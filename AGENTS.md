@@ -6,6 +6,9 @@
 
 ## 1. 当前状态
 
+- **2026-10-10（六十九） · DEC-51（板卡集收缩 S3-only——P4/H7 搁置留档）+ persistbench S3 @4.5 真机复验 PASS（板级遗留项收口）：4.5 帧深致 verify 链 4096 栈挂死——修复 + 全 S3 bench 批量防御 8192；Zephyr esp_hosted 上游 issue 起草并提交（owner 授权）**
+  - 两诊断坑登记：esptool 操作尾部 hard-reset 触发首启秒写回（判据编排须 --after no_reset）；WAMR version.h 只读屏障曾被解除→并发竞争复燃（444 已恢复）。
+  - 回归 15/15（77）+ pytest 2/2；S3 = 唯一真机目标（7-4 常接）。
 - **2026-10-10（六十八） · P4 无线面批交付（半程 + 上游缺陷定案）：C6 伴芯固件链落地（esp-hosted-mcu v3.0.9 @ owner Windows EIM/IDF v6.1 + STREAM datapath 定值）+ P4 侧 esp_hosted RPC 全通真机证据（版本握手 v3.0.9/wifi_connect rc=0/associated 3/3 + C6 侧独立证据）；NB 全链判据挂起 = Zephyr 4.5 esp_hosted 驱动数据面缺陷（UDP/TCP 帧不通——DHCP 3/3 挂），上游域**
   - 顺带修两存量缺陷：zenoh-pico version.h 包含域（生成头包含域提模块级）+ 无 WAMR 面 appmgr 符号桩；回归 15/15（77）+ pytest 2/2。
   - 后续：上游 issue 呈递候选（owner 裁决）；P4 真外设绑定待开；H7 真机待 ST-LINK。

@@ -77,6 +77,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.51 · 2026-10-10：DEC-51（板卡集收缩 S3-only，P4/H7 搁置留档）+ persistbench S3 @4.5 真机复验 PASS（4.5 帧深致 verify 链 4096 栈挂死——修复 + 全 S3 bench 批量防御 8192；esptool 写回假象/WAMR 屏障两坑登记）；Zephyr esp_hosted 上游 issue 起草（提交中）。
 - v1.50 · 2026-10-10：P4 无线面批——链路半程达成（C6 固件链 + esp_hosted RPC 全通真机证据：版本握手/wifi connect/associated 3/3）；NB 全链判据挂起 = Zephyr esp_hosted 驱动数据面上游缺陷（DHCP/TCP 不通，定案登记）；顺带修两构建面存量缺陷；回归 15/15（77）。
 - v1.49 · 2026-10-10：P4 PSRAM 挂接批交付——p4psram 真机全链 PASS（SMH 0x48 域 + WAMR 256KB 堆入 PSRAM + APP 全链）；H7 真机暂停（owner 无 ST-LINK，已登记）；board-p4-01 §7 第二项收口。
 - v1.48 · 2026-10-10：H7 移植批（构建级）交付（board-h7-01 v0.1）——owner 板裁决 mini_stm32h743（WeAct 核心板）即树内目标；h7bench 构建绿（FLASH 158KB/7.6%、sram0 68%）+ WAMR THUMBV7EM 映射（ARM 汇编 -mthumb 拒，教训入 §3）+ 五分区 128KB 扇区模式；回归 15/15（77）。真机判据待 owner 接板（ST-LINK + USART1）。

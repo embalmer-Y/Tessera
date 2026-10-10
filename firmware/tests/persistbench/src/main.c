@@ -212,11 +212,28 @@ int main(void)
 		uint32_t hw = 0;
 		const uint8_t root_key[32] = {0}; /* TEST：prov 根钥缺省（结构级验签） */
 
-		if (total == 0 ||
-		    ts_appmgr_stage_begin((uint32_t)total, &slot) != TS_OK ||
-		    ts_appmgr_stage_chunk(0, pkg, (uint32_t)total, &hw) != TS_OK ||
-		    ts_appmgr_stage_verify(root_key, NULL, NULL, NULL) != TS_OK) {
-			printk("PB FAIL install\n");
+		if (total == 0) {
+			printk("PB FAIL install total=0\n");
+			return 1;
+		}
+		/* 分步报码（P4 批同型）：失败面逐级可见。4.5 复验批教训：verify
+		 * 链挂死在 4096 main 栈溢出（帧深于 4.4——板 conf 已定 8192）。 */
+		ts_res_t sr = ts_appmgr_stage_begin((uint32_t)total, &slot);
+
+		if (sr != TS_OK) {
+			printk("PB FAIL install begin r=%d\n", (int)sr);
+			return 1;
+		}
+		ts_res_t cr = ts_appmgr_stage_chunk(0, pkg, (uint32_t)total, &hw);
+
+		if (cr != TS_OK) {
+			printk("PB FAIL install chunk r=%d\n", (int)cr);
+			return 1;
+		}
+		ts_res_t vr = ts_appmgr_stage_verify(root_key, NULL, NULL, NULL);
+
+		if (vr != TS_OK) {
+			printk("PB FAIL install verify r=%d\n", (int)vr);
 			return 1;
 		}
 		ts_app_info_t info;
