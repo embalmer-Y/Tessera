@@ -6,6 +6,11 @@
 
 ## 1. 当前状态
 
+- **2026-10-10（六十五） · P4 适配批交付：ESP32-P4-WIFI6-DEV-KIT（Waveshare）框架 bring-up 真机全链 PASS（p4bench：prov→v2 包安装→暖复位→flash 全状态自举→WAMR@RV32 ACTIVE→写链→P4B PASS）——排期表 A–J 全部收口**
+  - 板面：目标 = esp32p4_wifi6_dev_kit/esp32p4/hpcore（v4.5 斜杠限定语法）；SDK 补装 riscv64-zephyr-elf（setup.sh -t 单组件）；WAMR 板映射登记 RISCV32；五分区 @0x7E0000（16M 默认布局 slot1 区）；console 重指 uart0（CH343 COM 口 = esptool 同口，单线判据）；MAIN_STACK_SIZE=8192（RV32 帧深，4096 安装链实测溢出）。
+  - 顺带修复存量缺陷两族（教训 31）：六 bench overlay 缺 mapped-partition 兼容串（avdemo/dsdbench/linkdemo/metabench/persistbench/wdtbench——升级批漏网）；persistbench 自构造包为 v1 格式（DEC-49② 后即坏）——gen_p4b_pkg.py 机械生成 v2 包（测试根签名），v1 构造器删除。
+  - 回归全绿：twister 15/15（77）+ pytest 2/2 + persistbench S3 @rc1 构建绿；报告 docs/board-p4-01.md。
+  - 剩余：P4 无线（C6 伴芯 esp-hosted）/PSRAM 挂接/真外设绑定（后续批）；D-AV 帧证据（摄像头硬件动作后一跑即收）；正式 v4.5.0 发布后平移 rc1。
 - **2026-10-10（六十四） · DEC-50 升级批交付：Zephyr v4.5.0-rc1 已上——twister 15/15（77）/agent/L5/ruff 全绿 + inputdemo 真机复验核心判据绿（ID1a 寄存器级 duty/WAMR APP 运行/G4 槽切换/输入真值流）**
   - 仓库内适配三处（教训 30）：WAMR autoconf.h 包含域补 / 三 bench overlay 分区 mapped-partition 兼容串 + appcpu 冲突删 / deploybench 池再平 151552。zenoh-pico 1.10.1 + WAMR 2.4.5 钉版不动。
   - **P4 适配批下会话开**（ESP32-P4-WIFI6-DEV-KIT：板目标选取 + 框架 bring-up）。正式 v4.5.0 发布后平移。

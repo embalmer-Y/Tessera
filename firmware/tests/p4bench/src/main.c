@@ -2,11 +2,11 @@
 /*
  * persistbench（板级五）：prov/APP/meta flash 持久化验证（docs/board-persist-01.md）。
  * 流程：
- *   首启（prov 缺失）= 烧录会话：PB1 prov 注入（TS_TEST 通道）→ PB2 分步
+ *   首启（prov 缺失）= 烧录会话：P4B1 prov 注入（TS_TEST 通道）→ P4B2 分步
  *   安装链（stage_begin/chunk/verify/activate——与 sys/app-* 网络命令同一
  *   内部链）→ 暖复位；
- *   此后每次复位：PB3 全框架自举（prov/meta/slot 全部出自 flash）→
- *   PB5 APP 自举运行 + 写路径全链验证 → PB PASS。
+ *   此后每次复位：P4B3 全框架自举（prov/meta/slot 全部出自 flash）→
+ *   P4B5 APP 自举运行 + 写路径全链验证 → P4B PASS。
  */
 #include <string.h>
 #include <zephyr/kernel.h>
@@ -18,7 +18,7 @@
 #include <ts/store.h>
 #include <ts/tsap.h>
 #include "../../../module/tessera/src/net/internal.h" /* ts_cbor_* 构造助手 */
-#include "persistbench_pkg.h" /* TSAP v2 包（gen_p4b_pkg.py 机械生成，测试根签名） */
+#include "p4bench_pkg.h" /* TSAP v2 包（gen_p4b_pkg.py 机械生成，测试根签名 */
 
 /* ---- sim 通道（框架.app 同款：唯一写路径 → driver_dispatch → sim 记录）-- */
 
@@ -140,7 +140,7 @@ static void pb_on_boot_done(const ts_evt_t *e, void *u)
 	ARG_UNUSED(e);
 	ARG_UNUSED(u);
 	ts_safety_set_link(true);
-	printk("PB4 boot done -> link up (glue, no-host bench)\n");
+	printk("P4B4 boot done -> link up (glue, no-host bench)\n");
 }
 
 static void pb_verify(void *p1, void *p2, void *p3)
@@ -153,87 +153,103 @@ static void pb_verify(void *p1, void *p2, void *p3)
 		k_msleep(20);
 	}
 	if (!ts_appmgr_app_running()) {
-		printk("PB FAIL app not running after boot\n");
+		printk("P4B FAIL app not running after boot\n");
 		return;
 	}
 	ts_app_info_t info;
 
 	ts_appmgr_get_info(&info);
-	printk("PB5 app active: id=%s ver=%s slot=%u\n",
+	printk("P4B5 app active: id=%s ver=%s slot=%u\n",
 	       info.app_id, info.app_ver, info.active_slot);
 	/* 诊断：init_res=-4（SAFE_POWERON 写拒绝）= 冷启动预期（见上）；此后
 	 * evt 驱动写验证 ACTIVE 态全链。 */
 	struct ts_app_rt_stats st;
 
 	ts_appmgr_app_stats(&st);
-	printk("PB5 diag: init_res=%d evt_seen=%u health_fails=%u perm_seen=%d\n",
+	printk("P4B5 diag: init_res=%d evt_seen=%u health_fails=%u perm_seen=%d\n",
 	       (int)st.init_res, st.evt_seen, st.health_fails, pb_perm_seen);
 	if (ts_appmgr_app_evt(1) != TS_OK || !pb_wait_gpio(true)) {
-		printk("PB FAIL app_evt(1) write\n");
+		printk("P4B FAIL app_evt(1) write\n");
 		return;
 	}
-	printk("PB5 app_evt(1) -> gpio=1 (flash slot -> boot 装载 -> wasm 全链)\n");
+	printk("P4B5 app_evt(1) -> gpio=1 (flash slot -> boot 装载 -> wasm 全链)\n");
 	if (ts_appmgr_app_evt(0) == TS_OK && pb_wait_gpio(false)) {
-		printk("PB5 app_evt(0) -> gpio=0\n");
+		printk("P4B5 app_evt(0) -> gpio=0\n");
 	} else {
-		printk("PB FAIL app_evt(0)\n");
+		printk("P4B FAIL app_evt(0)\n");
 		return;
 	}
-	printk("PB PASS prov+meta+slot persisted across reset\n");
+	printk("P4B PASS prov+meta+slot persisted across reset\n");
 	for (;;) {
 		k_msleep(5000);
-		printk("PB alive t=%u\n", (unsigned)k_uptime_get_32());
+		printk("P4B alive t=%u\n", (unsigned)k_uptime_get_32());
 	}
 }
 K_THREAD_DEFINE(pb_verify_tid, 2048, pb_verify, NULL, NULL, NULL, 12, 0, 1000);
 
 int main(void)
 {
-	printk("PB0 persistbench\n");
+	printk("P4B0 persistbench\n");
 
 	ts_res_t lr = ts_store_prov_load();
 
 	if (lr != TS_OK) {
 		/* 首启 = 烧录会话（prov 缺失；合同 10 写通道 = 烧录期/测试构建注入） */
-		printk("PB1 first boot: prov absent (rc=%d) -> provision session\n", (int)lr);
+		printk("P4B1 first boot: prov absent (rc=%d) -> provision session\n", (int)lr);
 		struct cb c;
 
 		if (ts_store_prov_write_test(c.b, (uint32_t)build_prov(&c)) != TS_OK ||
 		    ts_store_prov_load() != TS_OK) {
-			printk("PB FAIL prov\n");
+			printk("P4B FAIL prov\n");
 			return 1;
 		}
-		printk("PB1 prov burned: node=%s cube=%s\n",
+		printk("P4B1 prov burned: node=%s cube=%s\n",
 		       ts_store_prov()->node_id, ts_store_prov()->cube_id);
 
-		const uint8_t *pkg = persistbench_pkg;
-		size_t total = sizeof(persistbench_pkg);
+		const uint8_t *pkg = p4bench_pkg;
+		size_t total = sizeof(p4bench_pkg);
 		uint8_t slot = 0;
 		uint32_t hw = 0;
 		const uint8_t root_key[32] = {0}; /* TEST：prov 根钥缺省（结构级验签） */
 
-		if (total == 0 ||
-		    ts_appmgr_stage_begin((uint32_t)total, &slot) != TS_OK ||
-		    ts_appmgr_stage_chunk(0, pkg, (uint32_t)total, &hw) != TS_OK ||
-		    ts_appmgr_stage_verify(root_key, NULL, NULL, NULL) != TS_OK) {
-			printk("PB FAIL install\n");
+		if (total == 0) {
+			printk("P4B FAIL install total=0\n");
+			return 1;
+		}
+		/* 分步报码：失败面逐级可见（begin/chunk/verify 各自 r 码）*/
+		ts_res_t sr = ts_appmgr_stage_begin((uint32_t)total, &slot);
+
+		if (sr != TS_OK) {
+			printk("P4B FAIL install begin r=%d\n", (int)sr);
+			return 1;
+		}
+		ts_res_t cr = ts_appmgr_stage_chunk(0, pkg, (uint32_t)total, &hw);
+
+		if (cr != TS_OK) {
+			printk("P4B FAIL install chunk r=%d\n", (int)cr);
+			return 1;
+		}
+		ts_res_t vr = ts_appmgr_stage_verify(root_key, NULL, NULL, NULL);
+
+		if (vr != TS_OK) {
+			printk("P4B FAIL install verify r=%d\n", (int)vr);
 			return 1;
 		}
 		ts_app_info_t info;
 
 		if (ts_appmgr_stage_activate(&info) != TS_OK) {
-			printk("PB FAIL activate\n");
+			printk("P4B FAIL activate\n");
 			return 1;
 		}
-		printk("PB2 app staged: slot=%u total=%u hw=%u -> warm reset\n",
+		printk("P4B2 app staged: slot=%u total=%u hw=%u -> warm reset\n",
 		       slot, (unsigned)total, hw);
 		sys_reboot(SYS_REBOOT_WARM);
 	}
 
-	printk("PB3 boot: prov from flash node=%s\n", ts_store_prov()->node_id);
+	printk("P4B3 boot: prov from flash node=%s\n", ts_store_prov()->node_id);
 	if (ts_hal_register_dev(&pb_dev) != TS_OK ||
 	    ts_safety_register_channel(&pb_ch) != TS_OK) {
-		printk("PB FAIL channel\n");
+		printk("P4B FAIL channel\n");
 		return 1;
 	}
 	ts_safety_set_link(true);

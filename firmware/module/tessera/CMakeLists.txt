@@ -122,6 +122,11 @@ if(CONFIG_TS_APP_WAMR)
     # 路径；GENERAL C 版注释自认部分 CPU 传参不可靠）。汇编缺 GNU-stack
     # 注记 → 汇编期补（-Wa,--noexecstack）。
     set(WAMR_BUILD_INVOKE_NATIVE_GENERAL 0)
+  elseif(BOARD STREQUAL "esp32p4_wifi6_dev_kit")
+    # P4（P4 适配批）：HP 核 = RV32；解释器-only（AOT/JIT 关）下 target
+    # 声明仅取 word 长/ABI 元数据，fast 解释器目标无关。invokeNative 不
+    # 参与构建（AOT=0），GENERAL 旗标不设。
+    set(WAMR_BUILD_TARGET "RISCV32")
   else()
     message(FATAL_ERROR "WAMR_BUILD_TARGET unmapped for board '${BOARD}'")
   endif()
