@@ -13,6 +13,8 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, Any
@@ -54,6 +56,11 @@ OUTPUT_MAX_TOKENS = 16384
 # 来源: DEC-45（Q-25 A，2026-10-04）——source_c 模式下源码进结构化产物，
 # 输出预算上调（C 源 + manifest + 思考段；G1 spike 实测源码 ~1-2KB）。
 OUTPUT_MAX_TOKENS_WITH_CODE = 32768
+# 来源: NV-1 真机实证（2026-10-11）——activate 后板自动暖复位（断链重连
+# 实测 ~10-15s），立即 status 核验撞复位窗口 Timeout 误报部署失败；
+# REBOOT_WAIT_S = 轮询上限 30s（实测 2 倍裕量），REBOOT_RETRY_S = 间隔。
+REBOOT_WAIT_S = 30.0
+REBOOT_RETRY_S = 2.0
 
 
 class DevelopOutcome(BaseModel):
@@ -134,13 +141,19 @@ async def app_develop(
     out_dir: str = "agent/build",
     *,
     wasm_path: str | None = None,
+    repair_feedback: str = "",
     model: Any = None,
     log_fn: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
     """spec →（LLM：计划/manifest + 可选 source_c）→ manifest 硬校验 + 链内
     编译（DEC-45）→ TSAP 打包签名 → 复验。wasm_path 与 source_c 至少其一：
     LLM 产源码时链内编译（导入白名单/导出面/尺寸/双编译一致性全检查）；
-    仅给 wasm_path = 旧路径（调用方自带产物）不衰减。"""
+    仅给 wasm_path = 旧路径（调用方自带产物）不衰减。
+
+    :param repair_feedback: 部署后诊断反馈（NV-1 修复闭环注入）——非空时
+        追加到首轮提示（失败类别 + 修复方向 + 串口证据行，由
+        tools_diag/repair.py 组装）。与链内产物校验回路（格式/编译错误）
+        分层：本参数只承载「部署到真机后的运行时失败」上下文。"""
     log = log_fn or (lambda s: None)
     skills = skill_loader.load_skills()
     active = [s.name for s in skills]
@@ -169,20 +182,45 @@ async def app_develop(
 
     def _normalize_manifest(m: dict[str, Any]) -> dict[str, Any]:
         """传输伪影归一化（MD1.1 实证，MiniMax-M3）：结构化输出的数组字段
-        偶发被包成 {"item": X}（工具调用序列化层伪影，非模型逻辑错误）——
-        确定性解包 + 留痕；其余畸形留给反馈回路（R6：不掩盖根因）。"""
+        偶发被包成 {"item": X} 或整段序列化为 JSON 字符串，且可叠加（NV-1
+        实测第三形态：{"item": "[\\\"health_ping\\",…]"} 双层）——级联确定性
+        解包（上限 3 层）+ 留痕；其余畸形留给反馈回路（R6：不掩盖根因）。"""
         out = dict(m)
         for f in ("caps", "exports", "fs_paths"):  # fs_paths（MD1.2f 实证同伪影）
             v = out.get(f)
-            if isinstance(v, dict) and set(v) == {"item"}:
-                out[f] = v["item"] if isinstance(v["item"], list) else [v["item"]]
-                log(f'传输伪影已解包：{f} 的 item 包装（留痕）')
+            changed = False
+            for _ in range(3):  # 实测叠加 ≤2 层；3 = 防御上限
+                if isinstance(v, dict) and set(v) == {"item"}:
+                    inner = v["item"]
+                    v = inner if isinstance(inner, list) else [inner]
+                    changed = True
+                elif isinstance(v, str) and v.lstrip().startswith("["):
+                    try:
+                        parsed = json.loads(v)
+                    except ValueError:
+                        break  # 非法 JSON 交校验器如实报错
+                    if not isinstance(parsed, list):
+                        break
+                    v = parsed
+                    changed = True
+                else:
+                    break
+            if changed:
+                out[f] = v
+                log(f'传输伪影已解包：{f}（级联，留痕）')
         return out
 
     for attempt in range(1, CHAIN_RETRIES + 1):
-        result = await agent.run(spec if history is None else
-                                 f'产物校验失败，请修正后重新给出完整产物：\n{feedback}',
-                                 message_history=history)
+        if history is None:
+            user_prompt = spec
+            if repair_feedback:
+                user_prompt += (
+                    "\n\n[部署后诊断反馈——上一版部署到真机运行失败，"
+                    f"请在本版修复：\n{repair_feedback}\n]"
+                )
+        else:
+            user_prompt = f'产物校验失败，请修正后重新给出完整产物：\n{feedback}'
+        result = await agent.run(user_prompt, message_history=history)
         outcome: DevelopOutcome = result.output
         outcome.manifest = _normalize_manifest(outcome.manifest)
         history = result.all_messages()
@@ -270,7 +308,22 @@ async def app_deploy(
                 log(f"auto-target: {n}/{c}")
             deployed = net_deploy.push_app(svc, n, c, package_path, pub_key_path,
                                            log_fn=log)
-            status_after = net_deploy.status(svc, n, c)
+            # activate 后板自动暖复位装载（DR-14）——立即 status 会撞复位
+            # 窗口（板断链 ~10s 重连；d8_client 同型 boot-wait 时序）。先试
+            # 后等轮询至板回来（NV-1 真机实证竞态：立即核验 Timeout 误报
+            # 部署失败而部署实际已确认——DB PASS + APP 运行单迹）。
+            status_after = None
+            deadline = time.monotonic() + REBOOT_WAIT_S
+            while time.monotonic() < deadline:
+                try:
+                    status_after = net_deploy.status(svc, n, c)
+                    break
+                except Exception:  # noqa: BLE001 —— 板复位中，2s 后重试
+                    time.sleep(REBOOT_RETRY_S)
+            if status_after is None:
+                msg = f"部署已确认但板 {REBOOT_WAIT_S:.0f}s 内未回来（status 核验超时）"
+                raise TaError(TA_E_TSAP, msg, domain="app_deploy",
+                              detail={"deploy": deployed})
             return {"node": n, "cube": c, "deploy": deployed,
                     "status_after": status_after}
 

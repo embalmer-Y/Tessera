@@ -21,6 +21,7 @@ from tessera_agent.common.errors import TA_E_TSAP, TaError
 from tessera_agent.core.session import PolicyTable
 from tessera_agent.domain import app_chain
 from tessera_agent.platform import AppContext, DomainPackBase, MountAPI
+from tessera_agent.tools_diag import classify as diag_cls
 from tessera_agent.tools_fw import tools as fw
 from tessera_agent.tools_net import deploy as net_deploy
 from tessera_agent.tools_net.zenoh_service import ZenohService
@@ -75,6 +76,7 @@ class FirmwareDomainPack(DomainPackBase):
         "tsap_keygen", "tsap_package", "tsap_verify",
         "deploy_discover", "deploy_status", "deploy_push_app",
         "app_develop", "app_deploy", "app_compile",
+        "diag_classify",
     ])
     skills: list[str] = field(default_factory=lambda: [
         "tessera-workflow", "tessera-build", "tessera-tsap", "tessera-safety",
@@ -85,6 +87,7 @@ class FirmwareDomainPack(DomainPackBase):
         "deploy_push_app": "strict",
         "app_develop": "confirm",
         "app_deploy": "strict",
+        "diag_classify": "confirm",
     }))
     validators: list = field(default_factory=lambda: [validate_tsap_manifest])
     deployer: Any = field(default_factory=lambda: None)  # 组合根注入 router 配置
@@ -342,3 +345,22 @@ class FirmwareDomainPack(DomainPackBase):
                 )
 
             return await spawn("app_deploy", args, body)
+
+        # ---- diag_*（NV-1 部署后诊断；confirm 类）
+        @mcp.tool
+        @audited("diag_classify")
+        async def diag_classify(serial_text: str,
+                                pass_patterns: list[str],
+                                alive_patterns: list[str] | None = None) -> dict:
+            """部署后诊断（纯文本分类，无 I/O）：对一次真机运行的串口全文
+            做失败分类——类别（pass/env_boot_fail/install_fail/not_active/
+            wdt_reset/app_silent/app_no_verdict/no_verdict）+ 修复方向 +
+            证据行。类别链源自项目真机历史失败形态；修复闭环编排
+            （部署→抓取→分类→反馈重生成→重部署）见 tools_diag/repair.py
+            （Python API，编排逻辑随 MCP 会话组装）。"""
+            result = diag_cls.classify_run(
+                serial_text, pass_patterns=pass_patterns,
+                alive_patterns=tuple(alive_patterns or ("alive",)))
+            return {"category": result.category, "summary": result.summary,
+                    "repair_hint": result.repair_hint,
+                    "evidence": result.evidence}

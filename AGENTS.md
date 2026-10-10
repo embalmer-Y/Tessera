@@ -6,6 +6,7 @@
 
 ## 1. 当前状态
 
+- **2026-10-11（七十五） · NV-1 交付（V0.1.0 单元 1/6）：部署后诊断闭环——tools_diag 三模块（7 类失败分类器 + 串口抓取 + 修复闭环编排）+ app_develop repair_feedback + diag_classify MCP；真机单迹 round1 pass（真 LLM 生成→部署→NV1 DONE 精确判据）；顺带根治 app_deploy 暖复位竞态（30s 板回轮询）与 manifest 伪影级联解包（MD1.1 族完备化）；agent 92+2s/ruff 绿；观察项 = SYWORK 源 wdt 偶发复位（登记不动手）。NV-2 spec 质量门随续**
 - **2026-10-11（七十四） · owner 裁决版本方向：下一版本 V0.1.0 = 编程链路完整性批（plan §9 排期 NV-1 诊断闭环 / NV-2 spec 质量门 / NV-3 sim↔real 对拍 / NV-4 审计持久化〔Q-31 呈递门，逾时顺延〕 / NV-5 README / NV-6 真实需求全流程编程测试〔版本验收〕）；收口 = tag fw-v0.1.0；连续开发启动——规划批已落盘，NV-1 随续**
 - **2026-10-11（七十三） · 批 A 收口：owner 换 SD 卡后 dsdbench DS PASS 全链一次过（挂载/安装/APP ACTIVE/回读 n=68/白名单拒绝物理证据/列目录）——批 A 11/11 全绿定格（S3 全 bench @4.5.0-rc1 真机基线完整恢复；impl-review-03 R1 处置完成）；前两提交已定案 boardbench（BB PASS——BB1 = 指令配额 BUSY_ITERS 30000 定参）与 SD 旧卡坏卡（换卡即愈）；教训 33 转正（ts-prov 换烧必擦）；后续候选 = 上游 #121767/#121774 回复 / v4.5.0 正式平移 / 批 C 产品化（owner 未裁）**
 - **2026-10-10（七十二） · 批 A 续：otabench 全链 PASS（img-ver 2.0.0 swap——4.5 mcumgr img API 适配定案）+ estop/periph/psram/meta/wdt 五件 PASS——批 A 主体收口（9 绿 + 2 遗留：boardbench BB1 evt 链、dsdbench fatfs/SDMMC 4.5 适配）；safety.h estop 声明存量缺陷修复（真机 estop 面首次被构建覆盖）**

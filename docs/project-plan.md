@@ -76,7 +76,7 @@
 
 | 序 | 单元 | 内容 | 门 |
 |---|------|------|----|
-| NV-1 | 部署后诊断闭环 | agent 侧判据回捕工具（串口窗口 + 分类器：PASS/无挂载/无安装/无 ACTIVE/无事件行/WDT 复位/卡死）+ 失败→feedback 注入 app_develop 重生成→重部署闭环（轮上限防失控）+ 分类器单测 + gated 真机验证（坏 spec 首轮必败→闭环救回 PASS） | — |
+| NV-1 | 部署后诊断闭环 ✅ | agent 侧判据回捕工具（串口窗口 + 分类器：PASS/无挂载/无安装/无 ACTIVE/无事件行/WDT 复位/卡死）+ 失败→feedback 注入 app_develop 重生成→重部署闭环（轮上限防失控）+ 分类器单测 + gated 真机验证（坏 spec 首轮必败→闭环救回 PASS）——**2026-10-11 交付**：tools_diag 三模块 + diag_classify MCP + 15 用例（全量 92+2s）；真机单迹 round1 pass（NV1 DONE 精确判据）；顺带根治 app_deploy 暖复位竞态 + manifest 伪影级联解包；观察项 = SYWORK 源 wdt 偶发复位（登记不动手） | — |
 | NV-2 | spec 质量门 | spec 模板（需求/资源/判据/安全声明四节）+ 静态检查器（判据可测性=有唯一判据行/caps 最小化提示/fs_paths 与 out 通道合法性）+ app_develop 入口集成 + 用例 | — |
 | NV-3 | sim↔real 对拍 | 同一 scenario 双跑（sim_run + 真机 bench）判据行机械 diff 工具 + 首个对拍基线（gated 真机面） | — |
 | NV-4 | 审计 flash 持久化 | DEC-30④「审计 V1 内存环形（掉电丢失）」语义变更：环形记录格式/分区布局/溢出策略 + 固件实施 + 真机掉电留存验证 | **Q-31 呈递门**（实施前呈 owner；逾时未裁该单元顺延不阻塞 NV-5/6） |
@@ -90,6 +90,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.60 · 2026-10-11：NV-1 交付（tools_diag 诊断闭环 + 真机单迹 round1 pass + app_deploy 暖复位竞态根治 + manifest 伪影级联解包）；V0.1.0 单元 1/6 完成。
 - v1.59 · 2026-10-11：owner 裁决版本方向——**V0.1.0 编程链路完整性批**（§9 新排期表 NV-1…NV-6：诊断闭环/spec 质量门/sim↔real 对拍/审计持久化〔Q-31 呈递门〕/README/真实需求全流程编程测试〔版本验收〕）；连续开发启动；收口目标 tag fw-v0.1.0。
 - v1.58 · 2026-10-11：批 A 收口——owner 换 SD 卡后 dsdbench D-SD 全链一次过（DS PASS：挂载/安装/APP ACTIVE/回读 n=68/白名单拒绝物理证据/列目录）——**批 A 11/11 全绿定格**（S3 全 bench @4.5.0-rc1 真机基线完整恢复）；impl-review-03 R1 处置完成；dev-env 教训 33 转正（ts-prov 换烧必擦）。
 - v1.57 · 2026-10-10：批 A 收尾专项——boardbench 全链 PASS（BB1 根因 = 9M 指令超 DEC-48③ 配额被健康链终止〔诊断探针实证〕；BUSY_ITERS 定 30000 + 注释定案；吞吐无 4.5 回归）；dsdbench 构建面通（/sense qualifier 正解——前判「4.5 迁移缺口」修正）+ SD 物理链路通——挂载写失败 = 介质层待 owner 查卡。
