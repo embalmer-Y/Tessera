@@ -15,9 +15,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-#: 四节模板标记（行首；容全角空格）
+#: 四节模板标记（**任意位置**命中即开新节——行首/行中/单行拼接 spec 均可；
+#: NV-6 首用实证：单行拼接 spec 的行首约定过苛）
 SECTIONS = ("需求", "资源", "判据", "安全声明")
-_SEC_RE = re.compile(r"^【(需求|资源|判据|安全声明)】\s*")
+_SEC_SPLIT_RE = re.compile(r"【(需求|资源|判据|安全声明)】")
 
 #: 【判据】节引号串提取（ASCII 双引号 + 中文引号；串内禁换行）
 _QUOTED_RE = re.compile(r'["“]([^"”\n]{3,120})["”]')
@@ -39,31 +40,29 @@ _MIN_PATTERN_LEN = 3
 
 @dataclass
 class SpecGateResult:
-    """质量门结果：错误（阻塞级）/ 警告（提示级）/ 机器判据派生。"""
+    """质量门结果：错误（阻塞级）/ 警告（提示级）/ 机器判据派生。
+
+    pass_patterns = 判据节全部引号串（对拍/证据面）；
+    primary_pattern = 第一个引号串（主判据——修复闭环的 pass 判据；
+    书写约定：主判据串写在【判据】节最前，附属证据串随后——
+    「任一命中即 pass」语义下附属前缀会提前误判，故闭环只认主判据）。"""
 
     ok: bool
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     pass_patterns: list[str] = field(default_factory=list)
+    primary_pattern: str = ""
     templated: bool = False
 
 
 def _split_sections(spec: str) -> dict[str, str]:
-    """按节标记切分；无标记返回空 dict（旧式自由文本）。"""
+    """按节标记切分（任意位置命中即开新节）；无标记返回空 dict（旧式）。"""
+    parts = _SEC_SPLIT_RE.split(spec)
     out: dict[str, str] = {}
-    cur: str | None = None
-    buf: list[str] = []
-    for ln in spec.splitlines():
-        m = _SEC_RE.match(ln.strip())
-        if m:
-            if cur is not None:
-                out[cur] = "\n".join(buf)
-            cur = m.group(1)
-            buf = [ln.strip()[m.end():]]
-        elif cur is not None:
-            buf.append(ln)
-    if cur is not None:
-        out[cur] = "\n".join(buf)
+    # split 带捕获组：[前言, 名1, 体1, 名2, 体2, ...]
+    for i in range(1, len(parts) - 1, 2):
+        name, body = parts[i], parts[i + 1]
+        out[name] = (out.get(name, "") + "\n" + body) if name in out else body
     return out
 
 
@@ -97,6 +96,7 @@ def check_spec(spec: str) -> SpecGateResult:
     elif not verdict.strip() and "判据" in sections:
         res.errors.append("【判据】节为空")
     res.pass_patterns = patterns
+    res.primary_pattern = patterns[0] if patterns else ""
 
     # 资源节：caps 文法 + fs_paths 绝对路径（提示级——与固件走查的差异
     # 交 manifest 硬校验兜底，这里只做早期提示）

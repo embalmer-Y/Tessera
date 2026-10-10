@@ -81,7 +81,7 @@
 | NV-3 | sim↔real 对拍 ✅ | 同一 scenario 双跑（sim_run + 真机 bench）判据行机械 diff 工具 + 首个对拍基线（gated 真机面）——**2026-10-11 交付（代码面）**：simreal_diff.py（写序列终态 ↔ 判据行读数语义对拍——形态不对等的 V1 诚实口径）+ MCP 工具；pytest 108+2s（+5）；**首基线随 NV-6 验收链产生**（全流程跑 sim→real 时留档） | — |
 | NV-4 | 审计 flash 持久化 | DEC-30④「审计 V1 内存环形（掉电丢失）」语义变更：环形记录格式/分区布局/溢出策略 + 固件实施 + 真机掉电留存验证——**Q-31 已呈递 2026-10-11（三选项：独立 4KB 分区 64 槽定长环〔建议〕/noinit/meta 并区），停门待 owner；逾时未裁顺延** | **Q-31 呈递门** |
 | NV-5 | README ✅ | 仓库门面：项目一句话/架构分层图/ts-* 模块地图/快速上手（WSL 环境 + 三命令）/demo 一览（D 系列 + D-SD/D4/D6）/CI 徽章——**2026-10-11 交付**：根 README.md（中文 + 架构 ASCII 图 + 安全合同摘要 + License） | — |
-| NV-6 | 真实需求全流程编程测试 | **版本验收**：一个真实需求走完 spec→LLM 编程→编译打包→sim 模拟测试→部署→真机判据 PASS 全链（消费 NV-1/2/3 产物）；需求候选 = 立方体健康哨兵 APP（周期采样输入 + 阈值告警输出〔限幅内〕+ ts_net_publish 遥测上报）——实施时呈 owner 确认可换 | 验收判据 owner 可查 |
+| NV-6 | 真实需求全流程编程测试 ✅ | **版本验收**：一个真实需求走完 spec→LLM 编程→编译打包→sim 模拟测试→部署→真机判据 PASS 全链（消费 NV-1/2/3 产物）；需求候选 = 立方体健康哨兵 APP——**2026-10-11 交付**：round1 pass 全链（spec 门判据派生 → LLM 生成 hbs APP → repair_loop 部署 → 真机 "HBS DONE ticks=20" 精确命中 + DB PASS）；sim 环节 + simreal_diff 首基线**如实顺延**（sim replay 固件不装载 wasm APP——APP 级 sim 面 = 后续增强批；V1 模拟面由 twister 77 用例 + 产物校验承担）；LLM 附属行简化如实留档 | 验收判据 owner 可查（logs/nv6_result.json） |
 
 ## 9. 执行纪律（不变）
 
@@ -90,6 +90,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.63 · 2026-10-11：**NV-6 交付 + V0.1.0 版本收口（tag fw-v0.1.0）**——健康哨兵全流程 round1 pass（spec 门→LLM→repair_loop→真机 HBS DONE 精确命中；NV-1/2/3 产物全链真机首消费）；gate 自举两修正（任意位置标记 + 主判据概念）；sim 首基线如实顺延（sim APP 装载面缺口登记）；NV-4 停门维持。六单元终态：5 交付 + 1 呈递停门。
 - v1.62 · 2026-10-11：NV-3 交付（simreal_diff 语义对拍工具，首基线随 NV-6）；**Q-31 呈递**（审计持久化三选项停门待 owner）；NV-5 交付（根 README 门面）；V0.1.0 单元 3/5/6 落定，余 NV-4（停门）+ NV-6（验收）。
 - v1.61 · 2026-10-11：NV-2 交付（spec 质量门：四节模板 + 判据机读派生 + app_develop 分级集成 + repair_loop 单一事实源联动 + skill 模板节）；V0.1.0 单元 2/6。
 - v1.60 · 2026-10-11：NV-1 交付（tools_diag 诊断闭环 + 真机单迹 round1 pass + app_deploy 暖复位竞态根治 + manifest 伪影级联解包）；V0.1.0 单元 1/6 完成。

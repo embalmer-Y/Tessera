@@ -696,9 +696,7 @@
 
 - 2026-10-11 · **NV-3 交付（V0.1.0 单元 3）：sim↔real 语义对拍——写序列终态 ↔ 真机判据行读数的键值集机械 diff（D9「合同 3 双证据」人工版机械化）+ simreal_diff MCP；agent pytest 108+2s/ruff 全绿**。① **形态现实声明**：sim 判据 = L4 重放 JSONL 写序列（M1 定稿接口）vs 真机判据 = bench console 行——逐字节 diff 不可行，V1 口径 = 语义对拍（normalize_sim 各通道终态 / normalize_real 正则末次命中 / diff 容差键值比对；非数值须相等）。② **真机首基线归 NV-6 验收链**（全流程本就跑 sim→real——届时同一 APP/场景的写序列与真机读数对拍留档为首基线；纯函数代码面 = 全路径已测）。③ MCP 面：simreal_diff 注册（confirm，纯数据入参 CI 可测）。回归：pytest 108+2s（+5）/ruff 绿。
 
-## Q-31（审计 flash 持久化方案——NV-4 呈递停门，2026-10-11）
-
-**背景**：DEC-30④ 裁定「审计 V1 = 内存环形（掉电丢失）」——固件侧安全事件（越权拒绝/estop 触发/限幅截断/system_fail 归因）掉电即失，事后追责与现场诊断无据。NV 版本方向批（2026-10-11）owner 已批「审计环形 flash 持久化」方向，但记录格式/分区布局/溢出策略属门③（文件格式与命令面变更），呈递裁决。
+## Q-31（审计 flash 持久化方案——NV-4 呈递停门，2026-10-11）**背景**：DEC-30④ 裁定「审计 V1 = 内存环形（掉电丢失）」——固件侧安全事件（越权拒绝/estop 触发/限幅截断/system_fail 归因）掉电即失，事后追责与现场诊断无据。NV 版本方向批（2026-10-11）owner 已批「审计环形 flash 持久化」方向，但记录格式/分区布局/溢出策略属门③（文件格式与命令面变更），呈递裁决。
 
 **选项**：
 ① **独立 ts-audit 分区环形**（建议）：ts 五分区后追加 4KB 分区；**定长 64B 记录槽 × 64 槽**（魔数+seq+ts+src+kind+payload 定长布局——掉电半写探测 = 魔数/seq 校验）；满环覆盖最旧（seq 单调，丢最旧不丢最新）；boot 读出最近 8 条 printk 留痕；`sys/get-audit` 扩展 `flush` 参数（读 flash 环，host-only 既有面）。
@@ -708,6 +706,8 @@
 **建议**：①。磨损面：审计事件低频（越权/estop/截断/fail），64 槽 × 覆盖写 ≈ 单槽寿命内百万次级事件，板级寿命可控；写路径 = 现有审计环入点同步落 flash（事件低频，~ms 级 flash 写可接受，不走异步队列）。
 
 **影响**：六 bench overlay + 生产 app 分区表重划（ts 区内追加，esptool 偏移不变）；store/audit.c 新文件 + sys 命令面扩展（门③ 本呈递）；twister 用例（掉电模拟 = 暖复位后读回）+ 真机掉电留存验证；NV-4 实施批一次交付。**逾时未裁 = NV-4 顺延不阻塞 NV-5/NV-6（既定策略）**。
+
+- 2026-10-11 · **NV-6 交付（V0.1.0 版本验收 + 版本收口 fw-v0.1.0）：真实需求全流程编程测试 PASS——立方体健康哨兵 APP（周期采样 ADC + 阈值告警 PWM〔限幅内〕+ 周期上报）四节 spec → spec 质量门（判据机读派生）→ 真 LLM app_develop → TSAP v2 打包验签 → repair_loop 部署闭环 → 真机主判据 PASS**。① **全链单迹**（round 1 pass）：spec_gate ok（主判据 "HBS DONE ticks=20" 派生 + 3 附属前缀）→ MiniMax-M3 生成（com.example.cube.hbs 1.0.0，package+verify PASS）→ zenoh 部署 → 暖复位 → **真机 console "HBS DONE ticks=20" 精确命中 + DB PASS**（全文 logs/nv6_PASS_console.txt；result logs/nv6_result.json）——**NV-1/2/3 产物全链首次真机消费**（闭环用 spec 派生判据〔NV-2 联动〕；app_deploy 暖复位等待〔NV-1 修复〕零竞态）。② **如实记录两则**：LLM 实现简化——周期上报行/告警行（附属证据）未在 console 出现（仅主判据 + 一空 log 行；判据节语义 = 主判据即达成，附属非验收项——LLM 行为与 spec 附属约定的偏差如实留档，spec 附属证据约束的强化归后续质量门迭代）；**sim 环节 + simreal_diff 首基线顺延**（NV-3 承诺的"首基线随 NV-6"修订：sim_run 的 replay 固件不装载 wasm APP——APP 级 sim 面是前置缺口，工具已就绪待 sim APP 装载能力〔后续增强批〕；V1 模拟测试面由 twister native_sim 77 用例 + 产物校验回路承担——如实降级，禁美化）。③ **过程修正**（gate 自举实证）：spec_gate 行首标记约定对单行拼接 spec 过苛（NV-6 spec 首跑被自己的门拦下）——改为任意位置标记切分；**主判据概念**（判据节第一串 = 闭环 pass 判据——「任一命中即 pass」下附属前缀会提前误判，NV-6 联调实证）。④ **版本收口**：tag fw-v0.1.0（六单元终态：NV-1/2/3/5/6 交付 + NV-4 Q-31 呈递停门〔逾时顺延既定〕；NV-3 首基线待办登记）。回归：agent pytest 109+2s（+1）/ruff 绿。
 
 
 - 2026-10-11 · **NV-2 交付（V0.1.0 单元 2）：spec 质量门——四节模板（【需求】【资源】【判据】【安全声明】）+ 判据引号串机读派生 + app_develop 入口分级集成 + repair_loop 单一事实源联动；agent pytest 103+2s/ruff 全绿**。① **spec_gate.py**（tools_diag）：纯文本检查器——节完备性（缺节 = error）；【判据】节引号串提取（ASCII/中文引号，≥3 字符防噪声误提）= pass_patterns 派生（判据不可测 = error：不值得烧 LLM 轮次）；caps ts_perm_v1 文法 + fs_paths 绝对路径（提示级——与固件走查差异交 manifest 硬校验兜底）；安全声明关键词弱启发（提示级）。② **分级集成**：app_develop 入口 errors 阻塞（TA_E_ARGS）/warnings 留痕——**旧式自由文本 spec 兼容**（warning 不阻塞、不派生 patterns）。③ **闭环联动**：repair_loop pass_patterns 参数改可缺省——None = 从 spec【判据】节派生，派生不出且未显式给 = 硬错（NV-1 实证的手写双份不一致风险就此收口：spec 即判据单一事实源）。④ **MCP 面**：spec_check 注册（confirm 类，纯文本 CI 可测）。⑤ **skill 增补**：tessera-workflow 增 spec 四节模板节（LLM 编排侧模板可依）。⑥ 真机消费面归 NV-6 版本验收（纯文本函数，代码面测试即全路径；gate 派生判据在验收链被 repair_loop 真机消费）。回归：pytest 103+2s（+11）/ruff 绿。

@@ -67,7 +67,10 @@ async def repair_loop(
     log = log_fn or (lambda s: None)
     if pass_patterns is None:
         gate = spec_gate.check_spec(spec)
-        pass_patterns = gate.pass_patterns
+        # 闭环 pass 判据 = 主判据（NV-2 书写约定：主判据串在【判据】节
+        # 最前——「任一命中即 pass」语义下附属前缀会提前误判）
+        pass_patterns = ([gate.primary_pattern] if gate.primary_pattern
+                         else gate.pass_patterns)
         if not pass_patterns:
             msg = ("spec 无可机读判据（【判据】节引号串缺失）且未显式给 "
                    "pass_patterns——修复闭环无判据可依")

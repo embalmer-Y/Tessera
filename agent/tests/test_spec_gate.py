@@ -23,7 +23,18 @@ def test_templated_good():
     r = sg.check_spec(GOOD_TEMPLATED)
     assert r.ok and r.templated
     assert r.pass_patterns == ["NV2 DONE ticks=05"]
+    assert r.primary_pattern == "NV2 DONE ticks=05"
     assert not r.errors and not r.warnings
+
+
+def test_primary_pattern_is_first_quoted():
+    """多判据串：primary = 第一个（主判据书写约定）。"""
+    spec = ("【需求】x\n【资源】无\n"
+            "【判据】输出行 \"A DONE 07\" 即达成；附属前缀 \"tick n=\"。\n"
+            "【安全声明】限幅\n")
+    r = sg.check_spec(spec)
+    assert r.primary_pattern == "A DONE 07"
+    assert r.pass_patterns == ["A DONE 07", "tick n="]
 
 
 def test_legacy_free_text_compatible():
