@@ -173,7 +173,10 @@ python3.12 -m venv ~/project/agent-venv
 
 29.5（并入 29 同族补充）**zenoh 长会话网络面三教训（2026-10-09 B2 批实证）**：① **zenoh 1.10.1 locator 正式语法 = tcp/host:port**——旧式 tcp://host:port 在 zenoh-py 解析为协议 "tcp:" → 会话开失败（"Unicast not supported"）且表现为间歇（ZenohService 已中心归一化）；② **Reply API = ok/err/replier_id**（无 err_payload——旧代码错误回执路径一踩即 AttributeError，且异常中断 get 迭代后会话残留未消费状态，后续调用挂起 =「查询面停滞」假象）；③ **暖复位后路由器残留陈旧 queryable 声明**（板侧 TCP 经 WSL mirrored NAT，复位后 RST 不达路由器→死 peer 声明滞留）——通配发现查询被每个死 peer 拖 3s 超时可致整体超时；已知 node/cube 时用点对点直查绕过，或重启 zenohd 清台。
 
+33. **ts-prov 换烧必擦——27② 流程化升级（2026-10-10 批 A 三连踩定式，2026-10-11 转正）**：多个 bench 共用 flash ts 五分区——**换烧任何 bench 固件前必须先 esptool erase_region 0x170000 0x14000**，否则新 bench 以旧 bench 的 prov 身份/APP 槽状态上线（症状 = 凭空冒出上一 bench 的 node/app_id、判据全错且不报错——「成功掩盖污染」形态）。教训 27② 在档仍两连踩（批 A 内 netbench→deploybench→avdemo 覆盖 dbn/dbc 为第三/四次），说明**知识在档 ≠ 流程吸收**——定式：仓外烧录编排（dsdb_flash.sh / deploy 烧录脚本等）第一步固定为 ts 分区擦除，换烧即执行；不依赖记忆。
+
 ## 修订记录
+- v2.19 · 2026-10-11：批 A 收口——教训 33 转正（ts-prov 换烧必擦：27② 在档仍三连踩，升级为烧录编排第一步固定擦 ts 五分区的流程定式）；dsdbench SD 卡介质故障结案（换卡即愈，环境资产域非代码面）。
 - v2.18 · 2026-10-10：P4 无线面批——§5 增教训 32（owner EIM 环境布局/esp_hosted 目录名/SDIO datapath 三态定值 STREAM/C6 烧录顺序铁律/Zephyr esp_hosted 数据面缺陷定案——RPC 通而数据帧挂，上游域）。
 - v2.17 · 2026-10-10：P4 适配批——§5 增教训 31（板目标斜杠语法/SDK 单工具链补装/console 重指 uart0//tmp 竞速/RV32 main 栈 8192/twister EXTRA_MODULES 与管道假绿）；docs/board-p4-01.md（P4 bring-up 报告：p4bench 真机全链 PASS）。
 - v2.16 · 2026-10-10：**DEC-50 升级批——工作区钉版 Zephyr v4.4.0 → v4.5.0-rc1**（owner 裁决直接采用 rc1）。§5 增教训 30（升级批三件事：west blobs fetch hal_espressif 必做〔blob 不随 west update 拉取〕/分区节点须 compatible="zephyr,mapped-partition" + 默认布局 appcpu/lpcore 分区冲突删除/WAMR 裸 include <autoconf.h> 经新路径补包含域）。

@@ -6,6 +6,7 @@
 
 ## 1. 当前状态
 
+- **2026-10-11（七十三） · 批 A 收口：owner 换 SD 卡后 dsdbench DS PASS 全链一次过（挂载/安装/APP ACTIVE/回读 n=68/白名单拒绝物理证据/列目录）——批 A 11/11 全绿定格（S3 全 bench @4.5.0-rc1 真机基线完整恢复；impl-review-03 R1 处置完成）；前两提交已定案 boardbench（BB PASS——BB1 = 指令配额 BUSY_ITERS 30000 定参）与 SD 旧卡坏卡（换卡即愈）；教训 33 转正（ts-prov 换烧必擦）；后续候选 = 上游 #121767/#121774 回复 / v4.5.0 正式平移 / 批 C 产品化（owner 未裁）**
 - **2026-10-10（七十二） · 批 A 续：otabench 全链 PASS（img-ver 2.0.0 swap——4.5 mcumgr img API 适配定案）+ estop/periph/psram/meta/wdt 五件 PASS——批 A 主体收口（9 绿 + 2 遗留：boardbench BB1 evt 链、dsdbench fatfs/SDMMC 4.5 适配）；safety.h estop 声明存量缺陷修复（真机 estop 面首次被构建覆盖）**
 - **2026-10-10（七十一） · 批 A 首批：netbench/linkdemo/deploybench（DB+D8 双证）@4.5 真机 PASS + otabench 半程（SMP 上传链绿，swap 待查）；netbench 池 153600 调档；ts-prov 覆盖第三坑登记；批 A 续 = otabench swap + 小 bench 七件**
 - **2026-10-10（七十） · issue #121774（esp32 video 停摆）提交 + impl-review-03 呈 owner：会话 8 提交审查全通过（证据齐全/缺陷自报）；风险 R1（S3 真机回归覆盖不全——deploybench/otabench/netbench 等 @4.5 未复跑）为最高优先；下一步候选批 A（S3 全 bench @4.5 真机回归）建议优先，批 C（产品化新方向）待 owner 裁决**
