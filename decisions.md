@@ -696,7 +696,11 @@
 
 - 2026-10-11 · **NV-3 交付（V0.1.0 单元 3）：sim↔real 语义对拍——写序列终态 ↔ 真机判据行读数的键值集机械 diff（D9「合同 3 双证据」人工版机械化）+ simreal_diff MCP；agent pytest 108+2s/ruff 全绿**。① **形态现实声明**：sim 判据 = L4 重放 JSONL 写序列（M1 定稿接口）vs 真机判据 = bench console 行——逐字节 diff 不可行，V1 口径 = 语义对拍（normalize_sim 各通道终态 / normalize_real 正则末次命中 / diff 容差键值比对；非数值须相等）。② **真机首基线归 NV-6 验收链**（全流程本就跑 sim→real——届时同一 APP/场景的写序列与真机读数对拍留档为首基线；纯函数代码面 = 全路径已测）。③ MCP 面：simreal_diff 注册（confirm，纯数据入参 CI 可测）。回归：pytest 108+2s（+5）/ruff 绿。
 
-## Q-31（审计 flash 持久化方案——NV-4 呈递停门，2026-10-11）**背景**：DEC-30④ 裁定「审计 V1 = 内存环形（掉电丢失）」——固件侧安全事件（越权拒绝/estop 触发/限幅截断/system_fail 归因）掉电即失，事后追责与现场诊断无据。NV 版本方向批（2026-10-11）owner 已批「审计环形 flash 持久化」方向，但记录格式/分区布局/溢出策略属门③（文件格式与命令面变更），呈递裁决。
+## Q-31（审计 flash 持久化方案——NV-4 呈递停门，2026-10-11）
+
+**〔2026-10-11 owner 裁决 → DEC-52〕**：**选方案①（独立 ts-audit 分区）**——ts 分区内追加 4KB、64 槽定长 64B 环形（覆盖最旧）、掉电半写经魔数/seq 校验探测、boot 打印最近 8 条、`sys/get-audit` 扩展 flush 参数读取。实施随 V0.2.x 补批（V2-2）一次交付：分区表重划（六 bench + 生产 app，esptool 偏移不变）+ store/audit.c + twister 复位回读用例 + 真机掉电留存验证。**同批另两项裁决**：② #121774 回帖前先实测（停摆对照 + stop/start 恢复机制实测证据对，草稿呈 owner 确认后发）；③ zenoh-pico 大 payload issue **暂不提**（64B 档绕行在用；材料留档 decisions/实测数据，时机 = v4.5.0 正式或 zenoh-pico 新版复测后再议）。
+
+**背景**：DEC-30④ 裁定「审计 V1 = 内存环形（掉电丢失）」——固件侧安全事件（越权拒绝/estop 触发/限幅截断/system_fail 归因）掉电即失，事后追责与现场诊断无据。NV 版本方向批（2026-10-11）owner 已批「审计环形 flash 持久化」方向，但记录格式/分区布局/溢出策略属门③（文件格式与命令面变更），呈递裁决。
 
 **选项**：
 ① **独立 ts-audit 分区环形**（建议）：ts 五分区后追加 4KB 分区；**定长 64B 记录槽 × 64 槽**（魔数+seq+ts+src+kind+payload 定长布局——掉电半写探测 = 魔数/seq 校验）；满环覆盖最旧（seq 单调，丢最旧不丢最新）；boot 读出最近 8 条 printk 留痕；`sys/get-audit` 扩展 `flush` 参数（读 flash 环，host-only 既有面）。
