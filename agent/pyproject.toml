@@ -18,6 +18,9 @@ dependencies = [
     "pycose==1.1.0",
     "cryptography>=42",
     "eclipse-zenoh==1.10.1",  # 三方同 minor：zenohd/zenoh-python/zenoh-pico（DR-22）
+    # 来源: NV-1（V2-2 审视补齐）——tools_diag/capture.py 真机串口抓取
+    # （懒导入：CI 无串口不触发；venv 实装 3.5，钉版声明补齐）
+    "pyserial==3.5",
 ]
 
 [project.optional-dependencies]
