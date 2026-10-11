@@ -175,7 +175,71 @@ python3.12 -m venv ~/project/agent-venv
 
 33. **ts-prov 换烧必擦——27② 流程化升级（2026-10-10 批 A 三连踩定式，2026-10-11 转正）**：多个 bench 共用 flash ts 五分区——**换烧任何 bench 固件前必须先 esptool erase_region 0x170000 0x14000**，否则新 bench 以旧 bench 的 prov 身份/APP 槽状态上线（症状 = 凭空冒出上一 bench 的 node/app_id、判据全错且不报错——「成功掩盖污染」形态）。教训 27② 在档仍两连踩（批 A 内 netbench→deploybench→avdemo 覆盖 dbn/dbc 为第三/四次），说明**知识在档 ≠ 流程吸收**——定式：仓外烧录编排（dsdb_flash.sh / deploy 烧录脚本等）第一步固定为 ts 分区擦除，换烧即执行；不依赖记忆。
 
+## 9. 原生 x86 Linux 环境（2026-10-11 迁移重建——**当前事实源**；§1-§8 为 WSL 历史记录）
+
+> 迁移依据：owner 裁决 + `docs/migration-x86.md`。本节以重建实测为准；WSL 时代的教训中标注"已消失"者不再适用（/tmp tmpfs 清空、usbipd、Windows PATH 泄漏、Hyper-V 防火墙）。
+
+### 9.1 机器基线与目录
+
+| 项 | 值 | 备注 |
+|---|---|---|
+| 系统 | Ubuntu x86_64（内核 7.0.0-38-generic，20 核 / 30GB / 937G 盘） | 原生 Linux，非 WSL |
+| sudo | **需 owner 密码**（AI 会话不可用） | 见 §9.6 owner 待办清单 |
+| Python | **3.14.4**（系统唯一，venv 亦 3.14） | 旧机 3.12.3 → 版本差异已实证兼容（agent 113+2s） |
+| 仓库路径 | `~/project/Tessera`（**大写 T**） | 历史文档/脚本中的小写 `tessera` 引用一律按此映射 |
+| zenohd | 1.10.1 @ `~/project/tools/zenohd`（软链 `~/.local/bin`） | 与 WSL 相同位置 |
+| 预装意外 | `~/.local/bin` 有 uv/uvx | 本会话未使用 |
+
+### 9.2 网络通道（关键差异）
+
+- **代理**：FlClash 常驻，mixed port `127.0.0.1:7890`（TUN 未开）；小请求通、**大传输间歇 GnuTLS 中断**（zephyr 全量克隆 100KB/s 且断流）。
+- **git 通道定版**：`git config --global http.version HTTP/1.1` + `url."https://ghfast.top/https://github.com/".insteadOf "https://github.com/"`（实测 ~1.5MB/s，git 对象 SHA 校验保证镜像内容完整）；**仅重写 https github**，Tessera 的 SSH push 不受影响。
+- pip 走清华镜像（`-i https://pypi.tuna.tsinghua.edu.cn/simple`）。
+- GitHub API（查询类）走代理 `wget -e use_proxy=yes -e https_proxy=http://127.0.0.1:7890`。
+
+### 9.3 无 sudo 重建手法（本机实证，复用价值高）
+
+| 需求 | 手法 |
+|---|---|
+| venv（python3-venv 未装） | `python3 -m venv --without-pip` + `python /tmp/get-pip.py`（bootstrap.pypa.io） |
+| cmake/ninja/patchelf | pip 装（wheel 自带二进制）→ 软链 `~/.local/bin` |
+| clang（apt 无、CI 对齐 18.1.x） | LLVM 18.1.8 官方 tarball @ `~/project/deps/llvm-18` + libtinfo5 deb（tuna 镜像 `dpkg -x`）入 `llvm-18/lib` + `patchelf --set-rpath '$ORIGIN/../lib'`；软链 `~/.local/bin`（与 WSL 钉版 18.1.3 同 18.1 系，patch 差异登记） |
+| C 扩展编译（3.14 无 wheel：ruamel.yaml.clib/tree-sitter-cmake） | `libpython3.14-dev` + `libgcc-14-dev` deb 用户态解包 @ `~/project/deps/py314dev` → `CC=clang CFLAGS="-I…/usr/include -I…/usr/include/python3.14" LDFLAGS="-fuse-ld=lld -L…/usr/lib/gcc/x86_64-linux-gnu/14 -B…" pip install` |
+| SDK 安装（west sdk 下载走 Python 不吃 git 镜像） | 手动：ghfast 下 `zephyr-sdk-1.0.1_linux-x86_64_minimal.tar.xz` 解压 `~/zephyr-sdk-1.0.1` + 工具链 tarball 解入 **`gnu/` 子目录**（1.0 新布局，顶层放置 = cmake 报"Unable to find any architecture"）+ `setup.sh -c` |
+| west 工作区 | `git init` + `git fetch --depth 1 origin tag v4.5.0-rc1`（可重试续传）+ 手写 `.west/config`（manifest.path=zephyr）+ `west config update.narrow true`（各模块浅取钉定 SHA，总量 ~8.3G） |
+
+### 9.4 已验证（2026-10-11 重建后）
+
+- west 工作区 v4.5.0-rc1（浅取 narrow）+ requirements 全量 + **esptool 5.4.0** + WiFi blobs（hal_espressif）✅
+- Zephyr SDK 1.0.1（esp32s3 xtensa + hosttools，west sdk list 发现正常）✅
+- WAMR 2.4.5 + version.h **444 只读屏障**（教训 21⑤ 纪律）✅
+- agent-venv（3.14.4 全钉版）→ **pytest 113+2s / ruff 全绿** ✅；repo pytest 2 ✅
+- **板级构建**：xiao_esp32s3/esp32s3/procpu 生产 app 全绿（esptool 5.4.0 镜像产出——交叉工具链/WAMR/blobs/模块全链验证）✅
+- ❌ 未达成：twister 15/15（native_sim 需 host gcc+multilib = sudo）；板级冒烟/zenoh 联调（板未接）
+
+### 9.5 遗留问题登记
+
+1. **`tools/board/` 34 个脚本从未实际入仓**——b1a31e4 提交消息/decisions/AGENTS 三处登记"已入仓"与文件清单事实不符（实际仅 docs/evidence 11 项 + 文档 3 项）。恢复渠道 = owner 迁移包（`D:\tessera_migration_bundle`，§3"未入仓脚本"字样涵盖）或旧 WSL（若未 unregister）。恢复后须真实入仓并修正登记。
+2. `west packages pip --install` 不可用（某模块〔sof 族〕钉 `grpcio-tools==1.68.0` 无 3.14 版）——esptool 改为直装 `esptool==5.4.0`，功能等价。
+3. ghfast.top 镜像为第三方加速（内容经 git SHA 校验，完整性不受影响）；不稳定时回退代理直连通道。
+
+### 9.6 owner 待办（sudo/物理/凭据——AI 会话不可代办）
+
+```bash
+# ① 主机工具链（解锁 twister 15/15；对齐 WSL 清单）
+sudo apt update && sudo apt install -y build-essential gcc-multilib g++-multilib \
+  cmake ninja-build gperf ccache dfu-util device-tree-compiler file xz-utils wget curl \
+  python3-dev python3-pip python3.14-venv clang
+# ② 串口权限（板接原生 USB 前一次性）
+sudo usermod -aG dialout emb   # 重新登录生效
+```
+
+- 板接入：xiao_esp32s3 USB 直连（原生 Linux 无 usbipd）→ `/dev/ttyACM0`；换烧前擦 ts 五分区（教训 33）。
+- 凭据重配：`TS_WIFI_SSID/TS_WIFI_PASSWORD`、`ANTHROPIC_BASE_URL/ANTHROPIC_API_KEY`、`agent/config.toml`（迁移包）。
+- 迁移包处置确认后执行 Windows 侧清除（migration-x86.md §6 owner 决定项）。
+
 ## 修订记录
+- v2.20 · 2026-10-11：**原生 x86 Linux 环境重建（§9 新立，当前事实源）**——无 sudo 全用户态手法（venv --without-pip/pip 工具链/clang 18.1.8 tarball+libtinfo5+rpath/deb 解包头文件与 libgcc 编 C 扩展/SDK 手动 gnu/ 布局）；网络通道定版（FlClash 7890 + ghfast.top 镜像 insteadOf + HTTP/1.1）；验证：agent 113+2s+ruff/repo pytest 2/板级构建 xiao_esp32s3 全绿；twister 阻塞 host gcc（owner sudo 待办 §9.6）；**登记 tools/board 34 脚本未实际入仓（b1a31e4 三处登记失实）**；Python 3.12→3.14 版本差异实证兼容。
 - v2.19 · 2026-10-11：批 A 收口——教训 33 转正（ts-prov 换烧必擦：27② 在档仍三连踩，升级为烧录编排第一步固定擦 ts 五分区的流程定式）；dsdbench SD 卡介质故障结案（换卡即愈，环境资产域非代码面）。
 - v2.18 · 2026-10-10：P4 无线面批——§5 增教训 32（owner EIM 环境布局/esp_hosted 目录名/SDIO datapath 三态定值 STREAM/C6 烧录顺序铁律/Zephyr esp_hosted 数据面缺陷定案——RPC 通而数据帧挂，上游域）。
 - v2.17 · 2026-10-10：P4 适配批——§5 增教训 31（板目标斜杠语法/SDK 单工具链补装/console 重指 uart0//tmp 竞速/RV32 main 栈 8192/twister EXTRA_MODULES 与管道假绿）；docs/board-p4-01.md（P4 bring-up 报告：p4bench 真机全链 PASS）。
