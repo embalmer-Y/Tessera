@@ -140,7 +140,7 @@ python3.12 -m venv ~/project/agent-venv
 1. 拉取：`git clone --depth 1 --branch 1.10.1 https://github.com/eclipse-zenoh/zenoh-pico.git ~/project/zephyrproject/zenoh-pico`（需代理 127.0.0.1:7897）。
 2. 生成 config.h（**上游 Zephyr 模块缺口**：其 zephyr/CMakeLists.txt 不执行 configure_file，直接编译报 `zenoh-pico/config.h` 缺失）：
    - `cmake -S ~/project/zephyrproject/zenoh-pico -B <tmpdir>` 生成 `<tmpdir>/include/zenoh-pico/config.h`
-   - 剥离 feature 宏区后落位（feature 宏由 Kconfig→zephyr_compile_definitions 供给，避免重定义）：`sed '/^#define Z_FEATURE_/d; /^#cmakedefine Z_FEATURE_/d' <tmpdir>/include/zenoh-pico/config.h > ~/project/zephyrproject/zenoh-pico/include/zenoh-pico/config.h`
+   - 落位时**只剥 12 个 Kconfig 管辖宏**（MULTI_THREAD/PUBLICATION/SUBSCRIPTION/QUERYABLE/QUERY/LINK_TCP/LINK_UDP_UNICAST/LINK_SERIAL/LINK_UDP_MULTICAST/LINK_WS/RAWETH_TRANSPORT/SCOUTING——由 Kconfig→zephyr_compile_definitions 供给，避免重定义），**其余 25 个保留**（含 SESSION_CHECK=1/FRAGMENTATION=1/AUTO_RECONNECT=1/BATCHING=1/MATCHING=1 等——Kconfig 不管辖，剥光即触发 §7-4 上游笔误分支编译失败〔2026-10-12 NVD 批实证〕）。修正前文档"剥全部 Z_FEATURE_"过度，以本条为准。
 3. 构建接线：`-DZEPHYR_EXTRA_MODULES="<tessera module>;<zenoh-pico>"` + `firmware/tests/net/overlay-zenoh.conf`（EXTRA_CONF_FILE）。**关键项 `CONFIG_POSIX_API=y`**——zenoh-pico Zephyr 平台层直引 `<netdb.h>/<sys/socket.h>`，host libc 下与 Zephyr net_ip.h 结构冲突，必须经 POSIX API 解析。
 4. **源码补丁：无（2026-09-23 复核定稿）**。checkout 对上游保持零修改，唯一非上游文件 = `include/zenoh-pico/config.h`（**生成件**，§7-2 产物；其 Zephyr 模块集成缺口只是"不执行生成步骤"，非源码缺陷）。此前登记过的两处补丁（primitives.c 笔误 / system.c setstacksize）经撤销实验证明均非必要——当时的 EINVAL 真因是 §8 的配置链（DNS_RESOLVER/pthread 动态栈/POSIX 池），setstacksize 补丁属误诊（教训见 §5-6）。已知无害上游笔误备忘：`_z_undeclare_queryable` 的 `#else` 分支 `sub->_zn` 应为 `qle->_zn`（仅 Z_FEATURE_SESSION_CHECK=0 时编译到；cmake 缺省=1 不触发——升级换配置时留意）。
 5. 升级纪律：三方（zenohd router / eclipse-zenoh Python / zenoh-pico）联合升级 + 全量回归（DR-22；Zenoh 2.0 watch）。
@@ -216,7 +216,8 @@ python3.12 -m venv ~/project/agent-venv
 - agent-venv（3.14.4 全钉版）→ **pytest 113+2s / ruff 全绿** ✅；repo pytest 2 ✅
 - **板级构建**：xiao_esp32s3/esp32s3/procpu 生产 app 全绿（esptool 5.4.0 镜像产出——交叉工具链/WAMR/blobs/模块全链验证）✅
 - **twister 15/15（80/80 用例）100% PASS**（2026-10-12 补验：owner 已执行 §9.6① 主机工具链安装——gcc/multilib/gperf/dtc 就位；43.94s，标准口径含 ZEPHYR_TOOLCHAIN_VARIANT=host）✅
-- ❌ 未达成：板级烧录冒烟/zenoh 联调（板已接入 `/dev/ttyACM0`——**待 dialout 组 + 重新登录**；WiFi/LLM 凭据待配）
+- ❌ 未达成：~~板级烧录冒烟/zenoh 联调~~ → **✅ 2026-10-12 全链达成**：deploybench 烧录（WiFi/prov 注入 + ts 分区擦净）→ WiFi 关联 3.8s → zenoh CONNECTED（本机 9955）→ **真 LLM 全链 NVD PASS**（spec→MiniMax-M3 生成→TSAP→zenoh 部署→真机判据精确命中——decisions 2026-10-12 条目；驱动脚本 `~/project/logs/nvd_demo.py` 仓外，blobs 补齐 `~/project/logs/fetch_blobs.py`）
+- 板级复跑要点（新机器）：① zenohd 专用实例 `~/project/tools/zenohd -l tcp/0.0.0.0:9955`（系统另有 7447 实例不动）；② deploybench 构建须双 EXTRA_MODULES（tessera + zenoh-pico）+ `-DDEPLOYBENCH_WIFI_SSID/PASSWORD`（prov 路由在 main.c blob 字节数组——换机器须字节级派生，见 decisions 2026-10-12 坑③）；③ 烧前擦 `esptool erase_region 0x170000 0x14000`（教训 33）
 
 ### 9.5 遗留问题登记
 

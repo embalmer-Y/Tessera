@@ -1,0 +1,113 @@
+I (esp_psram): SPI SRAM memory test OK
+*** Booting Zephyr OS build v4.5.0-rc1 ***
+DB0 deploybench start
+DB1 wifi_connect rc=0
+DBw associated t=2794
+DB2 prov load=0 burn=0（0=OK/-8=空）
+[ts-net] init prov_load=0 node=dbn cube=dbc
+[appmgr] wamr pool heap: buf=0x3c0a0060 size=262144 (psram/smh)
+[app1/l3] nvd init
+[app1/l3] nvd tick cnt=01
+[app1/l3] nvd tick cnt=02
+[ts-net] zenoh_open: CONNECTED loc=tcp/192.168.2.91:9955
+[app1/l3] nvd tick cnt=03
+DB6 app running app_id=com.example.cube.nvd slot=1 t=3142
+DB PASS
+[app1/l3] nvd tick cnt=04
+[app1/l3] nvd tick cnt=05
+[app1/l3] nvd tick cnt=06
+[app1/l3] nvd tick cnt=07
+[app1/l3] nvd tick cnt=08
+[app1/l3] nvd tick cnt=09
+[app1/l3] NVD DONE ticks=10
+DB alive t=5143 net=1
+[vrf] reject L96
+[appmgr] rollback: target slot 0 invalid (r=-9) — no flip
+[appmgr] WDT-WARN diag: APP state=dead prio=10 | cur=? cur_prio=-1
+[appmgr] wf[00] +0034 42034eec
+[appmgr] wf[01] +00c4 40377f03
+[appmgr] wf[02] +00d0 400570e8
+[appmgr] wf[03] +00d4 400570f3
+[appmgr] wf[04] +0198 4037b778
+[appmgr] wf[05] +01b8 4037b778
+[appmgr] wf[06] +01f0 400570e8
+[appmgr] wf[07] +01f4 400570f3
+[appmgr] wf[08] +0220 4203d47f
+[appmgr] wf[09] +0294 4203b6eb
+[appmgr] wf[10] +02b8 420354d0
+[appmgr] wf[11] +0364 4203b06e
+[appmgr] wf[12] +04c4 420354d0
+[appmgr] wf[13] +0578 4037b778
+[appmgr] wf[14] +0598 4037b778
+[appmgr] wf[15] +05a4 42008c2d
+[appmgr] wf[16] +06e8 4037b778
+[appmgr] wf[17] +0708 4037b778
+[appmgr] wf[18] +0d18 40bd34b8
+[appmgr] wf[19] +0ffc 42f8b2e5
+[appmgr] wf[20] +1230 424f800e
+[appmgr] wf[21] +1948 40a5bf08
+[appmgr] wf[22] +19a0 42d5d656
+[appmgr] wf[23] +1ca8 400a525a
+[appmgr] wf[24] +1d3c 425b0fe3
+[appmgr] wf[25] +1d70 42184577
+[appmgr] wf[26] +1ecc 40caf5bf
+[appmgr] wf[27] +2138 4066c1b8
+[appmgr] wf[28] +2374 42601a19
+[appmgr] wf[29] +248c 4089447f
+[appmgr] wf[30] +2654 426e37b1
+[appmgr] wf[31] +2844 42e24291
+[appmgr] wf[32] +2920 403a3392
+[appmgr] wf[33] +29a0 4292faec
+[appmgr] wf[34] +29e0 40ec3b25
+[appmgr] wf[35] +30a8 40625cfb
+[appmgr] wf[36] +3244 40375bae
+[appmgr] wf[37] +338c 4225ff6a
+[appmgr] wf[38] +34dc 42b6d1e1
+[appmgr] wf[39] +3788 4037cb27
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x2b (SPI_FAST_FLASH_BOOT)
+Saved PC:0x403817f8
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fc94230,len:0x548c
+load:0x40374000,len:0x10214
+load:0x50000000,len:0x24
+SHA-256 comparison failed:
+Calculated: 2553db8424a8485e0f7bba202883ac95688e83b568596a186004736b0bf9d9e6
+Expected: 00000000f0a80000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4037bb18
+I (soc_init): ESP Simple boot
+I (soc_init): compile time Oct 12 2026 01:25:20
+W (soc_init): Unicore bootloader
+I (soc_init): chip revision: v0.2
+I (flash_init): Boot SPI Speed : 80MHz
+I (flash_init): SPI Mode       : DIO
+I (flash_init): SPI Flash Size : 8MB
+I (boot): DRAM	: lma=00000020h vma=3fc94230h size=0548ch ( 21644)
+I (boot): IRAM	: lma=000054b4h vma=40374000h size=10214h ( 66068)
+I (boot): RTC_DATA	: lma=000156d0h vma=50000000h size=00024h (    36)
+I (boot): IROM	: lma=00020000h vma=42000000h size=89eb0h (564912)
+I (boot): DROM	: lma=000b0000h vma=3c090000h size=0fdb4h ( 64948)
+I (boot): libc heap size 0 kB.
+I (cache): Instruction cache: size 16KB, 8Ways, cache line size 32Byte
+I (spi_flash): detected chip: gd
+I (spi_flash): flash io: dio
+I (octal_psram): vendor id    : 0x0d (AP)
+I (octal_psram): dev id       : 0x02 (generation 3)
+I (octal_psram): density      : 0x03 (64 Mbit)
+I (octal_psram): good-die     : 0x01 (Pass)
+I (octal_psram): Latency      : 0x01 (Fixed)
+I (octal_psram): VCC          : 0x01 (3V)
+I (octal_psram): SRF          : 0x01 (Fast Refresh)
+I (octal_psram): BurstType    : 0x01 (Hybrid Wrap)
+I (octal_psram): BurstLen     : 0x01 (32 Byte)
+I (octal_psram): Readlatency  : 0x02 (10 cycles@Fixed)
+I (octal_psram): DriveStrength: 0x00 (1/1)
+I (esp_psram): Found 8MB PSRAM device
+I (esp_psram): Speed: 40MHz
+I (esp_psram): SPI SRAM memory test OK
+*** Booting Zephyr OS build v4.5.0-rc1 ***
+DB0 deploybench start
+DB1 wifi_connect rc=0
