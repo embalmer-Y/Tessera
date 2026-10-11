@@ -89,7 +89,7 @@
 
 | 序 | 单元 | 内容 | 门 |
 |---|------|------|----|
-| V2-1 | **D-AV 采集自愈 workaround** | 固件 `src/hal/av.c`：capture 超时计数（现有 400ms 档）连续 N 次 → `video_stream_stop()+start()` + buffer 重 enqueue → 采集恢复；自愈事件 printk 留痕（不触安全合同——纯读面）；**真机 D-AV 全链解锁**：停摆触发→自愈→后续帧到达实证 + **256B 发送档验证**（TS_NET_PUBLISH_MAX_BYTES=256 绕行既有 1KB 损坏缺陷）→ PC 侧 dav_recv 重组 ≥1 完整帧 = **DA PASS**；**回收条件登记**：上游修复随正式版平移后回收 workaround 与 256B 档（R3 同族） | — |
+| V2-1 | **D-AV 采集自愈 workaround** ✅ | 固件 `src/hal/av.c`：capture 超时计数（现有 400ms 档）连续 N 次 → `video_stream_stop()+start()` + buffer 重 enqueue → 采集恢复；自愈事件 printk 留痕（不触安全合同——纯读面）；**真机 D-AV 全链解锁**：停摆触发→自愈→后续帧到达实证 + **256B 发送档验证**（TS_NET_PUBLISH_MAX_BYTES=256 绕行既有 1KB 损坏缺陷）→ PC 侧 dav_recv 重组 ≥1 完整帧 = **DA PASS**；**回收条件登记**：上游修复随正式版平移后回收 workaround 与 256B 档（R3 同族）——**2026-10-11 交付（超预期）**：采集自愈实证 + **发送层根治**（我方 zenoh glue use-after-overwrite——static_buf 别名 × 环形槽覆盖；拷贝语义修复）+ 64B 档 1843 chunks 零损坏 + 2 帧完整重组 = **DA PASS**（256B 档证伪弃用；上游定性修正：1KB 损坏 = 我方竞争 + 上游大 payload 双缺陷叠加） | — |
 | V2-2 | 审计 flash 持久化（NV-4 实施） | Q-31 裁决后按裁决方案实施（建议案：独立 4KB 分区 64 槽定长环 + sys/get-audit flush 扩展）+ twister 掉电回读用例 + 真机掉电留存验证 | **Q-31 停门**（owner 已呈递待裁；逾时顺延） |
 | V2-3 | sim APP 装载面 + 对拍首基线 | sim_run 的 replay 固件增加 wasm APP 装载能力（或等价 APP 级 sim 面）→ NV-3 simreal_diff 首基线兑现（同一 APP/场景双跑对拍留档） | — |
 | V2-4 | spec 附属证据约束强化 | LLM 周期行简化对策（NV-6 留档）：spec 附属证据行的生成约束强化（提示词/判据节文法）+ 附属行缺失的 gate 提示级检查 | — |
@@ -102,6 +102,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.65 · 2026-10-11：V2-1 交付（超预期）——**D-AV 全链打通 DA PASS**：采集自愈（#121774 workaround 真机实证）+ **发送层根治**（我方 zenoh glue use-after-overwrite——z_bytes 别名语义 × 环形槽覆盖；拷贝修复；上游"1KB 损坏"定性修正为双缺陷叠加）+ 64B 档零损坏完整帧重组；twister 15/15（77）/agent 109 全绿。V0.2.0 单元 1/4。
 - v1.64 · 2026-10-11：owner 裁决——**V0.2.0 视频链解锁批开工**（§9 新排期：V2-1 D-AV 采集自愈 workaround + 256B 档验证→DA PASS 尝试 / V2-2 审计持久化〔Q-31 停门〕 / V2-3 sim APP 装载面 + 对拍首基线 / V2-4 spec 附属证据强化；目标 tag fw-v0.2.0）。
 - v1.63 · 2026-10-11：**NV-6 交付 + V0.1.0 版本收口（tag fw-v0.1.0）**——健康哨兵全流程 round1 pass（spec 门→LLM→repair_loop→真机 HBS DONE 精确命中；NV-1/2/3 产物全链真机首消费）；gate 自举两修正（任意位置标记 + 主判据概念）；sim 首基线如实顺延（sim APP 装载面缺口登记）；NV-4 停门维持。六单元终态：5 交付 + 1 呈递停门。
 - v1.62 · 2026-10-11：NV-3 交付（simreal_diff 语义对拍工具，首基线随 NV-6）；**Q-31 呈递**（审计持久化三选项停门待 owner）；NV-5 交付（根 README 门面）；V0.1.0 单元 3/5/6 落定，余 NV-4（停门）+ NV-6（验收）。

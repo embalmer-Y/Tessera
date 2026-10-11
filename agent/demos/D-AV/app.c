@@ -142,9 +142,12 @@ int app_tick(void) {
         if (len == 0) {
             return 0;                       /* empty frame, stay in state 0 */
         }
-        /* Begin a new frame. */
+        /* Begin a new frame.  Chunk size 64: must stay within the
+         * firmware publish cap (avdemo runs the 64B bypass for the
+         * 4.5 zenoh-pico send-corruption defect; a larger chunk would
+         * be rejected with E_PARAM and every frame dropped). */
         frame_id = frame_id + 1;
-        n_chunks  = (len + 1023) / 1024;
+        n_chunks  = (len + 63) / 64;
         chunk_idx = 0;
         frame_len = len;
         state     = 1;
@@ -152,9 +155,9 @@ int app_tick(void) {
     }
 
     /* state == 1: publish exactly one chunk per tick. */
-    off  = chunk_idx * 1024;
-    clen = 1024;
-    if ((frame_len - off) < 1024) {
+    off  = chunk_idx * 64;
+    clen = 64;
+    if ((frame_len - off) < 64) {
         clen = frame_len - off;
     }
 

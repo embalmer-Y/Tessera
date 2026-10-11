@@ -53,6 +53,33 @@ ts_res_t ts_av_config_bind_ctx(ts_ctx_t c, ts_av_fmt_t fmt, uint16_t w, uint16_t
 
 #if DT_HAS_CHOSEN(zephyr_camera)
 static bool stream_started;
+/* V2-1 自愈（#121774 workaround）：连续 dequeue 超时计数——上游缺陷形态
+ * = buffer 耗尽后 DMA 永久 parked（每帧必超时）；达 RECOVER_N 即重启流。 */
+static uint8_t dequeue_timeouts;
+
+/* 流重启（维护者确认的恢复路径）：stop（active_vbuf 排入 fifo_out）→
+ * 取回完成帧重新入队（全部 buffer 归 fifo_in）→ start（驱动重新 arm DMA）。
+ * parked 形态下 active_vbuf==NULL，fifo_out 为空、fifo_in 完整——直接
+ * start 即恢复。 */
+static ts_res_t av_stream_restart(void)
+{
+	printk("[av] stream restart (self-heal, n=%u)\n", dequeue_timeouts);
+	if (video_stream_stop(AV_CAM, VIDEO_BUF_TYPE_OUTPUT) != 0) {
+		return TS_E_IO;
+	}
+	struct video_buffer *vb;
+
+	while (video_dequeue(AV_CAM, &vb, K_NO_WAIT) == 0) {
+		if (video_enqueue(AV_CAM, vb) != 0) {
+			return TS_E_IO;
+		}
+	}
+	if (video_stream_start(AV_CAM, VIDEO_BUF_TYPE_OUTPUT) != 0) {
+		stream_started = false;
+		return TS_E_IO;
+	}
+	return TS_OK;
+}
 
 /* 官方池路径（MD1.2b）：缓冲 w*h*2（RGB565 定长；JPEG 上界同宽——驱动按
  * bytesused 上报实际压缩长）。池堆 = 板级 VIDEO_BUFFER_POOL 配置。 */
@@ -127,12 +154,23 @@ ts_res_t ts_av_capture(ts_ctx_t c, uint8_t *buf, uint32_t cap, uint32_t *len)
 	struct video_buffer *vb;
 
 	/* 超时须 < TS_WDT_APPMGR_PERIOD_MS（DEC-48）：采集停顿先以 TS_E_IO
-	 * 失败返回，不升级为看门狗复位。 */
+	 * 失败返回，不升级为看门狗复位。连续超时达 RECOVER_N（#121774
+	 * parked 形态 = 每帧必超时）→ 流重启自愈；本轮仍如实返回 E_IO
+	 * （重启后首帧需一个帧间隔，APP 重试语义下随即恢复）。 */
 	if (video_dequeue(AV_CAM, &vb, K_MSEC(CONFIG_TS_HAL_AV_TIMEOUT_MS)) != 0) {
-		printk("[av] dequeue timeout (%dms)\n",
-		       CONFIG_TS_HAL_AV_TIMEOUT_MS);
+		if (CONFIG_TS_HAL_AV_RECOVER_N > 0 &&
+		    ++dequeue_timeouts >= CONFIG_TS_HAL_AV_RECOVER_N) {
+			dequeue_timeouts = 0;
+			if (av_stream_restart() != TS_OK) {
+				printk("[av] self-heal restart fail\n");
+			}
+		} else {
+			printk("[av] dequeue timeout (%dms, n=%u)\n",
+			       CONFIG_TS_HAL_AV_TIMEOUT_MS, dequeue_timeouts);
+		}
 		return TS_E_IO;
 	}
+	dequeue_timeouts = 0;
 	ts_res_t r = TS_OK;
 
 	if (vb->bytesused > cap) {

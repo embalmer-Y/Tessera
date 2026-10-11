@@ -107,6 +107,11 @@ void ts_net_avq_flush(void)
 		bool sent = false;
 
 		for (int r = 0; r < CONFIG_TS_NET_PUBLISH_RETRY_MAX; r++) {
+			/* QoS = BESTEFFORT（DEC-42 语义）。注：V2-1 实验期曾疑
+			 * DROP 拥塞全丢——后定位根因为 zenoh glue 的
+			 * use-after-overwrite（static_buf 别名 + 环形槽覆盖，
+			 * zenoh.c 已改拷贝语义根治；64B 档 1842 chunks 零损坏
+			 * 实证），BESTEFFORT 恢复。 */
 			if (ts_net_transport->publish(key, e.payload, e.len,
 						      TS_NET_QOS_BESTEFFORT) == TS_OK) {
 				sent = true;

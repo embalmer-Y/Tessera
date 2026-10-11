@@ -274,7 +274,14 @@ static ts_res_t zenoh_publish(const char *key, const uint8_t *payload, uint32_t 
 	}
 	z_owned_bytes_t pl;
 
-	if (z_bytes_from_static_buf(&pl, payload, (size_t)len) != Z_OK) {
+	/* V2-1 根治（数据竞争）：z_put 异步发送，bytes 生命周期须覆盖发送
+	 * 完成点——static_buf（别名/零拷贝）在调用方为栈缓冲或环形复用槽
+	 * （pubq/avq 出队形态）时构成 use-after-overwrite：入队时 crc 正确、
+	 * 发送时字节已被后续条目覆盖——形态谱系 = 1KB chunk crc 100% 坏
+	 * （部分覆盖）→ 高频连发帧级损坏被 router 整包丢弃（64/256B 档
+	 * 0 到达）→ 低频心跳无竞争到达。修复 = 拷贝语义（一次 memcpy，
+	 * payload ≤1KB 可接受）。 */
+	if (z_bytes_copy_from_buf(&pl, payload, (size_t)len) != Z_OK) {
 		z_drop(z_move(ke));
 		return TS_E_IO;
 	}
