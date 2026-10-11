@@ -1,0 +1,36 @@
+{
+ "app": "nv.nvlab.fixloop.verify-1.0.0（双域同包，测试根签）",
+ "sim_lines": [
+  "nv1 init",
+  "nv1 tick cnt=01",
+  "nv1 tick cnt=02",
+  "nv1 tick cnt=03",
+  "nv1 tick cnt=04",
+  "nv1 tick cnt=05",
+  "NV1 DONE ticks=05"
+ ],
+ "real_lines": [
+  "nv1 init",
+  "nv1 tick cnt=01",
+  "nv1 tick cnt=02",
+  "nv1 tick cnt=03",
+  "nv1 tick cnt=04",
+  "nv1 tick cnt=05",
+  "NV1 DONE ticks=05"
+ ],
+ "diff_tail_align": {
+  "pass": true,
+  "mismatch": [],
+  "sim_len": 7,
+  "real_len": 7,
+  "tail_aligned": false
+ },
+ "diff_strict": {
+  "pass": true,
+  "mismatch": [],
+  "sim_len": 7,
+  "real_len": 7,
+  "tail_aligned": false
+ },
+ "sim_console_pass": true
+}

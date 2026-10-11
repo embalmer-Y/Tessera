@@ -492,9 +492,12 @@ decisions.md        DEC/Q 登记册
 docs/research/      调研文档（R1/R2 产出于此）
 docs/names.md       命名空间登记表
 docs/std/           开发规范套件（testing/versioning/progress/coding；v0.1 待 owner review，批准后 tag std-v1 生效）
+docs/evidence/      真机验证单迹（decisions 引用的 console/JSON/帧图像物理文件；迁移批入仓）
+docs/migration-x86.md  环境迁移说明（2026-10-11 WSL→原生 Linux；仓外资产处置 + 清除指引）
 design/             规格文档（HLD + LLD-00 + 七模块 LLD；均为 v0.1 草案待 owner 确认）
 firmware/           Zephyr 工程（app/ module/ tests/；west 工作区在仓库之外初始化，Zephyr 树不进本仓库；M0 启动）
 agent/              MCP server + 模拟器 + 构建工具链（PC 侧；DEC-15 第二阶段）
+tools/board/        板级开发工具脚本（构建/烧录/运行/验证/包生成；WiFi 凭据经 TS_WIFI_* 环境变量注入，不入仓）
 hardware/           立方体结构 / 连接器 / 电源资料（DEC-15 第三阶段启动）
 legacy/             （可选）历史参考资料，NON-NORMATIVE；源自 Galatea 仓库 tag `physio-handoff`
 ```

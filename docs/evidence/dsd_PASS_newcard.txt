@@ -1,0 +1,69 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x40376df6
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fc91b50,len:0x324c
+load:0x40374000,len:0xdb34
+load:0x50000000,len:0x24
+SHA-256 comparison failed:
+Calculated: ec5d563aae547e06d76f35df1942347842bc12fec35f7ef2125a817de0129be9
+Expected: 0000000010f20000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4037a980
+I (soc_init): ESP Simple boot
+I (soc_init): compile time Oct 10 2026 22:01:58
+W (soc_init): Unicore bootloader
+I (soc_init): chip revision: v0.2
+I (flash_init): Boot SPI Speed : 80MHz
+I (flash_init): SPI Mode       : DIO
+I (flash_init): SPI Flash Size : 8MB
+I (boot): DRAM	: lma=00000020h vma=3fc91b50h size=0324ch ( 12876)
+I (boot): IRAM	: lma=00003274h vma=40374000h size=0db34h ( 56116)
+I (boot): RTC_DATA	: lma=00010db0h vma=50000000h size=00024h (    36)
+I (boot): IROM	: lma=00020000h vma=42000000h size=22120h (139552)
+I (boot): DROM	: lma=00050000h vma=3c030000h size=07ac4h ( 31428)
+I (boot): libc heap size 44 kB.
+I (cache): Instruction cache: size 16KB, 8Ways, cache line size 32Byte
+I (spi_flash): detected chip: gd
+I (spi_flash): flash io: dio
+I (octal_psram): vendor id    : 0x0d (AP)
+I (octal_psram): dev id       : 0x02 (generation 3)
+I (octal_psram): density      : 0x03 (64 Mbit)
+I (octal_psram): good-die     : 0x01 (Pass)
+I (octal_psram): Latency      : 0x01 (Fixed)
+I (octal_psram): VCC          : 0x01 (3V)
+I (octal_psram): SRF          : 0x01 (Fast Refresh)
+I (octal_psram): BurstType    : 0x01 (Hybrid Wrap)
+I (octal_psram): BurstLen     : 0x01 (32 Byte)
+I (octal_psram): Readlatency  : 0x02 (10 cycles@Fixed)
+I (octal_psram): DriveStrength: 0x00 (1/1)
+I (esp_psram): Found 8MB PSRAM device
+I (esp_psram): Speed: 40MHz
+I (esp_psram): SPI SRAM memory test OK
+*** Booting Zephyr OS build v4.5.0-rc1 ***
+DS0 dsdbench（MD1.2f：D-SD demo ts-fs 全链）
+[00:00:00.019,000] [0m<inf> sd: Maximum SD clock is under 25MHz, using clock of 20000000Hz[0m
+DS1 SD mounted
+[appmgr] meta unreadable (r=-8) — recovery install to slot 0
+DS2 install r=0 state=2 slot=1
+[ts-net] init prov_load=-8 node=n-dev cube=c-dev
+[appmgr] wamr pool heap: buf=0x3c040060 size=262144 (psram/smh)
+[app1/l0] dsd init
+DS3 APP ACTIVE app=tessera.demo.d-sd
+[fs] write app=1 path=/SD:/apps-data/dsd.txt len=68 off=0
+[app1/l0] dsd wr-rc=0
+[app1/l0] dsd verify 0
+[app1/l0] dsd deny-rc=-3
+[app1/l0] dsd list-rc=7 hit=1
+[fs] write app=1 path=/SD:/apps-data/dsd-done.txt len=2 off=0
+[app1/l0] dsd done
+DS4 done marker seen
+DS5 data verify n=68 OK
+DS6 deny-file absent=1（白名单外写被拒的物理证据）
+DS PASS（写/读回/白名单拒绝/列目录全链）
+DS alive t=12810
+DS alive t=22811
+DS alive t=32811
+DS alive t=42811

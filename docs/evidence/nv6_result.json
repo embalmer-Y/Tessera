@@ -1,0 +1,19 @@
+{
+ "status": "pass",
+ "rounds_used": 1,
+ "history": [
+  {
+   "round": 1,
+   "category": "pass",
+   "summary": "pass: 判据达成，无需修复",
+   "evidence_head": [
+    "rst:0x15 (USB_UART_CHIP_RESET),boot:0x8 (SPI_FAST_FLASH_BOOT)",
+    "SHA-256 comparison failed:",
+    "DB PASS"
+   ],
+   "action": "pass"
+  }
+ ],
+ "package_path": "/home/emb/project/tessera/agent/build/nv6/com.example.cube.hbs-1.0.0.tsap",
+ "last_category": "pass"
+}

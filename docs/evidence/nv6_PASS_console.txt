@@ -1,0 +1,459 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x403785aa
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fc94230,len:0x548c
+load:0x40374000,len:0x10214
+load:0x50000000,len:0x24
+SHA-256 comparison failed:
+Calculated: bf45a049f8120dd8ae7ff3732439d4c6077d4899c9ca43c4f8a5e2d30a0c39fe
+Expected: 00000000f0a80000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4037bb18
+I (soc_init): ESP Simple boot
+I (soc_init): compile time Oct 11 2026 02:34:21
+W (soc_init): Unicore bootloader
+I (soc_init): chip revision: v0.2
+I (flash_init): Boot SPI Speed : 80MHz
+I (flash_init): SPI Mode       : DIO
+I (flash_init): SPI Flash Size : 8MB
+I (boot): DRAM	: lma=00000020h vma=3fc94230h size=0548ch ( 21644)
+I (boot): IRAM	: lma=000054b4h vma=40374000h size=10214h ( 66068)
+I (boot): RTC_DATA	: lma=000156d0h vma=50000000h size=00024h (    36)
+I (boot): IROM	: lma=00020000h vma=42000000h size=89e40h (564800)
+I (boot): DROM	: lma=000b0000h vma=3c090000h size=0fdb4h ( 64948)
+I (boot): libc heap size 0 kB.
+I (cache): Instruction cache: size 16KB, 8Ways, cache line size 32Byte
+I (spi_flash): detected chip: gd
+I (spi_flash): flash io: dio
+I (octal_psram): vendor id    : 0x0d (AP)
+I (octal_psram): dev id       : 0x02 (generation 3)
+I (octal_psram): density      : 0x03 (64 Mbit)
+I (octal_psram): good-die     : 0x01 (Pass)
+I (octal_psram): Latency      : 0x01 (Fixed)
+I (octal_psram): VCC          : 0x01 (3V)
+I (octal_psram): SRF          : 0x01 (Fast Refresh)
+I (octal_psram): BurstType    : 0x01 (Hybrid Wrap)
+I (octal_psram): BurstLen     : 0x01 (32 Byte)
+I (octal_psram): Readlatency  : 0x02 (10 cycles@Fixed)
+I (octal_psram): DriveStrength: 0x00 (1/1)
+I (esp_psram): Found 8MB PSRAM device
+I (esp_psram): Speed: 40MHz
+I (esp_psram): SPI SRAM memory test OK
+*** Booting Zephyr OS build v4.5.0-rc1 ***
+DB0 deploybench start
+DB1 wifi_connect rc=0
+DBw associated t=9352
+DB2 prov load=0 burn=0（0=OK/-8=空）
+[ts-net] init prov_load=0 node=dbn cube=dbc
+[appmgr] wamr pool heap: buf=0x3c0a0060 size=262144 (psram/smh)
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 0
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[ts-net] zenoh_open: CONNECTED loc=tcp/192.168.2.90:9955
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 1
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+DB6 app running app_id=com.example.cube.hbs slot=1 t=9644
+DB PASS
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 2
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 3
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 4
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 5
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 6
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 7
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 8
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 9
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 1
+[app1/l0] 0
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 1
+[app1/l0] 1
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 1
+[app1/l0] 2
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 1
+[app1/l0] 3
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 1
+[app1/l0] 4
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 1
+[app1/l0] 5
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 1
+[app1/l0] 6
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 1
+[app1/l0] 7
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 1
+[app1/l0] 8
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+DB alive t=11647 net=1
+[app1/l0] h
+[app1/l0] b
+[app1/l0] s
+[app1/l0]  
+[app1/l0] t
+[app1/l0] i
+[app1/l0] c
+[app1/l0] k
+[app1/l0]  
+[app1/l0] n
+[app1/l0] =
+[app1/l0] 1
+[app1/l0] 9
+[app1/l0]  
+[app1/l0] m
+[app1/l0] v
+[app1/l0] =
+[app1/l0] 0
+[app1/l0] 
+
+[app1/l0] HBS DONE ticks=20
+
+DB alive t=21648 net=1
+DB alive t=31650 net=1

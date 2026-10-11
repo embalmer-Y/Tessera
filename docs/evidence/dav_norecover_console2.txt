@@ -1,0 +1,2933 @@
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=259985 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=264985 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=269986 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=274986 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=279986 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=284986 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=289986 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=294986 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=299986 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=304986 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=309986 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=314987 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=319987 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=324987 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=329987 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=334987 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=339987 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=344987 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=349987 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=354987 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=359987 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=364988 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=369988 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=374988 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=379988 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=384988 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=389988 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=394988 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=399988 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=404988 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=409988 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=414989 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=419989 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=424989 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=429989 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=434989 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=439989 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=444989 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=449989 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=454989 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=459989 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=464990 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=469990 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=474990 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=479990 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=484990 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=489990 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=494990 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=499990 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=504990 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=509991 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=514991 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=519991 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=524991 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=529991 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=534992 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=539992 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=544992 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=549992 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=554992 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=559992 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=564992 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=569992 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=574992 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=579992 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=584993 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=589993 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=594993 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=599993 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=604993 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=609993 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=614993 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=619993 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=624993 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=629993 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=634994 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=639994 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=644994 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=649994 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+DA4 alive t=654994 net=1 state=3 dropped=0
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
+[av] dequeue timeout (400ms, n=0)
+[app1/l3] dav cap-rc=-8
+
