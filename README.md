@@ -41,6 +41,25 @@
 | `docs/` | dev-environment（环境事实源）/ project-plan / impl-review 族 |
 | `decisions.md` | Q/DEC 裁决登记册（全部决策可溯） |
 
+## 依赖与钉版
+
+钉版纪律（`docs/std/versioning.md` §4）：外部依赖一律钉具体版本/提交，禁浮动引用；升级走独立提交 + 回归。环境重建事实源 = `docs/dev-environment.md`。
+
+| 依赖 | 钉版 | 用途 | 引入方式 |
+|---|---|---|---|
+| Zephyr RTOS | v4.5.0-rc1 | 固件 RTOS 基线 | west 工作区（`west init --mr`） |
+| Zephyr SDK | 1.0.1 | 交叉工具链（xtensa-esp32s3 等）+ hosttools | `west sdk install` |
+| espressif HAL blobs | 随 Zephyr 版本 | WiFi/BT 预编译库 | `west blobs fetch hal_espressif` |
+| WAMR | 2.4.5 | wasm 运行时（APP 沙箱） | 源码 @ `TS_WAMR_DIR`（仓外 deps，构建期变量） |
+| zenoh-pico | 1.10.1 | 板侧 zenoh 传输 | west 工作区模块 |
+| eclipse-zenoh（Python） | 1.10.1 | Agent 侧 zenoh 会话 | agent pyproject（**三方同 minor**：zenohd / zenoh-python / zenoh-pico） |
+| zenohd | 1.10.x | PC 侧路由器（联调用） | 独立二进制 |
+| Python（agent 侧） | 见 `agent/pyproject.toml`：pydantic-ai-slim 2.47.\* / fastmcp 4.0.\* / cbor2 6.1.4 / pycose 1.1.0 / cryptography ≥42 / eclipse-zenoh 1.10.1 / pyserial | Agent 运行依赖，全钉版 | pip（editable 安装） |
+| ed25519 签名/验签 | tweetnacl 20140427 快照 | 固件 COSE 验签（`crypto/PROVENANCE.md`）；Agent 侧 pycose + cryptography | 固件内置快照 / pip |
+| LLM 端点 | Anthropic 兼容 API（生产 = MiniMax-M3） | APP 代码生成（密钥经环境变量，不入库） | 运行时配置 |
+
+板级构建另需：esptool（固件 venv 内 `west packages pip`）与主机 gcc（native_sim，WSL `build-essential`）。
+
 ## 快速上手（WSL2 Ubuntu 环境）
 
 环境事实源见 `docs/dev-environment.md`（目录规范 `~/project/{tessera,zephyrproject,logs}`；Zephyr v4.5.0-rc1 + Zephyr SDK 1.0.1 钉版）。
