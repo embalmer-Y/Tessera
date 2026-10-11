@@ -215,7 +215,8 @@ python3.12 -m venv ~/project/agent-venv
 - WAMR 2.4.5 + version.h **444 只读屏障**（教训 21⑤ 纪律）✅
 - agent-venv（3.14.4 全钉版）→ **pytest 113+2s / ruff 全绿** ✅；repo pytest 2 ✅
 - **板级构建**：xiao_esp32s3/esp32s3/procpu 生产 app 全绿（esptool 5.4.0 镜像产出——交叉工具链/WAMR/blobs/模块全链验证）✅
-- ❌ 未达成：twister 15/15（native_sim 需 host gcc+multilib = sudo）；板级冒烟/zenoh 联调（板未接）
+- **twister 15/15（80/80 用例）100% PASS**（2026-10-12 补验：owner 已执行 §9.6① 主机工具链安装——gcc/multilib/gperf/dtc 就位；43.94s，标准口径含 ZEPHYR_TOOLCHAIN_VARIANT=host）✅
+- ❌ 未达成：板级烧录冒烟/zenoh 联调（板已接入 `/dev/ttyACM0`——**待 dialout 组 + 重新登录**；WiFi/LLM 凭据待配）
 
 ### 9.5 遗留问题登记
 
@@ -226,11 +227,8 @@ python3.12 -m venv ~/project/agent-venv
 ### 9.6 owner 待办（sudo/物理/凭据——AI 会话不可代办）
 
 ```bash
-# ① 主机工具链（解锁 twister 15/15；对齐 WSL 清单）
-sudo apt update && sudo apt install -y build-essential gcc-multilib g++-multilib \
-  cmake ninja-build gperf ccache dfu-util device-tree-compiler file xz-utils wget curl \
-  python3-dev python3-pip python3.14-venv clang
-# ② 串口权限（板接原生 USB 前一次性）
+# ① 主机工具链 —— ✅ 已执行（2026-10-12 owner；twister 15/15 补验通过）
+# ② 串口权限（板接原生 USB 前一次性）—— ⚠️ 仍待执行 + 重新登录
 sudo usermod -aG dialout emb   # 重新登录生效
 ```
 
