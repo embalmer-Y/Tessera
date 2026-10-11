@@ -700,6 +700,8 @@
 
 **〔2026-10-11 owner 裁决 → DEC-52〕**：**选方案①（独立 ts-audit 分区）**——ts 分区内追加 4KB、64 槽定长 64B 环形（覆盖最旧）、掉电半写经魔数/seq 校验探测、boot 打印最近 8 条、`sys/get-audit` 扩展 flush 参数读取。实施随 V0.2.x 补批（V2-2）一次交付：分区表重划（六 bench + 生产 app，esptool 偏移不变）+ store/audit.c + twister 复位回读用例 + 真机掉电留存验证。**同批另两项裁决**：② #121774 回帖前先实测（停摆对照 + stop/start 恢复机制实测证据对，草稿呈 owner 确认后发）；③ zenoh-pico 大 payload issue **暂不提**（64B 档绕行在用；材料留档 decisions/实测数据，时机 = v4.5.0 正式或 zenoh-pico 新版复测后再议）。
 
+**〔2026-10-11 DEC-52② 实测完成〕**：**实验 A（禁自愈对照）**——avdemo 临时 RECOVER_N=0 构建：starvation 触发后 **951 次连续 dequeue timeout（400s 窗口）零帧、无外部干预永不恢复**（铁证 logs/dav_norecover_console2.txt；触发时序条件性 = 帧 N+1 完成于归还前，64B 档长发布期 + 帧率 burst 时必中）；**实验 B（V2-1 自愈单迹）**——timeout n=1→2→stream restart（stop+drain+re-enqueue+start，与维护者建议机制完全一致）→frame 4 恢复。**证据对完整；回帖草稿已备**（logs/issue_121774_reply_draft.md：分析确认 + rc1 行号佐证 + 前后实测数据 + workaround 参考 + 多 buffer 表述补充 + 愿测修复分支），**停门待 owner 过目后经 gh 发出**。实验 conf 已回滚（RECOVER_N 默认 3 恢复）。
+
 **背景**：DEC-30④ 裁定「审计 V1 = 内存环形（掉电丢失）」——固件侧安全事件（越权拒绝/estop 触发/限幅截断/system_fail 归因）掉电即失，事后追责与现场诊断无据。NV 版本方向批（2026-10-11）owner 已批「审计环形 flash 持久化」方向，但记录格式/分区布局/溢出策略属门③（文件格式与命令面变更），呈递裁决。
 
 **选项**：
