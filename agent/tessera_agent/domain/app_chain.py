@@ -183,6 +183,17 @@ async def app_develop(
     )
     agent.tool_plain(read_skill)
 
+    # V2-4 附属证据约束：spec_gate 派生的全部判据/附属串注入首轮提示——
+    # NV-6 实证 LLM 会简化附属证据行（周期/告警行未实现，仅主判据达成）；
+    # 显式列全部必须输出的行，把「spec 判据节全部引号串 = 实现面」写死。
+    evidence_clause = ''
+    if len(gate.pass_patterns) > 1:
+        lines = "\n".join(f'  - "{p}"' for p in gate.pass_patterns)
+        evidence_clause = (
+            "\n\n[判据/附属证据行约束——以下每一行都必须在 APP 运行中按"
+            f"精确格式逐字输出（含前缀与格式细节，缺一即实现不完整）：\n{lines}\n]"
+        )
+
     # 硬校验反馈回路（MD0-1 实证 + DEC-45 扩展编译级）：manifest 校验与
     # 编译/面检查都发生在 LLM 运行之后，pydantic 的结构化重试管不到——
     # 回路 = 校验/编译错误文本 + 消息历史续跑，预算同 OUTPUT_RETRIES（3）；
@@ -223,7 +234,7 @@ async def app_develop(
 
     for attempt in range(1, CHAIN_RETRIES + 1):
         if history is None:
-            user_prompt = spec
+            user_prompt = spec + evidence_clause
             if repair_feedback:
                 user_prompt += (
                     "\n\n[部署后诊断反馈——上一版部署到真机运行失败，"

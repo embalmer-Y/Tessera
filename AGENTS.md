@@ -6,6 +6,7 @@
 
 ## 1. 当前状态
 
+- **2026-10-11（八十二） · V2-4 交付（V0.2.0 单元 4/4 可执行项）：spec 附属证据强化（提示词注入全部判据/附属串 + repair_loop evidence_hits/missing 统计）；CI 漏步教训修正（NV-3 红定性改 sync_check 漏跑——两次同型事故，提交流固定 --update）。V0.2.0 余项：V2-3 sim APP 面（固件面下一会话单元）+ V2-2 停门（Q-31）+ 收口 tag**
 - **2026-10-11（八十一） · V2-1 交付（V0.2.0 单元 1/4，超预期）：D-AV 全链打通 DA PASS——采集自愈（#121774 workaround：超时计数→流重启→帧恢复真机实证）+ 发送层根治（我方 zenoh glue use-after-overwrite：static_buf 别名 × pubq/avq 环形槽覆盖 → 拷贝语义修复；64B 档 1843 chunks 零损坏 + 2 帧完整重组）；上游"1KB 损坏"定性修正 = 我方竞争 + 上游大 payload 双缺陷（64B 档定版绕行，256B 档证伪弃用）；twister 15/15（77）/agent 109/repo 2/2 全绿。V2-2 停门维持，V2-3 sim APP 面随续**
 - **2026-10-11（八十） · owner 裁决 V0.2.0「视频链解锁批」开工（plan §9）：V2-1 D-AV 宿主采集自愈 workaround（av.c 超时→stop/start 重启——上游 #121774 维护者定性 DMA re-arm 缺陷且确认 stop/start 有效，我方源码核实）+ 256B 发送档验证→DA PASS 尝试 / V2-2 审计持久化〔Q-31 停门维持〕 / V2-3 sim APP 装载面 + 对拍首基线 / V2-4 spec 附属证据强化；目标 tag fw-v0.2.0；上游回帖草稿待 owner 确认**
 - **2026-10-11（七十九） · NV-6 交付 + V0.1.0 版本收口（tag fw-v0.1.0）：真实需求（健康哨兵）全流程编程测试 round1 pass——spec 门判据派生 → 真 LLM 生成 → repair_loop 部署 → 真机 "HBS DONE ticks=20" 精确命中 + DB PASS（NV-1/2/3 产物全链真机首消费）；gate 自举两修正（任意位置标记/主判据概念）；sim 首基线如实顺延（sim APP 装载面缺口——后续增强批）；NV-4 Q-31 维持停门待 owner。V0.1.0 六单元终态：NV-1/2/3/5/6 交付 + NV-4 呈递停门**

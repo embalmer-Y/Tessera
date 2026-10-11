@@ -65,8 +65,10 @@ async def repair_loop(
     from tessera_agent.domain import app_chain
 
     log = log_fn or (lambda s: None)
+    all_patterns: list[str] = []   # spec 全部判据/附属串（evidence 统计面）
     if pass_patterns is None:
         gate = spec_gate.check_spec(spec)
+        all_patterns = gate.pass_patterns
         # 闭环 pass 判据 = 主判据（NV-2 书写约定：主判据串在【判据】节
         # 最前——「任一命中即 pass」语义下附属前缀会提前误判）
         pass_patterns = ([gate.primary_pattern] if gate.primary_pattern
@@ -100,19 +102,28 @@ async def repair_loop(
         text = await asyncio.to_thread(capture_fn)
         result = diag.classify_run(text, pass_patterns=pass_patterns)
         last_category = result.category
+        # V2-4 附属证据到达统计（非阻塞——主判据已过，附属行缺失如实
+        # 报告供人审：NV-6 实证 LLM 会简化附属证据行）
+        evidence_hits = ({p: (p in text) for p in all_patterns}
+                         if all_patterns else {})
         history.append({
             "round": rnd, "category": result.category,
             "summary": result.summary,
             "evidence_head": result.evidence[:8],
+            "evidence_hits": evidence_hits,
             "action": "pass" if result.category == diag.DIAG_PASS else
                       ("regenerate" if result.category in _REPAIRABLE else "abort"),
         })
         log(f"round {rnd}: {result.category} — {result.summary}")
 
         if result.category == diag.DIAG_PASS:
+            missing = [p for p, hit in evidence_hits.items() if not hit]
+            if missing:
+                log(f"附属证据行缺失（非阻塞，如实报告）：{missing}")
             return {"status": STATUS_PASS, "rounds_used": rnd,
                     "history": history, "package_path": package_path,
-                    "last_category": result.category}
+                    "last_category": result.category,
+                    "evidence_missing": missing}
         if result.category not in _REPAIRABLE:
             # 环境层（env_boot）与部署层——LLM 重生成不救济
             return {"status": STATUS_ENV_FAIL, "rounds_used": rnd,

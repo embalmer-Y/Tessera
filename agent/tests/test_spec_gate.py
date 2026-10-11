@@ -123,6 +123,22 @@ def test_repair_loop_derives_patterns_from_spec(monkeypatch):
     assert out["status"] == rp.STATUS_PASS
 
 
+def test_repair_loop_evidence_report(monkeypatch):
+    """V2-4：pass 轮附带 evidence_hits/缺失报告（附属行缺 = 如实非阻塞）。"""
+    spec = ("【需求】x\n【资源】无\n"
+            "【判据】输出行 \"A DONE 07\" 即达成；附属前缀 \"tick n=\"。\n"
+            "【安全声明】限幅\n")
+    text = "TS3 APP ACTIVE\nA DONE 07\nDB alive"   # 附属 tick 行缺失
+    h = _H(monkeypatch, [text])
+    out = asyncio.run(rp.repair_loop(
+        None, spec=spec, key_path="k", out_dir="o",
+        pass_patterns=None, deploy_fn=h.deploy_fn, capture_fn=h.capture_fn))
+    assert out["status"] == rp.STATUS_PASS
+    assert out["evidence_missing"] == ["tick n="]
+    hits = out["history"][0]["evidence_hits"]
+    assert hits == {"A DONE 07": True, "tick n=": False}
+
+
 def test_repair_loop_no_derivable_patterns_fails_fast(monkeypatch):
     """无可机读判据且未显式给 → 硬错（不烧任何 LLM 轮）。"""
     h = _H(monkeypatch, [PASS_TEXT])
