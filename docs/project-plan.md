@@ -83,13 +83,26 @@
 | NV-5 | README ✅ | 仓库门面：项目一句话/架构分层图/ts-* 模块地图/快速上手（WSL 环境 + 三命令）/demo 一览（D 系列 + D-SD/D4/D6）/CI 徽章——**2026-10-11 交付**：根 README.md（中文 + 架构 ASCII 图 + 安全合同摘要 + License） | — |
 | NV-6 | 真实需求全流程编程测试 ✅ | **版本验收**：一个真实需求走完 spec→LLM 编程→编译打包→sim 模拟测试→部署→真机判据 PASS 全链（消费 NV-1/2/3 产物）；需求候选 = 立方体健康哨兵 APP——**2026-10-11 交付**：round1 pass 全链（spec 门判据派生 → LLM 生成 hbs APP → repair_loop 部署 → 真机 "HBS DONE ticks=20" 精确命中 + DB PASS）；sim 环节 + simreal_diff 首基线**如实顺延**（sim replay 固件不装载 wasm APP——APP 级 sim 面 = 后续增强批；V1 模拟面由 twister 77 用例 + 产物校验承担）；LLM 附属行简化如实留档 | 验收判据 owner 可查（logs/nv6_result.json） |
 
-## 9. 执行纪律（不变）
+## 9. 版本 V0.2.0 · 视频链解锁批（2026-10-11 owner 裁决开工；每会话一单元）
+
+> 范围出处：V0.1.0 收口后的遗留清单 + owner 裁决（2026-10-11：D-AV 宿主自愈 workaround 合入——上游 #121774 维护者已定性 DMA re-arm 缺陷且确认 stop/start 恢复有效，我方源码逐环核实，decisions 在档）。版本号：fw-v0.1.0 已 tag，功能批 minor +1 → 目标 tag `fw-v0.2.0`。**不入本版**：多 APP 并行/逻辑节点并联（V2 级另立项）、PDM、v4.5.0 正式平移（上游发布时机）。
+
+| 序 | 单元 | 内容 | 门 |
+|---|------|------|----|
+| V2-1 | **D-AV 采集自愈 workaround** | 固件 `src/hal/av.c`：capture 超时计数（现有 400ms 档）连续 N 次 → `video_stream_stop()+start()` + buffer 重 enqueue → 采集恢复；自愈事件 printk 留痕（不触安全合同——纯读面）；**真机 D-AV 全链解锁**：停摆触发→自愈→后续帧到达实证 + **256B 发送档验证**（TS_NET_PUBLISH_MAX_BYTES=256 绕行既有 1KB 损坏缺陷）→ PC 侧 dav_recv 重组 ≥1 完整帧 = **DA PASS**；**回收条件登记**：上游修复随正式版平移后回收 workaround 与 256B 档（R3 同族） | — |
+| V2-2 | 审计 flash 持久化（NV-4 实施） | Q-31 裁决后按裁决方案实施（建议案：独立 4KB 分区 64 槽定长环 + sys/get-audit flush 扩展）+ twister 掉电回读用例 + 真机掉电留存验证 | **Q-31 停门**（owner 已呈递待裁；逾时顺延） |
+| V2-3 | sim APP 装载面 + 对拍首基线 | sim_run 的 replay 固件增加 wasm APP 装载能力（或等价 APP 级 sim 面）→ NV-3 simreal_diff 首基线兑现（同一 APP/场景双跑对拍留档） | — |
+| V2-4 | spec 附属证据约束强化 | LLM 周期行简化对策（NV-6 留档）：spec 附属证据行的生成约束强化（提示词/判据节文法）+ 附属行缺失的 gate 提示级检查 | — |
+| 观察 | SYWORK wdt 偶发复位 | reason=0x00020000 间歇复位观察项（NV-1 留档）——不排期，随真机批次顺带取证 | — |
+
+## 10. 执行纪律（不变）
 
 - 规范套件（tag `std-v1`：testing/versioning/progress/coding）+ 军规十条 + 安全与确定性合同（AGENTS.md §6）。
 - 里程碑退出 = review 门（呈递 DoD 对照）；工具面/公共 API/安全合同变更 = 各自 review 门。
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.64 · 2026-10-11：owner 裁决——**V0.2.0 视频链解锁批开工**（§9 新排期：V2-1 D-AV 采集自愈 workaround + 256B 档验证→DA PASS 尝试 / V2-2 审计持久化〔Q-31 停门〕 / V2-3 sim APP 装载面 + 对拍首基线 / V2-4 spec 附属证据强化；目标 tag fw-v0.2.0）。
 - v1.63 · 2026-10-11：**NV-6 交付 + V0.1.0 版本收口（tag fw-v0.1.0）**——健康哨兵全流程 round1 pass（spec 门→LLM→repair_loop→真机 HBS DONE 精确命中；NV-1/2/3 产物全链真机首消费）；gate 自举两修正（任意位置标记 + 主判据概念）；sim 首基线如实顺延（sim APP 装载面缺口登记）；NV-4 停门维持。六单元终态：5 交付 + 1 呈递停门。
 - v1.62 · 2026-10-11：NV-3 交付（simreal_diff 语义对拍工具，首基线随 NV-6）；**Q-31 呈递**（审计持久化三选项停门待 owner）；NV-5 交付（根 README 门面）；V0.1.0 单元 3/5/6 落定，余 NV-4（停门）+ NV-6（验收）。
 - v1.61 · 2026-10-11：NV-2 交付（spec 质量门：四节模板 + 判据机读派生 + app_develop 分级集成 + repair_loop 单一事实源联动 + skill 模板节）；V0.1.0 单元 2/6。

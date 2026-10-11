@@ -711,6 +711,8 @@
 
 - 2026-10-11 · **CI 观察登记（NV-3 提交 99c7504 的 agent-checks 单次红）**：pytest 步骤一次 failure（日志 API 403 不可得——admin 权限限制，记忆在档）；**后续提交（9ad5c89/3ad67c4）同面全绿 ×3 轮 + 本地全新克隆（HEAD）109 passed 复现 CI 法全绿**——红在 HEAD 不可复现（NV-3 代码为其子集），判间歇（候选：pip 缓存/网络抖动），根因未定位如实留档；不阻塞 fw-v0.1.0（tag 提交双轮绿实证）。
 
+- 2026-10-11 · **owner 裁决（V0.2.0 开工批）：D-AV 宿主自愈 workaround 合入开发计划——V0.2.0「视频链解锁批」排期落盘（plan §9：V2-1 采集自愈 + 256B 档验证→DA PASS 尝试 / V2-2 审计持久化〔Q-31 停门维持〕 / V2-3 sim APP 装载面 + 对拍首基线 / V2-4 spec 附属证据强化；目标 tag fw-v0.2.0）**。依据：上游 #121774 维护者定性（DMA re-arm 缺陷）+ stop/start 恢复有效确认 + 我方 rc1 源码逐环核实（上条）——固件侧 workaround 不动上游、不触安全合同（av.c 纯读面），回收条件（上游修复平移后）与 R3 同族登记。
+
 - 2026-10-11 · **上游 #121774（esp32 video 首帧后停摆）维护者回复 + 我方源码验证结论**：维护者定性 = **无泄漏，是 buffer 耗尽后 DMA 未 re-arm**——`dma_rx_done` 完成帧 push fifo_out 后 `k_fifo_get(fifo_in, K_NO_WAIT)` 得 NULL 时仅 log "Frame dropped" 即 return（**不调 `reload_dma`**），`active_vbuf` 恒 NULL、DMA 永久 parked；`enqueue` 仅 `k_fifo_put(fifo_in)` 无恢复逻辑；2 buffer 下一次 starvation 即永久停。**我方在 v4.5.0-rc1 树逐环核对全部坐实**（video_esp32_dvp.c：rx_done 127-131 行 NULL 分支无 reload / enqueue 293-303 行仅 put / reload_dma 74-97 行含 NULL 守卫）——与 D-AV「首帧成功、之后 dequeue 永超时」形态完全吻合（APP 帧处理〔zenoh 分片发布〕时延 > 帧间隔 = 常态触发）。维护者建议修复 = enqueue 中 `is_streaming && active_vbuf==NULL` 时 pop 刚入队 buffer + `reload_dma`——**方向正确且该场景并发安全**（parked 后 DMA 无 COMPLETE 回调，active_vbuf 无并发写者）；workaround = `video_stream_stop()+start()`（有效）。**我方补充细微点**：「更多 buffer 只是延迟首停」表述过强——稳态还 buffer 速率 ≥ 帧速率时多 buffer 可撑，但偶发长处理（如 zenoh 重试 5×20ms）下停摆概率随时间趋 1，工程实质等价。**解锁机会**：宿主 av.c 可做 dequeue 超时后 stop/start 自愈（固件侧 workaround，不动上游）——**D-AV 上游阻塞之一可绕行**（后续批候选，随 owner 指令开工）。回帖（确认分析 + rc1 行号佐证）待 owner 确认后发。
 
 
