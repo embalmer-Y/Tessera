@@ -5,6 +5,9 @@
 #include <ts/core.h>
 #include <ts/safety.h>
 #include <zephyr/kernel.h>
+#ifdef CONFIG_TS_STORE_AUDIT
+#include <ts/store.h>
+#endif
 
 #if defined(CONFIG_TS_NET)
 #include <ts/net.h>
@@ -72,8 +75,24 @@ static ts_res_t step_app_load(void)
 /*
  * 顺序 = HLD §4.4（规格，不可调换；只允许尾部追加）：
  * estop GPIO → 全通道 SAFE_POWERON → WDT 启动 → core → net（M3a.2 追加）
- * → app load（M2b.2 追加，步骤 8）。
+ * → app load（M2b.2 追加，步骤 8）→ audit 恢复（V2-2/DEC-52① 追加）。
  */
+#if defined(CONFIG_TS_STORE_AUDIT)
+static ts_res_t step_audit_init(void)
+{
+	/* DEC-52①：flash 审计环游标恢复 + boot 报告（最近 8 条人读留痕）。
+	 * init 失败不阻塞启动（观测面降级——内存环照常工作）。 */
+	ts_res_t r = ts_store_audit_init();
+
+	if (r != TS_OK) {
+		printk("[boot] audit_init 失败 r=%d（flash 审计降级）\n", (int)r);
+		return TS_OK;
+	}
+	ts_store_audit_boot_report();
+	return TS_OK;
+}
+#endif
+
 const ts_boot_step_t ts_boot_steps[TS_BOOT_STEP_COUNT] = {
 	{"estop_gpio", step_estop_gpio},
 	{"safety_poweron", step_safety_poweron},
@@ -84,6 +103,9 @@ const ts_boot_step_t ts_boot_steps[TS_BOOT_STEP_COUNT] = {
 #endif
 #if defined(CONFIG_TS_APP_WAMR)
 	{"app_load", step_app_load},
+#endif
+#if defined(CONFIG_TS_STORE_AUDIT)
+	{"audit_init", step_audit_init},
 #endif
 };
 

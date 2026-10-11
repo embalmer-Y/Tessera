@@ -117,6 +117,7 @@ typedef struct {
 	uint32_t total;    /* app-begin：包总长（LLD-A06 §3） */
 	bool has_offset;
 	uint32_t offset;   /* app-chunk：槽内偏移 */
+	bool has_src_flash; /* get-audit audit_src="flash"（DEC-52①：flash 环读取） */
 	/* app-chunk 数据（零拷贝引用——指向请求缓冲内部，生存期 = handler 调用域；
 	 * 长度上限 CONFIG_TS_NET_APP_CHUNK_MAX） */
 	const uint8_t *chunk;

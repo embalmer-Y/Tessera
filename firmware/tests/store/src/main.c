@@ -281,4 +281,74 @@ ZTEST(framework_store, test_tsap_header)
 	zassert_false(tsap_header_parse(pkg, sizeof(pkg), &v), "回绕头必须拒绝");
 }
 
+#ifdef CONFIG_TS_STORE_AUDIT
+/* V2-2（DEC-52①）：审计 flash 环——写入/读回/重 init 留存（复位语义近似：
+ * 后端数据不动仅重建游标）/两页乒乓翻页与容量上界。RAM/flash 两变体同跑
+ * （flash 变体额外覆盖写对齐垫片与擦除块路径）。 */
+ZTEST(framework_store, test_audit_ring_persist_and_flip)
+{
+	zassert_equal(ts_store_audit_init(), TS_OK);
+
+	ts_store_audit_entry_t e[8];
+
+	zassert_equal(ts_store_audit_read(e, 8), 0, "空环读零");
+
+	for (int i = 0; i < 4; i++) {
+		const ts_audit_entry_t a = {
+			.t_ms = 100 + (uint64_t)i,
+			.ch_idx = 0xFFFF,
+			.res = TS_E_RANGE,
+			.actor = 7,
+			.kind = 2,
+			.value_u = 600,
+		};
+
+		zassert_equal(ts_store_audit_append(&a, 0), TS_OK);
+	}
+	size_t n = ts_store_audit_read(e, 8);
+
+	zassert_equal(n, 4);
+	zassert_equal(e[0].seq, 1);
+	zassert_equal(e[3].seq, 4);
+	zassert_equal(e[3].res, TS_E_RANGE);
+	zassert_equal(e[3].value_u, 600);
+	zassert_equal(e[3].evt, 0);
+
+	/* 留存（复位语义近似）：后端数据不动 → 重 init 游标恢复 → 数据仍在 */
+	zassert_equal(ts_store_audit_init(), TS_OK);
+	n = ts_store_audit_read(e, 8);
+	zassert_equal(n, 4, "重 init 后留存");
+
+	/* 翻页：再写 60 条（总 64 = 页满）→ 第 65 条起翻入对页 */
+	for (int i = 0; i < 61; i++) {
+		const ts_audit_entry_t a = {.t_ms = 200 + (uint64_t)i,
+					    .res = TS_E_STATE};
+
+		zassert_equal(ts_store_audit_append(&a, 1), TS_OK);
+	}
+	static ts_store_audit_entry_t big[130]; /* 静态：130×~32B 栈压力规避 */
+
+	n = ts_store_audit_read(big, 130);
+	zassert_true(n >= 64 && n <= 128, "乒乓过渡窗（64..128）");
+	zassert_equal(big[n - 1].seq, 65, "末条 seq=65");
+
+	/* 重 init 后过渡态恢复一致 */
+	zassert_equal(ts_store_audit_init(), TS_OK);
+	n = ts_store_audit_read(big, 130);
+	zassert_equal(big[n - 1].seq, 65, "翻页后重 init 游标恢复");
+
+	/* 容量上界：再写 39（总 104）→ 环保留最近 ≤128 */
+	for (int i = 0; i < 39; i++) {
+		const ts_audit_entry_t a = {.t_ms = 300 + (uint64_t)i,
+					    .res = TS_E_STATE};
+
+		zassert_equal(ts_store_audit_append(&a, 0), TS_OK);
+	}
+	n = ts_store_audit_read(big, 130);
+	zassert_true(n <= 128, "容量上界");
+	zassert_equal(big[n - 1].seq, 104, "末条 seq=总条数");
+	zassert_equal(big[0].seq, big[n - 1].seq - (uint32_t)n + 1, "seq 连续");
+}
+#endif
+
 ZTEST_SUITE(framework_store, NULL, store_setup, NULL, NULL, NULL);

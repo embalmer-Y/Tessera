@@ -175,7 +175,40 @@ static ts_res_t cmd_get_budget(const ts_net_cmd_args_t *a, uint8_t *r, size_t ca
 
 static ts_res_t cmd_get_audit(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
 {
-	ARG_UNUSED(a);
+	/* DEC-52①：src="flash" = 读 flash 审计环（掉电留存的安全异常，含
+	 * seq/evt 字段）；缺省 = 内存环（既有语义，向后兼容）。 */
+#ifdef CONFIG_TS_STORE_AUDIT
+	if (a->has_src_flash) {
+		static ts_store_audit_entry_t fent[AUDIT_EXPORT_MAX];
+		size_t got = ts_store_audit_read(fent, AUDIT_EXPORT_MAX);
+		size_t p = 0;
+
+		if (!ts_cbor_put_map(r, cap, &p, 2) ||
+		    !ts_cbor_put_tstr(r, cap, &p, "src") ||
+		    !ts_cbor_put_tstr(r, cap, &p, "flash") ||
+		    !ts_cbor_put_tstr(r, cap, &p, "entries") ||
+		    !ts_cbor_put_array(r, cap, &p, (uint32_t)got)) {
+			return TS_E_IO;
+		}
+		for (size_t i = 0; i < got; i++) {
+			const ts_store_audit_entry_t *e = &fent[i];
+
+			if (!ts_cbor_put_array(r, cap, &p, 7) ||
+			    !ts_cbor_put_uint(r, cap, &p, e->seq) ||
+			    !ts_cbor_put_uint(r, cap, &p, e->t_ms) ||
+			    !ts_cbor_put_int(r, cap, &p, e->res) ||
+			    !ts_cbor_put_uint(r, cap, &p, e->ch_idx) ||
+			    !ts_cbor_put_uint(r, cap, &p, e->kind) ||
+			    !ts_cbor_put_uint(r, cap, &p, e->actor) ||
+			    !ts_cbor_put_uint(r, cap, &p, e->evt) ||
+			    !ts_cbor_put_uint(r, cap, &p, e->value_u)) {
+				return TS_E_IO;
+			}
+		}
+		*n = p;
+		return TS_OK;
+	}
+#endif
 	static ts_audit_entry_t entries[AUDIT_EXPORT_MAX];
 	size_t got = ts_safety_audit_copy(entries, AUDIT_EXPORT_MAX);
 
@@ -590,6 +623,17 @@ static bool parse_args_body(ts_cbor_rd_t *r, uint32_t pairs, struct req_env *e)
 			}
 			e->args.offset = (uint32_t)v;
 			e->args.has_offset = true;
+		} else if (e->v2 && strcmp(akey, "audit_src") == 0) {
+			/* DEC-52①：get-audit audit_src="flash"（读 flash 环）；其他值
+			 * 忽略（缺省 = 内存环，向后兼容）。键名避开信封层 src 身份。 */
+			char src[8];
+
+			if (!ts_cbor_tstr(r, src, sizeof(src))) {
+				return false;
+			}
+			if (strcmp(src, "flash") == 0) {
+				e->args.has_src_flash = true;
+			}
 		} else if (e->v2 && strcmp(akey, "data") == 0) {
 			/* bstr 零拷贝引用（生存期 = 分发调用域）；块长上限 =
 			 * CONFIG_TS_NET_APP_CHUNK_MAX（LLD-A06 §3：默认 2048/上限 4096） */

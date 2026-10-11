@@ -10,6 +10,9 @@
  */
 #include <string.h>
 #include <ts/safety.h>
+#ifdef CONFIG_TS_STORE_AUDIT
+#include <ts/store.h>
+#endif
 #include "internal.h"
 
 static struct k_mutex commit_lock = Z_MUTEX_INITIALIZER(commit_lock);
@@ -26,7 +29,9 @@ void ts_safety_write_unlock(void)
 }
 
 /* 审计环形：深度 CONFIG_TS_SAFETY_AUDIT_DEPTH（DEC-27: 64）；溢出覆盖最旧并计数
- * （DR-07；V1 不落盘——DEC-30④）。消费者 = ts-net 遥测合流 + sys:get-audit（M3）。 */
+ * （DR-07）。消费者 = ts-net 遥测合流 + sys:get-audit（M3）。
+ * DEC-52①（V2-2）：异常类（res != TS_OK = 安全态拒绝/fail-safe 拒/限幅
+ * 截断）同步下沉 flash 审计环（掉电留存）；正常流不落盘（热路径磨损）。 */
 static ts_audit_entry_t audit_ring[CONFIG_TS_SAFETY_AUDIT_DEPTH];
 static uint32_t audit_head, audit_count, audit_dropped;
 
@@ -34,13 +39,7 @@ static void audit_append(int ch_idx, ts_ch_kind_t kind, ts_out_value_t v, ts_res
 			 uint16_t actor)
 {
 	uint32_t next = (audit_head + 1) % CONFIG_TS_SAFETY_AUDIT_DEPTH;
-
-	if (audit_count == CONFIG_TS_SAFETY_AUDIT_DEPTH) {
-		audit_dropped++; /* 覆盖最旧（DR-07） */
-	} else {
-		audit_count++;
-	}
-	audit_ring[audit_head] = (ts_audit_entry_t){
+	ts_audit_entry_t e = {
 		.t_ms = ts_time_ms(),
 		.ch_idx = (uint16_t)(ch_idx >= 0 ? ch_idx : 0xFFFF),
 		.res = res,
@@ -49,7 +48,20 @@ static void audit_append(int ch_idx, ts_ch_kind_t kind, ts_out_value_t v, ts_res
 		._rsv = 0,
 		.value_u = ts_value_encode(kind, v),
 	};
+
+	if (audit_count == CONFIG_TS_SAFETY_AUDIT_DEPTH) {
+		audit_dropped++; /* 覆盖最旧（DR-07） */
+	} else {
+		audit_count++;
+	}
+	audit_ring[audit_head] = e;
 	audit_head = next;
+#ifdef CONFIG_TS_STORE_AUDIT
+	if (res != TS_OK) {
+		/* 留痕失败不反噬 commit 路径（观测面降级——失败仅内存环可见） */
+		(void)ts_store_audit_append(&e, 0);
+	}
+#endif
 }
 
 static ts_res_t commit_impl(const char *uid, ts_out_value_t v, uint16_t actor);

@@ -145,13 +145,19 @@ typedef struct {
  * 来源: 结构性数值（步骤计数随里程碑追加更新，HLD §4.4）
  */
 #if defined(CONFIG_TS_NET) && defined(CONFIG_TS_APP_WAMR)
-#define TS_BOOT_STEP_COUNT 6 /* M1 四步 + net_init（M3a.2）+ app_load（M2b.2 步骤 8）；来源: HLD §4.4 */
+#define TS_BOOT_STEP_COUNT_BASE 6 /* M1 四步 + net_init（M3a.2）+ app_load（M2b.2 步骤 8）；来源: HLD §4.4 */
 #elif defined(CONFIG_TS_NET)
-#define TS_BOOT_STEP_COUNT 5 /* M1 四步 + net_init（M3a.2 尾部追加）；来源: HLD §4.4 */
+#define TS_BOOT_STEP_COUNT_BASE 5 /* M1 四步 + net_init（M3a.2 尾部追加）；来源: HLD §4.4 */
 #elif defined(CONFIG_TS_APP_WAMR)
-#define TS_BOOT_STEP_COUNT 5 /* M1 四步 + app_load（M2b.2 步骤 8）；来源: HLD §4.4 */
+#define TS_BOOT_STEP_COUNT_BASE 5 /* M1 四步 + app_load（M2b.2 步骤 8）；来源: HLD §4.4 */
 #else
-#define TS_BOOT_STEP_COUNT 4 /* M1: estop/poweron/wdt/core；来源: 结构性数值（HLD §4.4） */
+#define TS_BOOT_STEP_COUNT_BASE 4 /* M1: estop/poweron/wdt/core；来源: 结构性数值（HLD §4.4） */
+#endif
+#if defined(CONFIG_TS_STORE_AUDIT)
+/* DEC-52①（V2-2 尾部追加）：审计 flash 环恢复 + boot 报告（最近 8 条） */
+#define TS_BOOT_STEP_COUNT (TS_BOOT_STEP_COUNT_BASE + 1)
+#else
+#define TS_BOOT_STEP_COUNT TS_BOOT_STEP_COUNT_BASE
 #endif
 extern const ts_boot_step_t ts_boot_steps[TS_BOOT_STEP_COUNT];
 

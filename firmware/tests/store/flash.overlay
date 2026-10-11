@@ -30,5 +30,10 @@
 			label = "ts-noinit";
 			reg = <0x00083000 0x1000>;
 		};
+		/* DEC-52①（V2-2）：审计 flash 环 8KB（两页 × 4KB × 64 槽 × 64B） */
+		ts_audit_part: partition@84000 {
+			label = "ts-audit";
+			reg = <0x00084000 0x2000>;
+		};
 	};
 };

@@ -24,12 +24,18 @@
 #define PROV_SIZE   4096U
 #define META_SIZE   1024U /* 双副本各 512B */
 #define NOINIT_SIZE 256U
+#ifdef CONFIG_TS_STORE_AUDIT
+#define AUDIT_SIZE  8192U /* DEC-52①：两页乒乓 × 64 槽 × 64B */
+#endif
 
 static uint8_t ram_prov[PROV_SIZE];
 static uint8_t ram_meta[META_SIZE];
 static uint8_t ram_slot_a[CONFIG_TS_STORE_SLOT_SIZE];
 static uint8_t ram_slot_b[CONFIG_TS_STORE_SLOT_SIZE];
 static uint8_t ram_noinit[NOINIT_SIZE];
+#ifdef CONFIG_TS_STORE_AUDIT
+static uint8_t ram_audit[AUDIT_SIZE];
+#endif
 
 static uint8_t *part_ram(ts_store_part_t part, uint32_t *size)
 {
@@ -49,6 +55,11 @@ static uint8_t *part_ram(ts_store_part_t part, uint32_t *size)
 	case TS_PART_NOINIT:
 		*size = NOINIT_SIZE;
 		return ram_noinit;
+#ifdef CONFIG_TS_STORE_AUDIT
+	case TS_PART_AUDIT:
+		*size = AUDIT_SIZE;
+		return ram_audit;
+#endif
 	default:
 		*size = 0;
 		return NULL;
@@ -130,11 +141,21 @@ const ts_store_ops_t ts_store_backend = {
 #define NODE_SLOT_A  DT_NODELABEL(ts_slot_a_part)
 #define NODE_SLOT_B  DT_NODELABEL(ts_slot_b_part)
 #define NODE_NOINIT  DT_NODELABEL(ts_noinit_part)
+#ifdef CONFIG_TS_STORE_AUDIT
+#define NODE_AUDIT   DT_NODELABEL(ts_audit_part)
+#endif
 
 #if !DT_NODE_EXISTS(NODE_PROV) || !DT_NODE_EXISTS(NODE_META) || \
 	!DT_NODE_EXISTS(NODE_SLOT_A) || !DT_NODE_EXISTS(NODE_SLOT_B) || \
 	!DT_NODE_EXISTS(NODE_NOINIT)
 #error "ts-store flash 后端：DT 缺少 ts_*_part 分区（板 overlay 须定义 ts_prov_part / ts_meta_part / ts_slot_a_part / ts_slot_b_part / ts_noinit_part，LLD-ts-store §2）"
+#endif
+#ifdef CONFIG_TS_STORE_AUDIT
+#if !DT_NODE_EXISTS(NODE_AUDIT)
+#error "TS_STORE_AUDIT=y：DT 缺少 ts_audit_part 分区（板 overlay 须定义 8KB ts-audit，DEC-52①）"
+#endif
+BUILD_ASSERT(PARTITION_SIZE(ts_audit_part) == 8192,
+	     "ts_audit_part must be 8192 (two 4KB ping-pong pages, DEC-52①)");
 #endif
 
 /* 分区尺寸与 Kconfig 的硬耦合（fail-closed：错配 = 构建期失败而非运行期越界）。
@@ -169,6 +190,11 @@ static const struct flash_area *flash_fa(ts_store_part_t part)
 	case TS_PART_SLOT_B:
 		id = PARTITION_ID(ts_slot_b_part);
 		break;
+#ifdef CONFIG_TS_STORE_AUDIT
+	case TS_PART_AUDIT:
+		id = PARTITION_ID(ts_audit_part);
+		break;
+#endif
 	default:
 		id = PARTITION_ID(ts_noinit_part);
 		break;
@@ -191,6 +217,10 @@ static uint32_t flash_size(ts_store_part_t part)
 		return PARTITION_SIZE(ts_slot_a_part);
 	case TS_PART_SLOT_B:
 		return PARTITION_SIZE(ts_slot_b_part);
+#ifdef CONFIG_TS_STORE_AUDIT
+	case TS_PART_AUDIT:
+		return PARTITION_SIZE(ts_audit_part);
+#endif
 	default:
 		return PARTITION_SIZE(ts_noinit_part);
 	}

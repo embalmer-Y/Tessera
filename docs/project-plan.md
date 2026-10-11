@@ -90,7 +90,7 @@
 | 序 | 单元 | 内容 | 门 |
 |---|------|------|----|
 | V2-1 | **D-AV 采集自愈 workaround** ✅ | 固件 `src/hal/av.c`：capture 超时计数（现有 400ms 档）连续 N 次 → `video_stream_stop()+start()` + buffer 重 enqueue → 采集恢复；自愈事件 printk 留痕（不触安全合同——纯读面）；**真机 D-AV 全链解锁**：停摆触发→自愈→后续帧到达实证 + **256B 发送档验证**（TS_NET_PUBLISH_MAX_BYTES=256 绕行既有 1KB 损坏缺陷）→ PC 侧 dav_recv 重组 ≥1 完整帧 = **DA PASS**；**回收条件登记**：上游修复随正式版平移后回收 workaround 与 256B 档（R3 同族）——**2026-10-11 交付（超预期）**：采集自愈实证 + **发送层根治**（我方 zenoh glue use-after-overwrite——static_buf 别名 × 环形槽覆盖；拷贝语义修复）+ 64B 档 1843 chunks 零损坏 + 2 帧完整重组 = **DA PASS**（256B 档证伪弃用；上游定性修正：1KB 损坏 = 我方竞争 + 上游大 payload 双缺陷叠加） | — |
-| V2-2 | 审计 flash 持久化（NV-4 实施） | Q-31 裁决后按裁决方案实施（建议案：独立 4KB 分区 64 槽定长环 + sys/get-audit flush 扩展）+ twister 掉电回读用例 + 真机掉电留存验证 | **Q-31 停门**（owner 已呈递待裁；逾时顺延） |
+| V2-2 | 审计 flash 持久化（NV-4 实施）✅ | Q-31 裁决后按裁决方案实施——**2026-10-11 交付（DEC-52①）**：store/audit.c 两页乒乓环（8KB；物理约束实现修正登记：翻页代单条覆盖/仅异常类落盘）+ commit/estop 下沉 + boot 留存报告 + sys/get-audit flash 读取 + auditbench 真机 AB PASS 两轮（注入→复位→留存→seq 连续）；twister 15/15（80）/L5 6/6/agent 113 全绿；顺带拦下两真缺陷（res u8 截断/4KB 栈数组）；**待办**：生产 app flash 面接入（独立批） | 已裁（DEC-52） |
 | V2-3 | sim APP 装载面 + 对拍首基线 ✅ | sim_run 的 replay 固件增加 wasm APP 装载能力（或等价 APP 级 sim 面）→ NV-3 simreal_diff 首基线兑现（同一 APP/场景双跑对拍留档）——**2026-10-11 交付**：replay 加 test_90_nv1_app_load（embed 真机同包 NV1；WAMR 配置）+ sim_run verdict_patterns + diff_lines（尾部对齐）；**首基线 = 判据行逐行严格全等**（7=7，logs/nv1_simreal_baseline.json——确定性合同双域机械实证）；twister 15/15（78，+1）/agent 113 | — |
 | V2-4 | spec 附属证据约束强化 ✅ | LLM 周期行简化对策（NV-6 留档）：spec 附属证据行的生成约束强化（提示词/判据节文法）+ 附属行缺失的 gate 提示级检查——**2026-10-11 交付**：app_develop 首轮提示注入全部判据/附属串（实现面写死）+ repair_loop pass 轮 evidence_hits/missing 统计（缺失如实非阻塞）；pytest 110+2s；LLM 行为改善实证随下次真机全流程顺带观测 | — |
 | 观察 | SYWORK wdt 偶发复位 | reason=0x00020000 间歇复位观察项（NV-1 留档）——不排期，随真机批次顺带取证 | — |
@@ -102,6 +102,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.68 · 2026-10-11：**V2-2 交付（V0.2.x 补批，DEC-52①）**——审计 flash 持久化全链（两页乒乓环 + 异常下沉 + boot 报告 + flash 读取 + auditbench 真机 AB PASS）；V0.2.0 四单元至此全部完成；待办 = 生产 app flash 面接入。
 - v1.67 · 2026-10-11：**V2-3 交付 + V0.2.0 收口（tag fw-v0.2.0）**——sim APP 装载面（replay test_90 + embed 真机同包）+ simreal_diff 首基线（NV1 判据行 sim↔real 严格全等 7=7）；twister 15/15（78）/agent 113 全绿。版本终态：V2-1/V2-3/V2-4 交付 + V2-2 Q-31 停门维持（裁决后随 V0.2.x 补批）。
 - v1.66 · 2026-10-11：V2-4 交付（spec 附属证据强化：提示词注入全部 patterns + repair_loop evidence 统计）；CI 漏步教训修正（NV-3 红定性改 sync_check 漏跑，两次同型事故附注留档）。V0.2.0 单元 3/4（余 V2-2 停门 + V2-3）。
 - v1.65 · 2026-10-11：V2-1 交付（超预期）——**D-AV 全链打通 DA PASS**：采集自愈（#121774 workaround 真机实证）+ **发送层根治**（我方 zenoh glue use-after-overwrite——z_bytes 别名语义 × 环形槽覆盖；拷贝修复；上游"1KB 损坏"定性修正为双缺陷叠加）+ 64B 档零损坏完整帧重组；twister 15/15（77）/agent 109 全绿。V0.2.0 单元 1/4。

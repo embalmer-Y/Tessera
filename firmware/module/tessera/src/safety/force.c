@@ -5,6 +5,9 @@
  * 分配、队列、锁、协议栈符号；仅原子置位 + driver_dispatch 直写。
  */
 #include <ts/safety.h>
+#ifdef CONFIG_TS_STORE_AUDIT
+#include <ts/store.h>
+#endif
 #include "internal.h"
 
 /* noinit 留痕经 ts-store（DR-01/17，M2 交付）；弱桩保持接缝。 */
@@ -88,5 +91,19 @@ void ts_safety_estop_deferred_publish(void)
 			.len = sizeof(payload),
 		};
 		ts_evt_publish(&evt);
+#ifdef CONFIG_TS_STORE_AUDIT
+		/* DEC-52①：estop 沿触发入 flash 审计环（本函数 = sysworkq 线程
+		 * 上下文——ISR 直达路径禁 flash 写，故挂补发点；evt=1 表 estop） */
+		const ts_audit_entry_t au = {
+			.t_ms = ts_time_ms(),
+			.ch_idx = 0xFFFF,
+			.res = TS_E_STATE,
+			.actor = 0,
+			.kind = 0,
+			.value_u = payload.t_ms,
+		};
+
+		(void)ts_store_audit_append(&au, 1);
+#endif
 	}
 }

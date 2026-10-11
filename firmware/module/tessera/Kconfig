@@ -133,6 +133,18 @@ config TS_STORE_FLASH
 	  ts_slot_b_part / ts_noinit_part (BUILD_ASSERT-checked against
 	  TS_STORE_SLOT_SIZE / META_MAX). RAM backend otherwise (native_sim/CI).
 
+config TS_STORE_AUDIT
+	bool "ts-store: persistent audit ring (DEC-52 safety-event flash survival)"
+	depends on TS_STORE
+	default n
+	help
+	  DEC-52 option 1: 8KB ts_audit_part partition, two 4KB ping-pong pages
+	  of 64 fixed 64B slots. Only safety-exception events are persisted
+	  (commit audits with res != TS_OK plus estop-edge triggers); the
+	  in-memory full ring is unchanged. Requires DT node ts_audit_part
+	  (8192 bytes, BUILD_ASSERT) on flash backends. Boot prints the last
+	  8 records; sys/get-audit gains src=flash.
+
 endif # TS_STORE
 
 config TS_HAL
