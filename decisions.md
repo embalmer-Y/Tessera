@@ -702,6 +702,8 @@
 
 **〔2026-10-11 DEC-52② 实测完成〕**：**实验 A（禁自愈对照）**——avdemo 临时 RECOVER_N=0 构建：starvation 触发后 **951 次连续 dequeue timeout（400s 窗口）零帧、无外部干预永不恢复**（铁证 logs/dav_norecover_console2.txt；触发时序条件性 = 帧 N+1 完成于归还前，64B 档长发布期 + 帧率 burst 时必中）；**实验 B（V2-1 自愈单迹）**——timeout n=1→2→stream restart（stop+drain+re-enqueue+start，与维护者建议机制完全一致）→frame 4 恢复。**证据对完整；回帖草稿已备**（logs/issue_121774_reply_draft.md：分析确认 + rc1 行号佐证 + 前后实测数据 + workaround 参考 + 多 buffer 表述补充 + 愿测修复分支），**停门待 owner 过目后经 gh 发出**。实验 conf 已回滚（RECOVER_N 默认 3 恢复）。
 
+**〔2026-10-11 回帖已发（owner 确认草稿）〕**：#121774 回复经 gh 发出——https://github.com/zephyrproject-rtos/zephyr/issues/121774#issuecomment-6106392865（内容 = 草稿全文：rc1 行号佐证 + 951 次超时零恢复/stop-start 恢复实测对 + workaround 参考 + 多 buffer 细微补充 + 愿测修复分支）。上游修复落地后随 v4.5.0 正式平移批回收我方自愈 workaround（R3 同族）。
+
 **背景**：DEC-30④ 裁定「审计 V1 = 内存环形（掉电丢失）」——固件侧安全事件（越权拒绝/estop 触发/限幅截断/system_fail 归因）掉电即失，事后追责与现场诊断无据。NV 版本方向批（2026-10-11）owner 已批「审计环形 flash 持久化」方向，但记录格式/分区布局/溢出策略属门③（文件格式与命令面变更），呈递裁决。
 
 **选项**：
