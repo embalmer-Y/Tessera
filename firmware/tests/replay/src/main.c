@@ -15,7 +15,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <zephyr/kernel.h>
 #include <zephyr/ztest.h>
+#include <ts/appmgr.h>
 #include <ts/core.h>
 #include <ts/hal.h>
 #include <ts/periph.h>
@@ -432,5 +434,40 @@ ZTEST(framework_replay, test_m3b_power_hotplug_integration)
 	zassert_equal(b.slots, 2);
 	ts_time_test_bind(NULL);
 }
+
+#if defined(CONFIG_TS_APP_WAMR)
+/* V2-3 sim APP 装载面：NV1 包（真机同包——nv.nvlab.fixloop.verify，
+ * 测试根签；真机单迹 logs/nv1_PASS_console.txt）在 native_sim 装载运行。
+ * 判据行（nv1 tick cnt=NN / NV1 DONE ticks=05）经 ts_log_write → printk
+ * → stdout，由外部消费（sim_run verdict_patterns / 首基线对拍）——
+ * ztest 内断言装载链与 APP 存活性（判据行机械断言归属 sim↔real 对拍面）。
+ * 纯 log 计数型 APP = 双域兼容（无 ADC/camera 后端依赖）。 */
+#include "nv1_pkg.h"
+
+ZTEST(framework_replay, test_90_nv1_app_load)
+{
+	const uint8_t root_key[32] = {0}; /* TEST 构建：验签 = 固定测试根 */
+	ts_app_info_t info;
+
+	zassert_equal(ts_appmgr_install(nv1_pkg, sizeof(nv1_pkg),
+					root_key, &info), TS_OK,
+		      "install NV1 包（真机同包）");
+	zassert_equal(ts_appmgr_boot_start(), TS_OK, "boot 装载");
+	zassert_true(ts_appmgr_app_running(), "APP 运行中");
+
+	/* APP 终态 = 计数 20 tick（100ms 周期）后 DONE 并停转；等待终态
+	 * 判据行外部可见（判据行不在此断言——stdout 归 sim_run 对拍面）。
+	 * 3.5s = 20 tick + 裕量；轮询终态（不再 running 或超时均收——
+	 * APP 停转与否不阻塞装载链判定，判据行到达才是对拍判据）。 */
+	for (int i = 0; i < 35 && ts_appmgr_app_running(); i++) {
+		k_sleep(K_MSEC(100));
+	}
+	ts_app_info_t after;
+
+	zassert_equal(ts_appmgr_get_info(&after), TS_OK);
+	zassert_true(after.state == TS_APP_ACTIVE ||
+		     after.state == TS_APP_STAGED, "终态在位");
+}
+#endif /* CONFIG_TS_APP_WAMR */
 
 ZTEST_SUITE(framework_replay, NULL, NULL, NULL, NULL, NULL);

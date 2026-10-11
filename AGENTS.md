@@ -6,6 +6,7 @@
 
 ## 1. 当前状态
 
+- **2026-10-11（八十三） · V2-3 交付 + V0.2.0 收口（tag fw-v0.2.0）：sim APP 装载面（replay test_90_nv1_app_load + embed 真机同包）+ simreal_diff 首基线达成——NV1 判据行 sim↔real 逐行严格全等（7=7，确定性合同双域机械实证）；twister 15/15（78）/agent 113/ruff 全绿。V0.2.0 终态：V2-1（D-AV DA PASS）/V2-3/V2-4 交付 + V2-2（审计持久化）Q-31 停门维持待 owner 裁决（裁决后随 V0.2.x 补批）。下一版本候选：上游 issue（zenoh-pico 大 payload/#121774 回帖）、v4.5.0 正式平移 + workaround 回收、V2 级语义项（多 APP 并行/逻辑节点并联）**
 - **2026-10-11（八十二） · V2-4 交付（V0.2.0 单元 4/4 可执行项）：spec 附属证据强化（提示词注入全部判据/附属串 + repair_loop evidence_hits/missing 统计）；CI 漏步教训修正（NV-3 红定性改 sync_check 漏跑——两次同型事故，提交流固定 --update）。V0.2.0 余项：V2-3 sim APP 面（固件面下一会话单元）+ V2-2 停门（Q-31）+ 收口 tag**
 - **2026-10-11（八十一） · V2-1 交付（V0.2.0 单元 1/4，超预期）：D-AV 全链打通 DA PASS——采集自愈（#121774 workaround：超时计数→流重启→帧恢复真机实证）+ 发送层根治（我方 zenoh glue use-after-overwrite：static_buf 别名 × pubq/avq 环形槽覆盖 → 拷贝语义修复；64B 档 1843 chunks 零损坏 + 2 帧完整重组）；上游"1KB 损坏"定性修正 = 我方竞争 + 上游大 payload 双缺陷（64B 档定版绕行，256B 档证伪弃用）；twister 15/15（77）/agent 109/repo 2/2 全绿。V2-2 停门维持，V2-3 sim APP 面随续**
 - **2026-10-11（八十） · owner 裁决 V0.2.0「视频链解锁批」开工（plan §9）：V2-1 D-AV 宿主采集自愈 workaround（av.c 超时→stop/start 重启——上游 #121774 维护者定性 DMA re-arm 缺陷且确认 stop/start 有效，我方源码核实）+ 256B 发送档验证→DA PASS 尝试 / V2-2 审计持久化〔Q-31 停门维持〕 / V2-3 sim APP 装载面 + 对拍首基线 / V2-4 spec 附属证据强化；目标 tag fw-v0.2.0；上游回帖草稿待 owner 确认**

@@ -83,3 +83,48 @@ def diff(sim_map: dict[str, Any], real_map: dict[str, Any],
             ok = sv == rv
         (res.match if ok else res.mismatch)[ch] = {"sim": sv, "real": rv}
     return res
+
+
+# ---- V2-3 判据行级对拍（sim APP 装载面消费）----
+
+_LOG_PREFIX_RE = re.compile(r"^\[[^\]]*\]\s*")
+
+
+def normalize_verdict_line(line: str) -> str:
+    """判据行归一化：去日志前缀（如 "[app1/l3] "）与时间戳尾缀。"""
+    s = _LOG_PREFIX_RE.sub("", line.strip())
+    return s.rstrip()
+
+
+def extract_verdict_lines(console_text: str,
+                          patterns: list[str]) -> list[str]:
+    """按前缀/子串提取判据行（保持出现顺序，逐行归一化）。"""
+    out: list[str] = []
+    for ln in console_text.splitlines():
+        n = normalize_verdict_line(ln)
+        if any(p in n for p in patterns):
+            out.append(n)
+    return out
+
+
+def diff_lines(sim_lines: list[str], real_lines: list[str],
+               *, tail_align: bool = False) -> dict[str, Any]:
+    """判据行序列机械 diff（V2-3 首基线消费）。
+
+    :param tail_align: True = 尾部对齐（真机采集窗口首行截断的采集现实
+        容忍——sim 为超集且尾部一致即过；False = 严格全等）。
+    """
+    sim_cmp, real_cmp = sim_lines, real_lines
+    tail_aligned = False
+    if tail_align and len(sim_lines) > len(real_lines):
+        sim_cmp = sim_lines[-len(real_lines):]
+        tail_aligned = True
+    mismatch = [
+        {"idx": i, "sim": s, "real": r}
+        for i, (s, r) in enumerate(zip(sim_cmp, real_cmp, strict=False))
+        if s != r
+    ]
+    ok = (not mismatch) and len(sim_cmp) == len(real_cmp)
+    return {"pass": ok, "mismatch": mismatch[:8],
+            "sim_len": len(sim_lines), "real_len": len(real_lines),
+            "tail_aligned": tail_aligned}

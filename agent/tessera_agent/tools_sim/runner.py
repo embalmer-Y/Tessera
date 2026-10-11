@@ -85,8 +85,13 @@ async def _replay_build(cfg: AgentConfig, build_dir: Path, log_fn) -> None:
     )
 
 
-async def _replay_run_once(cfg: AgentConfig, build_dir: Path, log_fn) -> list[dict[str, Any]]:
-    """直接执行重放测试二进制（M1 定稿 L4 接口：stdout JSONL + 退出码）。"""
+async def _replay_run_once(
+    cfg: AgentConfig, build_dir: Path, log_fn,
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """直接执行重放测试二进制（M1 定稿 L4 接口：stdout JSONL + 退出码）。
+
+    返回 (写序列, 全部 stdout 行)——行序列供 V2-3 判据行提取（sim APP
+    装载面的判据行经 ts_log_write → printk → stdout）。"""
     exe = build_dir / "zephyr" / "zephyr.exe"
     if not exe.is_file():
         msg = f"重放测试二进制不存在: {exe}"
@@ -111,7 +116,7 @@ async def _replay_run_once(cfg: AgentConfig, build_dir: Path, log_fn) -> list[di
     if not writes:
         msg = "二进制输出未解析到 JSONL 写序列"
         raise TaError(TA_E_SIM, msg, domain="sim", detail={"tail": out["tail"][-10:]})
-    return writes
+    return writes, captured
 
 
 def _evaluate(writes: list[dict[str, Any]], exps: list) -> dict[str, Any]:
@@ -136,7 +141,9 @@ def _evaluate(writes: list[dict[str, Any]], exps: list) -> dict[str, Any]:
     return {"pass": not failed, "assertions": results, "failed": len(failed)}
 
 
-async def sim_run(cfg: AgentConfig, scenario: dict, *, task_id: str, log_fn=None) -> dict:
+async def sim_run(cfg: AgentConfig, scenario: dict, *, task_id: str,
+                  verdict_patterns: list[str] | None = None,
+                  log_fn=None) -> dict:
     try:
         sc = Scenario(**scenario)
     except Exception as exc:  # noqa: BLE001
@@ -149,8 +156,8 @@ async def sim_run(cfg: AgentConfig, scenario: dict, *, task_id: str, log_fn=None
     # 留档任务目录便于排查（task_id 唯一，无跨任务残留）。
     script = build / "replay_script.tsv"
     script.write_text("\n".join(script_lines(sc.inputs)) + "\n", encoding="utf-8")
-    run1 = await _replay_run_once(cfg, build, log_fn)
-    run2 = await _replay_run_once(cfg, build, log_fn)
+    run1, lines1 = await _replay_run_once(cfg, build, log_fn)
+    run2, _lines2 = await _replay_run_once(cfg, build, log_fn)
 
     determinism = run1 == run2  # 双跑逐项一致（合同 9 Agent 侧机械验证）
     evaluation = _evaluate(run1, sc.expectations)
@@ -158,12 +165,22 @@ async def sim_run(cfg: AgentConfig, scenario: dict, *, task_id: str, log_fn=None
         json.dumps(run1, sort_keys=False).encode()
     ).hexdigest()[:16]
 
+    # V2-3 判据行提取（sim APP 装载面：判据行经 stdout，供 simreal_diff
+    # 首基线消费——patterns 命中的行按序归一化提取）
+    verdict_lines: list[str] = []
+    if verdict_patterns:
+        from tessera_agent.tools_diag import simreal_diff as _srd
+
+        verdict_lines = _srd.extract_verdict_lines(
+            "\n".join(lines1), verdict_patterns)
+
     report = {
         "scenario_inputs": len(sc.inputs),
         "writes": len(run1),
         "determinism": determinism,
         "timeline_digest": digest,
         "evaluation": evaluation,
+        "verdict_lines": verdict_lines,
     }
     if not determinism:
         msg = "确定性比对失败（两次运行写序列不一致）"

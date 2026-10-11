@@ -58,3 +58,37 @@ def test_diff_non_numeric_requires_equal():
     assert res.pass_
     res2 = sr.diff({"m": "SAFE_FAULT"}, {"m": "SAFE_ON"})
     assert not res2.pass_
+
+
+# ---- V2-3 判据行级对拍 ----
+
+SIM_LINES = ["[app1/l3] nv1 init", "[app1/l3] nv1 tick cnt=01",
+             "[app1/l3] nv1 tick cnt=02", "[app1/l3] NV1 DONE ticks=05"]
+REAL_TEXT = "[app1/l3] nv1 init\n[app1/l3] nv1 tick cnt=01\n" \
+            "[app1/l3] nv1 tick cnt=02\n[app1/l3] NV1 DONE ticks=05\n"
+
+
+def test_extract_and_diff_lines_full_match():
+    real = sr.extract_verdict_lines(REAL_TEXT, ["nv1", "NV1"])
+    assert real == ["nv1 init", "nv1 tick cnt=01", "nv1 tick cnt=02",
+                    "NV1 DONE ticks=05"]
+    sim = [sr.normalize_verdict_line(x) for x in SIM_LINES]
+    out = sr.diff_lines(sim, real)
+    assert out["pass"] and out["sim_len"] == 4 and out["real_len"] == 4
+
+
+def test_diff_lines_mismatch_detected():
+    sim = ["nv1 init", "nv1 tick cnt=01", "NV1 DONE ticks=05"]
+    real = ["nv1 init", "nv1 tick cnt=09", "NV1 DONE ticks=05"]
+    out = sr.diff_lines(sim, real)
+    assert not out["pass"]
+    assert out["mismatch"][0]["idx"] == 1
+
+
+def test_diff_lines_tail_align_tolerates_truncation():
+    sim = ["nv1 init", "tick 01", "tick 02", "NV1 DONE ticks=05"]
+    real = ["tick 02", "NV1 DONE ticks=05"]   # 采集窗口首截断形态
+    out = sr.diff_lines(sim, real, tail_align=True)
+    assert out["pass"] and out["tail_aligned"]
+    out2 = sr.diff_lines(sim, real)
+    assert not out2["pass"]                    # 严格模式如实不过

@@ -169,17 +169,23 @@ class FirmwareDomainPack(DomainPackBase):
 
         @mcp.tool
         @audited("sim_run")
-        async def sim_run(scenario: dict) -> dict:
+        async def sim_run(scenario: dict,
+                          verdict_patterns: list[str] | None = None) -> dict:
             """运行确定性重放仿真（inputs 落 replay_script.tsv 驱动固件脚本会话；
             双跑比对 + 期望评估；长任务句柄）。期望值按规格推导（slew/限幅数学），
-            禁"跑一遍拿输出当基准"；ch 命名空间见 sim_validate_scenario。"""
-            args = {"scenario": scenario}
+            禁"跑一遍拿输出当基准"；ch 命名空间见 sim_validate_scenario。
+            verdict_patterns（V2-3 可选）= 判据行子串——命中行按序归一化
+            提取进 report.verdict_lines（sim APP 装载面的判据行，供
+            simreal_diff 首基线对拍消费）。"""
+            args = {"scenario": scenario,
+                    "verdict_patterns": verdict_patterns}
             task_id = f"simrun-{secrets.token_hex(4)}"
 
             async def body(task) -> dict:
                 log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
-                return await sim_runner.sim_run(ctx.cfg, scenario, task_id=task_id,
-                                                log_fn=log)
+                return await sim_runner.sim_run(
+                    ctx.cfg, scenario, task_id=task_id,
+                    verdict_patterns=verdict_patterns, log_fn=log)
 
             return await spawn("sim_run", args, body)
 
