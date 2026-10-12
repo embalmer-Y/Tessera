@@ -9,7 +9,7 @@
 
 int main(void)
 {
-	printk("Tessera firmware (M1: ts-core + ts-safety)\n");
+	printk("Tessera firmware (ts-core + ts-safety + ts-store)\n");
 	ts_core_boot(); /* noreturn */
 	CODE_UNREACHABLE;
 }
