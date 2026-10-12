@@ -306,3 +306,36 @@ def test_sim_e2e(tmp_path: Path):
     assert report["evaluation"]["pass"] is True
     # 写序列 = rep_c×4 + rep_d fault×1 + in:0 回显×1（输入文件模式纯净流）
     assert report["writes"] == 6
+
+
+def test_evaluate_t_window_semantics():
+    """V0.4.0 M12（IR-18 收口）：eq/within 只看最后输入 + t_window 窗内写。"""
+    from tessera_agent.tools_sim.runner import _evaluate
+    from tessera_agent.tools_sim.scenario import SimExpectation
+
+    writes = [
+        {"ch": "led", "value_u": 500, "t_ms": 100},
+        {"ch": "led", "value_u": 700, "t_ms": 900},   # 窗外（horizon=500, 窗 0）
+        {"ch": "led", "value_u": 900, "t_ms": 5010},  # 窗 5000 内
+    ]
+    # horizon=500：窗 0 → 只见 t≤500 → last=500
+    r = _evaluate(writes, [SimExpectation(ch="led", op="eq", value=500)],
+                  horizon_ms=500)
+    assert r["pass"] is True
+    # 窗 0 但窗内无写（ch2）→ 失败（证据不足非静默通过）
+    r = _evaluate(writes, [SimExpectation(ch="led", op="eq", value=900)],
+                  horizon_ms=500)
+    assert r["pass"] is False
+    # 窗 5000 → 含 t=5010? 不（5010 > 500+5000=5500? 5010 ≤ 5500 → 含）→ last=900
+    r = _evaluate(writes, [SimExpectation(ch="led", op="eq", value=900,
+                                          t_window_ms=5000)],
+                  horizon_ms=500)
+    assert r["pass"] is True
+    assert r["assertions"][0]["window_bound_ms"] == 5500
+    # horizon=None（旧行为）→ 全窗 → last=900
+    r = _evaluate(writes, [SimExpectation(ch="led", op="eq", value=900)])
+    assert r["pass"] is True
+    # count = 全量语义（窗不裁）
+    r = _evaluate(writes, [SimExpectation(ch="led", op="count", value=3,
+                                          t_window_ms=0)], horizon_ms=500)
+    assert r["pass"] is True

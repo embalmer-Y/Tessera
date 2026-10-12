@@ -119,10 +119,18 @@ async def _replay_run_once(
     return writes, captured
 
 
-def _evaluate(writes: list[dict[str, Any]], exps: list) -> dict[str, Any]:
+def _evaluate(writes: list[dict[str, Any]], exps: list,
+              horizon_ms: int | None = None) -> dict[str, Any]:
+    """期望评估（IR-18 收口，V0.4.0 M12）：eq/within 只看
+    t_ms ≤ horizon_ms + e.t_window_ms 窗内的写（horizon = 最后输入时刻；
+    t_window 缺省 0 = 全窗 = 旧行为）；count = 全量计数语义（窗不裁）。
+    窗内无写 = 失败（缺省证据不足，非静默通过）。"""
     results = []
     for e in exps:
         ch_writes = [w for w in writes if w["ch"] == e.ch]
+        if horizon_ms is not None and e.op in ("eq", "within"):
+            bound = horizon_ms + e.t_window_ms
+            ch_writes = [w for w in ch_writes if w["t_ms"] <= bound]
         got = [w["value_u"] for w in ch_writes]
         ok = False
         detail: dict[str, Any] = {"op": e.op, "ch": e.ch, "values": got[:8]}
@@ -135,6 +143,8 @@ def _evaluate(writes: list[dict[str, Any]], exps: list) -> dict[str, Any]:
         elif e.op == "count":
             ok = len(got) == e.value
             detail["expected_count"] = e.value
+        if e.t_window_ms and e.op in ("eq", "within"):
+            detail["window_bound_ms"] = (horizon_ms or 0) + e.t_window_ms
         detail["pass"] = ok
         results.append(detail)
     failed = [r for r in results if not r["pass"]]
@@ -160,7 +170,8 @@ async def sim_run(cfg: AgentConfig, scenario: dict, *, task_id: str,
     run2, _lines2 = await _replay_run_once(cfg, build, log_fn)
 
     determinism = run1 == run2  # 双跑逐项一致（合同 9 Agent 侧机械验证）
-    evaluation = _evaluate(run1, sc.expectations)
+    horizon = sc.inputs[-1].t_ms if sc.inputs else None
+    evaluation = _evaluate(run1, sc.expectations, horizon_ms=horizon)
     digest = hashlib.sha256(
         json.dumps(run1, sort_keys=False).encode()
     ).hexdigest()[:16]
