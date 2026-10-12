@@ -105,14 +105,14 @@
 
 | 序 | 单元 | 内容 | 门 |
 |---|------|------|----|
-| M1 | **F1 多 APP 设计批** | 现状代码分析 + 线程/内存/权限/调度/存储五面设计 + **Q-32 呈递停门**（含 fs_paths 绑定形态重设计——IR2 §8 拦路项） | 门③（Q-32） |
-| M2 | F3 ts_log 权限裁决 + 日志真实化 | ts_log_write 经 ts-hal 裁决（IR-16）+ 速率限制；log 类权限语义定稿 | — |
-| M3 | C-1 稳定性定性单元 | SYWORK wdt 偶发复位 + LLM APP DONE 后死亡两观察项取证定性（含 LLM 生成循环退出语义约束反哺 app_develop 提示词） | — |
-| M4 | A2 caps 硬预校验 | spec_gate caps 文法提示级→硬校验（IR-17 收口；与 manifest 校验双层） | — |
-| M5 | F6 输入中断驱动 | DR-02：input monitor 轮询→中断/混合驱动 | — |
-| M6 | F1 实现Ⅰ（框架面） | Q-32 裁决后：slot/meta 多 APP 存储 + 装载链 + G4 语义演进 | 已裁后无门 |
-| M7 | F1 实现Ⅱ（运行时面） | 多实例并行调度（tick/evt 路由 by app_id）+ 看门狗配额分账 + fs_paths 重设计收口 + 板级 bench（multiappbench） | — |
-| M8 | F4 manifest threads 字段 | WAMR 线程特性（权限门控+计数+栈预算，DEC-31）；依赖 M6/M7 | 门③（小 Q 随批） |
+| M1 | **F1 多 APP 设计批** ✅ | Q-32 六子项呈递 → DEC-53 全按建议裁决 | 已裁（DEC-53） |
+| M2 | F3 ts_log 权限裁决 + 日志真实化 ✅ | log 权限类 fail-closed + 全局窗口限速 + TEST 自动授予 | — |
+| M3 | C-1 稳定性定性单元 ✅ | LLM APP 死亡定案（health_ping 非零返回误解）+ 语义门；SYWORK wdt 维持观察 | — |
+| M4 | A2 caps 硬预校验 ✅ | caps/fs_paths 提示级→错误级（IR-17 收口） | — |
+| M5 | F6 输入中断驱动 ✅ | GPIO_IN 纳入监测 + 边沿回调 ISR 纯净钩子（DR-02 收口） | — |
+| M6 | F1 实现Ⅰ（框架面） ✅ | 槽池可配 + meta v2 + v1 迁移 + per-entry 状态机 | — |
+| M7 | F1 实现Ⅱ（运行时面） ✅ | rt[N] + 分账 + 广播 + deploybench 真机 MA PASS（M7b/M7c 含寻址面） | — |
+| M8 | F4 manifest threads 字段 ✅ | Q-33 申报制（1-4）+ 运行时恒单线程（启用留 V0.5+） | 已裁（Q-33 批内） |
 | M9 | F2 APP 状态持久化 | DR-15：升级/回滚后业务状态保留（kv 面 or ts-fs 白名单域） | 门③（小 Q 随批） |
 | M10 | A1 push_prov | zenoh 维护模式 prov 通道（LLD-A06 §6 例外收口；维护模式语义 Q 随批呈递） | 门③（小 Q） |
 | M11 | A3 D-AV 消费端 + ota_client 重建 | dav_recv 帧重组重写 + ota_client.py 重建（丢失资产）+ D-AV 纵深（帧率/画质档） | — |
