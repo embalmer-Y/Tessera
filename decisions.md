@@ -812,3 +812,25 @@
 - 2026-10-12 · **M11 交付（A3 丢失资产重建：dav_recv + ota_client 入仓 tools/board/）**：① `tools/board/dav_recv.py`——D-AV 帧重组消费端重建（订阅 `tessera/*/*/av/*/frame`，CBOR 信封 {fid,cid,n,crc,d} 按 fid 收齐 → IEEE crc32 校验 → 落盘 .rgb565；BESTEFFORT 丢片容忍 + 同 fid 分片数一致性防御）；② `tools/board/ota_client.py`——MCUmgr SMP UDP 客户端重建（8B 头 op|flags|len|seq|group(16b)|id + CBOR；image group：upload 分块〔384B 实证档〕/state test/confirm；重试 5×300ms）；**本地假 SMP 服务器对练烟测 PASS**（1024B 三块上传字节全量一致 + test/confirm rc=0——协议帧级验证不依赖板）；③ 真机链路判据（D-AV 帧重组 ≥2 帧 / OTA upload→swap→confirm）随板级复跑批（V0.4.0 收口前）；**tools/board 目录就此以重建内容回归仓库**（丢失事件闭环：34 脚本 → 结案按需重写 → 首两件落地）。
 
 - 2026-10-13 · **M12 交付（接缝包——价值排序裁剪落地）**：① **A8 t_window_ms（IR-18 收口）**：sim 期望评估器实装时间窗语义——eq/within 只评估 `最后输入时刻 + t_window_ms` 窗内写（缺省 0 = 旧行为全窗；窗内无写 = 失败非静默通过；count 保持全量语义）；测试 +1（四窗形）；② **A7 Streamable HTTP 门面**：`tessera-agent serve --transport http --host --port`（FastMCP 原生；默认 127.0.0.1:9956——外网暴露 owner 显式；HLD §9 上限 2 并发约束维持）；③ **A4 ACP / A5 A2A 按价值裁剪维持接口级预留**（core/peer.py Protocol + McpFrontend 在位；启用条件 = 真实消费者出现〔ACP 客户端接入 / A2A 对端〕——无消费牵引的协议面实例化 = 投机面，plan §11「按价值排序裁剪」条款行使，如实登记）。agent **119+2s**/ruff 全绿。
+
+## Q-35（逻辑节点（多立方体并联）架构方案——M13 设计批呈递停门，2026-10-13）
+
+> 范围：FOUNDING DEC-02 遗留题 + Q-07 预留（V1 仅命名空间/接口预留）。F1 已并行的**单 cube 多 APP** 与本项**多 cube 一业务**正交。
+
+**三选项**：
+
+- **A（建议）：Agent 侧编排**——逻辑节点 = Agent 层编排对象：LN 注册表（成员 cube 表 + 拓扑 + 组策略）+ 命令扇出/状态聚合（zenoh 键虚拟化：`tessera/<ln-id>/<member>/sys/...`——**固件零改动**，键空间天然支持）+ 组安全策略（组 estop = 并行单 cube estop 全员确认；成员 linkloss = 组降级〔继续/暂停 owner 可配〕——**V1 安全合同零变更**，每 cube 独立合同闭环，组语义 = Agent 层策略）。实现面：LN registry + deploy 组播 + 状态聚合视图 + sim 双立方体测试；体量 1-2 会话。
+- B：cube 侧分布式 mesh（成员 P2P 协调 + 分布式安全仲裁——合同体系需新设计（跨 cube 一致性/拜占庭面），体量 4+ 会话，V1 合同全保的代价极高）。
+- C：router 侧编排（zenohd 路由规则承载业务逻辑——层次违背，排除）。
+
+**建议 A**：安全合同不变性（每 cube fail-closed 独立闭环）+ 固件零改动 + 体量可控；B 的分布式安全仲裁为 V2+ 大题（真实多 cube 场景牵引时再启）。**A 的已知限制（如实）**：Agent 单点（编排可用性依赖 PC 侧）；组操作非原子（扇出逐 cube，失败成员部分应用——聚合视图如实呈现）。
+
+**待 owner 裁决**：A/B/C 或例外。批准 A → M13 实现Ⅰ（LN registry + 编排器 + sim 双 cube 测试）随续。
+
+## Q-36（PDM 音频采集 API 面——M14 实作批呈递，2026-10-13；md12c §4 既定点执行）
+
+> 依据：md12c-pdm-eval §4「音频采集 API 归属 av 类——涉权限文法/公共 API = 门③呈递」。
+
+**建议（批内按此实施）**：**av 类音频变体**——① manifest `av_fmt` 扩枚举 **"pcm16"**（mono 16kHz 16-bit——MP34DT05 硬件降采样档；帧语义 = 320 采样/帧 = 640B 定长，`av_w`=采样率/1000、`av_h` 弃用语义留 0）；`av:read:0` 权限复用（采集面同语义）；② 驱动 `CONFIG_TS_DRV_PDM`（默认 n）：zephyr,user `pdm-uid` + pinctrl（**引脚按原理图核验档实施第一步：疑似 GPIO42 CLK / GPIO41 DATA**）+ i2s_ll PDM RX（hal_espressif 寄存器层，零上游补丁）+ GDMA 环形缓冲；native_sim = 确定性桩（零数据 + 桩计数）；③ 消费者 = D-PDM demo（采集 → ts_net_publish 分片〔avq 通道复用，fid=帧号〕→ PC 侧落盘 .pcm）；④ ts_av_capture 返回语义按 fmt 分派（图像帧/音频帧同 API——调用方按 manifest 声明知晓形态）。*备选 B = 独立 ts_audio_* API 面（新 natives + 权限类——面更大，av 类已含"采集"语义，不推荐）。*
+
+- 2026-10-13 · **V0.4.0 收口（tag fw-v0.4.0）：语义扩展批终态——15 单元 = 13 交付 + 2 呈递停门**。① **交付面**：M1 设计批（Q-32/DEC-53）/M2 日志面（IR-16）/M3 稳定性定性+health_ping 语义门/M4 caps 硬校验（IR-17）/M5 输入中断（DR-02）/M6 存储面（槽池+meta v2）/M7 运行时并行（rt[N] + **真机双 APP MA PASS**）/M7b 寻址面/M8 threads 申报制（Q-33）/M9 kv 状态持久化（DR-15）/M10 push_prov（Q-34）/M11 丢失资产重建（dav_recv+ota_client）/M12 接缝价值裁剪（t_window IR-18 + HTTP 门面）。② **停门项**（V0.2.0/V2-2 先例——随 V0.4.x 补批）：M13 逻辑节点（**Q-35**：建议 A = Agent 侧编排——固件零改动 + V1 安全合同不变 + zenoh 键虚拟化；B = cube 侧分布式安全仲裁〔4+ 会话大题〕）；M14 PDM（**Q-36**：av 类 pcm16 变体 + TS_DRV_PDM 寄存器级路径在档——md12c 既定点执行，引脚原理图核验为实施第一步）。③ **回归终态**：twister 15/15（**92 用例**——V0.3.0 的 80 → 92，+12）/agent **119+2s**（+6）/L5 6/6/repo 2/host 工具链 m32 ✓；真机面：双 APP 并行 MA PASS（证据 docs/evidence/ma_PASS_console.txt）+ 板级 kv/prov/接缝判据随板级复跑批。④ **版本性质**：V1→V2 语义跨越落地（多 APP 并行点亮）+ Agent 能力面铺开（kv/prov 远程运维 + HTTP 远程门面 + 质量门三连）。
