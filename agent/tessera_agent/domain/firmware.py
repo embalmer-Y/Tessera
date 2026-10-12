@@ -76,7 +76,7 @@ class FirmwareDomainPack(DomainPackBase):
         "fw_workspace_status", "fw_build", "fw_twister", "fw_pytest",
         "sim_validate_scenario", "sim_run",
         "tsap_keygen", "tsap_package", "tsap_verify",
-        "deploy_discover", "deploy_status", "deploy_push_app",
+        "deploy_discover", "deploy_status", "deploy_push_app", "deploy_push_prov",
         "app_develop", "app_deploy", "app_compile",
         "diag_classify", "spec_check", "simreal_diff",
     ])
@@ -87,6 +87,7 @@ class FirmwareDomainPack(DomainPackBase):
         # 审批类别声明（只可收紧；HLD §5.1）
         "tsap_keygen": "strict",
         "deploy_push_app": "strict",
+        "deploy_push_prov": "strict",
         "app_develop": "confirm",
         "app_deploy": "strict",
         "diag_classify": "confirm",
@@ -253,6 +254,43 @@ class FirmwareDomainPack(DomainPackBase):
                     return net_deploy.status(svc, node, cube)
 
             return await asyncio.to_thread(work)
+
+        @mcp.tool
+        @audited("deploy_push_prov")
+        async def deploy_push_prov(node: str, cube: str, prov_path: str,
+                                   holder: str = "tessera-agent") -> dict:
+            """远程 prov 维护通道（V0.4.0 M10/Q-34；strict：挂起宿主审批）。
+
+            硬点：lease 门控 + confirm 令牌 + 固件写前全量 schema 校验 +
+            per-boot 一次性窗（再写须复位循环）；生效 = 下次复位（applies=
+            next-reboot）。prov_path = prov CBOR v1 schema 文件（不构造内容）。
+            高危操作（换身份/根钥）——生产部署前安全评审（Q-34 B 升级项）。"""
+            args = {"node": node, "cube": cube, "prov_path": prov_path,
+                    "holder": holder}
+
+            async def body(task) -> dict:
+                log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
+                approval = ctx.approvals.request(
+                    "deploy_push_prov", args,
+                    reason="strict 类：远程 prov 维护写入（换身份/根钥——高危）",
+                )
+                task.state = "input_required"
+                try:
+                    await ctx.approvals.wait(approval)
+                finally:
+                    task.state = "working"
+
+                def work() -> dict:
+                    cbor = Path(prov_path).read_bytes()
+                    with ZenohService(ctx.cfg.router_locator) as svc:
+                        return net_deploy.push_prov(
+                            svc, node, cube, cbor, holder=holder, log_fn=log,
+                        )
+
+                return await asyncio.to_thread(work)
+
+            return await ctx.registry.start(
+                "deploy_push_prov", args, body, budget=ctx.budget)
 
         @mcp.tool
         @audited("deploy_push_app")

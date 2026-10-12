@@ -24,7 +24,7 @@ from tessera_agent.tools_tsap import tools as tsap_tools
 class FakeCube:
     """deploy 依赖面（query/query_one）的最小固件语义实现。"""
 
-    GATED = {"app-begin", "app-chunk", "app-verify", "app-activate"}
+    GATED = {"app-begin", "app-chunk", "app-verify", "app-activate", "prov-write"}
 
     def __init__(self, node: str = "fn", cube: str = "fc") -> None:
         self.node, self.cube = node, cube
@@ -39,6 +39,8 @@ class FakeCube:
         self.facts_override: dict | None = None
         self.verify_calls = 0
         self.activate_calls = 0
+        self.prov_blob: bytes | None = None
+        self.prov_written = False
 
     # -- 传输面 --
     def query(self, key: str, payload: bytes, timeout_s: float = 10.0):
@@ -81,6 +83,17 @@ class FakeCube:
                 return self._enc(rid, -4, {})
             self.lease_holder = None
             return self._enc(rid, 0, {"released": True})
+        if op == "prov-write":
+            if args.get("confirm") != "prov":
+                return self._enc(rid, -1, {})
+            data = args.get("data")
+            if not data:
+                return self._enc(rid, -1, {})
+            if self.prov_written:
+                return self._enc(rid, -5, {})  # per-boot 窗（Q-34）
+            self.prov_blob = bytes(data)
+            self.prov_written = True
+            return self._enc(rid, 0, {"written": True, "applies": "next-reboot"})
         if op == "app-begin":
             self.stage = {"total": args["total"], "hw": 0, "verified": False,
                           "slot": self.active_slot ^ 1,
@@ -267,3 +280,19 @@ def test_push_app_chunk_size_bounds(tmp_path):
     with pytest.raises(TaError) as ei:
         deploy.push_app(FakeCube(), "fn", "fc", pkg, pub, chunk_size=4097)
     assert ei.value.code == TA_E_ARGS
+
+
+def test_push_prov_happy_path_and_window():
+    """V0.4.0 M10（Q-34）：远程 prov 维护通道——租约闭环 + per-boot 窗。"""
+    fc = FakeCube()
+    blob = b"\xa1cprov"  # 任意 CBOR 字节（FakeCube 不验内容）
+
+    r = deploy.push_prov(fc, "fn", "fc", blob, log_fn=lambda s: None)
+    assert r["written"] is True
+    assert r["applies"] == "next-reboot"
+    assert fc.prov_blob == blob
+    assert fc.lease_holder is None, "租约已释放"
+
+    # per-boot 窗：同 boot 二次 = 固件 E_STATE（-5 → CmdError）
+    with pytest.raises(deploy.CmdError):
+        deploy.push_prov(fc, "fn", "fc", b"\xa1cother", log_fn=lambda s: None)

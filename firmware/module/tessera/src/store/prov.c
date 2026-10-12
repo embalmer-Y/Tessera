@@ -18,6 +18,9 @@
 
 static ts_prov_t prov;
 
+/* V0.4.0 M10（Q-34）：schema 走查（validate 与 load 共用——定义在 load 后） */
+static ts_res_t prov_walk(const uint8_t *cbor, uint32_t cbor_len, ts_prov_t *out);
+
 /* ---- 定长 schema 解码（buf 内指针推进） --------------------------------- */
 
 typedef struct {
@@ -132,6 +135,13 @@ ts_res_t ts_store_prov_load(void)
 		return TS_E_IO; /* CRC 失败 → 调用方 fail-safe（合同 6） */
 	}
 
+	return prov_walk(cbor, cbor_len, &prov);
+}
+
+/* V0.4.0 M10（Q-34）：schema 走查提取——validate（维护通道写入前校验）
+ * 与 load 共用同一条确定性解析路径（单一事实源）。 */
+static ts_res_t prov_walk(const uint8_t *cbor, uint32_t cbor_len, ts_prov_t *out)
+{
 	rd_t r = {.p = cbor, .rem = cbor_len};
 	uint8_t ib;
 
@@ -163,12 +173,12 @@ ts_res_t ts_store_prov_load(void)
 			}
 			break;
 		case 1:
-			if (!rd_tstr(&r, prov.node_id, sizeof(prov.node_id))) {
+			if (!rd_tstr(&r, out->node_id, sizeof(out->node_id))) {
 				return TS_E_IO;
 			}
 			break;
 		case 2:
-			if (!rd_tstr(&r, prov.cube_id, sizeof(prov.cube_id))) {
+			if (!rd_tstr(&r, out->cube_id, sizeof(out->cube_id))) {
 				return TS_E_IO;
 			}
 			break;
@@ -184,33 +194,33 @@ ts_res_t ts_store_prov_load(void)
 				return TS_E_IO;
 			}
 			for (uint32_t i = 0; i < n; i++) {
-				if (!rd_tstr(&r, prov.router_locators[i],
-					     sizeof(prov.router_locators[i]))) {
+				if (!rd_tstr(&r, out->router_locators[i],
+					     sizeof(out->router_locators[i]))) {
 					return TS_E_IO;
 				}
 			}
 			for (uint32_t i = n; i < 4; i++) {
-				prov.router_locators[i][0] = '\0';
+				out->router_locators[i][0] = '\0';
 			}
 			break;
 		}
 		case 4:
-			if (!rd_bstr(&r, prov.root_pubkeys[0], 32)) {
+			if (!rd_bstr(&r, out->root_pubkeys[0], 32)) {
 				return TS_E_IO;
 			}
 			break;
 		case 5:
-			if (!rd_bstr(&r, prov.root_pubkeys[1], 32)) {
+			if (!rd_bstr(&r, out->root_pubkeys[1], 32)) {
 				return TS_E_IO;
 			}
 			break;
 		case 6:
-			if (!rd_tstr(&r, prov.zenoh_cred, sizeof(prov.zenoh_cred))) {
+			if (!rd_tstr(&r, out->zenoh_cred, sizeof(out->zenoh_cred))) {
 				return TS_E_IO;
 			}
 			break;
 		case 7:
-			if (!rd_uint(&r, &prov.power_budget_ma)) {
+			if (!rd_uint(&r, &out->power_budget_ma)) {
 				return TS_E_IO;
 			}
 			break;
@@ -218,11 +228,21 @@ ts_res_t ts_store_prov_load(void)
 			if (!rd_uint(&r, &u) || u > 0xFFU) {
 				return TS_E_IO; /* estop 标志域 u8（防静默截断，IR-10） */
 			}
-			prov.estop_trigger_flags = (uint8_t)u;
+			out->estop_trigger_flags = (uint8_t)u;
 			break;
 		}
 	}
 	return TS_OK;
+}
+
+ts_res_t ts_store_prov_validate(const uint8_t *cbor, uint32_t len)
+{
+	if (cbor == NULL || len == 0 || len > 3800) {
+		return TS_E_PARAM;
+	}
+	ts_prov_t scratch;
+
+	return prov_walk(cbor, len, &scratch);
 }
 
 const ts_prov_t *ts_store_prov(void)

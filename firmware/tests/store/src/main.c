@@ -83,6 +83,37 @@ static void *store_setup(void)
 	return NULL;
 }
 
+/* V0.4.0 M10（Q-34）：维护写通道——校验先行 + per-boot 一次性窗 --------- */
+
+ZTEST(framework_store, test_prov_maint_channel)
+{
+	/* 执行序自足 */
+	zassert_equal(ts_store_test_reset(), TS_OK);
+	ts_store_prov_maint_test_reset();
+	struct cb c;
+
+	/* 非法 blob = 零写入（schema 走查失败 → E_IO；分区保持擦除态） */
+	build_prov_cbor(&c, "n", "c", "r", 1);
+	c.b[3] ^= 0xFF; /* 破坏 schema（节点串区） */
+	zassert_equal(ts_store_prov_write_maint(c.b, c.n), TS_E_IO);
+	zassert_equal(ts_store_prov_load(), TS_E_IO, "零写入（分区仍空）");
+
+	/* 合法 blob → 写入 + 新身份装载 + 窗生效 */
+	build_prov_cbor(&c, "mn-7", "mc-7", "tcp/10.1.1.1:9955", 700);
+	zassert_equal(ts_store_prov_write_maint(c.b, c.n), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_OK);
+	zassert_ok(strcmp(ts_store_prov()->node_id, "mn-7"));
+	zassert_equal(ts_store_prov()->power_budget_ma, 700);
+
+	build_prov_cbor(&c, "mn-8", "mc-8", "tcp/10.1.1.2:9955", 800);
+	zassert_equal(ts_store_prov_write_maint(c.b, c.n), TS_E_STATE,
+		      "per-boot 一次性窗（再写须复位）");
+	ts_store_prov_maint_test_reset(); /* 窗复位（模拟复位循环） */
+	zassert_equal(ts_store_prov_write_maint(c.b, c.n), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_OK);
+	zassert_ok(strcmp(ts_store_prov()->node_id, "mn-8"));
+}
+
 ZTEST(framework_store, test_prov_ok)
 {
 	struct cb c;

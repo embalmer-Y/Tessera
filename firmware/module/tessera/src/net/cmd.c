@@ -24,7 +24,7 @@
 #include <zephyr/sys/printk.h>
 #include "internal.h"
 
-#define CMD_TABLE_MAX  16 /* 7 基础 sys + 3 租约（DEC-41）+ 5 部署面（MA3.1）+ 余量 */
+#define CMD_TABLE_MAX  17 /* 7 基础 sys + 3 租约（DEC-41）+ 5 部署面（MA3.1）+ prov-write（M10）+ 余量 */
 #define RESP_DATA_MAX  384 /* data 暂存上限（回执总预算 512 内扣除头） */
 #define REQ_TO_MAX_MS  5000 /* 带内超时上界（DEC-40：断链窗口 6000 − 余量） */
 #define RID_MAX        16
@@ -261,8 +261,44 @@ static ts_res_t cmd_set_time(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap,
 	return TS_OK;
 }
 
-static ts_res_t cmd_estop_clear(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
+/* V0.4.0 M10（Q-34/DEC-53）：维护模式 prov 写通道——lease 门控（gated 表
+ * 项）+ confirm="prov" 硬令牌（estop-clear 同型）+ 写前全量 schema 校验
+ * （prov_maint.c fail-closed）+ per-boot 一次性窗。生效 = 下次复位装载。 */
+static ts_res_t cmd_prov_write(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
 {
+	size_t p = 0;
+
+	if (strcmp(a->confirm, "prov") != 0) {
+		if (ts_cbor_put_map(r, cap, &p, 1) && ts_cbor_put_tstr(r, cap, &p, "need") &&
+		    ts_cbor_put_tstr(r, cap, &p, "confirm=prov")) {
+			*n = p;
+		}
+		return TS_E_PARAM;
+	}
+	if (a->chunk == NULL || a->chunk_len == 0) {
+		if (ts_cbor_put_map(r, cap, &p, 1) && ts_cbor_put_tstr(r, cap, &p, "need") &&
+		    ts_cbor_put_tstr(r, cap, &p, "data")) {
+			*n = p;
+		}
+		return TS_E_PARAM;
+	}
+	ts_res_t res = ts_store_prov_write_maint(a->chunk, a->chunk_len);
+
+	if (res != TS_OK) {
+		return res; /* 校验失败/窗已用/写失败——零副作用或如实 */
+	}
+	if (!ts_cbor_put_map(r, cap, &p, 2) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "written") ||
+	    !ts_cbor_put_bool(r, cap, &p, true) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "applies") ||
+	    !ts_cbor_put_tstr(r, cap, &p, "next-reboot")) {
+		return TS_E_IO;
+	}
+	*n = p;
+	return TS_OK;
+}
+
+static ts_res_t cmd_estop_clear(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n){
 	/* 确认令牌硬点（DEC-30①）：confirm != "estop" → 拒绝（防误触） */
 	size_t p = 0;
 
@@ -1022,6 +1058,7 @@ ts_res_t ts_net_cmd_sys_init(void)
 		{"sys/get-audit", cmd_get_audit, false},
 		{"sys/set-time", cmd_set_time, false},
 		{"sys/estop-clear", cmd_estop_clear, false},
+		{"sys/prov-write", cmd_prov_write, true}, /* M10（Q-34）：gated = v2+租约 */
 		{"sys/lease-acquire", cmd_lease_acquire, false},
 		{"sys/lease-release", cmd_lease_release, false},
 		{"sys/lease-get", cmd_lease_get, false},

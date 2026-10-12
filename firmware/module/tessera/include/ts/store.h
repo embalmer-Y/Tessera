@@ -61,6 +61,12 @@ typedef struct {
 ts_res_t ts_store_prov_load(void);      /* init 期一次；失败 = TS_E_IO */
 const ts_prov_t *ts_store_prov(void);   /* [any] 只读指针；无运行时写接口（合同 10） */
 
+/* V0.4.0 M10（Q-34）：维护通道（zenoh prov-write）——写入前全量 schema 校验
+ * （与 load 同一确定性解析路径）+ per-boot 一次性窗（RAM 旗：每次远程换 prov
+ * 必须经一次复位循环——可观测且限速；prov.c 本体零写不变，L5 纪律）。 */
+ts_res_t ts_store_prov_validate(const uint8_t *cbor, uint32_t len);
+ts_res_t ts_store_prov_write_maint(const uint8_t *cbor, uint32_t len);
+
 /* ---- noinit 留痕（§5）：复位原因 / WDT 报告 ------------------------------ */
 
 void ts_store_noinit_put(const void *rec, uint16_t len);
@@ -126,6 +132,10 @@ ts_res_t ts_store_meta_corrupt_test(uint8_t copy_idx);
 #ifdef CONFIG_TS_STORE_KV
 /* kv 游标复位（后端抹除后重扫描；V0.4.0 M9 测试隔离） */
 void ts_store_kv_test_reset(void);
+#endif
+#ifdef CONFIG_TS_STORE
+/* prov 维护窗 RAM 旗复位（V0.4.0 M10 测试隔离） */
+void ts_store_prov_maint_test_reset(void);
 #endif
 #endif
 

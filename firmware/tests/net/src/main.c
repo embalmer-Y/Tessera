@@ -1205,4 +1205,37 @@ ZTEST(framework_net, test_12_avq)
 	fake_pub_fail = 0;
 }
 
+/* V0.4.0 M10（Q-34）：prov-write 令牌门（正路径归 framework.store 维护通道测试） */
+
+ZTEST(framework_net, test_13_prov_write_gate)
+{
+	uint8_t req[192];
+	uint8_t resp[192];
+	size_t rlen;
+	size_t rl2 = 0;
+
+	ts_net_test_reset();
+	ts_net_cmd_test_reset();
+	ts_net_lease_test_reset(); /* 执行序自足（前序用例租约残留） */
+	zassert_equal(ts_net_cmd_sys_init(), TS_OK);
+
+	/* gated 命令：先取租约（holder = 信封 src "t-agent"） */
+	rlen = build_req_v2(req, sizeof(req), "lease-acquire", "rid-pw0",
+			    "holder", "t-agent", 0, NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/lease-acquire", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_OK);
+
+	/* 错误 confirm → E_PARAM（need 提示） */
+	rlen = build_req_v2(req, sizeof(req), "prov-write", "rid-pw1",
+			    "confirm", "wrong", 0, NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/prov-write", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_PARAM);
+
+	/* 正确 confirm 但缺 data → E_PARAM（need data） */
+	rlen = build_req_v2(req, sizeof(req), "prov-write", "rid-pw2",
+			    "confirm", "prov", 0, NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/prov-write", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_PARAM);
+}
+
 ZTEST_SUITE(framework_net, NULL, NULL, NULL, NULL, NULL);

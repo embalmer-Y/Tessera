@@ -249,3 +249,60 @@ def push_app(
                 result["released"] = False
                 result["release_error"] = exc.to_payload()
                 log(f"WARN lease release 失败（TTL 兜底失权）: {exc.message}")
+
+
+def push_prov(
+    svc: ZenohService,
+    node: str,
+    cube: str,
+    cbor: bytes,
+    *,
+    holder: str = keys.DEFAULT_SRC,
+    log_fn: Callable[[str], None] | None = None,
+) -> dict[str, Any]:
+    """远程 prov 维护通道（V0.4.0 M10，Q-34/DEC-53；LLD-A06 §6 例外收口）。
+
+    lease 门控 + confirm="prov" 硬令牌 + 固件侧写前全量 schema 校验 +
+    per-boot 一次性窗（再写须复位循环）。生效 = 下次复位（返回 applies
+    ="next-reboot"——调用方按需复位板）。cbor = prov CBOR v1 schema 字节
+    （gen 脚本/迁移工具产出；本函数不构造内容）。"""
+    log = log_fn or (lambda s: None)
+    if not cbor:
+        msg = "prov cbor 为空"
+        raise TaError(TA_E_ARGS, msg, domain="deploy")
+    if len(cbor) > 3800:
+        msg = f"prov cbor 超上限 3800: {len(cbor)}"
+        raise TaError(TA_E_ARGS, msg, domain="deploy")
+
+    lease_acquired = False
+    result: dict[str, Any] = {}
+    n = [0]
+
+    def rid(tag: str) -> str:
+        n[0] += 1
+        return f"prov-{tag}-{n[0]:03d}"
+
+    try:
+        acq = _cmd_ok(svc, node, cube, "lease-acquire", rid("pacq"),
+                      holder=holder)
+        lease_acquired = True
+        result["lease_id"] = acq.get("lease_id")
+        log(f"lease acquired: id={acq.get('lease_id')} holder={holder}")
+
+        r = _cmd_ok(svc, node, cube, "prov-write", rid("pw"),
+                    confirm="prov", data=cbor, holder=holder)
+        result["written"] = r.get("written")
+        result["applies"] = r.get("applies", "next-reboot")
+        log(f"prov written={result['written']}（生效 = 下次复位）")
+        return result
+    finally:
+        if lease_acquired:
+            try:
+                _cmd_ok(svc, node, cube, "lease-release", rid("prel"),
+                        holder=holder)
+                result["released"] = True
+                log("lease released")
+            except TaError as exc:
+                result["released"] = False
+                result["release_error"] = exc.to_payload()
+                log(f"WARN lease release 失败（TTL 兜底失权）: {exc.message}")
