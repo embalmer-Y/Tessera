@@ -113,13 +113,13 @@
 | M6 | F1 实现Ⅰ（框架面） ✅ | 槽池可配 + meta v2 + v1 迁移 + per-entry 状态机 | — |
 | M7 | F1 实现Ⅱ（运行时面） ✅ | rt[N] + 分账 + 广播 + deploybench 真机 MA PASS（M7b/M7c 含寻址面） | — |
 | M8 | F4 manifest threads 字段 ✅ | Q-33 申报制（1-4）+ 运行时恒单线程（启用留 V0.5+） | 已裁（Q-33 批内） |
-| M9 | F2 APP 状态持久化 | DR-15：升级/回滚后业务状态保留（kv 面 or ts-fs 白名单域） | 门③（小 Q 随批） |
-| M10 | A1 push_prov | zenoh 维护模式 prov 通道（LLD-A06 §6 例外收口；维护模式语义 Q 随批呈递） | 门③（小 Q） |
-| M11 | A3 D-AV 消费端 + ota_client 重建 | dav_recv 帧重组重写 + ota_client.py 重建（丢失资产）+ D-AV 纵深（帧率/画质档） | — |
-| M12 | 接缝落地打包 | A4 AcpFrontend + A5 A2A PeerTransport 实例化 + A7 Streamable HTTP 门面 + A8 t_window_ms（IR-18）；按价值排序裁剪 | 门③（协议面，随批） |
-| M13 | F7 逻辑节点设计+实现Ⅰ | 跨立方体拓扑/编址/安全仲裁（FOUNDING DEC-02/Q-07）；依赖 M6/M7 | 门③（设计） |
-| M14 | F5 PDM 音频 | 驱动接入（md12c 方案在档）+ 消费者 demo（音频采集→发布，D 阶梯扩） | — |
-| M15 | 收口 | 全量回归 + 板级验证 + tag fw-v0.4.0 | — |
+| M9 | F2 APP 状态持久化 ✅ | ts-store kv 两页乒乓 + app_id 哈希归属 + kv natives/权限类（DR-15 收口） | — |
+| M10 | A1 push_prov ✅ | Q-34 A+：confirm 令牌+写前校验+per-boot 窗+prov_maint 独立通道（LLD-A06 §6 收口） | 已裁（Q-34 批内） |
+| M11 | A3 D-AV 消费端 + ota_client 重建 ✅ | tools/board 回归：dav_recv + ota_client（假 SMP 对练烟测 PASS）；真机链随板级批 | — |
+| M12 | 接缝落地打包 ✅（价值裁剪） | t_window 评估语义（IR-18 收口）+ HTTP 门面（A7）；ACP/A2A 维持接口级预留（裁剪登记） | — |
+| M13 | F7 逻辑节点设计批 ✅（呈递） | **Q-35 呈递停门**（建议 A：Agent 侧编排——固件零改动+合同不变）；实现Ⅰ随裁决（V0.4.x 补批） | 门③（Q-35 停门） |
+| M14 | F5 PDM 音频（呈递） | **Q-36 呈递停门**（av 类 pcm16 变体 + TS_DRV_PDM 路径在档）；实施随裁决（V0.4.x 补批——寄存器级驱动独立会话） | 门③（Q-36，md12c 既定点） |
+| M15 | 收口 ✅ | twister 15/15（92）/agent 119+2s/L5 6/6/repo 2 全绿 + tag fw-v0.4.0；M13/M14 停门项随 V0.4.x 补批（V2-2 先例） | — |
 
 - **质量债随批清偿**（不单开）：C-4 低风险打包债（impl-review-02 §4 族）随 M2-M7 各批顺带；WAMR version.h 屏障源头取证随 M3；CI 间歇红观察维持。
 - **每单元后**：twister 15/15 + agent pytest + L5 回归（军规 10）。
