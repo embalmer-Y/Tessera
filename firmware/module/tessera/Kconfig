@@ -117,6 +117,26 @@ config TS_STORE_SLOT_SIZE
 	help
 	  Source: DEC-23 (slot sizes are per-board configurable; native_sim baseline).
 
+config TS_STORE_SLOT_COUNT
+	int "APP slot pool count (Q-32②, V0.4.0 M6)"
+	range 2 4
+	default 2
+	help
+	  Slot pool = per-APP double-slot ping-pong pairs: 2 slots per
+	  TS_APP_MAX_INSTANCES. Default 2 (single APP, legacy layout). 4 slots
+	  requires ts_slot_c_part/ts_slot_d_part DT nodes on flash builds
+	  (build-time fail-closed). Slots beyond this count are rejected by
+	  ts_store_slot_* regardless.
+
+config TS_APP_MAX_INSTANCES
+	int "max concurrent APP instances (Q-32①, V0.4.0)"
+	range 1 4
+	default 1
+	help
+	  V1 semantics = 1 (single active APP). Storage/meta faces (M6) are
+	  instance-count aware; runtime parallelism (M7) activates N>1. Compile
+	  guard: 2*TS_APP_MAX_INSTANCES <= TS_STORE_SLOT_COUNT.
+
 config TS_STORE_SIM_DIR
 	string "native_sim backend directory (host files)"
 	default "tessera_store"

@@ -7,8 +7,9 @@
 #include <ts/tsap.h>
 #include <stdbool.h>
 
-/* 运行时 APP 状态（slot.c 定义，pkg.c 引用） */
-extern ts_app_info_t current_app;
+/* 运行时 APP 状态（slot.c 定义，pkg.c 引用）——M6 起按 entry 索引
+ * （current_apps[e]；legacy 单 APP 语义 = entry 0） */
+extern ts_app_info_t current_apps[CONFIG_TS_APP_MAX_INSTANCES];
 extern bool initialized;
 
 /* verify.c（DEC-49）：全量验签（头 v2 → 摘要 → COSE ed25519）与 boot 快校验 */

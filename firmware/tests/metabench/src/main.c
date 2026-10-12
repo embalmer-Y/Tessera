@@ -43,29 +43,29 @@ int main(void)
 	ts_res_t r = ts_store_meta_read(&meta, &len);
 
 	dump_copies("boot");
-	printk("MB1 read=%d slot=%u gen=%u len=%u\n", (int)r, meta.active_slot,
-	       meta.boot_gen, len);
+	printk("MB1 read=%d slot=%u gen=%u len=%u\n", (int)r,
+	       meta.entries[0].active_slot, meta.entries[0].boot_gen, len);
 
 	if (r != TS_OK) {
-		/* 首启（双副本擦除态）：从 0 起步 */
-		memset(&meta, 0, sizeof(meta));
+		/* 首启（双副本擦除态）：从缺省起步 */
+		ts_appmgr_meta_default(&meta);
 	}
-	if (meta.boot_gen >= 6) {
+	if (meta.entries[0].boot_gen >= 6) {
 		printk("MB DONE 六轮完成：末态 slot=%u gen=%u\n",
-		       meta.active_slot, meta.boot_gen);
+		       meta.entries[0].active_slot, meta.entries[0].boot_gen);
 		for (;;) {
 			k_sleep(K_SECONDS(5));
 			printk("MB alive\n");
 		}
 	}
-	meta.active_slot = (uint8_t)(meta.boot_gen + 1);
-	meta.rollback_count = 0;
-	meta.boot_gen = (uint16_t)(meta.boot_gen + 1);
-	meta.app_ver_u32 = 0;
+	meta.entries[0].active_slot = (uint8_t)(meta.entries[0].boot_gen + 1);
+	meta.entries[0].rollback_count = 0;
+	meta.entries[0].boot_gen = (uint16_t)(meta.entries[0].boot_gen + 1);
+	meta.entries[0].app_ver_u32 = 0;
 	r = ts_store_meta_write(&meta, sizeof(meta));
 	printk("MB2 write gen=%u slot=%u r=%d（预期写 copy%d）\n",
-	       meta.boot_gen, meta.active_slot, (int)r,
-	       (meta.boot_gen % 2 == 1) ? 0 : 1);
+	       meta.entries[0].boot_gen, meta.entries[0].active_slot, (int)r,
+	       (meta.entries[0].boot_gen % 2 == 1) ? 0 : 1);
 	dump_copies("post");
 
 	k_sleep(K_SECONDS(2));

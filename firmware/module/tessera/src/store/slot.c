@@ -11,15 +11,26 @@
 
 static ts_res_t slot_of(uint8_t slot, ts_store_part_t *part)
 {
-	if (slot == 0) {
+	switch (slot) {
+	case 0:
 		*part = TS_PART_SLOT_A;
 		return TS_OK;
-	}
-	if (slot == 1) {
+	case 1:
 		*part = TS_PART_SLOT_B;
 		return TS_OK;
+#if CONFIG_TS_STORE_SLOT_COUNT >= 3
+	case 2:
+		*part = TS_PART_SLOT_C;
+		return TS_OK;
+#endif
+#if CONFIG_TS_STORE_SLOT_COUNT >= 4
+	case 3:
+		*part = TS_PART_SLOT_D;
+		return TS_OK;
+#endif
+	default:
+		return TS_E_PARAM;
 	}
-	return TS_E_PARAM;
 }
 
 ts_res_t ts_store_slot_write(uint8_t slot, uint32_t off, const void *buf, uint32_t len)

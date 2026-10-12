@@ -21,14 +21,16 @@ static struct {
 	bool verified;
 	uint32_t total;
 	uint32_t high_water; /* 已写最大 offset+len（断点续传进度） */
-	uint8_t slot;        /* inactive slot */
+	uint8_t slot;        /* inactive slot（绝对槽号） */
+	uint8_t entry;       /* 目标 entry（Q-32②；legacy 单 APP = 0） */
 } stage;
 
-ts_res_t ts_appmgr_stage_begin(uint32_t total_len, uint8_t *slot_out)
+ts_res_t ts_appmgr_stage_begin_n(uint32_t total_len, uint8_t entry, uint8_t *slot_out)
 {
 	/* v2 容器下限：头 16 + 摘要 32 + 最小 manifest/COSE + 签名域 */
 	if (total_len < TSAP_CONTENT_OFF + 8 + 18 + 64 ||
-	    total_len > CONFIG_TS_STORE_SLOT_SIZE) {
+	    total_len > CONFIG_TS_STORE_SLOT_SIZE ||
+	    entry >= CONFIG_TS_APP_MAX_INSTANCES) {
 		return TS_E_PARAM;
 	}
 	ts_appmgr_meta_t meta;
@@ -40,11 +42,20 @@ ts_res_t ts_appmgr_stage_begin(uint32_t total_len, uint8_t *slot_out)
 		 * 显式恢复安装（目标 slot 0），printk 可观测（IR2-07：不静默） */
 		printk("[appmgr] meta unreadable (r=%d) — recovery install to slot 0\n",
 		       (int)mr);
-		memset(&meta, 0, sizeof(meta));
+		ts_appmgr_meta_default(&meta);
+	}
+	/* 目标槽 = entry 对内乒乓（绝对槽号 ^1）。entry 超出现有 count = 新
+	 * APP 位（默认 active = 对基 2e → 目标 2e+1）；存量 entry 的
+	 * active_slot 越对（损坏面）= 回退对基（fail-safe，不静默扩散）。 */
+	uint8_t base = (uint8_t)(2 * entry);
+
+	if (meta.count > entry &&
+	    (meta.entries[entry].active_slot >> 1) == entry) {
+		base = meta.entries[entry].active_slot;
 	}
 	/* flash 后端：安装前抹除目标 slot（物理只可 1→0；RAM 后端 = 0xFF 复位）。
 	 * begin 可重入重置 = 重装同槽亦经此处（重置语义保持）。 */
-	uint8_t target = meta.active_slot ^ 1;
+	uint8_t target = base ^ 1;
 	ts_res_t er = ts_store_slot_erase(target);
 
 	if (er != TS_OK) {
@@ -55,10 +66,16 @@ ts_res_t ts_appmgr_stage_begin(uint32_t total_len, uint8_t *slot_out)
 	stage.active = true;
 	stage.total = total_len;
 	stage.slot = target;
+	stage.entry = entry;
 	if (slot_out != NULL) {
 		*slot_out = stage.slot;
 	}
 	return TS_OK;
+}
+
+ts_res_t ts_appmgr_stage_begin(uint32_t total_len, uint8_t *slot_out)
+{
+	return ts_appmgr_stage_begin_n(total_len, 0, slot_out);
 }
 
 ts_res_t ts_appmgr_stage_chunk(uint32_t off, const uint8_t *data, uint32_t len,
@@ -124,10 +141,10 @@ ts_res_t ts_appmgr_stage_verify(const uint8_t root_pubkey[32],
 	return TS_OK;
 }
 
-ts_res_t ts_appmgr_stage_activate(ts_app_info_t *out)
+ts_res_t ts_appmgr_stage_activate_n(uint8_t entry, ts_app_info_t *out)
 {
-	if (!stage.active || !stage.verified) {
-		return TS_E_STATE; /* 未验证不得激活（fail-closed） */
+	if (!stage.active || !stage.verified || entry != stage.entry) {
+		return TS_E_STATE; /* 未验证不得激活（fail-closed）；entry 与 begin 不符 = 拒绝 */
 	}
 	/* 5. 激活对拍（IR2-02 次账收口）：摘要重哈希 == 头摘要（verify 后
 	 * 的持久化完整性复查）+ 摘要入 meta（boot 快校验对象）。 */
@@ -149,7 +166,8 @@ ts_res_t ts_appmgr_stage_activate(ts_app_info_t *out)
 	 * workaround（deploybench DB4）。收敛后语义：激活即停，装载周期 =
 	 * 下次 boot（WAMR 换包怪癖〔已知偏差②〕——STAGED 待加载，不热换）。
 	 * 卡死（E_TIMEOUT）：生产照常翻转（WDT 升级重启后装载新槽收敛）；
-	 * TEST 如实失败返回（无复位面）。 */
+	 * TEST 如实失败返回（无复位面）。M6 运行时单实例：activate 任意
+	 * entry 均停当前运行者（M7 随 rt[] 分账为「同 app_id 替换即停」）。 */
 	if (ts_appmgr_app_running()) {
 		ts_res_t sr = ts_appmgr_app_stop();
 
@@ -162,33 +180,42 @@ ts_res_t ts_appmgr_stage_activate(ts_app_info_t *out)
 #endif
 		}
 	}
-	/* 6. meta 原子切换（active_slot = staging slot + 摘要随载） */
+	/* 6. meta 原子切换（entry active_slot = staging slot + 摘要随载；
+	 * 新 entry 位 = count 扩展） */
 	ts_appmgr_meta_t meta;
 	ts_res_t mr = ts_appmgr_meta_read(&meta);
 
 	if (mr != TS_OK) {
-		memset(&meta, 0, sizeof(meta)); /* 恢复安装路径（begin 已 printk） */
+		ts_appmgr_meta_default(&meta); /* 恢复安装路径（begin 已 printk） */
 	}
-	meta.active_slot = stage.slot;
-	meta.rollback_count = 0; /* 新安装重置回滚计数 */
-	memcpy(meta.content_digest, digest, TSAP_DIGEST_SIZE);
+	if (meta.count < entry + 1) {
+		meta.count = entry + 1;
+	}
+	meta.entries[entry].active_slot = stage.slot;
+	meta.entries[entry].rollback_count = 0; /* 新安装重置回滚计数 */
+	memcpy(meta.entries[entry].content_digest, digest, TSAP_DIGEST_SIZE);
 	r = ts_appmgr_meta_write(&meta);
 	if (r != TS_OK) {
 		return r;
 	}
 	/* 7. 更新运行时信息（与 install 一致） */
-	memset(&current_app, 0, sizeof(current_app));
-	current_app.state = TS_APP_STAGED;
-	current_app.active_slot = stage.slot;
-	current_app.rollback_count = 0;
+	memset(&current_apps[entry], 0, sizeof(current_apps[entry]));
+	current_apps[entry].state = TS_APP_STAGED;
+	current_apps[entry].active_slot = stage.slot;
+	current_apps[entry].rollback_count = 0;
 	if (out != NULL) {
-		*out = current_app;
+		*out = current_apps[entry];
 	}
 	initialized = true;
 	const ts_evt_t evt = {.id = TS_EVT_APP_LOADED, .t_ms = ts_time_ms()};
 	ts_evt_publish(&evt);
 	memset(&stage, 0, sizeof(stage)); /* 终态清台（下轮 begin 重置） */
 	return TS_OK;
+}
+
+ts_res_t ts_appmgr_stage_activate(ts_app_info_t *out)
+{
+	return ts_appmgr_stage_activate_n(0, out);
 }
 
 /* ---- 整包一次式安装（本地路径；= 分步链的组合，行为与 M2b.1 一致）-------- */

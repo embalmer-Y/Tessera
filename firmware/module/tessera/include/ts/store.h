@@ -24,6 +24,10 @@ typedef enum {
 	TS_PART_META,
 	TS_PART_SLOT_A,
 	TS_PART_SLOT_B,
+	TS_PART_SLOT_C, /* V0.4.0 M6（Q-32②）：槽池扩至 4（每 APP 双槽乒乓 ×
+			* TS_APP_MAX_INSTANCES=2）；TS_STORE_SLOT_COUNT<4 的构建
+			* 不提供后端存储（size=0，slot_of 拒收） */
+	TS_PART_SLOT_D,
 	TS_PART_NOINIT,
 	TS_PART_AUDIT, /* DEC-52①：审计 flash 环（8KB 两页乒乓；无此分区的板
 			* 降级——audit init 留痕失败、内存环保留） */

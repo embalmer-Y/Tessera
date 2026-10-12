@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
-/* 双 slot + meta 管理 + 生命周期状态机（LLD-ts-appmgr §3/§4）。
- * meta 经 ts-store 掉电安全 kv（LLD-ts-store §3）；回滚计数超限 → QUARANTINED。 */
+/* 槽池 + meta v2 管理 + 生命周期状态机（LLD-ts-appmgr §3/§4；Q-32②/DEC-53）。
+ * meta 经 ts-store 掉电安全 kv（LLD-ts-store §3）；回滚计数超限 → QUARANTINED
+ * （per entry）。entry e 槽对 = {2e, 2e+1}（绝对槽号，^1 = 对内乒乓翻转）。 */
 #include <string.h>
 #include <ts/appmgr.h>
 #include <ts/core.h>
@@ -15,31 +16,68 @@
 #include <ts/hal.h> /* ts_fs_paths_bind / ts_av_config_bind（DEC-47⑤③） */
 #endif
 
-ts_app_info_t current_app;
+/* Q-32①②编译守卫：槽池容量须容纳 每 entry 双槽乒乓 */
+_Static_assert(2 * CONFIG_TS_APP_MAX_INSTANCES <= CONFIG_TS_STORE_SLOT_COUNT,
+	       "slot pool too small: 2*TS_APP_MAX_INSTANCES <= TS_STORE_SLOT_COUNT (Q-32)");
+
+ts_app_info_t current_apps[CONFIG_TS_APP_MAX_INSTANCES];
 bool initialized;
 
 #ifdef CONFIG_TS_TEST
 void ts_appmgr_test_reset(void)
 {
 	initialized = false;
-	memset(&current_app, 0, sizeof(current_app));
+	memset(current_apps, 0, sizeof(current_apps));
 }
 #endif
+
+/* v1 meta 布局（M6 前单条 40B——长度判别迁移用；与 entry 同构） */
+typedef struct {
+	uint8_t active_slot;
+	uint8_t rollback_count;
+	uint16_t boot_gen;
+	uint32_t app_ver_u32;
+	uint8_t content_digest[32];
+} meta_v1_t;
+
+void ts_appmgr_meta_default(ts_appmgr_meta_t *meta)
+{
+	memset(meta, 0, sizeof(*meta));
+	meta->ver = TS_APPMGR_META_VER;
+	meta->count = 1;
+	meta->entries[0].active_slot = 0;
+}
 
 ts_res_t ts_appmgr_meta_read(ts_appmgr_meta_t *meta)
 {
 	if (meta == NULL) return TS_E_PARAM;
 	uint16_t len = 0;
 
-	if (ts_store_meta_read(meta, &len) != TS_OK || len != sizeof(*meta)) {
-		memset(meta, 0, sizeof(*meta));
-		meta->active_slot = 0;
-		/* IR2-07：空板首装与双副本皆损在此同象（store 层不可分辨）——
-		 * 如实上报 E_IO，不静默伪造成有效 meta；调用方按各自语义处置
-		 * （boot = 不装载；install = 显式恢复安装〔begin printk 可观测〕） */
-		return TS_E_IO;
+	if (ts_store_meta_read(meta, &len) == TS_OK) {
+		if (len == sizeof(meta_v1_t)) {
+			/* v1 → v2 迁移（同构直拷 entries[0]；下次写持久化 v2） */
+			meta_v1_t v1;
+
+			memcpy(&v1, meta, sizeof(v1));
+			ts_appmgr_meta_default(meta);
+			meta->entries[0].active_slot = v1.active_slot;
+			meta->entries[0].rollback_count = v1.rollback_count;
+			meta->entries[0].boot_gen = v1.boot_gen;
+			meta->entries[0].app_ver_u32 = v1.app_ver_u32;
+			memcpy(meta->entries[0].content_digest, v1.content_digest,
+			       sizeof(v1.content_digest));
+			return TS_OK;
+		}
+		if (len == sizeof(*meta) && meta->ver == TS_APPMGR_META_VER &&
+		    meta->count >= 1 && meta->count <= CONFIG_TS_APP_MAX_INSTANCES) {
+			return TS_OK;
+		}
 	}
-	return TS_OK;
+	/* IR2-07：空板首装与双副本皆损在此同象（store 层不可分辨）——
+	 * 如实上报 E_IO，不静默伪造成有效 meta；调用方按各自语义处置
+	 * （boot = 不装载；install = 显式恢复安装〔begin printk 可观测〕） */
+	ts_appmgr_meta_default(meta);
+	return TS_E_IO;
 }
 
 ts_res_t ts_appmgr_meta_write(const ts_appmgr_meta_t *meta)
@@ -47,42 +85,57 @@ ts_res_t ts_appmgr_meta_write(const ts_appmgr_meta_t *meta)
 	return ts_store_meta_write(meta, (uint16_t)sizeof(*meta));
 }
 
-ts_res_t ts_appmgr_get_info(ts_app_info_t *out)
+ts_res_t ts_appmgr_get_info_n(uint8_t entry, ts_app_info_t *out)
 {
-	if (out == NULL) return TS_E_PARAM;
+	if (out == NULL || entry >= CONFIG_TS_APP_MAX_INSTANCES) {
+		return TS_E_PARAM;
+	}
 	if (!initialized) {
 		/* 首次调用：从 meta 恢复（掉电重启路径）；不可读（空板/双损）=
 		 * 缺省可观测态（不静默写回——IR2-07） */
 		ts_appmgr_meta_t meta;
+		bool have = ts_appmgr_meta_read(&meta) == TS_OK;
 
-		if (ts_appmgr_meta_read(&meta) == TS_OK) {
-			current_app.active_slot = meta.active_slot;
-			current_app.rollback_count = meta.rollback_count;
+		for (uint8_t e = 0; e < CONFIG_TS_APP_MAX_INSTANCES; e++) {
+			if (have && e < meta.count) {
+				current_apps[e].active_slot =
+					meta.entries[e].active_slot;
+				current_apps[e].rollback_count =
+					meta.entries[e].rollback_count;
+			}
+			current_apps[e].state = TS_APP_STAGED;
 		}
-		current_app.state = TS_APP_STAGED;
 		initialized = true;
 	}
-	*out = current_app;
+	*out = current_apps[entry];
 	return TS_OK;
 }
 
-ts_res_t ts_appmgr_rollback(void)
+ts_res_t ts_appmgr_get_info(ts_app_info_t *out)
 {
+	return ts_appmgr_get_info_n(0, out);
+}
+
+ts_res_t ts_appmgr_rollback_n(uint8_t entry)
+{
+	if (entry >= CONFIG_TS_APP_MAX_INSTANCES) return TS_E_PARAM;
 	if (!initialized) return TS_E_STATE;
-	if (current_app.state != TS_APP_ACTIVE && current_app.state != TS_APP_ROLLBACK) {
+	ts_app_info_t *ca = &current_apps[entry];
+
+	if (ca->state != TS_APP_ACTIVE && ca->state != TS_APP_ROLLBACK) {
 		return TS_E_STATE;
 	}
-	if (current_app.rollback_count >= TS_APPMGR_ROLLBACK_LIMIT) {
+	if (ca->rollback_count >= TS_APPMGR_ROLLBACK_LIMIT) {
 		/* DEC-27 #9：超限 → QUARANTINED（终态，不循环回滚） */
-		current_app.state = TS_APP_QUARANTINED;
-		/* G4（单元 H）：隔离持久化——meta.rollback_count = LIMIT+1 为拒载
-		 * 标记（boot_start 判据；运行时计数仍如实 = LIMIT）。写失败留痕：
-		 * 本 boot 已隔离，重启后重走一次装载判定（不静默伪造终态）。 */
+		ca->state = TS_APP_QUARANTINED;
+		/* G4（单元 H）：隔离持久化——meta entry.rollback_count = LIMIT+1
+		 * 为拒载标记（boot_start 判据）；写失败留痕（重启重走判定）。 */
 		ts_appmgr_meta_t meta;
 
 		if (ts_appmgr_meta_read(&meta) == TS_OK &&
-		    meta.rollback_count <= TS_APPMGR_ROLLBACK_LIMIT) {
-			meta.rollback_count = TS_APPMGR_ROLLBACK_LIMIT + 1;
+		    meta.count > entry &&
+		    meta.entries[entry].rollback_count <= TS_APPMGR_ROLLBACK_LIMIT) {
+			meta.entries[entry].rollback_count = TS_APPMGR_ROLLBACK_LIMIT + 1;
 			if (ts_appmgr_meta_write(&meta) != TS_OK) {
 				printk("[appmgr] quarantine marker persist failed\n");
 			}
@@ -92,33 +145,34 @@ ts_res_t ts_appmgr_rollback(void)
 		return TS_E_ROLLBACK_LIMIT;
 	}
 	/* IR2-07：回滚闭环——目标槽先全量验签（头 v2/摘要/ed25519），
-	 * 空/坏槽 = 如实失败且不翻转 active_slot（旧缺陷：翻入空槽后系统
-	 * 无限期无业务逻辑且无人知晓）。 */
-	uint8_t target = current_app.active_slot ^ 1;
+	 * 空/坏槽 = 如实失败且不翻转 active_slot（对内乒乓 ^1）。 */
+	uint8_t target = ca->active_slot ^ 1;
 	tsap_view_t tv;
 	ts_res_t vr = ts_appmgr_verify_slot(target, NULL, &tv, NULL);
 
 	if (vr != TS_OK) {
-		printk("[appmgr] rollback: target slot %u invalid (r=%d) — no flip\n",
-		       target, (int)vr);
+		printk("[appmgr] rollback[%u]: target slot %u invalid (r=%d) — no flip\n",
+		       entry, target, (int)vr);
 		return TS_E_IO;
 	}
 	ts_appmgr_meta_t meta;
 	ts_res_t mr = ts_appmgr_meta_read(&meta);
 
-	if (mr != TS_OK) {
-		printk("[appmgr] rollback: meta unreadable (r=%d) — refused\n", (int)mr);
+	if (mr != TS_OK || meta.count <= entry) {
+		printk("[appmgr] rollback[%u]: meta unreadable (r=%d) — refused\n",
+		       entry, (int)mr);
 		return TS_E_IO;
 	}
 	/* 切换 slot + 递增计数 + 写 meta（原子；摘要随目标槽更新） */
-	ts_app_state_t prev_state = current_app.state;
+	ts_app_state_t prev_state = ca->state;
 
-	current_app.active_slot = target;
-	current_app.rollback_count++;
-	current_app.state = TS_APP_ROLLBACK;
-	meta.active_slot = current_app.active_slot;
-	meta.rollback_count = current_app.rollback_count;
-	if (ts_store_slot_read(target, TSAP_DIGEST_OFF, meta.content_digest,
+	ca->active_slot = target;
+	ca->rollback_count++;
+	ca->state = TS_APP_ROLLBACK;
+	meta.entries[entry].active_slot = target;
+	meta.entries[entry].rollback_count = ca->rollback_count;
+	if (ts_store_slot_read(target, TSAP_DIGEST_OFF,
+			       meta.entries[entry].content_digest,
 			       TSAP_DIGEST_SIZE) != TS_OK) {
 		return TS_E_IO;
 	}
@@ -127,28 +181,34 @@ ts_res_t ts_appmgr_rollback(void)
 	if (r != TS_OK) {
 		/* meta 写失败：回退运行时状态并报错——运行态与持久态不得分叉
 		 * （impl-review IR-09；重启后回到旧 meta = 安全侧） */
-		current_app.active_slot ^= 1;
-		current_app.rollback_count--;
-		current_app.state = prev_state;
+		ca->active_slot ^= 1;
+		ca->rollback_count--;
+		ca->state = prev_state;
 		return r;
 	}
 	const ts_evt_t evt = {.id = TS_EVT_APP_UNLOADED, .t_ms = ts_time_ms()};
 	ts_evt_publish(&evt);
 #if !defined(CONFIG_TS_TEST) && defined(CONFIG_REBOOT)
-	/* IR2-07：回滚闭环——meta 翻转后暖复位装载目标槽（旧缺陷：翻转后无
-	 * 重载/复位，系统无限期无业务逻辑）。TEST 构建不复位（用例断言状态机）；
-	 * 无 REBOOT 的板配置 = 如实登记（printk 可观测）。 */
-	printk("[appmgr] rollback: warm reboot to slot %u\n", current_app.active_slot);
+	/* IR2-07：回滚闭环——meta 翻转后暖复位装载目标槽。TEST 构建不复位
+	 * （用例断言状态机）；无 REBOOT 的板配置 = 如实登记（printk 可观测）。 */
+	printk("[appmgr] rollback[%u]: warm reboot to slot %u\n", entry, ca->active_slot);
 	sys_reboot(SYS_REBOOT_WARM);
 #elif !defined(CONFIG_TS_TEST)
-	printk("[appmgr] rollback: slot flipped (no CONFIG_REBOOT — manual reload)\n");
+	printk("[appmgr] rollback[%u]: slot flipped (no CONFIG_REBOOT — manual reload)\n",
+	       entry);
 #endif
 	return TS_OK;
 }
 
+ts_res_t ts_appmgr_rollback(void)
+{
+	return ts_appmgr_rollback_n(0);
+}
+
 ts_res_t ts_appmgr_health_fail(void)
 {
-	return ts_appmgr_rollback();
+	/* M6：运行时单实例 = entry 0（M7 随 rt[] 分账接线） */
+	return ts_appmgr_rollback_n(0);
 }
 
 /* ---- boot 装载（M2b.2 收尾单元；HLD §4.4-8：APP 故障不阻塞启动）--------- */
@@ -166,36 +226,16 @@ static ts_av_fmt_t boot_av_fmt; /* DEC-47③（MD1.2g）：采集格式/分辨�
 static uint16_t boot_av_w, boot_av_h;
 static uint8_t boot_av_set; /* 位掩码：1=fmt 2=w 4=h（全置 = 声明完整） */
 #endif
-#endif /* CONFIG_TS_APP_WAMR（boot 装载缓冲区——仅 WAMR 构建需要） */
 
-ts_res_t ts_appmgr_boot_start(void)
+/* 单 entry 装载（meta entry e → 槽 meta.entries[e].active_slot）：
+ * manifest 走查 + wasm 读出 + app_start。返回 app_start 结果（skip 类
+ * 非致命——合同 6：APP 故障不阻塞启动〔亦不阻塞后续 entry〕）。 */
+static ts_res_t boot_load_entry(uint8_t entry, const ts_appmgr_meta_t *meta)
 {
-	ts_appmgr_meta_t meta;
-
-	if (ts_appmgr_meta_read(&meta) != TS_OK) {
-		/* IR2-07：meta 不可读（空板/双损）= 不静默装载 slot 0 */
-		printk("[appmgr] boot: meta unreadable — no app loaded\n");
-		return TS_E_STATE;
-	}
-	/* G4（单元 H）：隔离拒载（LLD §2「QUARANTINED 拒载」的 boot 面）——
-	 * meta.rollback_count = LIMIT+1 为隔离持久化标记（rollback 拒绝第 4 次
-	 * 时写入）；跨重启不再装载已知坏链（旧缺陷：每次上电重载坏包 → 健康
-	 * 失败 → 再隔离，一次/boot 循环）。解除 = 新安装（activate 重置计数）。
-	 * 计数 == LIMIT（第 3 次回滚落地态）不拒——其目标版本仍可装载（与
-	 * runtime 语义一致：允许恰好 3 次回滚）。观测面如实报 QUARANTINED。 */
-	if (meta.rollback_count > TS_APPMGR_ROLLBACK_LIMIT) {
-		printk("[appmgr] boot: rollback_count=%u quarantined — no app loaded\n",
-		       meta.rollback_count);
-		current_app.active_slot = meta.active_slot;
-		current_app.rollback_count = TS_APPMGR_ROLLBACK_LIMIT;
-		current_app.state = TS_APP_QUARANTINED;
-		initialized = true;
-		return TS_E_ROLLBACK_LIMIT;
-	}
-#ifdef CONFIG_TS_APP_WAMR
+	uint8_t slot = meta->entries[entry].active_slot;
 	uint8_t hdr[TSAP_HEADER_SIZE];
 
-	if (ts_store_slot_read(meta.active_slot, 0, hdr, sizeof(hdr)) != TS_OK) {
+	if (ts_store_slot_read(slot, 0, hdr, sizeof(hdr)) != TS_OK) {
 		return TS_E_IO;
 	}
 	if (memcmp(hdr, "TSAP", 4) != 0) {
@@ -205,9 +245,9 @@ ts_res_t ts_appmgr_boot_start(void)
 	 * 全量 ed25519 验签在安装/激活期完成；boot 只防持久化位腐）。 */
 	tsap_view_t v;
 
-	if (ts_appmgr_check_digest(meta.active_slot, &v) != TS_OK) {
-		printk("[appmgr] boot: digest mismatch (slot %u) — no app loaded\n",
-		       meta.active_slot);
+	if (ts_appmgr_check_digest(slot, &v) != TS_OK) {
+		printk("[appmgr] boot[%u]: digest mismatch (slot %u) — no app loaded\n",
+		       entry, slot);
 		return TS_E_INVALID_SIG;
 	}
 	uint32_t ml = v.manifest_len;
@@ -218,7 +258,7 @@ ts_res_t ts_appmgr_boot_start(void)
 	}
 	static uint8_t man[512];
 
-	if (ts_store_slot_read(meta.active_slot, TSAP_CONTENT_OFF, man, ml) != TS_OK) {
+	if (ts_store_slot_read(slot, TSAP_CONTENT_OFF, man, ml) != TS_OK) {
 		return TS_E_IO;
 	}
 	/* manifest 走查（TsapManifest v1 canonical CBOR；按键名分发——
@@ -272,13 +312,13 @@ ts_res_t ts_appmgr_boot_start(void)
 				return TS_E_PARAM;
 			}
 			if (strcmp(key, "app_id") == 0) {
-				strncpy(current_app.app_id, val,
-					sizeof(current_app.app_id) - 1);
-				current_app.app_id[sizeof(current_app.app_id) - 1] = '\0';
+				strncpy(current_apps[entry].app_id, val,
+					sizeof(current_apps[entry].app_id) - 1);
+				current_apps[entry].app_id[sizeof(current_apps[entry].app_id) - 1] = '\0';
 			} else {
-				strncpy(current_app.app_ver, val,
-					sizeof(current_app.app_ver) - 1);
-				current_app.app_ver[sizeof(current_app.app_ver) - 1] = '\0';
+				strncpy(current_apps[entry].app_ver, val,
+					sizeof(current_apps[entry].app_ver) - 1);
+				current_apps[entry].app_ver[sizeof(current_apps[entry].app_ver) - 1] = '\0';
 			}
 		} else if (strcmp(key, "min_fw_ver") == 0) {
 			char val[32];
@@ -373,41 +413,81 @@ ts_res_t ts_appmgr_boot_start(void)
 			return TS_E_PARAM; /* 未知键 = schema v1 之外（fail-closed） */
 		}
 	}
-	if (ts_store_slot_read(meta.active_slot, TSAP_CONTENT_OFF + ml,
-			       boot_wasm_buf, wl) != TS_OK) {
+	if (ts_store_slot_read(slot, TSAP_CONTENT_OFF + ml, boot_wasm_buf, wl) != TS_OK) {
 		return TS_E_IO;
 	}
-	/* V1 运行时数值 app_id = 1（单活跃 APP；审计字符串归因在 current_app） */
-	ts_res_t sr = ts_appmgr_app_start(1, boot_wasm_buf, wl, boot_caps);
+	/* 数值 app_id = entry+1（M6 单实例装载 entry 0 → 1，与 V1 审计归因
+	 * 兼容；M7 多实例 = 各 entry 各 id） */
+	ts_res_t sr = ts_appmgr_app_start(entry + 1, boot_wasm_buf, wl, boot_caps);
 
 #ifdef CONFIG_TS_HAL_FS
 	if (sr == TS_OK && boot_fs_paths[0] != '\0') {
-		(void)ts_fs_paths_bind(1, boot_fs_paths); /* DEC-47⑤：路径白名单随载绑定 */
+		(void)ts_fs_paths_bind(entry + 1, boot_fs_paths); /* DEC-47⑤ */
 	}
 #endif
 #ifdef CONFIG_TS_HAL_AV
 	if (sr == TS_OK && boot_av_set == 0x7) {
-		(void)ts_av_config_bind(1, boot_av_fmt, boot_av_w, boot_av_h); /* DEC-47③ */
+		(void)ts_av_config_bind(entry + 1, boot_av_fmt, boot_av_w, boot_av_h);
 	}
 #endif
-	if (sr == TS_OK) {
-		current_app.state = TS_APP_ACTIVE; /* STAGED →（加载周期）→ ACTIVE */
-		current_app.active_slot = meta.active_slot;
-		/* B2 批修正：回滚计数随载恢复（旧缺：仅恢复 state/slot——count
-		 * 停留 BSS 0，跨重启后 get-app 永远报 0；flash 实测 meta=1 而
-		 * 运行时报 0 即本缺陷。隔离拒载路径（上文）与 get_info 懒恢复
-		 * 均已各自恢复计数，唯本装载路径漏）。 */
-		current_app.rollback_count = meta.rollback_count;
-		/* 板级十修复：装载成功即占有 current_app——不置 initialized 时首次
-		 * get_info（观测线程/sys get-app）的惰性初始化会把 ACTIVE 打回
-		 * STAGED（懒路径盲写 state = 装载结果被观测面抹掉）；active_slot
-		 * 同步自 meta（部署确认语义 = activate/get-app 槽位对拍）。 */
-		initialized = true;
-	}
 	return sr;
+}
+#endif /* CONFIG_TS_APP_WAMR */
+
+ts_res_t ts_appmgr_boot_start(void)
+{
+	ts_appmgr_meta_t meta;
+
+	if (ts_appmgr_meta_read(&meta) != TS_OK) {
+		/* IR2-07：meta 不可读（空板/双损）= 不静默装载 slot 0 */
+		printk("[appmgr] boot: meta unreadable — no app loaded\n");
+		return TS_E_STATE;
+	}
+	ts_res_t first_res = TS_E_NOTFOUND; /* entry 0 结果（M6 单实例装载面） */
+
+	for (uint8_t e = 0; e < meta.count; e++) {
+		/* G4（单元 H）：隔离拒载（meta entry.rollback_count = LIMIT+1
+		 * 为隔离持久化标记；计数 == LIMIT 仍可装载——与 runtime 语义
+		 * 一致：允许恰好 3 次回滚）。观测面如实报 QUARANTINED。 */
+		if (meta.entries[e].rollback_count > TS_APPMGR_ROLLBACK_LIMIT) {
+			printk("[appmgr] boot[%u]: rollback_count=%u quarantined — no app loaded\n",
+			       e, meta.entries[e].rollback_count);
+			current_apps[e].active_slot = meta.entries[e].active_slot;
+			current_apps[e].rollback_count = TS_APPMGR_ROLLBACK_LIMIT;
+			current_apps[e].state = TS_APP_QUARANTINED;
+			initialized = true;
+			if (e == 0) {
+				first_res = TS_E_ROLLBACK_LIMIT;
+			}
+			continue;
+		}
+#ifdef CONFIG_TS_APP_WAMR
+		ts_res_t sr = boot_load_entry(e, &meta);
+
+		if (e == 0) {
+			first_res = sr; /* 透传（E_NOTFOUND/E_IO/E_INVALID_SIG/E_PARAM/sr） */
+		}
+		if (sr == TS_OK) {
+			current_apps[e].state = TS_APP_ACTIVE; /* STAGED →（加载周期）→ ACTIVE */
+			current_apps[e].active_slot = meta.entries[e].active_slot;
+			/* B2 批修正：回滚计数随载恢复（跨重启 get-app 如实） */
+			current_apps[e].rollback_count = meta.entries[e].rollback_count;
+			/* 板级十修复：装载成功即占有——防 get_info 懒初始化打回
+			 * STAGED（懒路径盲写 state = 装载结果被观测面抹掉）。 */
+			initialized = true;
+		}
+		if (e + 1 < meta.count) {
+			/* M6：运行时单实例（rt 静态单槽）——多 entry 装载随 M7
+			 * rt[] 并行面；如实留痕（合同 6：不阻塞）。 */
+			printk("[appmgr] boot: %u entries in meta, runtime single-instance "
+			       "(M7) — entry %u+ deferred\n", meta.count, e + 1);
+			break;
+		}
 #else
-	return TS_E_STATE; /* WAMR 未编入（CONFIG_TS_APP_WAMR） */
+		return TS_E_STATE; /* WAMR 未编入（CONFIG_TS_APP_WAMR） */
 #endif
+	}
+	return first_res;
 }
 
 #ifndef CONFIG_TS_APP_WAMR

@@ -157,7 +157,7 @@ ZTEST(framework_app, test_04_boot_slot_load)
 		ts_appmgr_meta_t m;
 
 		zassert_equal(ts_appmgr_meta_read(&m), TS_OK);
-		m.rollback_count = 2;
+		m.entries[0].rollback_count = 2;
 		zassert_equal(ts_appmgr_meta_write(&m), TS_OK);
 	}
 
@@ -358,8 +358,8 @@ ZTEST(framework_app, test_08_activate_while_running)
 	ts_appmgr_meta_t meta;
 
 	zassert_equal(ts_appmgr_meta_read(&meta), TS_OK);
-	zassert_equal(meta.active_slot, 0, "持久面同步翻转");
-	zassert_equal(meta.rollback_count, 0, "新安装重置回滚计数");
+	zassert_equal(meta.entries[0].active_slot, 0, "持久面同步翻转");
+	zassert_equal(meta.entries[0].rollback_count, 0, "新安装重置回滚计数");
 
 	/* 激活停后 WAMR 运行面健全：同模块直调重启可用（装载周期在真机经
 	 * 暖复位闭环——persistbench PB4/PB5 链）。 */

@@ -38,6 +38,8 @@ static const uint8_t root_key[32] = {0}; /* TEST 构建：验签对象 = 固定�
 
 ZTEST(framework_appmgr, test_install_and_slot_switch)
 {
+	/* ztest 执行序为链接布局（实现定义）——fresh meta 前置条件自足化 */
+	ts_store_test_reset();
 	fx_fields();
 	ts_app_info_t info;
 
@@ -56,6 +58,51 @@ ZTEST(framework_appmgr, test_install_and_slot_switch)
 	ts_appmgr_test_reset();
 	zassert_equal(ts_appmgr_install(fixture_pkg, fx_total, root_key, &info), TS_OK);
 	zassert_equal(info.active_slot, 0, "second install → slot A（active=1^1=0）");
+}
+
+/* V0.4.0 M6（Q-32②）：多 entry 语义——独立乒乓对互不干扰 ---------------------- */
+
+ZTEST(framework_appmgr, test_multi_entry_pingpong)
+{
+	/* entry e 槽对 = {2e, 2e+1}：entry0 用 {0,1}、entry1 用 {2,3}；
+	 * meta count 扩展；跨 entry activate（begin/activate entry 不符）拒绝。
+	 * M7 前运行时单实例——本用例验证存储面语义（安装/乒乓/持久/隔离）。 */
+	ts_store_test_reset();
+	ts_appmgr_test_reset();
+
+	ts_app_info_t i0;
+	zassert_equal(ts_appmgr_install(fixture_pkg, sizeof(fixture_pkg),
+					root_key, &i0), TS_OK);
+	zassert_equal(i0.active_slot, 1, "entry0 首装 → slot 1");
+
+	uint8_t slot_out = 0xFF;
+	zassert_equal(ts_appmgr_stage_begin_n(sizeof(fixture_pkg), 1, &slot_out),
+		      TS_OK);
+	zassert_equal(slot_out, 3, "entry1 首装 → slot 3（对基 2 ^1）");
+	zassert_equal(ts_appmgr_stage_chunk(0, fixture_pkg, sizeof(fixture_pkg),
+					    NULL), TS_OK);
+	zassert_equal(ts_appmgr_stage_verify(root_key, NULL, NULL, NULL), TS_OK);
+	zassert_equal(ts_appmgr_stage_activate_n(0, NULL), TS_E_STATE,
+		      "entry 不符 activate 拒绝（fail-closed）");
+	ts_app_info_t i1;
+	zassert_equal(ts_appmgr_stage_activate_n(1, &i1), TS_OK);
+	zassert_equal(i1.active_slot, 3, "entry1 激活 slot 3");
+
+	ts_appmgr_meta_t meta;
+	zassert_equal(ts_appmgr_meta_read(&meta), TS_OK);
+	zassert_equal(meta.count, 2, "meta count 扩展");
+	zassert_equal(meta.entries[0].active_slot, 1, "entry0 不受扰");
+	zassert_equal(meta.entries[1].active_slot, 3, "entry1 持久");
+
+	/* entry1 二次安装 → 对内乒乓 → slot 2 */
+	ts_appmgr_test_reset();
+	zassert_equal(ts_appmgr_stage_begin_n(sizeof(fixture_pkg), 1, &slot_out),
+		      TS_OK);
+	zassert_equal(slot_out, 2, "entry1 二装 → slot 2（3^1 对内翻转）");
+
+	/* 越界 entry 拒绝 */
+	zassert_equal(ts_appmgr_stage_begin_n(sizeof(fixture_pkg), 2, NULL),
+		      TS_E_PARAM, "entry ≥ MAX_INSTANCES 拒绝");
 }
 
 ZTEST(framework_appmgr, test_install_tamper_matrix)
@@ -129,22 +176,22 @@ ZTEST(framework_appmgr, test_rollback_closed_loop)
 	zassert_equal(ts_appmgr_install(fixture_pkg, sizeof(fixture_pkg),
 					root_key, &info), TS_OK);
 	zassert_equal(info.active_slot, 1, "净基线首装 slot B（slot A 空）");
-	extern ts_app_info_t current_app;
+	extern ts_app_info_t current_apps[CONFIG_TS_APP_MAX_INSTANCES];
 
-	current_app.state = TS_APP_ACTIVE;
-	uint8_t before = current_app.active_slot;
+	current_apps[0].state = TS_APP_ACTIVE;
+	uint8_t before = current_apps[0].active_slot;
 
 	zassert_equal(ts_appmgr_rollback(), TS_E_IO, "空目标槽 = 拒绝回滚");
-	zassert_equal(current_app.active_slot, before, "不翻转");
+	zassert_equal(current_apps[0].active_slot, before, "不翻转");
 
 	/* 双槽皆装（交替）→ 回滚验证通过 → 翻转 + 计数 */
 	zassert_equal(ts_appmgr_install(fixture_pkg, sizeof(fixture_pkg),
 					root_key, &info), TS_OK);
 	zassert_equal(info.active_slot, 0, "次装 slot A（双有效槽）");
-	current_app.state = TS_APP_ACTIVE;
+	current_apps[0].state = TS_APP_ACTIVE;
 	for (int i = 1; i <= TS_APPMGR_ROLLBACK_LIMIT; i++) {
 		zassert_equal(ts_appmgr_rollback(), TS_OK, "rollback %d（双有效槽）", i);
-		zassert_equal(current_app.rollback_count, i);
+		zassert_equal(current_apps[0].rollback_count, i);
 	}
 	zassert_equal(ts_appmgr_rollback(), TS_E_ROLLBACK_LIMIT,
 		      "rollback limit reached");
@@ -158,15 +205,16 @@ ZTEST(framework_appmgr, test_meta_persistence)
 {
 	/* 清 store → 写 meta → 读取 → 掉电模拟（reset + re-read） */
 	ts_store_test_reset();
-	ts_appmgr_meta_t meta = {.active_slot = 1, .rollback_count = 2, .boot_gen = 7};
+	ts_appmgr_meta_t meta = {.ver = TS_APPMGR_META_VER, .count = 1,
+				 .entries = {{.active_slot = 1, .rollback_count = 2, .boot_gen = 7}}};
 
 	zassert_equal(ts_appmgr_meta_write(&meta), TS_OK);
 
 	ts_appmgr_meta_t rb;
 	zassert_equal(ts_appmgr_meta_read(&rb), TS_OK);
-	zassert_equal(rb.active_slot, 1);
-	zassert_equal(rb.rollback_count, 2);
-	zassert_equal(rb.boot_gen, 7);
+	zassert_equal(rb.entries[0].active_slot, 1);
+	zassert_equal(rb.entries[0].rollback_count, 2);
+	zassert_equal(rb.entries[0].boot_gen, 7);
 
 	/* meta 摘要随载（DEC-49②） */
 	ts_app_info_t info;
@@ -180,14 +228,16 @@ ZTEST(framework_appmgr, test_meta_persistence)
 
 	zassert_equal(ts_store_slot_read(info.active_slot, TSAP_DIGEST_OFF,
 					 hdr_digest, 32), TS_OK);
-	zassert_equal(memcmp(m2.content_digest, hdr_digest, 32), 0,
+	zassert_equal(memcmp(m2.entries[0].content_digest, hdr_digest, 32), 0,
 		      "meta 摘要 == 头摘要");
 }
 
 ZTEST(framework_appmgr, test_fresh_system_no_app)
 {
 	/* IR2-07：空板（无有效 meta）= meta_read 如实 E_IO（不静默伪造成
-	 * 有效态）；观测面 get_info 仍给缺省可观测态 */
+	 * 有效态）；观测面 get_info 仍给缺省可观测态。
+	 * 执行序自足化：先清 store（前序用例可能已写 meta）。 */
+	ts_store_test_reset();
 	ts_appmgr_test_reset();
 	ts_appmgr_meta_t meta;
 
@@ -203,6 +253,7 @@ ZTEST(framework_appmgr, test_fresh_system_no_app)
 
 ZTEST(framework_appmgr, test_boot_quarantine_refusal)
 {
+	ts_store_test_reset(); /* 执行序自足化（fresh 前置条件）*/
 	/* G4（单元 H）：隔离拒载 boot 面。判据以返回码区分：计数 == LIMIT
 	 * （第 3 次回滚落地态）→ 放行过隔离门（本套件 fixture wasm 非真字节
 	 * → 装载失败 E_IO = 已达装载路径的证明）；标记 LIMIT+1 → E_ROLLBACK_
@@ -219,12 +270,12 @@ ZTEST(framework_appmgr, test_boot_quarantine_refusal)
 	ts_appmgr_meta_t meta;
 
 	zassert_equal(ts_appmgr_meta_read(&meta), TS_OK);
-	meta.rollback_count = TS_APPMGR_ROLLBACK_LIMIT;
+	meta.entries[0].rollback_count = TS_APPMGR_ROLLBACK_LIMIT;
 	zassert_equal(ts_appmgr_meta_write(&meta), TS_OK);
 	zassert_equal(ts_appmgr_boot_start(), TS_E_IO,
 		      "count=LIMIT：放行至装载（fixture wasm 非真 → E_IO）");
 
-	meta.rollback_count = TS_APPMGR_ROLLBACK_LIMIT + 1;
+	meta.entries[0].rollback_count = TS_APPMGR_ROLLBACK_LIMIT + 1;
 	zassert_equal(ts_appmgr_meta_write(&meta), TS_OK);
 	zassert_equal(ts_appmgr_boot_start(), TS_E_ROLLBACK_LIMIT, "隔离拒载");
 	zassert_equal(ts_appmgr_get_info(&info), TS_OK);
@@ -239,13 +290,13 @@ ZTEST(framework_appmgr, test_boot_quarantine_refusal)
 					root_key, &info), TS_OK);
 	zassert_equal(ts_appmgr_install(fixture_pkg, sizeof(fixture_pkg),
 					root_key, &info), TS_OK, "双有效槽");
-	extern ts_app_info_t current_app;
+	extern ts_app_info_t current_apps[CONFIG_TS_APP_MAX_INSTANCES];
 
-	current_app.state = TS_APP_ACTIVE;
-	current_app.rollback_count = TS_APPMGR_ROLLBACK_LIMIT;
+	current_apps[0].state = TS_APP_ACTIVE;
+	current_apps[0].rollback_count = TS_APPMGR_ROLLBACK_LIMIT;
 	zassert_equal(ts_appmgr_rollback(), TS_E_ROLLBACK_LIMIT);
 	zassert_equal(ts_appmgr_meta_read(&meta), TS_OK);
-	zassert_equal(meta.rollback_count, TS_APPMGR_ROLLBACK_LIMIT + 1,
+	zassert_equal(meta.entries[0].rollback_count, TS_APPMGR_ROLLBACK_LIMIT + 1,
 		      "隔离标记持久化（boot 拒载判据）");
 
 	/* 收尾复原（处女 store 归还后续用例） */

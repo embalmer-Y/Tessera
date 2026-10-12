@@ -66,16 +66,37 @@ ts_res_t ts_appmgr_rollback(void);
 
 /* ---- meta 记录（slot.c ↔ ts-store meta kv）------------------------------- */
 
+/* V0.4.0 M6（Q-32②/DEC-53）：meta v2 = 每 entry（APP 实例位）一条记录。
+ * entry e 的槽对 = {2e, 2e+1}（绝对槽号，^1 翻转 = 对内乒乓）；count ≤
+ * TS_APP_MAX_INSTANCES。**v1 兼容**：旧 40B 单条布局（无 ver 字段）读侧
+ * 自动迁移为 entries[0]（长度判别——v2 尺寸恒 > 40）。 */
+#define TS_APPMGR_META_VER 2
+
 typedef struct {
-	uint8_t active_slot;
-	uint8_t rollback_count;
+	uint8_t active_slot;      /* 绝对槽号（pair 基 = entry*2） */
+	uint8_t rollback_count;   /* 超限 → QUARANTINED（per entry） */
 	uint16_t boot_gen;
-	uint32_t app_ver_u32; /* semver → u32 比较 */
+	uint32_t app_ver_u32;     /* semver → u32 比较 */
 	uint8_t content_digest[32]; /* TSAP v2 头摘要（DEC-49②：boot 快校验对象） */
+} ts_appmgr_entry_t;
+
+typedef struct {
+	uint8_t ver;              /* = TS_APPMGR_META_VER */
+	uint8_t count;            /* 有效 entry 数 */
+	ts_appmgr_entry_t entries[CONFIG_TS_APP_MAX_INSTANCES];
 } ts_appmgr_meta_t;
 
 ts_res_t ts_appmgr_meta_read(ts_appmgr_meta_t *meta);
 ts_res_t ts_appmgr_meta_write(const ts_appmgr_meta_t *meta);
+/** 缺省 meta（ver=2/count=1/entry0 槽 0）——恢复安装路径起点（slot.c）。 */
+void ts_appmgr_meta_default(ts_appmgr_meta_t *meta);
+
+/* ---- 多 entry 面（V0.4.0 M6，Q-32；legacy 单 API = entry 0 别名）---------- */
+
+ts_res_t ts_appmgr_stage_begin_n(uint32_t total_len, uint8_t entry, uint8_t *slot_out);
+ts_res_t ts_appmgr_stage_activate_n(uint8_t entry, ts_app_info_t *out);
+ts_res_t ts_appmgr_get_info_n(uint8_t entry, ts_app_info_t *out);
+ts_res_t ts_appmgr_rollback_n(uint8_t entry);
 
 /* ---- APP 运行时宿主（runtime.c + natives.c；DEC-43 接线批，M2b.2a）---------
  * LLD-ts-appmgr §4/§5：每 APP 一个框架线程（V1 单活跃 APP）；事件串行化

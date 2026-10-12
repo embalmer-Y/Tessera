@@ -32,6 +32,12 @@ static uint8_t ram_prov[PROV_SIZE];
 static uint8_t ram_meta[META_SIZE];
 static uint8_t ram_slot_a[CONFIG_TS_STORE_SLOT_SIZE];
 static uint8_t ram_slot_b[CONFIG_TS_STORE_SLOT_SIZE];
+#if CONFIG_TS_STORE_SLOT_COUNT >= 3
+static uint8_t ram_slot_c[CONFIG_TS_STORE_SLOT_SIZE];
+#endif
+#if CONFIG_TS_STORE_SLOT_COUNT >= 4
+static uint8_t ram_slot_d[CONFIG_TS_STORE_SLOT_SIZE];
+#endif
 static uint8_t ram_noinit[NOINIT_SIZE];
 #ifdef CONFIG_TS_STORE_AUDIT
 static uint8_t ram_audit[AUDIT_SIZE];
@@ -52,6 +58,16 @@ static uint8_t *part_ram(ts_store_part_t part, uint32_t *size)
 	case TS_PART_SLOT_B:
 		*size = CONFIG_TS_STORE_SLOT_SIZE;
 		return ram_slot_b;
+#if CONFIG_TS_STORE_SLOT_COUNT >= 3
+	case TS_PART_SLOT_C:
+		*size = CONFIG_TS_STORE_SLOT_SIZE;
+		return ram_slot_c;
+#endif
+#if CONFIG_TS_STORE_SLOT_COUNT >= 4
+	case TS_PART_SLOT_D:
+		*size = CONFIG_TS_STORE_SLOT_SIZE;
+		return ram_slot_d;
+#endif
 	case TS_PART_NOINIT:
 		*size = NOINIT_SIZE;
 		return ram_noinit;
@@ -140,6 +156,12 @@ const ts_store_ops_t ts_store_backend = {
 #define NODE_META    DT_NODELABEL(ts_meta_part)
 #define NODE_SLOT_A  DT_NODELABEL(ts_slot_a_part)
 #define NODE_SLOT_B  DT_NODELABEL(ts_slot_b_part)
+#if CONFIG_TS_STORE_SLOT_COUNT >= 3
+#define NODE_SLOT_C  DT_NODELABEL(ts_slot_c_part)
+#endif
+#if CONFIG_TS_STORE_SLOT_COUNT >= 4
+#define NODE_SLOT_D  DT_NODELABEL(ts_slot_d_part)
+#endif
 #define NODE_NOINIT  DT_NODELABEL(ts_noinit_part)
 #ifdef CONFIG_TS_STORE_AUDIT
 #define NODE_AUDIT   DT_NODELABEL(ts_audit_part)
@@ -149,6 +171,12 @@ const ts_store_ops_t ts_store_backend = {
 	!DT_NODE_EXISTS(NODE_SLOT_A) || !DT_NODE_EXISTS(NODE_SLOT_B) || \
 	!DT_NODE_EXISTS(NODE_NOINIT)
 #error "ts-store flash 后端：DT 缺少 ts_*_part 分区（板 overlay 须定义 ts_prov_part / ts_meta_part / ts_slot_a_part / ts_slot_b_part / ts_noinit_part，LLD-ts-store §2）"
+#endif
+#if CONFIG_TS_STORE_SLOT_COUNT >= 3 && !DT_NODE_EXISTS(NODE_SLOT_C)
+#error "TS_STORE_SLOT_COUNT>=3：DT 缺少 ts_slot_c_part 分区（Q-32② 槽池）"
+#endif
+#if CONFIG_TS_STORE_SLOT_COUNT >= 4 && !DT_NODE_EXISTS(NODE_SLOT_D)
+#error "TS_STORE_SLOT_COUNT=4：DT 缺少 ts_slot_d_part 分区（Q-32② 槽池）"
 #endif
 #ifdef CONFIG_TS_STORE_AUDIT
 #if !DT_NODE_EXISTS(NODE_AUDIT)
@@ -164,6 +192,14 @@ BUILD_ASSERT(PARTITION_SIZE(ts_slot_a_part) == CONFIG_TS_STORE_SLOT_SIZE,
 	     "ts_slot_a_part size must equal CONFIG_TS_STORE_SLOT_SIZE");
 BUILD_ASSERT(PARTITION_SIZE(ts_slot_b_part) == CONFIG_TS_STORE_SLOT_SIZE,
 	     "ts_slot_b_part size must equal CONFIG_TS_STORE_SLOT_SIZE");
+#if CONFIG_TS_STORE_SLOT_COUNT >= 3
+BUILD_ASSERT(PARTITION_SIZE(ts_slot_c_part) == CONFIG_TS_STORE_SLOT_SIZE,
+	     "ts_slot_c_part size must equal CONFIG_TS_STORE_SLOT_SIZE");
+#endif
+#if CONFIG_TS_STORE_SLOT_COUNT >= 4
+BUILD_ASSERT(PARTITION_SIZE(ts_slot_d_part) == CONFIG_TS_STORE_SLOT_SIZE,
+	     "ts_slot_d_part size must equal CONFIG_TS_STORE_SLOT_SIZE");
+#endif
 BUILD_ASSERT(PARTITION_SIZE(ts_meta_part) / 2 >= 8 + CONFIG_TS_STORE_META_MAX,
 	     "ts_meta_part copy stride must fit REC_HDR + META_MAX");
 
@@ -190,6 +226,16 @@ static const struct flash_area *flash_fa(ts_store_part_t part)
 	case TS_PART_SLOT_B:
 		id = PARTITION_ID(ts_slot_b_part);
 		break;
+#if CONFIG_TS_STORE_SLOT_COUNT >= 3
+	case TS_PART_SLOT_C:
+		id = PARTITION_ID(ts_slot_c_part);
+		break;
+#endif
+#if CONFIG_TS_STORE_SLOT_COUNT >= 4
+	case TS_PART_SLOT_D:
+		id = PARTITION_ID(ts_slot_d_part);
+		break;
+#endif
 #ifdef CONFIG_TS_STORE_AUDIT
 	case TS_PART_AUDIT:
 		id = PARTITION_ID(ts_audit_part);
@@ -217,6 +263,20 @@ static uint32_t flash_size(ts_store_part_t part)
 		return PARTITION_SIZE(ts_slot_a_part);
 	case TS_PART_SLOT_B:
 		return PARTITION_SIZE(ts_slot_b_part);
+#if CONFIG_TS_STORE_SLOT_COUNT >= 3
+	case TS_PART_SLOT_C:
+		return PARTITION_SIZE(ts_slot_c_part);
+#else
+	case TS_PART_SLOT_C:
+		return 0; /* 未使能槽（TS_STORE_SLOT_COUNT 门控） */
+#endif
+#if CONFIG_TS_STORE_SLOT_COUNT >= 4
+	case TS_PART_SLOT_D:
+		return PARTITION_SIZE(ts_slot_d_part);
+#else
+	case TS_PART_SLOT_D:
+		return 0; /* 未使能槽（TS_STORE_SLOT_COUNT 门控） */
+#endif
 #ifdef CONFIG_TS_STORE_AUDIT
 	case TS_PART_AUDIT:
 		return PARTITION_SIZE(ts_audit_part);
@@ -342,6 +402,9 @@ const ts_store_ops_t ts_store_backend = {
 ts_res_t ts_store_test_reset(void)
 {
 	for (int p = 0; p < TS_PART_COUNT; p++) {
+		if (ts_store_backend.size((ts_store_part_t)p) == 0) {
+			continue; /* 未使能分区（TS_STORE_SLOT_COUNT 门控的 C/D 槽） */
+		}
 		ts_res_t r = ts_store_backend.erase((ts_store_part_t)p);
 
 		if (r != TS_OK) {
