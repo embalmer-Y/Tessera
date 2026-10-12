@@ -56,15 +56,27 @@
 			label = "ts-slot-b";
 			reg = <0x17b000 0x8000>;
 		};
-		ts_noinit_part: partition@183000 {
+		/* V0.4.0 M7c（Q-32②）：槽池扩至 4——entry1 双槽乒乓对 {2,3} */
+		ts_slot_c_part: partition@183000 {
+			compatible = "zephyr,mapped-partition";
+			label = "ts-slot-c";
+			reg = <0x183000 0x8000>;
+		};
+		ts_slot_d_part: partition@18b000 {
+			compatible = "zephyr,mapped-partition";
+			label = "ts-slot-d";
+			reg = <0x18b000 0x8000>;
+		};
+		ts_noinit_part: partition@193000 {
 			compatible = "zephyr,mapped-partition";
 			label = "ts-noinit";
-			reg = <0x183000 0x1000>;
+			reg = <0x193000 0x1000>;
 		};
-		/* fw-b：未来 MCUmgr 固件第二 slot 预留（DEC-23；V1 未接线） */
-		fw_b_part: partition@184000 {
+		/* fw-b：未来 MCUmgr 固件第二 slot 预留（DEC-23；V1 未接线——
+		 * M7c 槽池扩占后再让位） */
+		fw_b_part: partition@194000 {
 			label = "fw-b";
-			reg = <0x184000 0x13c000>;
+			reg = <0x194000 0x12c000>;
 		};
 	};
 };

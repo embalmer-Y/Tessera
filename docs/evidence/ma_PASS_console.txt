@@ -1,0 +1,36 @@
+=== console capture /dev/ttyACM0 25.0s ===
+I (esp_psram): SPI SRAM memory test OK
+*** Booting Zephyr OS build v4.5.0-rc1 ***
+DB0 deploybench start
+DB1 wifi_connect rc=0
+DBw associated t=6810
+DB2 prov load=0 burn=0（0=OK/-8=空）
+[ts-net] init prov_load=0 node=dbn cube=dbc
+[appmgr] wamr pool heap: buf=0x3c0a0060 size=524288 (psram/smh)
+[app1/l3] nvd init
+[app2/l3] d8 v1 init
+[app1/l3] nvd tick cnt=01
+[app1/l3] nvd tick cnt=02
+[ts-net] zenoh_open: CONNECTED loc=tcp/192.168.2.91:9955
+[app1/l3] nvd tick cnt=03
+DB6 app running app_id=com.example.cube.nvd slot=0 t=7236
+DB PASS
+[app1/l3] nvd tick cnt=04
+[app1/l3] nvd tick cnt=05
+[app1/l3] nvd tick cnt=06
+[app1/l3] nvd tick cnt=07
+[app1/l3] nvd tick cnt=08
+[app1/l3] nvd tick cnt=09
+[app1/l3] NVD DONE ticks=10
+[app2/l3] d8 out duty=100 rc=-4
+[app2/l3] d8 out duty=200 rc=-4
+DB alive t=9238 net=1
+[app2/l3] d8 out duty=300 rc=-4
+[app2/l3] d8 out duty=400 rc=-4
+[app2/l3] d8 out duty=500 rc=-4
+[app2/l3] d8 out duty=600 rc=-4
+[app2/l3] d8 out duty=700 rc=-4
+[app2/l3] D8-DONE v1 at700
+[app2/l3] d8 keep duty=700 rc=-4
+DB alive t=19371 net=1
+=== 共 34 行，含启动标记 0 行 ===
