@@ -40,6 +40,9 @@ class TsapManifest(BaseModel):
     av_fmt: Literal["jpeg", "rgb565"] | None = None
     av_w: int | None = Field(default=None, ge=16, le=800)
     av_h: int | None = Field(default=None, ge=16, le=800)
+    # Q-33/DEC-53（V0.4.0 M8）：wasm 线程申报制（1-4，缺省 1；V0.4.0
+    # 运行时恒单线程执行——申报值入库，启用留 V0.5+ 线程批）
+    threads: int = Field(default=1, ge=1, le=4)
 
     @model_validator(mode="after")
     def _av_group(self) -> TsapManifest:
@@ -117,6 +120,8 @@ class TsapManifest(BaseModel):
             m["av_fmt"] = self.av_fmt  # DEC-47③：仅在有声明时携带
             m["av_w"] = self.av_w
             m["av_h"] = self.av_h
+        if self.threads != 1:
+            m["threads"] = self.threads  # Q-33：仅申报 ≠1 时携带（兼容面最小）
         return cbor2.dumps(m, canonical=True)
 
     @classmethod
@@ -137,4 +142,5 @@ class TsapManifest(BaseModel):
             av_fmt=m.get("av_fmt"),
             av_w=int(m["av_w"]) if "av_w" in m else None,
             av_h=int(m["av_h"]) if "av_h" in m else None,
+            threads=int(m.get("threads", 1)),
         )

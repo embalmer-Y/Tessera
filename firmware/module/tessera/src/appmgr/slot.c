@@ -342,6 +342,20 @@ static ts_res_t boot_load_entry(uint8_t entry, const ts_appmgr_meta_t *meta)
 				return TS_E_PARAM;
 			}
 			/* V1 消耗运行时常量（见上注释） */
+		} else if (strcmp(key, "threads") == 0) {
+			/* Q-33/DEC-53（V0.4.0 M8）：wasm 线程申报制（1-4；越界 = 包
+			 * 非法 fail-closed）。V0.4.0 运行时恒单线程执行——申报 >1
+			 * 如实留痕（启用留 V0.5+ 线程批）。 */
+			uint64_t v;
+
+			if (!ts_cbor_uint(&r, &v) || v < 1 || v > 4) {
+				return TS_E_PARAM;
+			}
+			if (v > 1) {
+				printk("[appmgr] boot[%u]: threads=%u declared, "
+				       "runtime single-threaded (V0.4.0)\n",
+				       entry, (unsigned)v);
+			}
 #ifdef CONFIG_TS_HAL_FS
 		} else if (strcmp(key, "fs_paths") == 0) {
 			/* DEC-47⑤（MD1.2e）：路径前缀白名单（数组 → ';' CSV；
