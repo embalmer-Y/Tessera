@@ -130,12 +130,15 @@ def envelope(
     idem: str | None = None,
     to: int | None = None,
     audit_src: str | None = None,
+    app: int | None = None,
 ) -> bytes:
     """命令信封 v2 请求（DEC-40）：map{ver,kind,rid,src,op,args?}。
 
     args 定序：total → offset → data → holder → time_ms → confirm → idem
-    → to → audit_src（固件解码键序无关，编码侧定序保确定性——合同 9；
-    audit_src = get-audit 源选择 "flash"，DEC-52①——键名避开信封层 src）。
+    → to → audit_src → app（固件解码键序无关，编码侧定序保确定性——合同 9；
+    audit_src = get-audit 源选择 "flash"，DEC-52①——键名避开信封层 src；
+    app = 目标实例 app_id 1..N〔Q-32⑤/V0.4.0 M7b〕，缺省 None = 旧客户端
+    兼容——固件侧缺省实例 1）。
     """
     if len(rid) > RID_MAX:
         msg = f"rid 超上限 {RID_MAX}: {rid!r}"
@@ -165,6 +168,11 @@ def envelope(
         items.append((_tstr("to"), _uint(to)))
     if audit_src is not None:
         items.append((_tstr("audit_src"), _tstr(audit_src)))
+    if app is not None:
+        if not 1 <= app <= 4:
+            msg = f"app 越界 [1,4]: {app}"
+            raise ValueError(msg)
+        items.append((_tstr("app"), _uint(app)))
     out = bytes([0xA5 if not items else 0xA6]) \
         + _tstr("ver") + _uint(1) \
         + _tstr("kind") + _uint(KIND_SYS_REQUEST) \

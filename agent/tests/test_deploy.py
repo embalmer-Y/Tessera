@@ -147,6 +147,18 @@ def test_envelope_roundtrip_and_caps():
         keys.envelope("op", "r", idem="k" * 17)  # idem 超上限
 
 
+def test_envelope_app_field():
+    """V0.4.0 M7b（Q-32⑤）：app 字段（实例寻址）编码 + 越界拒绝 + 缺省省略。"""
+    m = cbor2.loads(keys.envelope("app-begin", "rid-a", total=128, app=2))
+    assert m["args"]["app"] == 2
+    m1 = cbor2.loads(keys.envelope("app-begin", "rid-b", total=128))
+    assert "app" not in m1["args"]  # 旧客户端兼容：缺省不携带
+    with pytest.raises(ValueError):
+        keys.envelope("op", "r", app=0)
+    with pytest.raises(ValueError):
+        keys.envelope("op", "r", app=5)
+
+
 def test_parse_reply_v1_and_v2():
     r2 = keys.parse_reply(cbor2.dumps({"ver": 1, "kind": 16, "rid": "r",
                                        "status": 0, "data": {"a": 1}}))

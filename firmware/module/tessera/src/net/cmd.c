@@ -412,8 +412,9 @@ static ts_res_t cmd_app_begin(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap
 		}
 		return TS_E_PARAM;
 	}
+	uint8_t entry = a->has_app ? (uint8_t)(a->app - 1) : 0; /* M7b（Q-32⑤） */
 	uint8_t slot = 0;
-	ts_res_t res = ts_appmgr_stage_begin(a->total, &slot);
+	ts_res_t res = ts_appmgr_stage_begin_n(a->total, entry, &slot);
 
 	if (res != TS_OK) {
 		return res; /* 尺寸非法：PARAM（data 空，status 已达） */
@@ -485,9 +486,9 @@ static ts_res_t cmd_app_verify(const ts_net_cmd_args_t *a, uint8_t *r, size_t ca
 
 static ts_res_t cmd_app_activate(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
 {
-	ARG_UNUSED(a);
+	uint8_t entry = a->has_app ? (uint8_t)(a->app - 1) : 0; /* M7b（Q-32⑤） */
 	ts_app_info_t info;
-	ts_res_t res = ts_appmgr_stage_activate(&info);
+	ts_res_t res = ts_appmgr_stage_activate_n(entry, &info);
 
 	if (res != TS_OK) {
 		return res;
@@ -509,16 +510,18 @@ static ts_res_t cmd_app_activate(const ts_net_cmd_args_t *a, uint8_t *r, size_t 
 
 static ts_res_t cmd_get_app(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
 {
-	ARG_UNUSED(a);
+	uint8_t entry = a->has_app ? (uint8_t)(a->app - 1) : 0; /* M7b（Q-32⑤） */
 	ts_app_info_t info;
-	ts_res_t res = ts_appmgr_get_info(&info);
+	ts_res_t res = ts_appmgr_get_info_n(entry, &info);
 
 	if (res != TS_OK) {
 		return res;
 	}
 	size_t p = 0;
 
-	if (!ts_cbor_put_map(r, cap, &p, 4) ||
+	/* 顶层字段 = 请求实例（缺省 1，旧客户端等价）视图；
+	 * apps 数组 = 全部实例位全景（M7b；未部署位如实 STAGED/空 id）。 */
+	if (!ts_cbor_put_map(r, cap, &p, 5) ||
 	    !ts_cbor_put_tstr(r, cap, &p, "state") ||
 	    !ts_cbor_put_uint(r, cap, &p, (uint64_t)info.state) ||
 	    !ts_cbor_put_tstr(r, cap, &p, "active_slot") ||
@@ -526,8 +529,29 @@ static ts_res_t cmd_get_app(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, 
 	    !ts_cbor_put_tstr(r, cap, &p, "rollback_count") ||
 	    !ts_cbor_put_uint(r, cap, &p, info.rollback_count) ||
 	    !ts_cbor_put_tstr(r, cap, &p, "app_id") ||
-	    !ts_cbor_put_tstr(r, cap, &p, info.app_id[0] != '\0' ? info.app_id : "")) {
+	    !ts_cbor_put_tstr(r, cap, &p, info.app_id[0] != '\0' ? info.app_id : "") ||
+	    !ts_cbor_put_tstr(r, cap, &p, "apps") ||
+	    !ts_cbor_put_array(r, cap, &p, CONFIG_TS_APP_MAX_INSTANCES)) {
 		return TS_E_IO;
+	}
+	for (uint8_t e = 0; e < CONFIG_TS_APP_MAX_INSTANCES; e++) {
+		ts_app_info_t ei;
+
+		if (ts_appmgr_get_info_n(e, &ei) != TS_OK ||
+		    !ts_cbor_put_map(r, cap, &p, 5) ||
+		    !ts_cbor_put_tstr(r, cap, &p, "app") ||
+		    !ts_cbor_put_uint(r, cap, &p, (uint64_t)(e + 1)) ||
+		    !ts_cbor_put_tstr(r, cap, &p, "state") ||
+		    !ts_cbor_put_uint(r, cap, &p, (uint64_t)ei.state) ||
+		    !ts_cbor_put_tstr(r, cap, &p, "active_slot") ||
+		    !ts_cbor_put_uint(r, cap, &p, ei.active_slot) ||
+		    !ts_cbor_put_tstr(r, cap, &p, "rollback_count") ||
+		    !ts_cbor_put_uint(r, cap, &p, ei.rollback_count) ||
+		    !ts_cbor_put_tstr(r, cap, &p, "app_id") ||
+		    !ts_cbor_put_tstr(r, cap, &p,
+				      ei.app_id[0] != '\0' ? ei.app_id : "")) {
+			return TS_E_IO;
+		}
 	}
 	*n = p;
 	return TS_OK;
@@ -615,6 +639,16 @@ static bool parse_args_body(ts_cbor_rd_t *r, uint32_t pairs, struct req_env *e)
 			}
 			e->args.total = (uint32_t)v;
 			e->args.has_total = true;
+		} else if (e->v2 && strcmp(akey, "app") == 0) {
+			/* M7b（Q-32⑤）：目标实例（app_id 1..N；越界 = 请求非法） */
+			uint64_t v;
+
+			if (!ts_cbor_uint(r, &v) || v == 0 ||
+			    v > CONFIG_TS_APP_MAX_INSTANCES) {
+				return false;
+			}
+			e->args.app = (uint8_t)v;
+			e->args.has_app = true;
 		} else if (e->v2 && strcmp(akey, "offset") == 0) {
 			uint64_t v;
 

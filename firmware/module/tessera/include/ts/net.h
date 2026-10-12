@@ -115,6 +115,9 @@ typedef struct {
 	char holder[24];  /* 控制租约持有者标识（DEC-41） */
 	bool has_total;
 	uint32_t total;    /* app-begin：包总长（LLD-A06 §3） */
+	bool has_app;
+	uint8_t app;       /* V0.4.0 M7b（Q-32⑤）：v2 信封 app 字段（app_id，
+			    * 1..N；缺省 = 1——旧客户端零改动兼容） */
 	bool has_offset;
 	uint32_t offset;   /* app-chunk：槽内偏移 */
 	bool has_src_flash; /* get-audit audit_src="flash"（DEC-52①：flash 环读取） */

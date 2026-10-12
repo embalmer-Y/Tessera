@@ -120,10 +120,17 @@ def push_app(
     *,
     holder: str = keys.DEFAULT_SRC,
     chunk_size: int = CHUNK_DEFAULT,
+    app: int = 1,
     log_fn: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
-    """TSAP 包分块推送 + 分步安装（严格类语义由网关审批层承载）。"""
+    """TSAP 包分块推送 + 分步安装（严格类语义由网关审批层承载）。
+
+    app = 目标实例 app_id（1..N，Q-32⑤/V0.4.0 M7b）——多 APP 板部署位选择；
+    缺省 1 = 单实例语义（旧调用方零改动）。"""
     log = log_fn or (lambda s: None)
+    if not 1 <= app <= 4:
+        msg = f"app 越界 [1,4]: {app}"
+        raise TaError(TA_E_ARGS, msg, domain="deploy")
     if not (1 <= chunk_size <= CHUNK_MAX):
         msg = f"chunk_size 越界 [1,{CHUNK_MAX}]: {chunk_size}"
         raise TaError(TA_E_ARGS, msg, domain="deploy")
@@ -183,7 +190,7 @@ def push_app(
 
         # ③ upload：begin → 分块（每块 idem + 超时重试；重发安全）
         data = _cmd_ok(svc, node, cube, "app-begin", rid("begin"),
-                       total=len(pkg), idem=idem("begin"))
+                       total=len(pkg), idem=idem("begin"), app=app)
         result["slot"] = data.get("slot")
         log(f"upload → slot {result['slot']}（total={len(pkg)}B）")
         sent = 0
@@ -217,14 +224,18 @@ def push_app(
 
         # ⑤ activate → get-app 确认（版本回读一致才置 confirmed）
         act = _cmd_ok(svc, node, cube, "app-activate", rid("activate"),
-                      idem=idem("activate"))
+                      idem=idem("activate"), app=app)
         result["active_slot"] = act.get("active_slot")
-        app = _cmd_ok(svc, node, cube, "get-app", rid("getapp"))
-        result["app"] = app
-        result["confirmed"] = int(app.get("active_slot", -1)) == int(result["active_slot"])
+        result["app_id_target"] = app
+        app_view = _cmd_ok(svc, node, cube, "get-app", rid("getapp"), app=app)
+        result["app"] = app_view
+        result["confirmed"] = (
+            int(app_view.get("active_slot", -1)) == int(result["active_slot"]))
         if not result["confirmed"]:
-            msg = f"确认回读不一致: activate slot={result['active_slot']} get-app={app}"
-            raise TaError(TA_E_TSAP, msg, domain="deploy", detail={"get_app": app})
+            msg = (f"确认回读不一致: activate slot={result['active_slot']} "
+                   f"get-app={app_view}")
+            raise TaError(TA_E_TSAP, msg, domain="deploy",
+                          detail={"get_app": app_view})
         log(f"activate confirmed: slot={result['active_slot']}")
         return result
     finally:
