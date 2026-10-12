@@ -33,6 +33,7 @@ typedef enum {
 	TS_PERM_CLASS_POWER,
 	TS_PERM_CLASS_FS,   /* DEC-47⑤：文件系统（ts-fs 能力面，MD1.2e） */
 	TS_PERM_CLASS_AV,   /* DEC-47⑤：音视频采集/流通道（ts-av 能力面，MD1.2g） */
+	TS_PERM_CLASS_LOG,  /* V0.4.0 M2（IR-16）：日志面（单实例类，inst=0） */
 	TS_PERM_CLASS_MSG,
 	TS_PERM_CLASS_SYS,
 	TS_PERM_CLASS_COUNT,

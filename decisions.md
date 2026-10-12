@@ -753,3 +753,24 @@
 - 2026-10-12 · **V0.3.0 批开工 + V3-1 交付（生产 app flash 面接入——V2-2 既定待办收口）**：① **V0.3.0 = 生产语义收口批**（V3-1 生产 app flash 面 / V3-2 板级全量复验；tools/board 脚本丢失结案同批登记——按需重写策略）。② **V3-1 内容**：生产 app 增 ts 六分区 overlay（auditbench 同款：prov/meta/slot_a/slot_b/noinit/audit 8KB，fw-b 缩至 0x186000——esptool 偏移零变化）+ `TS_STORE=y`（prj，native_sim 走 RAM 后端可移植）+ 板级片段 `TS_STORE_FLASH/TS_STORE_AUDIT=y`；boot 横幅如实更新。③ **验证**：native_sim 构建 ✓ / xiao_esp32s3 构建 ✓（ESP32-S3 镜像产出）/ twister 15/15 套件全过（退出码 0，零失败——模块面零改动，纯 app 面）/ **真机烧录 boot 实证 `[audit] flash 环空（无历史安全事件）`** = 审计 flash 环在生产 app 首次挂载初始化成功（prov 空 → 安全侧 dev 身份回退，符合合同）。④ 审计行为面（注入/留存/复位回读）由 twister framework.store.audit 用例族覆盖（V2-2 80 用例内），生产 app 面验证止于挂载初始化——如实界定。⑤ V3-2（板级全量复验：auditbench/deploybench 双 bench 新环境跑通）随续。
 
 - 2026-10-12 · **V3-2 交付 + V0.3.0 收口（tag fw-v0.3.0）：板级全量复验双 PASS——新环境板级回归基线完整恢复**。① **auditbench AB PASS**（`留存 4 + 新增 2 = 6`，seq 1..6 连续、暖复位 flash 留存 boot_report——与 V2-2 存档形态逐字段一致；证据 docs/evidence/ab_PASS_console_native_rerun.txt）；首跑 AB FAIL 定性 = **抓取脚本 RTS 复位干扰 bench 计数预期**（bench 自带暖复位 + 外部复位 → seq 越界）——改被动监听即过，非固件缺陷（观测纪律登记：自复位 bench 严禁外部复位介入）。② **deploybench D8 PASS**（仓内 d8_client + agent/demos/D8 三包——包产物在仓，丢失脚本零影响）：v1 1.0.0 初装 slot1 → v2 2.0.0 升级 slot0（G4 激活即停真机复证）→ v2bad 健康恒病 → 自动回滚 → **v2 复活 rollback_count=1**（证据 docs/evidence/d8_PASS_native_rerun.txt）。③ **V0.3.0 终态**：V3-1（生产 app flash 面）+ V3-2（板级全量复验）双单元交付；twister 15/15 维持 ac8ea4b 实证（V3-2 零代码改动）。④ 过程一则：auditbench 构建首败 = 漏传 ZEPHYR_EXTRA_MODULES（TS_* 符号全灭形态）——标准口径已含，低级失误留痕。
+
+- 2026-10-12 · **owner 裁决（版本方向批）：下一版本 V0.4.0 = 语义扩展批——调研清单 F1-F7 + Agent 侧 A1-A8 + 质量债 C 全部入版（F8 P4 无线面除外，维持 DEC-51 搁置）**。排期见 plan §11（M1-M15 十五单元）：M1 = F1 多 APP 并行设计批（**Q-32 呈递停门**——线程/内存/权限/调度/存储五面 + fs_paths 绑定重设计〔IR2 §8 拦路项〕）；M2-M5 小单元先行（F3 日志裁决/C-1 稳定性定性/A2 caps 硬校验/F6 输入中断）；M6-M7 F1 实现两批；M8 F4 threads/M9 F2 状态持久化/M10 A1 push_prov/M11 A3 D-AV 消费端与 ota_client 重建/M12 接缝打包（A4/A5/A7/A8）/M13 F7 逻辑节点/M14 F5 PDM；M15 收口 tag fw-v0.4.0。质量债随批清偿不单开。
+
+## Q-32（多 APP 并行设计方案——V0.4.0 M1 呈递停门，2026-10-12）
+
+> 范围：解除「V1 单活跃 APP」（LLD-ts-appmgr/plan 三版本「不入本版」登记项）。现状五面实测（runtime.c 509 行/slot.c/meta/Kconfig/net cmd）：运行时 = 静态单 rt + 单栈/单 msgq + mod_cache 单条（WAMR 平台怪癖规避）——**注释已预留「同时加载上限 4 = DEC-27」**；每 APP 一框架线程（DEC-43 A）模型天然可并行化（rt → rt[N] 数组，线程/栈/邮箱随实例）；hal 侧 `ts_hal_bind_context(app_id, table)` **已按实例隔离**（natives 经 exec_env user_data 取 ctx——多实例即多 ctx，伪造边界不变）；存储 = slot 双槽乒乓（升级语义）+ meta.active_slot 单值；命令面 = sys 键无 app 维度 + get-app 单包视图 + 部署命令以 slot 寻址；看门狗 = APPMGR 单喂狗源；**fs_paths 绑定无解绑 = IR2 §8 登记的拦路项**。
+
+**六子项（建议值齐，按建议或逐项例外裁决）**：
+
+- **①实例上限 N**：建议 **2 起步**（`TS_APP_MAX_INSTANCES` 可配，native_sim 测试面开 4）——内存账：每实例 = wasm 栈 4KB + exec_env + 线程栈 16KB（CONFIG_TS_APP_THREAD_STACK，**内部 SRAM**——Zephyr 线程栈不可入 PSRAM）；WAMR 共享池 256KB@PSRAM 不变，实例线性内存按需页共享池 + manifest.heap_kb 申报制软上限。
+- **②存储布局**：建议**每 APP 双槽乒乓保留**（槽池 4×32KB：slot0..3，分区表重划 esptool 偏移不变——现 ts-slot-a/b 0x173000/0x17b000 扩至 0x1a3000，fw-b 再让位）+ **meta v2 = entries[N] {app_id, slot, state}**（v1 兼容读：旧 meta = 单 entry）；升级 = 同 app_id 写对槽 → 原子切换 entry；回滚语义与现状逐字段等价（每 APP 独立）。*备选 B：N 槽池 + app_id 映射（无乒乓——回滚语义弱化，不推荐）。*
+- **③运行时并行**：rt[N] 静态数组 + per-rt 线程/静态栈/msgq；mod_cache → 每 rt 持模块指针 + 共享计数（同字节流多实例 = 各自 instantiate，共享 module 对象——WAMR 支持同模块多实例；怪癖面不变：不 unload）。
+- **④看门狗分账**：APPMGR 保持**单源群组喂狗**（任一 APP 线程喂即活——单 APP 卡死由既有 per-app 健康探针 3 败兜底回滚，WDT 语义 = 「全部 APP 线程卡死」才升级——DEC-48 合同不变）；指令配额 per-call 已天然分账。
+- **⑤命令/部署寻址**：**v2 信封可选字段 `app`（uint）**——键不动（旧客户端缺省 = 唯一活跃实例，兼容 D8/nvd 链零改动）；get-app 增 `apps` 列表视图字段（单实例时与现状等价）；部署命令 app-begin 增 app_id 参数（缺省同上）。**G4 语义演进：activate(app_id) = 停同 app_id 旧实例 → 启新**（不同 app_id 互不影响——单实例行为与现状全同）。
+- **⑥fs_paths 绑定形态（IR2 §8 收口）**：绑定下沉 hal 绑定层 per-ctx（bind_context 建、unbind_context 释放——生命周期随实例，解绑缺口就此闭合）。
+
+**影响面**：LLD-ts-appmgr v0.6（多实例节）+ LLD-ts-net（v2 信封 app 字段）+ HLD 安全合同 4「喂狗分账」注记 + LLD-ts-store（分区四槽）+ Agent keys/envelope 同步（deploy.py app 参数可选）；新 bench = multiappbench（双 APP 并行判据：两实例各自 DONE 行 + 互不干扰 + 单停单启）。**实施切分**：M6 存储与装载链（meta v2/槽池/G4）→ M7 运行时并行 + bench + Agent 同步（twister 全量回归维持 15/15 + 新增用例族）。
+
+**待 owner 裁决**：按建议全量 / 逐项例外（尤其 ①N=2 vs 4、②乒乓保留 vs 槽池、⑤信封字段 vs 键扩展）。
+
+- 2026-10-12 · **V0.4.0 M1 + M2 交付（语义扩展批前两单元）**：① **M1 = F1 多 APP 设计批——Q-32 已呈递停门**（六子项：实例上限 N/存储布局〔每 APP 双槽乒乓保留〕/运行时并行/看门狗单源群组/命令 v2 信封 app 字段寻址/fs_paths 绑定下沉 IR2§8 收口；现状五面实测为据——rt 静态单实例但 DEC-27 已预留上限 4、hal ctx 绑定天然按实例隔离）。② **M2 = F3 日志面真实化（IR-16 收口）**：`log` 权限类（单实例 `log:write:0`，**生产 fail-closed**）+ 全局窗口限速（`TS_LOG_RATE_PER_S` 默认 20/s，超限 TS_E_BUSY 背压 + 每突发窗一次 notice）+ native 侧 printk 收敛到 ts_log_write **唯一日志路径**（前缀 = ctx.app_id 绑定层身份）；**TEST 语义装载路径自动授予 log**（runtime.c caps 表追加——历史测试根签名包〔nv1/demos 全系〕零重打包延续，simreal 基线不破；生产包须显式声明，skill/spec_gate 文法已同步教授）。③ 验证：twister **15/15（81 用例，+1：test_10 裁决/限速/参数三面）**/L5 6/6/agent 113+2s+ruff 全绿；过程修一枚差一错（限速预算计数，twister 首跑拦下）。④ 登记：多 APP 分账限速随 M7（Q-32④）；LLD-ts-hal log 节随 M2 文档批补（v0.2.4）。

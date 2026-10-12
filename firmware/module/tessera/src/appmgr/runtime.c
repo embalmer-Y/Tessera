@@ -342,6 +342,12 @@ ts_res_t ts_appmgr_app_start(uint16_t app_id, const uint8_t *wasm,
 	}
 	memset(&rt, 0, sizeof(rt));
 	rt.app_id = app_id;
+#ifdef CONFIG_TS_TEST
+	/* V0.4.0 M2（IR-16）：TEST 语义自动授予 log:write:0——历史测试根签名包
+	 * （nv1/demos 全系）manifest 无 log 声明的延续性；生产包须显式声明
+	 * （fail-closed），spec 模板/skills 随 Agent 面同步。 */
+	(void)ts_perm_parse("log:write:0", &table);
+#endif
 	if (ts_hal_bind_context(&rt.ctx, app_id, &table) != TS_OK) {
 		return TS_E_NOMEM;
 	}

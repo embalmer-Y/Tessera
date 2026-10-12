@@ -231,4 +231,34 @@ ZTEST(framework_hal, test_09_dev_registry_bounds)
 	zassert_equal(ts_hal_register_dev(&one_more), TS_E_NOMEM, "registry full");
 }
 
+/* V0.4.0 M2（IR-16）：日志面真实化——裁决 + 全局窗口限速 --------------------- */
+
+ZTEST(framework_hal, test_10_log_perm_and_rate)
+{
+	ts_perm_table_t t;
+	ts_ctx_t ctx;
+
+	/* 未授权：log fail-closed（生产语义——TEST 自动授予只在 appmgr 装载路径，
+	 * 直调 api 层如实验证裁决本体） */
+	ts_perm_table_init(&t);
+	zassert_equal(ts_hal_bind_context(&ctx, 7, &t), TS_OK);
+	zassert_equal(ts_log_write(ctx, 3, "x", 1), TS_E_PERM);
+	ts_hal_unbind_context(&ctx);
+
+	/* 授权：log:write:0 放行 + 参数校验 */
+	ts_perm_table_init(&t);
+	zassert_equal(ts_perm_parse("log:write:0", &t), TS_OK);
+	zassert_equal(ts_hal_bind_context(&ctx, 7, &t), TS_OK);
+	zassert_equal(ts_log_write(ctx, 3, "m", 1), TS_OK);
+	zassert_equal(ts_log_write(ctx, 3, NULL, 1), TS_E_PARAM);
+	zassert_equal(ts_log_write(ctx, 3, "e", 0), TS_E_PARAM);
+
+	/* 限速：全局窗口预算打满 → TS_E_BUSY（上面已成功 1 条，补至满额后过界） */
+	for (int i = 0; i < CONFIG_TS_LOG_RATE_PER_S - 1; i++) {
+		zassert_equal(ts_log_write(ctx, 3, "burst", 5), TS_OK);
+	}
+	zassert_equal(ts_log_write(ctx, 3, "over", 4), TS_E_BUSY);
+	ts_hal_unbind_context(&ctx);
+}
+
 ZTEST_SUITE(framework_hal, NULL, NULL, NULL, NULL, NULL);

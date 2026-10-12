@@ -95,7 +95,36 @@
 | V2-4 | spec 附属证据约束强化 ✅ | LLM 周期行简化对策（NV-6 留档）：spec 附属证据行的生成约束强化（提示词/判据节文法）+ 附属行缺失的 gate 提示级检查——**2026-10-11 交付**：app_develop 首轮提示注入全部判据/附属串（实现面写死）+ repair_loop pass 轮 evidence_hits/missing 统计（缺失如实非阻塞）；pytest 110+2s；LLM 行为改善实证随下次真机全流程顺带观测 | — |
 | 观察 | SYWORK wdt 偶发复位 | reason=0x00020000 间歇复位观察项（NV-1 留档）——不排期，随真机批次顺带取证 | — |
 
-## 10. 执行纪律（不变）
+## 10. 版本 V0.3.0 · 生产语义收口批（2026-10-12 完成，简记）
+
+> V3-1 生产 app flash 面（ts 六分区 + TS_STORE/FLASH/AUDIT + 真机挂载实证）+ V3-2 板级全量复验（auditbench AB PASS + deploybench D8 PASS）；迁移环境后首版本，全部验证于新机器完成。tag `fw-v0.3.0`（提交 1d8074e）。
+
+## 11. 版本 V0.4.0 · 语义扩展批（2026-10-12 owner 裁决开工；每会话一单元）
+
+> **范围裁决（owner）**：调研清单 F1-F7 + Agent 侧 A1-A8 + 质量债 C 全部入版（**F8 P4 无线面除外**——上游 #121767 外部依赖，维持搁置）。版本性质 = V1→V2 语义跨越（多 APP 并行主线）+ Agent 能力面铺开；体量大（约 12-15 单元），F1 设计门后连续开发。
+
+| 序 | 单元 | 内容 | 门 |
+|---|------|------|----|
+| M1 | **F1 多 APP 设计批** | 现状代码分析 + 线程/内存/权限/调度/存储五面设计 + **Q-32 呈递停门**（含 fs_paths 绑定形态重设计——IR2 §8 拦路项） | 门③（Q-32） |
+| M2 | F3 ts_log 权限裁决 + 日志真实化 | ts_log_write 经 ts-hal 裁决（IR-16）+ 速率限制；log 类权限语义定稿 | — |
+| M3 | C-1 稳定性定性单元 | SYWORK wdt 偶发复位 + LLM APP DONE 后死亡两观察项取证定性（含 LLM 生成循环退出语义约束反哺 app_develop 提示词） | — |
+| M4 | A2 caps 硬预校验 | spec_gate caps 文法提示级→硬校验（IR-17 收口；与 manifest 校验双层） | — |
+| M5 | F6 输入中断驱动 | DR-02：input monitor 轮询→中断/混合驱动 | — |
+| M6 | F1 实现Ⅰ（框架面） | Q-32 裁决后：slot/meta 多 APP 存储 + 装载链 + G4 语义演进 | 已裁后无门 |
+| M7 | F1 实现Ⅱ（运行时面） | 多实例并行调度（tick/evt 路由 by app_id）+ 看门狗配额分账 + fs_paths 重设计收口 + 板级 bench（multiappbench） | — |
+| M8 | F4 manifest threads 字段 | WAMR 线程特性（权限门控+计数+栈预算，DEC-31）；依赖 M6/M7 | 门③（小 Q 随批） |
+| M9 | F2 APP 状态持久化 | DR-15：升级/回滚后业务状态保留（kv 面 or ts-fs 白名单域） | 门③（小 Q 随批） |
+| M10 | A1 push_prov | zenoh 维护模式 prov 通道（LLD-A06 §6 例外收口；维护模式语义 Q 随批呈递） | 门③（小 Q） |
+| M11 | A3 D-AV 消费端 + ota_client 重建 | dav_recv 帧重组重写 + ota_client.py 重建（丢失资产）+ D-AV 纵深（帧率/画质档） | — |
+| M12 | 接缝落地打包 | A4 AcpFrontend + A5 A2A PeerTransport 实例化 + A7 Streamable HTTP 门面 + A8 t_window_ms（IR-18）；按价值排序裁剪 | 门③（协议面，随批） |
+| M13 | F7 逻辑节点设计+实现Ⅰ | 跨立方体拓扑/编址/安全仲裁（FOUNDING DEC-02/Q-07）；依赖 M6/M7 | 门③（设计） |
+| M14 | F5 PDM 音频 | 驱动接入（md12c 方案在档）+ 消费者 demo（音频采集→发布，D 阶梯扩） | — |
+| M15 | 收口 | 全量回归 + 板级验证 + tag fw-v0.4.0 | — |
+
+- **质量债随批清偿**（不单开）：C-4 低风险打包债（impl-review-02 §4 族）随 M2-M7 各批顺带；WAMR version.h 屏障源头取证随 M3；CI 间歇红观察维持。
+- **每单元后**：twister 15/15 + agent pytest + L5 回归（军规 10）。
+
+## 12. 执行纪律（不变）
 
 - 规范套件（tag `std-v1`：testing/versioning/progress/coding）+ 军规十条 + 安全与确定性合同（AGENTS.md §6）。
 - 里程碑退出 = review 门（呈递 DoD 对照）；工具面/公共 API/安全合同变更 = 各自 review 门。

@@ -525,4 +525,13 @@ config TS_DRV_ADC
 	  12dB attenuation (ADC_GAIN_1_4); millivolts via Zephyr generic conversion (esp32 driver pre-compensates
 	  raw with eFuse calibration). Default off (native_sim/CI stub backend).
 
+config TS_LOG_RATE_PER_S
+	int "ts-hal: log rate budget (lines per second, global window)"
+	depends on TS_HAL
+	default 20
+	help
+	  V0.4.0 M2 (IR-16): global window budget for ts_log_write (console spam bound;
+	  per-app fair-share arrives with multi-APP M7). Over-budget calls return TS_E_BUSY
+	  (visible backpressure) and one notice line per burst window.
+
 endmenu

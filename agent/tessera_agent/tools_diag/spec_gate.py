@@ -25,7 +25,7 @@ _QUOTED_RE = re.compile(r'["“]([^"”\n]{3,120})["”]')
 
 #: ts_perm_v1 文法（对齐 app_chain 提示词内联文法；实例段 0-3 集合形态）
 _CAP_RE = re.compile(
-    r"^(gpio|pwm|adc|power|fs|av|msg|sys):"
+    r"^(gpio|pwm|adc|power|fs|av|log|msg|sys):"
     r"(read|write|set|list|delete):"
     r"([0-3](-[0-3])?(,[0-3](-[0-3])?)*)$"
 )

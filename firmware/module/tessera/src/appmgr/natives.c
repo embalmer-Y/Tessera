@@ -20,7 +20,6 @@
 
 struct ts_app_rt; /* runtime.c 内部类型（仅指针身份） */
 extern ts_ctx_t ts_app_rt_ctx(struct ts_app_rt *rt);
-extern uint16_t ts_app_rt_id(struct ts_app_rt *rt);
 
 static ts_ctx_t ctx_of(wasm_exec_env_t env)
 {
@@ -83,10 +82,9 @@ static int32_t native_log_write(wasm_exec_env_t env, uint32_t ctx_opaque,
 
 	memcpy(buf, src, len);
 	buf[len] = '\0';
-	printk("[app%u/l%u] %s\n", (unsigned)ts_app_rt_id(
-		       (struct ts_app_rt *)wasm_runtime_get_user_data(env)),
-	       (unsigned)lvl, buf);
-	return TS_OK;
+	/* V0.4.0 M2：裁决/限速/前缀收敛到 ts_log_write（IR-16）——native
+	 * 仅做 wasm 地址边界校验与拷贝，唯一日志路径经 ts-hal。 */
+	return ts_log_write(ctx_of(env), (uint8_t)lvl, buf, len);
 }
 
 /* ---- ts-fs natives（DEC-47④，MD1.2e）--------------------------------

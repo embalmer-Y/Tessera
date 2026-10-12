@@ -217,9 +217,31 @@ uint64_t ts_time_ms_api(ts_ctx_t c)
 
 ts_res_t ts_log_write(ts_ctx_t c, uint8_t lvl, const char *msg, uint32_t len)
 {
-	ARG_UNUSED(c);
-	ARG_UNUSED(lvl);
-	ARG_UNUSED(msg);
-	ARG_UNUSED(len);
-	return TS_OK; /* V1：日志面走 printk / ts-net（M3 接入） */
+	/* V0.4.0 M2（IR-16 收口）：日志面真实化——经 ts-hal 裁决（log:write:0，
+	 * 单实例类）+ 全局窗口限速（V1 单全局预算；多 APP 分账随 M7）。
+	 * 输出前缀 = c.app_id（绑定层身份，与 native 侧 rt_id 同源）。 */
+	if (msg == NULL || len == 0) return TS_E_PARAM;
+	ts_res_t r = ts_perm_check(c, TS_PERM_CLASS_LOG, TS_PERM_OP_WRITE, 0);
+
+	if (r != TS_OK) return r; /* 越权留痕由 ts_perm_check 承担（合同 10） */
+	static uint32_t win_start, win_used;
+	static bool dropping;
+	uint32_t now = (uint32_t)ts_time_ms();
+
+	if (now - win_start >= 1000u) {
+		win_start = now;
+		win_used = 0;
+		dropping = false;
+	}
+	if (win_used >= CONFIG_TS_LOG_RATE_PER_S) {
+		if (!dropping) {
+			dropping = true;
+			printk("[hal] log rate limit: dropping (cap %u/s)\n",
+			       CONFIG_TS_LOG_RATE_PER_S);
+		}
+		return TS_E_BUSY; /* 背压可见（军规 7） */
+	}
+	win_used++;
+	printk("[app%u/l%u] %s\n", (unsigned)c.app_id, (unsigned)lvl, msg);
+	return TS_OK;
 }
