@@ -24,7 +24,7 @@ app_develop 的 spec 推荐四节模板（缺节/判据无引号串 = 阻塞级�
 
 ```
 【需求】APP 做什么（行为语义，确定性描述）。
-【资源】caps=["class:op:inst"...]；fs_paths=["/SD:/..."]（可选，仅 fs 类）。日志判据行需要 "log:write:0"（V0.4.0 起生产语义 fail-closed——TEST 根签名包自动授予，生产包必声明）。
+【资源】caps=["class:op:inst"...]；fs_paths=["/SD:/..."]（可选，仅 fs 类）。日志判据行需要 "log:write:0"（V0.4.0 起生产语义 fail-closed——TEST 根签名包自动授予，生产包必声明）。状态持久化（跨重启/升级保留 ≤250B）需要 "kv:write:0"+"kv:read:0"（ts_kv_save/ts_kv_load）。
 【判据】输出行 "精确判据串"（引号包裹，≥3 字符）即达成；心跳稳态。
 【安全声明】输出经保护层限幅；确定性输出；无越权访问。
 ```

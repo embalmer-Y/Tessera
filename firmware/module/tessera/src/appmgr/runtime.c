@@ -40,6 +40,7 @@ struct ts_app_rt {
 	wasm_exec_env_t env;
 	wasm_function_inst_t fn_init, fn_tick, fn_evt, fn_health;
 	struct k_thread thread;
+	char app_id_str[64]; /* manifest 串身份（V0.4.0 M9：kv 哈希源，DR-15） */
 	/* 观测计数（stats） */
 	uint32_t evt_seen, tick_count, health_fails, mb_dropped, init_res;
 	int32_t last_evt;
@@ -65,6 +66,23 @@ static size_t mod_cache_n;
 ts_ctx_t ts_app_rt_ctx(struct ts_app_rt *r)
 {
 	return r->ctx; /* natives ctx_of：exec_env user_data = rt 槽位指针 */
+}
+
+const char *ts_app_rt_idstr(struct ts_app_rt *r)
+{
+	return r->app_id_str; /* V0.4.0 M9：kv 哈希源（boot 装载期注入） */
+}
+
+void ts_appmgr_app_set_idstr(uint16_t app_id, const char *idstr)
+{
+	/* boot 装载期注入 manifest 串身份（entry 对齐：app_id = entry+1） */
+	if (app_id == 0 || app_id > CONFIG_TS_APP_MAX_INSTANCES ||
+	    idstr == NULL) {
+		return;
+	}
+	strncpy(rt[app_id - 1].app_id_str, idstr,
+		sizeof(rt[app_id - 1].app_id_str) - 1);
+	rt[app_id - 1].app_id_str[sizeof(rt[app_id - 1].app_id_str) - 1] = '\0';
 }
 /* 每 rt 独立 mailbox（DR-14 深度 DEC-27 #15: 8，满丢最旧 + 计数） */
 static uint32_t mb_bufs[CONFIG_TS_APP_MAX_INSTANCES][CONFIG_TS_APP_MBOX_DEPTH];

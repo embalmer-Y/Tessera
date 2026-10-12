@@ -121,9 +121,16 @@ def _develop_system_prompt() -> str:
         "int ts_fs_delete(int ctx,const char* path,int path_len)；"
         "int ts_av_capture(int ctx,char* buf,int cap)；"
         "int ts_net_publish(int ctx,int frame_id,int chunk_id,"
-        "int n_chunks,const char* buf,int len)。",
+        "int n_chunks,const char* buf,int len)；"
+        "int ts_kv_save(int ctx,const char* buf,int len)；"
+        "int ts_kv_load(int ctx,char* buf,int cap)。",
         "（fs natives 仅当 manifest caps 含对应 fs:op 且 fs_paths 覆盖路径时可用；"
         "返回 >=0 为字节数、<0 为错误码；路径缓冲在 wasm 线性内存内。）"
+        "（ts_kv_save/ts_kv_load = 本 APP 业务状态持久化（V0.4.0 M9，DR-15）："
+        "一份 ≤250B 不透明 blob，跨升级/回滚自动保留（按 app_id 归属，无需键名）；"
+        "save 全量覆盖、load 返回最新长度（≥0）或错误码（<0；-6 = 未存过）；"
+        "仅当 caps 含 kv:write:0 / kv:read:0 时可用——静态状态优先存全局变量，"
+        "仅**跨重启/升级需要保留**的才用 kv。）"
         "（ts_av_capture 阻塞取一帧到 buf，返回帧长；仅当 caps 含 av:read:0 且 "
         "manifest 声明 av_fmt/av_w/av_h 时可用。ts_net_publish 发布一分片：把帧"
         "按 ≤1024 字节切块、frame_id 每帧自增、chunk_id/n_chunks 标注分片序；"

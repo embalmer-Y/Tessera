@@ -440,7 +440,8 @@ static ts_res_t boot_load_entry(uint8_t entry, const ts_appmgr_meta_t *meta)
 		return TS_E_IO;
 	}
 	/* 数值 app_id = entry+1（M6 单实例装载 entry 0 → 1，与 V1 审计归因
-	 * 兼容；M7 多实例 = 各 entry 各 id） */
+	 * 兼容；M7 多实例 = 各 entry 各 id）。串身份随载注入（M9：kv 哈希源）。 */
+	ts_appmgr_app_set_idstr(entry + 1, current_apps[entry].app_id);
 	ts_res_t sr = ts_appmgr_app_start(entry + 1, boot_wasm_buf, wl, boot_caps);
 
 #ifdef CONFIG_TS_HAL_FS

@@ -35,6 +35,7 @@ NATIVE_WHITELIST = frozenset({
     "ts_time_ms", "ts_log_write",
     "ts_fs_read", "ts_fs_write", "ts_fs_list", "ts_fs_delete",  # DEC-47④（MD1.2e）
     "ts_av_capture", "ts_net_publish",  # DEC-47③⑥（MD1.2g）
+    "ts_kv_save", "ts_kv_load",  # V0.4.0 M9（DR-15）：业务状态持久化
 })
 
 # 框架回调（runtime lookup：health_ping 必有；app_init/app_tick/app_evt

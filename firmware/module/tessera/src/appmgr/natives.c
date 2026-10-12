@@ -17,9 +17,13 @@
 #include <zephyr/sys/printk.h>
 #include <ts/hal.h>
 #include <wasm_export.h>
+#ifdef CONFIG_TS_STORE_KV
+#include <ts/store.h> /* TS_KV_BLOB_MAX（V0.4.0 M9） */
+#endif
 
 struct ts_app_rt; /* runtime.c 内部类型（仅指针身份） */
 extern ts_ctx_t ts_app_rt_ctx(struct ts_app_rt *rt);
+extern const char *ts_app_rt_idstr(struct ts_app_rt *rt); /* M9：kv 哈希源 */
 
 static ts_ctx_t ctx_of(wasm_exec_env_t env)
 {
@@ -90,6 +94,57 @@ static int32_t native_log_write(wasm_exec_env_t env, uint32_t ctx_opaque,
 /* ---- ts-fs natives（DEC-47④，MD1.2e）--------------------------------
  * wasm 指针参数一律 validate_app_addr 后经 addr_app_to_native 落主机指针
  * （native_log_write 同纪律）。读类返回：>= 0 = 字节数；< 0 = ts_res_t。 */
+
+/* ---- ts-kv natives（V0.4.0 M9，DR-15）------------------------------------
+ * key = 本 APP 串身份的 FNV-1a 32（boot 装载期注入 rt.app_id_str——跨升级/
+ * 回滚归属不变）；经 ts-hal kv 权限裁决（kv:read:0 / kv:write:0）。 */
+#ifdef CONFIG_TS_STORE_KV
+static uint32_t fnv1a(const char *s)
+{
+	uint32_t h = 0x811C9DC5U;
+
+	while (*s != '\0') {
+		h ^= (uint8_t)*s++;
+		h *= 0x01000193U;
+	}
+	return h;
+}
+
+static int32_t native_kv_save(wasm_exec_env_t env, uint32_t ctx_opaque,
+			      uint32_t off, uint32_t len)
+{
+	ARG_UNUSED(ctx_opaque);
+	wasm_module_inst_t inst = wasm_runtime_get_module_inst(env);
+
+	if (len == 0 || len > TS_KV_BLOB_MAX ||
+	    !wasm_runtime_validate_app_addr(inst, off, len)) {
+		return TS_E_PARAM;
+	}
+	const uint8_t *src = (const uint8_t *)wasm_runtime_addr_app_to_native(inst, off);
+	struct ts_app_rt *rt = wasm_runtime_get_user_data(env);
+
+	return ts_kv_save(ctx_of(env), fnv1a(ts_app_rt_idstr(rt)), src,
+			  (uint16_t)len);
+}
+
+static int32_t native_kv_load(wasm_exec_env_t env, uint32_t ctx_opaque,
+			      uint32_t off, uint32_t max)
+{
+	ARG_UNUSED(ctx_opaque);
+	wasm_module_inst_t inst = wasm_runtime_get_module_inst(env);
+
+	if (max == 0 || max > TS_KV_BLOB_MAX ||
+	    !wasm_runtime_validate_app_addr(inst, off, max)) {
+		return TS_E_PARAM;
+	}
+	uint8_t *dst = (uint8_t *)wasm_runtime_addr_app_to_native(inst, off);
+	struct ts_app_rt *rt = wasm_runtime_get_user_data(env);
+
+	return ts_kv_load(ctx_of(env), fnv1a(ts_app_rt_idstr(rt)), dst,
+			  (uint16_t)max);
+}
+#endif
+
 #ifdef CONFIG_TS_HAL_FS
 static char fs_path_buf[96];
 
@@ -226,6 +281,10 @@ static NativeSymbol ts_native_syms[] = {
 	{"ts_adc_read", native_adc_read, "(ii)i", NULL},
 	{"ts_time_ms", native_time_ms, "(i)I", NULL},
 	{"ts_log_write", native_log_write, "(iiii)i", NULL},
+#ifdef CONFIG_TS_STORE_KV
+	{"ts_kv_save", native_kv_save, "(iii)i", NULL},
+	{"ts_kv_load", native_kv_load, "(iii)i", NULL},
+#endif
 #ifdef CONFIG_TS_HAL_FS
 	{"ts_fs_read", native_fs_read, "(iiiiii)i", NULL},
 	{"ts_fs_write", native_fs_write, "(iiiiii)i", NULL},

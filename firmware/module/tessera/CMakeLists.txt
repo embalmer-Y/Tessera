@@ -39,6 +39,10 @@ zephyr_library_sources_ifdef(CONFIG_TS_STORE_AUDIT
   src/store/audit.c
 )
 
+zephyr_library_sources_ifdef(CONFIG_TS_STORE_KV
+  src/store/kv.c
+)
+
 zephyr_library_sources_ifdef(CONFIG_TS_TEST
   src/store/prov_test.c
 )

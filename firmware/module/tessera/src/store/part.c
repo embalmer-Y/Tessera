@@ -27,6 +27,9 @@
 #ifdef CONFIG_TS_STORE_AUDIT
 #define AUDIT_SIZE  8192U /* DEC-52①：两页乒乓 × 64 槽 × 64B */
 #endif
+#ifdef CONFIG_TS_STORE_KV
+#define KV_BACKEND_SIZE 8192U /* V0.4.0 M9（DR-15）：两页 × 15 槽 × 264B */
+#endif
 
 static uint8_t ram_prov[PROV_SIZE];
 static uint8_t ram_meta[META_SIZE];
@@ -41,6 +44,9 @@ static uint8_t ram_slot_d[CONFIG_TS_STORE_SLOT_SIZE];
 static uint8_t ram_noinit[NOINIT_SIZE];
 #ifdef CONFIG_TS_STORE_AUDIT
 static uint8_t ram_audit[AUDIT_SIZE];
+#endif
+#ifdef CONFIG_TS_STORE_KV
+static uint8_t ram_kv[KV_BACKEND_SIZE]; /* V0.4.0 M9（DR-15）：8KB 两页 */
 #endif
 
 static uint8_t *part_ram(ts_store_part_t part, uint32_t *size)
@@ -75,6 +81,11 @@ static uint8_t *part_ram(ts_store_part_t part, uint32_t *size)
 	case TS_PART_AUDIT:
 		*size = AUDIT_SIZE;
 		return ram_audit;
+#endif
+#ifdef CONFIG_TS_STORE_KV
+	case TS_PART_KV:
+		*size = KV_BACKEND_SIZE;
+		return ram_kv;
 #endif
 	default:
 		*size = 0;
@@ -166,6 +177,9 @@ const ts_store_ops_t ts_store_backend = {
 #ifdef CONFIG_TS_STORE_AUDIT
 #define NODE_AUDIT   DT_NODELABEL(ts_audit_part)
 #endif
+#ifdef CONFIG_TS_STORE_KV
+#define NODE_KV      DT_NODELABEL(ts_kv_part)
+#endif
 
 #if !DT_NODE_EXISTS(NODE_PROV) || !DT_NODE_EXISTS(NODE_META) || \
 	!DT_NODE_EXISTS(NODE_SLOT_A) || !DT_NODE_EXISTS(NODE_SLOT_B) || \
@@ -184,6 +198,13 @@ const ts_store_ops_t ts_store_backend = {
 #endif
 BUILD_ASSERT(PARTITION_SIZE(ts_audit_part) == 8192,
 	     "ts_audit_part must be 8192 (two 4KB ping-pong pages, DEC-52①)");
+#endif
+#ifdef CONFIG_TS_STORE_KV
+#if !DT_NODE_EXISTS(NODE_KV)
+#error "TS_STORE_KV=y：DT 缺少 ts_kv_part 分区（板 overlay 须定义 8KB ts-kv，V0.4.0 M9/DR-15）"
+#endif
+BUILD_ASSERT(PARTITION_SIZE(ts_kv_part) == 8192,
+	     "ts_kv_part must be 8192 (two 4KB ping-pong pages, V0.4.0 M9)");
 #endif
 
 /* 分区尺寸与 Kconfig 的硬耦合（fail-closed：错配 = 构建期失败而非运行期越界）。
@@ -241,6 +262,11 @@ static const struct flash_area *flash_fa(ts_store_part_t part)
 		id = PARTITION_ID(ts_audit_part);
 		break;
 #endif
+#ifdef CONFIG_TS_STORE_KV
+	case TS_PART_KV:
+		id = PARTITION_ID(ts_kv_part);
+		break;
+#endif
 	default:
 		id = PARTITION_ID(ts_noinit_part);
 		break;
@@ -280,6 +306,10 @@ static uint32_t flash_size(ts_store_part_t part)
 #ifdef CONFIG_TS_STORE_AUDIT
 	case TS_PART_AUDIT:
 		return PARTITION_SIZE(ts_audit_part);
+#endif
+#ifdef CONFIG_TS_STORE_KV
+	case TS_PART_KV:
+		return PARTITION_SIZE(ts_kv_part);
 #endif
 	default:
 		return PARTITION_SIZE(ts_noinit_part);

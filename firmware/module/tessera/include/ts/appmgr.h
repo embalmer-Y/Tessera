@@ -135,6 +135,9 @@ void ts_appmgr_app_evt_bcast(uint32_t payload);
 bool ts_appmgr_app_running_id(uint16_t app_id);
 void ts_appmgr_app_stats_id(uint16_t app_id, struct ts_app_rt_stats *out);
 
+/** M9（DR-15）：注入 manifest 串身份（boot 装载期；kv 哈希源）。 */
+void ts_appmgr_app_set_idstr(uint16_t app_id, const char *idstr);
+
 /** M7：健康失败按实例分账（rt 健康探针 → 对应 entry 回滚链）。 */
 ts_res_t ts_appmgr_health_fail_id(uint16_t app_id);
 

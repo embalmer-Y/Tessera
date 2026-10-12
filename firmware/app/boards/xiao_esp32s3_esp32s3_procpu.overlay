@@ -38,10 +38,16 @@
 			label = "ts-audit";
 			reg = <0x184000 0x2000>;
 		};
-		/* fw-b：预留缩至 0x186000 起（原 0x184000——audit 借头部 8KB） */
-		fw_b_part: partition@186000 {
+		/* V0.4.0 M9（DR-15）：APP 状态 kv 8KB（两页 × 15 槽 × 264B） */
+		ts_kv_part: partition@186000 {
+			compatible = "zephyr,mapped-partition";
+			label = "ts-kv";
+			reg = <0x186000 0x2000>;
+		};
+		/* fw-b：预留缩至 0x188000 起（audit/kv 连续借位） */
+		fw_b_part: partition@188000 {
 			label = "fw-b";
-			reg = <0x186000 0x13a000>;
+			reg = <0x188000 0x138000>;
 		};
 	};
 };

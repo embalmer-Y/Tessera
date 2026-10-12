@@ -31,6 +31,9 @@ typedef enum {
 	TS_PART_NOINIT,
 	TS_PART_AUDIT, /* DEC-52①：审计 flash 环（8KB 两页乒乓；无此分区的板
 			* 降级——audit init 留痕失败、内存环保留） */
+	TS_PART_KV,    /* V0.4.0 M9（DR-15）：APP 业务状态 kv（8KB 两页乒乓；
+			* 每 APP 有界 blob ≤250B，app_id 哈希归属——跨升级/回滚
+			* 保留；CONFIG_TS_STORE_KV 门控） */
 	TS_PART_COUNT,
 } ts_store_part_t;
 
@@ -97,6 +100,20 @@ size_t ts_store_audit_read(ts_store_audit_entry_t *out, size_t max);
 void ts_store_audit_boot_report(void); /* boot 打印最近 8 条（人读留痕） */
 #endif
 
+/* ---- APP 业务状态 kv（V0.4.0 M9，DR-15；CONFIG_TS_STORE_KV 门控）---------- */
+#ifdef CONFIG_TS_STORE_KV
+#define TS_KV_BLOB_MAX 250 /* 槽 264B − 14B 头（结构性数值） */
+
+/** 惰性初始化（首次 save/load 内部调用亦可）；分区缺失 = E_STATE 如实。 */
+ts_res_t ts_store_kv_init(void);
+/** 保存/覆盖该 app 的状态 blob（app_hash = app_id 串哈希——跨升级/回滚
+ *  归属不变，DR-15）。len ≤ TS_KV_BLOB_MAX；页满自动压实（两页乒乓）。 */
+ts_res_t ts_store_kv_save(uint32_t app_hash, const uint8_t *data, uint16_t len);
+/** 读该 app 最新 blob；返回拷贝长度（≥0）或 ts_res_t（负值：未存 = E_NOTFOUND，
+ *  容量不足 = E_RANGE）。 */
+int32_t ts_store_kv_load(uint32_t app_hash, uint8_t *out, uint16_t max);
+#endif
+
 /* ---- 测试钩子（仅 CONFIG_TS_TEST）---------------------------------------- */
 #ifdef CONFIG_TS_TEST
 /* 抹除全部后端存储（测试隔离：每用例套件 setup 调用） */
@@ -106,6 +123,10 @@ ts_res_t ts_store_test_reset(void);
 ts_res_t ts_store_prov_write_test(const uint8_t *cbor, uint32_t len);
 /* 主动破坏一份 meta 副本（撕裂注入） */
 ts_res_t ts_store_meta_corrupt_test(uint8_t copy_idx);
+#ifdef CONFIG_TS_STORE_KV
+/* kv 游标复位（后端抹除后重扫描；V0.4.0 M9 测试隔离） */
+void ts_store_kv_test_reset(void);
+#endif
 #endif
 
 #ifdef __cplusplus

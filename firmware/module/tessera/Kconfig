@@ -572,4 +572,15 @@ config TS_HAL_INPUT_DEBOUNCE_MS
 	help
 	  Delay between edge interrupt and the immediate re-poll (contact debounce bound).
 
+config TS_STORE_KV
+	bool "ts-store: APP state kv persistence (V0.4.0 M9, DR-15)"
+	depends on TS_STORE
+	default n
+	help
+	  Per-APP bounded state blob (<=250B) surviving upgrade/rollback, keyed by
+	  app_id hash (DR-15). 8KB two-page ping-pong (15 slots x 264B per page),
+	  compaction keeps the latest blob per app (bounded to 15 apps, oldest
+	  dropped). Flash builds require the ts_kv_part DT node (build-time
+	  fail-closed); natives ts_kv_save/ts_kv_load gated by the kv perm class.
+
 endmenu

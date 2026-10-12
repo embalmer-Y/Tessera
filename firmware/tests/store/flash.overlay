@@ -35,5 +35,10 @@
 			label = "ts-audit";
 			reg = <0x00084000 0x2000>;
 		};
+		/* V0.4.0 M9（DR-15）：APP 状态 kv 8KB（两页 × 15 槽 × 264B） */
+		ts_kv_part: partition@86000 {
+			label = "ts-kv";
+			reg = <0x00086000 0x2000>;
+		};
 	};
 };

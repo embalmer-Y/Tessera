@@ -25,7 +25,7 @@ _QUOTED_RE = re.compile(r'["“]([^"”\n]{3,120})["”]')
 
 #: ts_perm_v1 文法（对齐 app_chain 提示词内联文法；实例段 0-3 集合形态）
 _CAP_RE = re.compile(
-    r"^(gpio|pwm|adc|power|fs|av|log|msg|sys):"
+    r"^(gpio|pwm|adc|power|fs|av|log|kv|msg|sys):"
     r"(read|write|set|list|delete):"
     r"([0-3](-[0-3])?(,[0-3](-[0-3])?)*)$"
 )
@@ -107,7 +107,7 @@ def check_spec(spec: str) -> SpecGateResult:
             if not _CAP_RE.match(cap):
                 res.errors.append(f"caps 文法非法: {cap!r}（ts_perm_v1: "
                                   "class:op:instances——class ∈ gpio|pwm|adc|"
-                                  "power|fs|av|log|msg|sys；op ∈ read|write|"
+                                  "power|fs|av|log|kv|msg|sys；op ∈ read|write|"
                                   "set|list|delete；实例 0-3 数值/区间/逗号集）")
     m = _FS_PATHS_LIST_RE.search(resrc)
     if m:

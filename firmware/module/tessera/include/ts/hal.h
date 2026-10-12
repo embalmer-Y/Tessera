@@ -34,6 +34,7 @@ typedef enum {
 	TS_PERM_CLASS_FS,   /* DEC-47⑤：文件系统（ts-fs 能力面，MD1.2e） */
 	TS_PERM_CLASS_AV,   /* DEC-47⑤：音视频采集/流通道（ts-av 能力面，MD1.2g） */
 	TS_PERM_CLASS_LOG,  /* V0.4.0 M2（IR-16）：日志面（单实例类，inst=0） */
+	TS_PERM_CLASS_KV,   /* V0.4.0 M9（DR-15）：业务状态 kv（单实例类，inst=0） */
 	TS_PERM_CLASS_MSG,
 	TS_PERM_CLASS_SYS,
 	TS_PERM_CLASS_COUNT,
@@ -175,6 +176,16 @@ void ts_hal_input_poll_once(void);
 /** 框架侧 GPIO_IN 电平读（V0.4.0 M5/DR-02；无权限面——观测侧。真后端
  *  uid 匹配直读，未匹配 = false 近似〔sim 连续〕）。 */
 bool ts_gpio_in_read_fw(const ts_hal_dev_desc_t *d);
+
+/* ---- APP 业务状态 kv（V0.4.0 M9，DR-15；权限类 kv，store 面 CONFIG_TS_STORE_KV）*/
+
+/** 保存/覆盖本 APP 状态 blob（key_hash = app_id 串哈希——调用方〔natives〕
+ *  从运行时身份计算；跨升级/回滚归属不变）。len ≤ TS_KV_BLOB_MAX。 */
+ts_res_t ts_kv_save(ts_ctx_t c, uint32_t key_hash, const uint8_t *data,
+		    uint16_t len);
+
+/** 读本 APP 最新 blob；返回拷贝长度（≥0）或 ts_res_t 负值。 */
+int32_t ts_kv_load(ts_ctx_t c, uint32_t key_hash, uint8_t *out, uint16_t max);
 
 /** [boot/board] 真机 ADC 输入后端初始化（板级九；api.c）。
  * 依赖 CONFIG_TS_DRV_ADC=y + zephyr,user 节点（adc-uid + io-channels）；

@@ -6,6 +6,9 @@
 #include <ts/core.h>
 #include <ts/hal.h>
 #include <ts/safety.h>
+#ifdef CONFIG_TS_STORE_KV
+#include <ts/store.h> /* V0.4.0 M9：kv 后端（DR-15） */
+#endif
 #include <zephyr/kernel.h>
 
 /* ---- 实例注册（registry） ------------------------------------------------ */
@@ -86,6 +89,42 @@ bool ts_gpio_in_read_fw(const ts_hal_dev_desc_t *d)
 	return (uid != NULL && strcmp(d->uid, uid) == 0)
 		       ? ts_drv_gpio_in_read()
 		       : false;
+}
+
+/* ---- APP 业务状态 kv（V0.4.0 M9，DR-15）---------------------------------- */
+
+ts_res_t ts_kv_save(ts_ctx_t c, uint32_t key_hash, const uint8_t *data,
+		    uint16_t len)
+{
+#ifdef CONFIG_TS_STORE_KV
+	ts_res_t r = ts_perm_check(c, TS_PERM_CLASS_KV, TS_PERM_OP_WRITE, 0);
+
+	if (r != TS_OK) return r; /* 越权留痕由 ts_perm_check 承担（合同 10） */
+	return ts_store_kv_save(key_hash, data, len);
+#else
+	ARG_UNUSED(c);
+	ARG_UNUSED(key_hash);
+	ARG_UNUSED(data);
+	ARG_UNUSED(len);
+	return TS_E_STATE; /* 未编入 kv 面（CONFIG_TS_STORE_KV=n）——如实 */
+#endif
+}
+
+int32_t ts_kv_load(ts_ctx_t c, uint32_t key_hash, uint8_t *out, uint16_t max)
+{
+#ifdef CONFIG_TS_STORE_KV
+	ts_res_t r = ts_perm_check(c, TS_PERM_CLASS_KV, TS_PERM_OP_READ, 0);
+
+	if (r != TS_OK) return r;
+	if (out == NULL || max == 0) return TS_E_PARAM;
+	return ts_store_kv_load(key_hash, out, max);
+#else
+	ARG_UNUSED(c);
+	ARG_UNUSED(key_hash);
+	ARG_UNUSED(out);
+	ARG_UNUSED(max);
+	return TS_E_STATE; /* 未编入 kv 面（CONFIG_TS_STORE_KV=n）——如实 */
+#endif
 }
 
 ts_res_t ts_pwm_set(ts_ctx_t c, uint8_t inst, uint32_t hz, uint16_t permille)

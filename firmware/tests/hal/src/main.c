@@ -308,4 +308,34 @@ ZTEST(framework_hal, test_10_log_perm_and_rate)
 	ts_hal_unbind_context(&ctx);
 }
 
+/* V0.4.0 M9（DR-15）：kv 裁决 + 读写回 --------------------------------------- */
+
+ZTEST(framework_hal, test_12_kv_adjudication)
+{
+	ts_perm_table_t t;
+	ts_ctx_t ctx;
+	const uint8_t blob[8] = {1, 2, 3, 4, 5, 6, 7, 8};
+	uint8_t out[8];
+
+	/* 未授权：fail-closed（生产语义） */
+	ts_perm_table_init(&t);
+	zassert_equal(ts_hal_bind_context(&ctx, 9, &t), TS_OK);
+	zassert_equal(ts_kv_save(ctx, 0xABC, blob, 8), TS_E_PERM);
+	zassert_equal(ts_kv_load(ctx, 0xABC, out, 8), (int32_t)TS_E_PERM);
+	ts_hal_unbind_context(&ctx);
+
+	/* 授权 kv:write:0 + kv:read:0 → 读写回（RAM 后端） */
+	ts_perm_table_init(&t);
+	zassert_equal(ts_perm_parse("kv:write:0", &t), TS_OK);
+	zassert_equal(ts_perm_parse("kv:read:0", &t), TS_OK);
+	zassert_equal(ts_hal_bind_context(&ctx, 9, &t), TS_OK);
+	zassert_equal(ts_kv_save(ctx, 0xABC, blob, 8), TS_OK);
+	zassert_equal(ts_kv_load(ctx, 0xABC, out, 8), 8);
+	zassert_equal(memcmp(out, blob, 8), 0, "读回一致");
+	/* 参数校验 */
+	zassert_equal(ts_kv_save(ctx, 0xABC, blob, 0), TS_E_PARAM);
+	zassert_equal(ts_kv_load(ctx, 0xABC, out, 0), (int32_t)TS_E_PARAM);
+	ts_hal_unbind_context(&ctx);
+}
+
 ZTEST_SUITE(framework_hal, NULL, NULL, NULL, NULL, NULL);

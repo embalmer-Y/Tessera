@@ -72,11 +72,17 @@
 			label = "ts-noinit";
 			reg = <0x193000 0x1000>;
 		};
+		/* V0.4.0 M9（DR-15）：APP 状态 kv 8KB（两页 × 15 槽 × 264B） */
+		ts_kv_part: partition@194000 {
+			compatible = "zephyr,mapped-partition";
+			label = "ts-kv";
+			reg = <0x194000 0x2000>;
+		};
 		/* fw-b：未来 MCUmgr 固件第二 slot 预留（DEC-23；V1 未接线——
-		 * M7c 槽池扩占后再让位） */
-		fw_b_part: partition@194000 {
+		 * M7c/M9 连续让位） */
+		fw_b_part: partition@196000 {
 			label = "fw-b";
-			reg = <0x194000 0x12c000>;
+			reg = <0x196000 0x12a000>;
 		};
 	};
 };

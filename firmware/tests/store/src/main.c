@@ -77,6 +77,9 @@ static void build_prov_cbor(struct cb *c, const char *node, const char *cube,
 static void *store_setup(void)
 {
 	zassert_equal(ts_store_test_reset(), TS_OK, "backend reset");
+#ifdef CONFIG_TS_STORE_KV
+	ts_store_kv_test_reset(); /* M9：游标随抹除失效（重扫描） */
+#endif
 	return NULL;
 }
 
@@ -348,6 +351,70 @@ ZTEST(framework_store, test_audit_ring_persist_and_flip)
 	zassert_true(n <= 128, "容量上界");
 	zassert_equal(big[n - 1].seq, 104, "末条 seq=总条数");
 	zassert_equal(big[0].seq, big[n - 1].seq - (uint32_t)n + 1, "seq 连续");
+}
+#endif
+
+/* V0.4.0 M9（DR-15）：APP 业务状态 kv ---------------------------------------- */
+#ifdef CONFIG_TS_STORE_KV
+ZTEST(framework_store, test_kv_roundtrip_and_isolation)
+{
+	/* 执行序自足（ztest 非源码序 + setup 仅一次——M6 教训） */
+	zassert_equal(ts_store_test_reset(), TS_OK);
+	ts_store_kv_test_reset();
+	uint8_t buf[TS_KV_BLOB_MAX];
+	uint8_t out[TS_KV_BLOB_MAX];
+
+	/* 保存两个 app 的 blob → 各自读回（哈希隔离） */
+	for (int i = 0; i < 100; i++) {
+		buf[i] = (uint8_t)('a' + i % 26);
+	}
+	zassert_equal(ts_store_kv_save(0x11111111, buf, 100), TS_OK);
+	for (int i = 0; i < 50; i++) {
+		buf[i] = (uint8_t)('A' + i % 26);
+	}
+	zassert_equal(ts_store_kv_save(0x22222222, buf, 50), TS_OK);
+
+	zassert_equal(ts_store_kv_load(0x11111111, out, sizeof(out)), 100);
+	zassert_equal(out[0], 'a', "app1 数据");
+	zassert_equal(ts_store_kv_load(0x22222222, out, sizeof(out)), 50);
+	zassert_equal(out[0], 'A', "app2 数据");
+	zassert_equal(ts_store_kv_load(0x33333333, out, sizeof(out)),
+		      TS_E_NOTFOUND, "未存 app = NOTFOUND");
+
+	/* 覆盖：app1 重存 → 读回新值（最新胜出） */
+	buf[0] = 'Z';
+	zassert_equal(ts_store_kv_save(0x11111111, buf, 30), TS_OK);
+	zassert_equal(ts_store_kv_load(0x11111111, out, sizeof(out)), 30);
+	zassert_equal(out[0], 'Z', "覆盖后最新胜出");
+
+	/* 容量边界 */
+	zassert_equal(ts_store_kv_save(0x11111111, buf, TS_KV_BLOB_MAX + 1),
+		      TS_E_PARAM, "超上限拒绝");
+	zassert_equal(ts_store_kv_load(0x22222222, out, 10), TS_E_RANGE,
+		      "读容量不足 = RANGE");
+}
+
+ZTEST(framework_store, test_kv_compact_and_reload)
+{
+	zassert_equal(ts_store_test_reset(), TS_OK);
+	ts_store_kv_test_reset();
+	uint8_t buf[TS_KV_BLOB_MAX];
+	uint8_t out[TS_KV_BLOB_MAX];
+
+	/* 写满 active 页（15 槽）再越界 → 压实翻页 + 数据保留 */
+	for (int round = 0; round < 20; round++) {
+		buf[0] = (uint8_t)('0' + round % 10);
+		zassert_equal(ts_store_kv_save(0xAAAA0000 + (uint32_t)round,
+					       buf, 8), TS_OK, "跨页写");
+	}
+	/* 有界压实语义：20 个不同 app > keep 上限（14）→ 最老 6 个按序弃
+	 * （app0..5 NOTFOUND），其余保留各自最新（app6 起 + 末 app）。 */
+	zassert_equal(ts_store_kv_load(0xAAAA0000, out, sizeof(out)),
+		      TS_E_NOTFOUND, "最老 app 按序弃（有界语义）");
+	zassert_equal(ts_store_kv_load(0xAAAA0006, out, sizeof(out)), 8);
+	zassert_equal(out[0], '6', "app6 起保留");
+	zassert_equal(ts_store_kv_load(0xAAAA0013, out, sizeof(out)), 8);
+	zassert_equal(out[0], '9', "末 app 最新（round 19 → '9'）");
 }
 #endif
 
