@@ -112,6 +112,34 @@ class TestCompileAppC:
 
     # ---- IR2-03 加固批（DEC-48 排期表单元 3）--------------------------------
 
+    # ---- V0.4.0 M3：health_ping 语义门（nvd 单迹定性对策）--------------------
+
+    def test_health_ping_nonzero_literal_reject(self, tmp_path):
+        """health_ping 返回非零字面量（nvd 实测误解形态 `done ? 1 : 0`）= 拒绝。"""
+        src = GOOD_C.replace(
+            "int health_ping(void) { return 0; }",
+            "int health_ping(void) { static int done = 1;"
+            " return done ? 1 : 0; }")
+        assert src != GOOD_C
+        with pytest.raises(TaError, match="health_ping 语义合同"):
+            compile_app_c(src, str(tmp_path / "o"), [str(tmp_path)])
+
+    def test_health_ping_neg_const_reject(self, tmp_path):
+        """-1 错误码返回 = 同样拒绝（非零即病）。"""
+        src = GOOD_C.replace(
+            "int health_ping(void) { return 0; }",
+            "int health_ping(void) { return -1; }")
+        with pytest.raises(TaError, match="health_ping 语义合同"):
+            compile_app_c(src, str(tmp_path / "o"), [str(tmp_path)])
+
+    def test_health_ping_var_and_string_digits_pass(self, tmp_path):
+        """纯变量返回/字符串内数字放行（静态不可知——提示词合同兜底）。"""
+        src = GOOD_C.replace(
+            "int health_ping(void) { return 0; }",
+            'int health_ping(void) { static int e = 0;'
+            ' return e; } /* "ticks=10" 注释含数字不作数 */')
+        compile_app_c(src, str(tmp_path / "o"), [str(tmp_path)])
+
     def test_include_gate_system(self, tmp_path):
         """#include 系统头 = 预处理读面，拒绝（自由固件零依赖）。"""
         with pytest.raises(TaError, match="#include"):

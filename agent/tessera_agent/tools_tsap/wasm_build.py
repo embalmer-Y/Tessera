@@ -148,6 +148,50 @@ def _gate_source(source_c: str) -> None:
             "extern 声明；禁预处理读面）",
             domain="app_compile",
         )
+    _gate_health_ping(source_c)
+
+
+def _gate_health_ping(source_c: str) -> None:
+    """health_ping 返回值语义门（V0.4.0 M3，nvd 单迹定性对策）。
+
+    框架合同：health_ping 返回 0 = 健康；非零 = 健康失败（连续 3 次 →
+    自动回滚）。LLM 实测误解：把「业务完成态」当非零返回值表达（nvd APP
+    `return g_done ? 1 : 0` → DONE 后死亡回滚）。启发式拦截：函数体内任一
+    return 表达式含**非零整型字面量** → 拒绝（剥字符串/字符/注释后扫描；
+    纯变量返回放行——静态不可知，提示词合同兜底）。"""
+    m = re.search(r"health_ping\s*\([^)]*\)\s*\{", source_c)
+    if m is None:
+        return  # 缺导出由 exports 面门拦截（此处不重复）
+    depth = 1
+    pos = m.end()
+    while pos < len(source_c) and depth > 0:
+        ch = source_c[pos]
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+        pos += 1
+    body = source_c[m.end():pos - 1]
+    # 剥字符串/字符字面量与注释（其中数字不作数）
+    stripped = re.sub(r'"(?:\\.|[^"\\])*"', '""', body)
+    stripped = re.sub(r"'(?:\\.|[^'\\])*'", "''", stripped)
+    stripped = re.sub(r"/\*.*?\*/", " ", stripped, flags=re.S)
+    stripped = re.sub(r"//[^\n]*", " ", stripped)
+    for ret in re.finditer(r"return\s+([^;]*);", stripped):
+        expr = ret.group(1)
+        # 含函数调用的返回值静态不可知（如 return evil(1) 的实参字面量
+        # 不属返回值语义）——跳过，提示词合同兜底
+        if re.search(r"[A-Za-z_][A-Za-z0-9_]*\s*\(", expr):
+            continue
+        if re.search(r"(?<![0-9A-Za-z_])[1-9][0-9]*(?![0-9A-Za-z_])", expr):
+            raise TaError(
+                TA_E_ARGS,
+                "health_ping 语义合同违反：return 表达式含非零字面量"
+                f"（`return {ret.group(1).strip()};`）。合同：health_ping 恒返回 0"
+                "（0=健康；非零=健康失败，连续 3 次将触发自动回滚）。"
+                "业务完成态一律经 ts_log 行表达，绝不用 health_ping 返回值表达。",
+                domain="app_compile",
+            )
 
 
 def _run_clang(c_path: Path, wasm_path: Path, timeout_s: float) -> None:

@@ -107,7 +107,9 @@ def _develop_system_prompt() -> str:
         "source_c = 完整单文件 C 源（wasm32 自由固件，非 diff/片段）：",
         "① 导出约定：int app_init(int ctx) / int app_tick(void) / int app_evt(int v) / "
         "int health_ping(void)，全部用 __attribute__((export_name(\"名字\")))；"
-        "manifest.exports 列出的必须全部导出。",
+        "manifest.exports 列出的必须全部导出。**health_ping 语义合同：恒返回 0**"
+        "（0=健康；非零=健康失败，连续 3 次触发自动回滚——业务完成态/终态一律经"
+        " ts_log 行表达，绝不用 health_ping 返回值表达；编译门对非零返回字面量直接拒绝）。",
         "② 可导入宿主 natives（extern 声明，签名精确，禁其它任何导入）："
         "int ts_gpio_write(int ctx,int inst,int v)；int ts_gpio_read(int ctx,int inst)；"
         "int ts_pwm_set(int ctx,int inst,int hz,int permille)；"
