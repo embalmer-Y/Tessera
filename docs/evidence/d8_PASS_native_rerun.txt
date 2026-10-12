@@ -1,0 +1,32 @@
+D8 发现 dbn/dbc；起始 active_slot=0（后续链式取反）
+D8 tsap_verify PASS: /home/emb/project/Tessera/agent/demos/D8/v1/demo.d8.lifecycle-1.0.0.tsap（4528B，分块 256B）
+D8 lease acquired: id=1 holder=tessera-agent
+D8 upload → slot 1（total=4528B）
+D8 upload complete: 4528/4528B
+D8 verify PASS: facts={'manifest_len': 139, 'wasm_len': 2063, 'cose_off': 2250}
+D8 activate confirmed: slot=1
+D8 lease released
+D8 v1 推送完成 slot=1（激活即停旧版——G4）
+D8 v1 ACTIVE slot=1 rc=0
+D8 D8a v1 初装运行（console: d8 v1 init / D8-DONE）
+D8 tsap_verify PASS: /home/emb/project/Tessera/agent/demos/D8/v2/demo.d8.lifecycle-2.0.0.tsap（4716B，分块 256B）
+D8 lease acquired: id=1 holder=tessera-agent
+D8 upload → slot 0（total=4716B）
+D8 upload complete: 4716/4716B
+D8 verify PASS: facts={'manifest_len': 139, 'wasm_len': 2157, 'cose_off': 2344}
+D8 activate confirmed: slot=0
+D8 lease released
+D8 v2 推送完成 slot=0（激活即停旧版——G4）
+D8 v2 ACTIVE slot=0 rc=0
+D8 D8b v2 升级运行（console: d8 v2 init / D8-DONE）
+D8 tsap_verify PASS: /home/emb/project/Tessera/agent/demos/D8/v2bad/demo.d8.lifecycle-2.1.0.tsap（1460B，分块 256B）
+D8 lease acquired: id=1 holder=tessera-agent
+D8 upload → slot 1（total=1460B）
+D8 upload complete: 1460/1460B
+D8 verify PASS: facts={'manifest_len': 139, 'wasm_len': 529, 'cose_off': 716}
+D8 activate confirmed: slot=1
+D8 lease released
+D8 v2bad 推送完成 slot=1（激活即停旧版——G4）
+D8 D8c-1 v2bad 已激活（console: d8bad init；~4s 健康回滚）
+D8 D8c-2 v2 复活 slot=0 rollback_count=1
+D8 PASS

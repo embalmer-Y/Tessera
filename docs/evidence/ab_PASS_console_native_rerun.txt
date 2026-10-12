@@ -1,0 +1,54 @@
+AB0 auditbench watch round=0
+AB1 written=4
+AB readback n=4 seq=1..4
+AB warm reboot（2s）
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x2b (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037ddd8
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fc8fdd0,len:0x1d38
+load:0x40374000,len:0xbdbc
+load:0x50000000,len:0x24
+SHA-256 comparison failed:
+Calculated: bf8c33a79fd6f52f8b5d837a8cfc2a09724a6ae4fa4f0be9c7833a43126fc5f8
+Expected: 00000000a0240000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x403789fc
+I (soc_init): ESP Simple boot
+I (soc_init): compile time Oct 12 2026 21:52:42
+W (soc_init): Unicore bootloader
+I (soc_init): chip revision: v0.2
+I (flash_init): Boot SPI Speed : 80MHz
+I (flash_init): SPI Mode       : DIO
+I (flash_init): SPI Flash Size : 8MB
+I (boot): DRAM	: lma=00000020h vma=3fc8fdd0h size=01d38h (  7480)
+I (boot): IRAM	: lma=00001d60h vma=40374000h size=0bdbch ( 48572)
+I (boot): RTC_DATA	: lma=0000db24h vma=50000000h size=00024h (    36)
+I (boot): IROM	: lma=00010000h vma=42000000h size=053e0h ( 21472)
+I (boot): DROM	: lma=00020000h vma=3c010000h size=01484h (  5252)
+I (boot): libc heap size 306 kB.
+I (cache): Instruction cache: size 16KB, 8Ways, cache line size 32Byte
+I (spi_flash): detected chip: gd
+I (spi_flash): flash io: dio
+*** Booting Zephyr OS build v4.5.0-rc1 ***
+[audit] 最近 4 条安全事件（flash 环留存，DEC-52）：
+[audit]  seq=1 t=1002ms ch=0 res=-12 evt=0 val=500 actor=0
+[audit]  seq=2 t=1022ms ch=0 res=-12 evt=0 val=500 actor=0
+[audit]  seq=3 t=1032ms ch=0 res=-12 evt=0 val=500 actor=0
+[audit]  seq=4 t=1033ms ch=65535 res=-4 evt=1 val=1033 actor=0
+AB0 auditbench watch round=1
+AB readback n=4 seq=1..4
+AB1b written=2
+AB readback n=6 seq=1..6
+AB PASS（留存 4 + 新增 2 = 6）
+AB done（停）
+AB idle
+AB idle
+AB idle
+AB idle
+AB idle
+AB idle
+AB idle
+AB idle
