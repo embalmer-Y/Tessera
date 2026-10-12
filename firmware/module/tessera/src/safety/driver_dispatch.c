@@ -102,6 +102,97 @@ int ts_drv_gpio_init(void)
 #define TS_GPIO_WRITE sim_write
 #endif
 
+/* ---- 真机 GPIO 输入后端（V0.4.0 M5/DR-02：输入中断驱动） --------------------
+ * DT 绑定：zephyr,user 节点（gpio-in-uid = 输入通道 uid；in-gpios = 输入脚）。
+ * 本文件纪律（L5 estop 调用图）= 中断上下文纯净：禁延迟/调度/打印/网络类
+ * 内核 API（L5 正则全文匹配——注释措辞亦不可出现禁用词原形）；边沿回调
+ * 只经**函数指针通知钩子**上抛（ts_drv_gpio_in_notify 注册，由 hal/input.c
+ * 持有去抖工作项并触发唯一发布路径 ts_hal_input_poll_once——合同 9）。 */
+#if defined(CONFIG_TS_DRV_GPIO)
+#if DT_NODE_HAS_PROP(DT_PATH(zephyr_user), gpio_in_uid)
+static const struct gpio_dt_spec real_in =
+	GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), in_gpios);
+static const char *const real_in_uid = DT_PROP(DT_PATH(zephyr_user), gpio_in_uid);
+static bool real_in_ready;
+
+const char *ts_drv_gpio_in_uid(void)
+{
+	return real_in_ready ? real_in_uid : NULL;
+}
+
+bool ts_drv_gpio_in_read(void)
+{
+	return real_in_ready && gpio_pin_get_dt(&real_in) == 1;
+}
+
+#if defined(CONFIG_TS_HAL_INPUT_EDGE)
+static struct gpio_callback in_cb;
+static void (*in_edge_notify)(void); /* ISR 上下文上抛钩子（无调度面） */
+
+static void in_edge_cb(const struct device *port, struct gpio_callback *cb,
+		       uint32_t pins)
+{
+	ARG_UNUSED(port);
+	ARG_UNUSED(cb);
+	ARG_UNUSED(pins);
+	if (in_edge_notify != NULL) {
+		in_edge_notify(); /* 去抖/重轮询归 hal/input.c（L5 纪律） */
+	}
+}
+
+int ts_drv_gpio_in_notify(void (*fn)(void))
+{
+	if (!real_in_ready) {
+		return -ENODEV;
+	}
+	in_edge_notify = fn;
+	return 0;
+}
+#endif /* TS_HAL_INPUT_EDGE */
+
+int ts_drv_gpio_in_init(void)
+{
+	if (!gpio_is_ready_dt(&real_in)) {
+		return -ENODEV;
+	}
+	if (gpio_pin_configure_dt(&real_in, GPIO_INPUT) != 0) {
+		return -EIO;
+	}
+#if defined(CONFIG_TS_HAL_INPUT_EDGE)
+	gpio_init_callback(&in_cb, in_edge_cb, BIT(real_in.pin));
+	if (gpio_add_callback_dt(&real_in, &in_cb) != 0 ||
+	    gpio_pin_interrupt_configure_dt(&real_in, GPIO_INT_EDGE_BOTH) != 0) {
+		return -EIO;
+	}
+#endif
+	real_in_ready = true;
+	return 0;
+}
+#else /* 无输入 DT 绑定 */
+int ts_drv_gpio_in_init(void) { return -ENODEV; }
+bool ts_drv_gpio_in_read(void) { return false; }
+const char *ts_drv_gpio_in_uid(void) { return NULL; }
+#if defined(CONFIG_TS_HAL_INPUT_EDGE)
+int ts_drv_gpio_in_notify(void (*fn)(void))
+{
+	ARG_UNUSED(fn);
+	return -ENODEV;
+}
+#endif
+#endif
+#else /* !CONFIG_TS_DRV_GPIO */
+int ts_drv_gpio_in_init(void) { return -ENODEV; }
+bool ts_drv_gpio_in_read(void) { return false; }
+const char *ts_drv_gpio_in_uid(void) { return NULL; }
+#if defined(CONFIG_TS_HAL_INPUT_EDGE)
+int ts_drv_gpio_in_notify(void (*fn)(void))
+{
+	ARG_UNUSED(fn);
+	return -ENODEV;
+}
+#endif
+#endif
+
 /* ---- 真机 PWM 输出后端（板级九） -------------------------------------------
  * DT 绑定：zephyr,user 节点（pwm-uid = 通道 uid 串匹配；pwms = PWM 规格，
  * 三元胞 channel/period/flags——LEDC 的引脚路由经 ledc0 pinctrl，不在本 spec）。

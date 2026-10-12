@@ -210,6 +210,53 @@ ZTEST(framework_hal, test_08_input_monitor_change)
 	zassert_equal(inp_events, 1, "不变静默");
 }
 
+/* V0.4.0 M5（DR-02）：数字输入纳入监测（传输级 0/1）------------------------- */
+
+ZTEST(framework_hal, test_11_gpio_in_digital_events)
+{
+	static const ts_hal_dev_desc_t gin_dev = {
+		.uid = "inpgio", .kind = TS_DEV_GPIO_IN,
+	};
+	/* ztest 不保证源码序（test_09 会填满注册表）——顺序无关：优先复用
+	 * 既有 GPIO_IN 实例（test_09 的 pad 族即 GPIO_IN），无则注册新例。 */
+	uint32_t gin_idx = UINT32_MAX;
+
+	for (uint32_t i = 0; i < ts_hal_dev_count(); i++) {
+		if (ts_hal_dev_get(i)->kind == TS_DEV_GPIO_IN) {
+			gin_idx = i;
+			break;
+		}
+	}
+	if (gin_idx == UINT32_MAX) {
+		zassert_equal(ts_hal_register_dev(&gin_dev), TS_OK);
+		for (uint32_t i = 0; i < ts_hal_dev_count(); i++) {
+			if (strcmp(ts_hal_dev_get(i)->uid, "inpgio") == 0) {
+				gin_idx = i;
+				break;
+			}
+		}
+	}
+	zassert_not_equal(gin_idx, UINT32_MAX, "GPIO_IN 实例就位");
+	const int base = inp_events; /* 前序用例计数（差值断言免序耦合） */
+
+	/* 基线拍（0）→ 置位（1）→ 事件；不变 → 静默；回零 → 事件（传输级 0/1） */
+	ts_hal_input_test_inject(gin_idx, 0);
+	ts_hal_input_poll_once();
+	zassert_equal(inp_events - base, 0, "首拍基线");
+
+	ts_hal_input_test_inject(gin_idx, 1);
+	ts_hal_input_poll_once();
+	zassert_equal(inp_events - base, 1, "数字沿 0→1 即发");
+
+	ts_hal_input_test_inject(gin_idx, 1);
+	ts_hal_input_poll_once();
+	zassert_equal(inp_events - base, 1, "不变静默");
+
+	ts_hal_input_test_inject(gin_idx, 0);
+	ts_hal_input_poll_once();
+	zassert_equal(inp_events - base, 2, "数字沿 1→0 即发");
+}
+
 ZTEST(framework_hal, test_09_dev_registry_bounds)
 {
 	zassert_equal(ts_hal_register_dev(NULL), TS_E_PARAM);

@@ -534,4 +534,22 @@ config TS_LOG_RATE_PER_S
 	  per-app fair-share arrives with multi-APP M7). Over-budget calls return TS_E_BUSY
 	  (visible backpressure) and one notice line per burst window.
 
+config TS_HAL_INPUT_EDGE
+	bool "ts-hal: GPIO input edge-triggered mode (DR-02, V0.4.0 M5)"
+	depends on TS_DRV_GPIO
+	default n
+	help
+	  Edge callbacks do NOT publish events directly (contract 9 single publish path):
+	  they only trigger an immediate input-monitor re-poll via a debounced work item
+	  (acceleration, not bypass; serialized with the periodic poll on sysworkq).
+	  Requires zephyr,user node with gpio-in-uid + in-gpios. ADC stays polled
+	  (analog sampling is inherently periodic); GPIO_IN level reads shared by both.
+
+config TS_HAL_INPUT_DEBOUNCE_MS
+	int "ts-hal: GPIO input edge debounce (ms)"
+	depends on TS_HAL_INPUT_EDGE
+	default 10
+	help
+	  Delay between edge interrupt and the immediate re-poll (contact debounce bound).
+
 endmenu

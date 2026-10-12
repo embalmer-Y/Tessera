@@ -172,6 +172,10 @@ ts_res_t ts_hal_input_start(void);
 /** 单次采集（input_poll_fn 内部调用 + 测试钩子）。 */
 void ts_hal_input_poll_once(void);
 
+/** 框架侧 GPIO_IN 电平读（V0.4.0 M5/DR-02；无权限面——观测侧。真后端
+ *  uid 匹配直读，未匹配 = false 近似〔sim 连续〕）。 */
+bool ts_gpio_in_read_fw(const ts_hal_dev_desc_t *d);
+
 /** [boot/board] 真机 ADC 输入后端初始化（板级九；api.c）。
  * 依赖 CONFIG_TS_DRV_ADC=y + zephyr,user 节点（adc-uid + io-channels）；
  * 未启用/缺绑定返回 -ENODEV。输入直读不经保护层（合同 3）。 */

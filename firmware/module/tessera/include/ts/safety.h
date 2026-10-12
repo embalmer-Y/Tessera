@@ -209,6 +209,25 @@ int ts_drv_gpio_init(void);
  * 未启用/缺绑定返回 -ENODEV。 */
 int ts_drv_pwm_init(void);
 
+/** [boot/board] 真机 GPIO 输入后端初始化（V0.4.0 M5/DR-02；driver_dispatch.c）。
+ * 依赖 CONFIG_TS_DRV_GPIO=y + zephyr,user 节点（gpio-in-uid + in-gpios）；
+ * 未启用/缺绑定返回 -ENODEV。边沿模式（CONFIG_TS_HAL_INPUT_EDGE）下注册
+ * 双沿中断——回调 ISR 纯净（L5），仅经通知钩子上抛，去抖与重轮询在
+ * hal/input.c（唯一发布路径，合同 9）。 */
+int ts_drv_gpio_in_init(void);
+
+/** [any] 真机 GPIO 输入电平直读（输入不经保护层——合同 3）；未绑定恒 false。 */
+bool ts_drv_gpio_in_read(void);
+
+/** [any] GPIO 输入绑定的 uid（未绑定 = NULL）——api 层 uid 匹配用。 */
+const char *ts_drv_gpio_in_uid(void);
+
+#if defined(CONFIG_TS_HAL_INPUT_EDGE) || defined(__DOXYGEN__)
+/** [any] 注册边沿通知钩子（ISR 上下文回调上抛；去抖归 hal/input.c）。
+ * 须在 ts_drv_gpio_in_init 成功后注册；未就绪返回 -ENODEV。 */
+int ts_drv_gpio_in_notify(void (*fn)(void));
+#endif
+
 /** [any] PWM 真后端写失败计数（观测面；写函数 void 返回的失败留痕）。 */
 uint32_t ts_drv_pwm_err_count(void);
 

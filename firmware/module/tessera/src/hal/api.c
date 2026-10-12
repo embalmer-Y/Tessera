@@ -69,17 +69,23 @@ ts_res_t ts_gpio_read(ts_ctx_t c, uint8_t inst, bool *out)
 	ts_res_t r = ts_perm_check(c, TS_PERM_CLASS_GPIO, TS_PERM_OP_READ, inst);
 
 	if (r != TS_OK) return r;
-	/* 输入直读（合同 3：输入不受保护层影响）——V1 桩：从 ts-safety 影子值读 */
+	/* 输入直读（合同 3：输入不受保护层影响）——V0.4.0 M5：真后端 uid
+	 * 匹配直读（driver_dispatch 输入面）；未匹配 = false 近似（sim 连续） */
 	const ts_hal_dev_desc_t *d = find_dev(inst, TS_DEV_GPIO_IN);
 
 	if (d == NULL) return TS_E_NOTFOUND;
-	ts_out_value_t v;
-
-	/* GPIO_IN 无对应 out_ch——V1 用影子值近似（M3 接真驱动后改直读） */
-	*out = false; /* 桩：M3 接真实 GPIO 输入驱动 */
-	ARG_UNUSED(d);
-	ARG_UNUSED(v);
+	*out = ts_gpio_in_read_fw(d);
 	return TS_OK;
+}
+
+bool ts_gpio_in_read_fw(const ts_hal_dev_desc_t *d)
+{
+	if (d == NULL) return false;
+	const char *uid = ts_drv_gpio_in_uid();
+
+	return (uid != NULL && strcmp(d->uid, uid) == 0)
+		       ? ts_drv_gpio_in_read()
+		       : false;
 }
 
 ts_res_t ts_pwm_set(ts_ctx_t c, uint8_t inst, uint32_t hz, uint16_t permille)
