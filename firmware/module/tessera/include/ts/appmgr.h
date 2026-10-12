@@ -70,7 +70,7 @@ ts_res_t ts_appmgr_rollback(void);
  * entry e 的槽对 = {2e, 2e+1}（绝对槽号，^1 翻转 = 对内乒乓）；count ≤
  * TS_APP_MAX_INSTANCES。**v1 兼容**：旧 40B 单条布局（无 ver 字段）读侧
  * 自动迁移为 entries[0]（长度判别——v2 尺寸恒 > 40）。 */
-#define TS_APPMGR_META_VER 2
+#define TS_APPMGR_META_VER 2 /* 结构性版本号（Q-32②/DEC-53：meta v2 = entries 数组） */
 
 typedef struct {
 	uint8_t active_slot;      /* 绝对槽号（pair 基 = entry*2） */
