@@ -1,15 +1,16 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* APP 运行时宿主（LLD-ts-appmgr §4/§5；DEC-43 方案 A：每 APP 一个框架线程）。
- * V1 单活跃 APP（与 slot 单活跃语义一致；同时加载上限 4 = DEC-27，多实例
- * 随真机多 APP 支持启用）。
- * 事件串行化（DR-14）：tick/app_evt 均在 APP 线程内执行；外部事件入
- * mailbox（深度 DEC-27 #15: 8，满丢最旧 + 计数）。
- * 停止语义（DR-14）：停投递 → join（2s 超时强杀，DEC-27 #15）→ 回收
- * （WAMR 对象/ctx/邮箱）；强杀不触框架喂狗（合同 4 独立喂狗源）。
- * 健康探针：health_ping 周期〔DEC-27：1000ms〕，连续〔DEC-27：3〕次失败
- * （异常或非零返回）→ ts_appmgr_health_fail()（回滚状态机入口）并自停。
- * WAMR 生命周期：进程级单次 init/注册（平台层 init/destroy 不对称——
- * wamrdemo 实证；不重复销毁）。 */
+ * V0.4.0 M7（Q-32③/DEC-53）：rt[TS_APP_MAX_INSTANCES] 数组——每 entry 一
+ * 运行时槽（数值 app_id = entry+1：boot/审计归因/natives ctx 同源），线程/
+ * 静态栈/邮箱/模块对象 per rt 并行；WAMR 共享池预算不变（实例线性内存按需
+ * 页，manifest.heap_kb 申报制随 M8）。事件串行化（DR-14）：tick/app_evt 均
+ * 在 APP 线程内执行；外部事件（input monitor）**广播**至全部运行中实例。
+ * 停止语义（DR-14）：停投递 → join（2s 超时弃管升级 WDT）→ 回收（env/实例/
+ * 邮箱）；模块对象 rt 级持有不卸载（WAMR 平台怪癖规避——换包重启路径）。
+ * 健康探针：health_ping 周期 1000ms，连续 3 败 → health_fail_id(app_id)
+ * （per-entry 回滚链，M7 分账）。WDT：APPMGR 单源**群组喂狗**（Q-32④——
+ * 任一 APP 线程喂即活；全卡死才升级；单实例卡死由健康探针回滚兜底）。
+ * WAMR 生命周期：进程级单次 init/注册（平台层 init/destroy 不对称）。 */
 #include <string.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
@@ -45,29 +46,40 @@ struct ts_app_rt {
 	bool health_failed;
 };
 
-static struct ts_app_rt rt;
-static K_THREAD_STACK_DEFINE(app_stack, CONFIG_TS_APP_THREAD_STACK);
-K_MSGQ_DEFINE(app_mb, sizeof(uint32_t), CONFIG_TS_APP_MBOX_DEPTH, 4);
+static struct ts_app_rt rt[CONFIG_TS_APP_MAX_INSTANCES];
+static K_THREAD_STACK_ARRAY_DEFINE(app_stacks, CONFIG_TS_APP_MAX_INSTANCES,
+				   CONFIG_TS_APP_THREAD_STACK);
 
-/* 模块缓存（WAMR 平台怪癖规避，零上游补丁）：同进程内 unload→reload
- * 与 init→destroy→init 均实测失败（framework.wamr/wamrdemo 排障留痕，
- * dev-env §5-12）——V1 单 APP 语义下模块进程级复用：同字节流（指针+长度）
- * 直接复用，stop 不卸载；换包需重启（升级路径随板级/WAMR 修复版再议）。 */
+/* 模块缓存（WAMR 平台怪癖规避——教训 12：同进程 load→unload→reload 与
+ * 二次 load 均失败；唯一可靠形态 = 同字节流复用已 load 的模块对象，永不
+ * 卸载。数组化（M7）：多 APP 各自模块共存；条目按字节流身份匹配，容量
+ * = N+1（超出 = 不缓存直载，生产换包走重启路径）。**全局层**（非 rt 级）：
+ * 缓存须挺过 rt 复位（测试 test_reset memset rt 的既有形态）。 */
 static struct {
 	const uint8_t *src;
 	uint32_t len;
 	wasm_module_t mod;
-	bool loaded;
-} mod_cache;
+} mod_cache[CONFIG_TS_APP_MAX_INSTANCES + 1];
+static size_t mod_cache_n;
 
 ts_ctx_t ts_app_rt_ctx(struct ts_app_rt *r)
 {
-	return r->ctx;
+	return r->ctx; /* natives ctx_of：exec_env user_data = rt 槽位指针 */
 }
+/* 每 rt 独立 mailbox（DR-14 深度 DEC-27 #15: 8，满丢最旧 + 计数） */
+static uint32_t mb_bufs[CONFIG_TS_APP_MAX_INSTANCES][CONFIG_TS_APP_MBOX_DEPTH];
+static struct k_msgq mbs[CONFIG_TS_APP_MAX_INSTANCES];
+static bool mbs_inited;
 
-uint16_t ts_app_rt_id(struct ts_app_rt *r)
+static void mbs_init_once(void)
 {
-	return r->app_id;
+	if (!mbs_inited) {
+		for (size_t i = 0; i < CONFIG_TS_APP_MAX_INSTANCES; i++) {
+			k_msgq_init(&mbs[i], (char *)mb_bufs[i], sizeof(uint32_t),
+				    CONFIG_TS_APP_MBOX_DEPTH);
+		}
+		mbs_inited = true;
+	}
 }
 
 /* ---- APP 线程主循环 -------------------------------------------------------- */
@@ -108,7 +120,8 @@ static void health_probe(struct ts_app_rt *r)
 		if (r->health_fails >= CONFIG_TS_APP_HEALTH_FAILS) {
 			r->health_failed = true;
 			atomic_set(&r->running, 0);
-			(void)ts_appmgr_health_fail(); /* 回滚状态机入口 */
+			/* M7：per-entry 回滚分账（Q-32⑤/DEC-53） */
+			(void)ts_appmgr_health_fail_id(r->app_id);
 		}
 		return;
 	}
@@ -117,12 +130,12 @@ static void health_probe(struct ts_app_rt *r)
 
 static void app_thread_entry(void *p1, void *p2, void *p3)
 {
-	ARG_UNUSED(p1);
 	ARG_UNUSED(p2);
 	ARG_UNUSED(p3);
-	struct ts_app_rt *r = &rt;
+	struct ts_app_rt *r = p1;
+	struct k_msgq *mb = &mbs[r - rt];
 
-	ts_wdt_feed(TS_WDT_APPMGR); /* DEC-48②：线程入口激活喂狗源 */
+	ts_wdt_feed(TS_WDT_APPMGR); /* DEC-48②：线程入口激活喂狗源（群组） */
 	if (r->fn_init != NULL) {
 		uint32_t ret = 0;
 
@@ -133,7 +146,8 @@ static void app_thread_entry(void *p1, void *p2, void *p3)
 			const char *exc = wasm_runtime_get_exception(r->inst);
 
 			if (exc != NULL) {
-				printk("[appmgr] app_init exception: %s\n", exc);
+				printk("[appmgr] app%u init exception: %s\n",
+				       (unsigned)r->app_id, exc);
 			}
 			r->init_res = (uint32_t)TS_E_IO; /* init 异常 = 启动失败 */
 			atomic_set(&r->running, 0);
@@ -146,8 +160,8 @@ static void app_thread_entry(void *p1, void *p2, void *p3)
 	uint32_t v;
 
 	while (atomic_get(&r->running) != 0) {
-		ts_wdt_feed(TS_WDT_APPMGR); /* DEC-48②：主循环喂狗（≤20ms 轮询上界） */
-		if (k_msgq_get(&app_mb, &v, K_MSEC(20)) == 0) {
+		ts_wdt_feed(TS_WDT_APPMGR); /* 群组喂狗（≤20ms 轮询上界） */
+		if (k_msgq_get(mb, &v, K_MSEC(20)) == 0) {
 			r->evt_seen++;
 			r->last_evt = (int32_t)v;
 			if (r->fn_evt != NULL && !call1(r, r->fn_evt, v, NULL)) {
@@ -173,7 +187,7 @@ static void app_thread_entry(void *p1, void *p2, void *p3)
 
 /* ---- 公共 API -------------------------------------------------------------- */
 
-/* G3（单元 F）：input monitor → APP mailbox 路由。
+/* G3（单元 F）→ M7 广播：input monitor → 全部运行中实例 mailbox。
  * 订阅 TS_EVT_INPUT_CHANGED（一次性——evt 总线无退订 API，cb 内按
  * rt.used/running 门控）；payload 编码进 32 位 mailbox 槽：
  * (inst << 16) | (new_mv & 0xFFFF)——旧值/阈值语义归 APP。
@@ -182,16 +196,14 @@ static void app_thread_entry(void *p1, void *p2, void *p3)
 static void input_evt_cb(const ts_evt_t *evt, void *user)
 {
 	ARG_UNUSED(user);
-	if (!rt.used || atomic_get(&rt.running) == 0) {
-		return;
-	}
 	if (evt->data == NULL || evt->len < sizeof(struct ts_input_evt)) {
 		return;
 	}
 	const struct ts_input_evt *p = evt->data;
 	const uint32_t payload = ((uint32_t)(p->inst & 0xFFFF) << 16) |
 				 ((uint32_t)p->new_mv & 0xFFFF);
-	(void)ts_appmgr_app_evt(payload);
+
+	(void)ts_appmgr_app_evt_bcast(payload);
 }
 
 static void input_route_subscribe(void)
@@ -206,9 +218,8 @@ static void input_route_subscribe(void)
 
 #ifdef CONFIG_XTENSA
 /* DAV1 诊断（B2 后续批）：APPMGR 软看门狗逾期警告时 dump 冻结线程状态与
- * 栈内文本域字（返回地址候选——离线 addr2line 定位冻结点；av 流 APP 线程
- * 冻结 3/3 复现的归因证据链；一次 dump 防洪泛）。Xtensa 非用户态无保存
- * SP 字段（callee_saved 为哑结构）——全栈扫描法（公开 API）。 */
+ * 栈内文本域字（返回地址候选——离线 addr2line 定位冻结点）。一次 dump 防
+ * 洪泛（M7：扫全部 rt，输出第一个非运行态卡死者）。 */
 static void wdt_warn_diag_cb(const ts_evt_t *e, void *user)
 {
 	ARG_UNUSED(user);
@@ -217,7 +228,7 @@ static void wdt_warn_diag_cb(const ts_evt_t *e, void *user)
 	}
 	const ts_wdt_warn_evt_t *w = e->data;
 
-	if (w->src != TS_WDT_APPMGR || !rt.used) {
+	if (w->src != TS_WDT_APPMGR) {
 		return;
 	}
 	static bool dumped;
@@ -226,32 +237,44 @@ static void wdt_warn_diag_cb(const ts_evt_t *e, void *user)
 		return;
 	}
 	dumped = true;
-	char sb[48];
-	k_tid_t cur = k_current_get();
-	const char *cur_name = k_thread_name_get(cur);
+	for (size_t i = 0; i < CONFIG_TS_APP_MAX_INSTANCES; i++) {
+		struct ts_app_rt *r = &rt[i];
 
-	printk("[appmgr] WDT-WARN diag: APP state=%s prio=%d | cur=%s cur_prio=%d\n",
-	       k_thread_state_str((k_tid_t)&rt.thread, sb, sizeof(sb)),
-	       (int)rt.thread.base.prio,
-	       cur_name != NULL ? cur_name : "?",
-	       (int)cur->base.prio);
-	/* 文本域字扫描（esp32s3：IRAM 0x40xxxxxx / IROM 0x42xxxxxx）——
-	 * 返回地址候选按栈顶近端优先输出（最近调用层在前），上限 40 条。 */
-	const uint32_t *st = (const uint32_t *)rt.thread.stack_info.start;
-	const size_t words = rt.thread.stack_info.size / sizeof(uint32_t);
-	int shown = 0;
+		if (!r->used) {
+			continue;
+		}
+		char sb[48];
 
-	for (size_t i = words; i > 0 && shown < 40; i--) {
-		uint32_t v = st[i - 1];
+		printk("[appmgr] WDT-WARN diag: app%u state=%s prio=%d\n",
+		       (unsigned)r->app_id,
+		       k_thread_state_str((k_tid_t)&r->thread, sb, sizeof(sb)),
+		       (int)r->thread.base.prio);
+		/* 文本域字扫描（esp32s3：IRAM 0x40xxxxxx / IROM 0x42xxxxxx）——
+		 * 返回地址候选按栈顶近端优先输出（最近调用层在前），上限 40 条。 */
+		const uint32_t *st = (const uint32_t *)r->thread.stack_info.start;
+		const size_t words = r->thread.stack_info.size / sizeof(uint32_t);
+		int shown = 0;
 
-		if ((v & 0xFF000000U) == 0x40000000U ||
-		    (v & 0xFF000000U) == 0x42000000U) {
-			printk("[appmgr] wf[%02d] +%04x %08x\n", shown++,
-			       (unsigned)((words - i) * 4U), v);
+		for (size_t j = words; j > 0 && shown < 40; j--) {
+			uint32_t v = st[j - 1];
+
+			if ((v & 0xFF000000U) == 0x40000000U ||
+			    (v & 0xFF000000U) == 0x42000000U) {
+				printk("[appmgr] wf[%02d] +%04x %08x\n", shown++,
+				       (unsigned)((words - j) * 4U), v);
+			}
 		}
 	}
 }
 #endif
+
+static struct ts_app_rt *rt_by_id(uint16_t app_id)
+{
+	if (app_id == 0 || app_id > CONFIG_TS_APP_MAX_INSTANCES) {
+		return NULL;
+	}
+	return &rt[app_id - 1];
+}
 
 ts_res_t ts_appmgr_app_start(uint16_t app_id, const uint8_t *wasm,
 			     uint32_t wasm_len, const char *caps)
@@ -261,17 +284,20 @@ ts_res_t ts_appmgr_app_start(uint16_t app_id, const uint8_t *wasm,
 	if (wasm == NULL || wasm_len == 0 || caps == NULL) {
 		return TS_E_PARAM;
 	}
-	if (rt.used) {
+	struct ts_app_rt *r = rt_by_id(app_id);
+
+	if (r == NULL) {
+		return TS_E_PARAM; /* app_id 超界（entry 对齐：1..N） */
+	}
+	if (r->used) {
 		return TS_E_STATE;
 	}
+	mbs_init_once();
 	/* WAMR 进程级初始化 + natives 全局注册（一次）。
-	 * 实例堆 = 显式池（DEC-27 #10 池模式；板级六修正：WAMR-2.4.5 的
-	 * WASM_ENABLE_GLOBAL_HEAP_POOL 旗标对 runtime 路径已无消费者——
-	 * wasm_runtime_init() 实为系统分配器，池语义须经 wasm_runtime_full_init
-	 * 显式注入）：
-	 *  - PSRAM 配置（CONFIG_TS_APP_PSRAM_HEAP，HLD §4.6 分层纪律：仅 APP
-	 *    沙箱内存可入外部 RAM）= 共享多堆 SMH_REG_ATTR_EXTERNAL 分配
-	 *   （esp32s3 PSRAM 注册面，官方机制）；
+	 * 实例堆 = 显式池（DEC-27 #10 池模式；板级六修正：池语义须经
+	 * wasm_runtime_full_init 显式注入——共享池预算跨实例分摊，Q-32③）：
+	 *  - PSRAM 配置（CONFIG_TS_APP_PSRAM_HEAP，HLD §4.6 分层纪律）=
+	 *    共享多堆 SMH_REG_ATTR_EXTERNAL 分配（esp32s3 PSRAM 官方机制）；
 	 *  - 其余（native_sim/CI/未挂 PSRAM 板）= 内部 SRAM 静态池。 */
 	static bool wamr_up;
 
@@ -340,176 +366,216 @@ ts_res_t ts_appmgr_app_start(uint16_t app_id, const uint8_t *wasm,
 			p = seg + 1;
 		}
 	}
-	memset(&rt, 0, sizeof(rt));
-	rt.app_id = app_id;
 #ifdef CONFIG_TS_TEST
 	/* V0.4.0 M2（IR-16）：TEST 语义自动授予 log:write:0——历史测试根签名包
 	 * （nv1/demos 全系）manifest 无 log 声明的延续性；生产包须显式声明
 	 * （fail-closed），spec 模板/skills 随 Agent 面同步。 */
 	(void)ts_perm_parse("log:write:0", &table);
 #endif
-	if (ts_hal_bind_context(&rt.ctx, app_id, &table) != TS_OK) {
+	if (ts_hal_bind_context(&r->ctx, app_id, &table) != TS_OK) {
 		return TS_E_NOMEM;
 	}
-	rt.mod = NULL;
-	if (mod_cache.loaded) {
-		if (mod_cache.len == wasm_len &&
-		    memcmp(mod_cache.src, wasm, wasm_len) == 0) {
-			rt.mod = mod_cache.mod; /* 内容一致 → 复用（见 mod_cache 注释：
-						 * boot 缓冲与测试夹具为同 wasm 两份拷贝） */
-		} else {
-#ifndef CONFIG_TS_TEST
-			return TS_E_STATE; /* 进程内换包不支持（怪癖规避——重启路径） */
-#else
-			/* TEST 构建：进程内换包放行（多夹具单测形态——sim 内存可
-			 * 承受旧模块驻留；生产路径换包恒经重启，不走此分支）。 */
-			rt.mod = wasm_runtime_load((uint8_t *)wasm, wasm_len,
-						   err, sizeof(err));
-			if (rt.mod == NULL) {
-				ts_hal_unbind_context(&rt.ctx);
-				return TS_E_IO;
-			}
-			mod_cache.src = wasm;
-			mod_cache.len = wasm_len;
-			mod_cache.mod = rt.mod;
-#endif
+	/* 模块经全局缓存（见 mod_cache 注释）：同字节流复用；未命中 = load
+	 * 并入缓存（容量外 = 直载不入缓存）。生产换包 = 重启路径（怪癖规避）。 */
+	r->mod = NULL;
+	for (size_t i = 0; i < mod_cache_n; i++) {
+		if (mod_cache[i].len == wasm_len &&
+		    memcmp(mod_cache[i].src, wasm, wasm_len) == 0) {
+			r->mod = mod_cache[i].mod;
+			break;
 		}
-	} else {
-		rt.mod = wasm_runtime_load((uint8_t *)wasm, wasm_len, err, sizeof(err));
-		if (rt.mod == NULL) {
+	}
+	if (r->mod == NULL) {
+		r->mod = wasm_runtime_load((uint8_t *)wasm, wasm_len, err, sizeof(err));
+		if (r->mod == NULL) {
 			printk("[appmgr] load fail: %s (len=%u)\n", err, wasm_len);
-			ts_hal_unbind_context(&rt.ctx);
+			ts_hal_unbind_context(&r->ctx);
 			return TS_E_IO;
 		}
-		mod_cache.src = wasm;
-		mod_cache.len = wasm_len;
-		mod_cache.mod = rt.mod;
-		mod_cache.loaded = true;
+		if (mod_cache_n < sizeof(mod_cache) / sizeof(mod_cache[0])) {
+			mod_cache[mod_cache_n].src = wasm;
+			mod_cache[mod_cache_n].len = wasm_len;
+			mod_cache[mod_cache_n].mod = r->mod;
+			mod_cache_n++;
+		}
 	}
-	rt.inst = wasm_runtime_instantiate(rt.mod, APP_WASM_STACK, APP_WASM_HEAP,
+	r->inst = wasm_runtime_instantiate(r->mod, APP_WASM_STACK, APP_WASM_HEAP,
 					   err, sizeof(err));
-	if (rt.inst == NULL) {
+	if (r->inst == NULL) {
 		printk("[appmgr] inst fail: %s\n", err);
-		/* 模块进程级持有（mod_cache 怪癖规避——不 unload） */
-		ts_hal_unbind_context(&rt.ctx);
+		/* 模块全局缓存持有（怪癖规避——不卸载） */
+		ts_hal_unbind_context(&r->ctx);
 		return TS_E_IO;
 	}
-	rt.env = wasm_runtime_create_exec_env(rt.inst, APP_WASM_STACK);
-	if (rt.env == NULL) {
-		wasm_runtime_deinstantiate(rt.inst);
-		/* 模块进程级持有（mod_cache 怪癖规避——不 unload） */
-		ts_hal_unbind_context(&rt.ctx);
+	r->env = wasm_runtime_create_exec_env(r->inst, APP_WASM_STACK);
+	if (r->env == NULL) {
+		wasm_runtime_deinstantiate(r->inst);
+		/* 模块全局缓存持有（怪癖规避——不卸载） */
+		ts_hal_unbind_context(&r->ctx);
 		return TS_E_NOMEM;
 	}
-	wasm_runtime_set_user_data(rt.env, &rt);
+	wasm_runtime_set_user_data(r->env, r);
 
-	rt.fn_health = wasm_runtime_lookup_function(rt.inst, "health_ping");
-	if (rt.fn_health == NULL) {
+	r->fn_health = wasm_runtime_lookup_function(r->inst, "health_ping");
+	if (r->fn_health == NULL) {
 		/* manifest v1 必选导出（缺 = 包非法） */
-		wasm_runtime_destroy_exec_env(rt.env);
-		wasm_runtime_deinstantiate(rt.inst);
-		/* 模块进程级持有（mod_cache 怪癖规避——不 unload） */
-		ts_hal_unbind_context(&rt.ctx);
+		wasm_runtime_destroy_exec_env(r->env);
+		wasm_runtime_deinstantiate(r->inst);
+		/* 模块全局缓存持有（怪癖规避——不卸载） */
+		ts_hal_unbind_context(&r->ctx);
 		return TS_E_PARAM;
 	}
-	rt.fn_init = wasm_runtime_lookup_function(rt.inst, "app_init");
-	rt.fn_tick = wasm_runtime_lookup_function(rt.inst, "app_tick");
-	rt.fn_evt = wasm_runtime_lookup_function(rt.inst, "app_evt");
+	r->fn_init = wasm_runtime_lookup_function(r->inst, "app_init");
+	r->fn_tick = wasm_runtime_lookup_function(r->inst, "app_tick");
+	r->fn_evt = wasm_runtime_lookup_function(r->inst, "app_evt");
 
-	k_msgq_purge(&app_mb);
-	atomic_set(&rt.running, 1);
-	rt.used = true;
-	input_route_subscribe(); /* G3（单元 F）：INPUT_CHANGED → APP mailbox */
+	k_msgq_purge(&mbs[r - rt]);
+	atomic_set(&r->running, 1);
+	r->used = true;
+	input_route_subscribe(); /* G3：INPUT_CHANGED → 全实例广播 */
 #ifdef CONFIG_XTENSA
 	(void)ts_evt_subscribe(TS_EVT_WDT_WARN, wdt_warn_diag_cb, NULL);
 #endif
-	k_tid_t th = k_thread_create(&rt.thread, app_stack,
-				     K_THREAD_STACK_SIZEOF(app_stack),
-				     app_thread_entry, NULL, NULL, NULL,
+	k_tid_t th = k_thread_create(&r->thread,
+				     app_stacks[r - rt],
+				     K_THREAD_STACK_SIZEOF(app_stacks[0]),
+				     app_thread_entry, r, NULL, NULL,
 				     CONFIG_TS_APP_THREAD_PRIORITY, 0,
 				     K_NO_WAIT);
 	if (th == NULL) {
-		rt.used = false;
-		atomic_set(&rt.running, 0);
-		wasm_runtime_destroy_exec_env(rt.env);
-		wasm_runtime_deinstantiate(rt.inst);
-		/* 模块进程级持有（mod_cache 怪癖规避——不 unload） */
-		ts_hal_unbind_context(&rt.ctx);
+		r->used = false;
+		atomic_set(&r->running, 0);
+		wasm_runtime_destroy_exec_env(r->env);
+		wasm_runtime_deinstantiate(r->inst);
+		/* 模块全局缓存持有（怪癖规避——不卸载） */
+		ts_hal_unbind_context(&r->ctx);
 		return TS_E_NOMEM;
+	}
+	return TS_OK;
+}
+
+ts_res_t ts_appmgr_app_stop_id(uint16_t app_id)
+{
+	struct ts_app_rt *r = rt_by_id(app_id);
+
+	if (r == NULL || !r->used) {
+		return TS_E_STATE;
+	}
+	atomic_set(&r->running, 0); /* 停止投递；线程排空 mailbox 后自退 */
+	if (k_thread_join(&r->thread, K_MSEC(APP_STOP_JOIN_MS)) != 0) {
+		/* IR2-06 根治（单元 F）：join 超时 = 线程卡在不可中断点——
+		 * **不 k_thread_abort**（持锁点截断 = 永久死锁）。弃管升级：
+		 * 线程留原地（同 APPMGR 群组下其余实例照常喂狗——Q-32④）→
+		 * 全员卡死才 WDT 升级；本实例由健康探针回滚链处置。资源不
+		 * 回收——重启即净；如实登记（E_TIMEOUT）。 */
+		printk("[appmgr] app%u stop: thread stuck — abandon to group WDT\n",
+		       (unsigned)app_id);
+		return TS_E_TIMEOUT;
+	}
+	wasm_runtime_destroy_exec_env(r->env);
+	wasm_runtime_deinstantiate(r->inst);
+	/* 模块全局缓存持有（怪癖规避——不卸载） */
+	ts_hal_unbind_context(&r->ctx);
+	k_msgq_purge(&mbs[r - rt]);
+	r->used = false;
+	/* 群组喂狗（Q-32④）：全部实例停止后才无人喂 = 预期态才 deactivate */
+	bool any = false;
+
+	for (size_t i = 0; i < CONFIG_TS_APP_MAX_INSTANCES; i++) {
+		if (rt[i].used) {
+			any = true;
+			break;
+		}
+	}
+	if (!any) {
+		ts_wdt_deactivate(TS_WDT_APPMGR);
 	}
 	return TS_OK;
 }
 
 ts_res_t ts_appmgr_app_stop(void)
 {
-	if (!rt.used) {
+	return ts_appmgr_app_stop_id(1); /* legacy 单 APP = entry 0 */
+}
+
+ts_res_t ts_appmgr_app_evt_id(uint16_t app_id, uint32_t payload)
+{
+	struct ts_app_rt *r = rt_by_id(app_id);
+
+	if (r == NULL || !r->used || atomic_get(&r->running) == 0) {
 		return TS_E_STATE;
 	}
-	atomic_set(&rt.running, 0); /* 停止投递；线程排空 mailbox 后自退 */
-	if (k_thread_join(&rt.thread, K_MSEC(APP_STOP_JOIN_MS)) != 0) {
-		/* IR2-06 根治（单元 F）：join 超时 = 线程卡在不可中断点（native
-		 * 阻塞/持锁段）——**不 k_thread_abort**（在持锁点截断 = k_mutex
-		 * 无 owner-death 回收 → 全输出写路径永久死锁）。改为弃管升级：
-		 * 线程留在原地（不再喂 TS_WDT_APPMGR）→ 软看门狗逾期判定 →
-		 * system_fail（noinit 留痕归因）→ task_wdt 复位闭环（DEC-48 分
-		 * 层防线）。运行时资源（实例/env/rt.used）不回收——重启即净；
-		 * 如实登记（返回 E_TIMEOUT，调用方按健康失败/回滚语义处置）。 */
-		printk("[appmgr] app_stop: thread stuck — abandon to WDT escalation\n");
-		return TS_E_TIMEOUT;
+	struct k_msgq *mb = &mbs[r - rt];
+
+	if (k_msgq_put(mb, &payload, K_NO_WAIT) != 0) {
+		uint32_t drop;
+
+		(void)k_msgq_get(mb, &drop, K_NO_WAIT); /* 满丢最旧（DR-14） */
+		r->mb_dropped++;
+		(void)k_msgq_put(mb, &payload, K_NO_WAIT);
 	}
-	wasm_runtime_destroy_exec_env(rt.env);
-	wasm_runtime_deinstantiate(rt.inst);
-	/* 模块进程级持有（mod_cache 怪癖规避——不 unload） */
-	ts_hal_unbind_context(&rt.ctx);
-	ts_wdt_deactivate(TS_WDT_APPMGR); /* 单元 F：停后无人喂 = 预期态 */
-	k_msgq_purge(&app_mb);
-	rt.used = false;
 	return TS_OK;
 }
 
 ts_res_t ts_appmgr_app_evt(uint32_t payload)
 {
-	if (!rt.used || atomic_get(&rt.running) == 0) {
-		return TS_E_STATE;
-	}
-	if (k_msgq_put(&app_mb, &payload, K_NO_WAIT) != 0) {
-		uint32_t drop;
+	return ts_appmgr_app_evt_id(1, payload); /* legacy 单 APP = entry 0 */
+}
 
-		(void)k_msgq_get(&app_mb, &drop, K_NO_WAIT); /* 满丢最旧（DR-14） */
-		rt.mb_dropped++;
-		(void)k_msgq_put(&app_mb, &payload, K_NO_WAIT);
+void ts_appmgr_app_evt_bcast(uint32_t payload)
+{
+	for (size_t i = 0; i < CONFIG_TS_APP_MAX_INSTANCES; i++) {
+		(void)ts_appmgr_app_evt_id((uint16_t)(i + 1), payload);
 	}
-	return TS_OK;
+}
+
+bool ts_appmgr_app_running_id(uint16_t app_id)
+{
+	struct ts_app_rt *r = rt_by_id(app_id);
+
+	return r != NULL && r->used && atomic_get(&r->running) != 0;
 }
 
 bool ts_appmgr_app_running(void)
 {
-	return rt.used && atomic_get(&rt.running) != 0;
+	return ts_appmgr_app_running_id(1); /* legacy 单 APP = entry 0 */
 }
 
-void ts_appmgr_app_stats(struct ts_app_rt_stats *out)
+void ts_appmgr_app_stats_id(uint16_t app_id, struct ts_app_rt_stats *out)
 {
 	if (out == NULL) {
 		return;
 	}
 	memset(out, 0, sizeof(*out));
-	out->evt_seen = rt.evt_seen;
-	out->tick_count = rt.tick_count;
-	out->health_fails = rt.health_fails;
-	out->mb_dropped = rt.mb_dropped;
-	out->init_res = rt.init_res;
-	out->last_evt = rt.last_evt;
-	out->running = ts_appmgr_app_running();
-	out->health_failed = rt.health_failed;
+	struct ts_app_rt *r = rt_by_id(app_id);
+
+	if (r == NULL) {
+		return;
+	}
+	out->evt_seen = r->evt_seen;
+	out->tick_count = r->tick_count;
+	out->health_fails = r->health_fails;
+	out->mb_dropped = r->mb_dropped;
+	out->init_res = r->init_res;
+	out->last_evt = r->last_evt;
+	out->running = ts_appmgr_app_running_id(app_id);
+	out->health_failed = r->health_failed;
+}
+
+void ts_appmgr_app_stats(struct ts_app_rt_stats *out)
+{
+	ts_appmgr_app_stats_id(1, out); /* legacy 单 APP = entry 0 */
 }
 
 #ifdef CONFIG_TS_TEST
 void ts_appmgr_app_test_reset(void)
 {
-	if (rt.used) {
-		(void)ts_appmgr_app_stop();
+	for (size_t i = 0; i < CONFIG_TS_APP_MAX_INSTANCES; i++) {
+		if (rt[i].used) {
+			(void)ts_appmgr_app_stop_id((uint16_t)(i + 1));
+		}
+		memset(&rt[i], 0, sizeof(rt[i]));
+		k_msgq_purge(&mbs[i]);
 	}
-	memset(&rt, 0, sizeof(rt));
-	k_msgq_purge(&app_mb);
 }
 #endif

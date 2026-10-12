@@ -63,7 +63,7 @@ static void suite_setup_channel(void)
 ZTEST(framework_app, test_01_lifecycle)
 {
 	suite_setup_channel();
-	zassert_equal(ts_appmgr_app_start(9, app_wasm, app_wasm_len,
+	zassert_equal(ts_appmgr_app_start(1, app_wasm, app_wasm_len,
 					  "gpio:write:0-3"), TS_OK);
 	zassert_true(ts_appmgr_app_running(), "运行中");
 	zassert_true(wait_gpio(true),
@@ -101,7 +101,7 @@ ZTEST(framework_app, test_02_perm_denial)
 	perm_seen = 0;
 	zassert_equal(ts_evt_subscribe(TS_EVT_PERM_DENIED, on_perm, NULL), TS_OK);
 
-	zassert_equal(ts_appmgr_app_start(9, app_wasm, app_wasm_len,
+	zassert_equal(ts_appmgr_app_start(1, app_wasm, app_wasm_len,
 					  "adc:read:0-3"), TS_OK,
 		      "启动成功（无 gpio 能力——运行期拒绝）");
 	for (int i = 0; i < 100 && perm_seen == 0; i++) {
@@ -120,7 +120,7 @@ ZTEST(framework_app, test_02_perm_denial)
 ZTEST(framework_app, test_03_health_fail_stops)
 {
 	suite_setup_channel();
-	zassert_equal(ts_appmgr_app_start(9, app_wasm, app_wasm_len,
+	zassert_equal(ts_appmgr_app_start(1, app_wasm, app_wasm_len,
 					  "gpio:write:0-3"), TS_OK);
 	zassert_true(wait_gpio(true), "init 写生效");
 	zassert_equal(ts_appmgr_app_evt(0x100), TS_OK, "控制通道：置健康失败");
@@ -299,13 +299,50 @@ ZTEST(framework_app, test_06_av_gates)
 	ts_hal_unbind_context(&ctx);
 }
 
+
+/* V0.4.0 M7（Q-32③）：双实例并行运行时 -------------------------------------- */
+
+ZTEST(framework_app, test_09_multi_instance_parallel)
+{
+	/* 同 wasm 两 instance（模块缓存复用——怪癖规避形态下多实例共享模块
+	 * 对象）；独立 mailbox/stats；广播事件双投递；单停单启互不影响。 */
+	ts_appmgr_app_test_reset();
+	ts_safety_set_link(true);
+	zassert_equal(ts_appmgr_app_start(1, app_wasm, app_wasm_len,
+					  "gpio:write:0-3"), TS_OK);
+	zassert_equal(ts_appmgr_app_start(2, app_wasm, app_wasm_len,
+					  "gpio:write:0-3"), TS_OK);
+	zassert_true(ts_appmgr_app_running_id(1));
+	zassert_true(ts_appmgr_app_running_id(2));
+
+	ts_appmgr_app_evt_bcast(0);
+	struct ts_app_rt_stats s1, s2;
+
+	for (int i = 0; i < 100; i++) {
+		k_msleep(10);
+		ts_appmgr_app_stats_id(1, &s1);
+		ts_appmgr_app_stats_id(2, &s2);
+		if (s1.evt_seen >= 1 && s2.evt_seen >= 1) {
+			break;
+		}
+	}
+	zassert_true(s1.evt_seen >= 1, "实例1 收到广播");
+	zassert_true(s2.evt_seen >= 1, "实例2 收到广播");
+
+	zassert_equal(ts_appmgr_app_stop_id(1), TS_OK);
+	zassert_false(ts_appmgr_app_running_id(1), "实例1 已停");
+	zassert_true(ts_appmgr_app_running_id(2), "单停不影响实例2");
+	zassert_equal(ts_appmgr_app_stop_id(2), TS_OK);
+	zassert_false(ts_appmgr_app_running_id(2));
+}
+
 ZTEST_SUITE(framework_app, NULL, NULL, NULL, NULL, NULL);
 
 /* ---- G3（单元 F）：INPUT_CHANGED → APP mailbox 路由 ----------------------- */
 ZTEST(framework_app, test_07_input_routing)
 {
 	ts_appmgr_app_test_reset();
-	zassert_equal(ts_appmgr_app_start(9, app_wasm, app_wasm_len,
+	zassert_equal(ts_appmgr_app_start(1, app_wasm, app_wasm_len,
 					  "gpio:write:0-3"), TS_OK);
 	k_sleep(K_MSEC(100)); /* APP 线程就位 */
 
@@ -343,7 +380,7 @@ ZTEST(framework_app, test_08_activate_while_running)
 	/* 首装（建 meta/双槽事实）+ 直调启动：APP 运行中（撕裂态起点） */
 	zassert_equal(ts_appmgr_install(boot_pkg, sizeof(boot_pkg),
 					root_key, &info), TS_OK);
-	zassert_equal(ts_appmgr_app_start(9, app_wasm, app_wasm_len,
+	zassert_equal(ts_appmgr_app_start(1, app_wasm, app_wasm_len,
 					  "gpio:write:0-3"), TS_OK);
 	zassert_true(wait_gpio(true), "init 写 gpio=1");
 	zassert_true(ts_appmgr_app_running());
@@ -363,7 +400,7 @@ ZTEST(framework_app, test_08_activate_while_running)
 
 	/* 激活停后 WAMR 运行面健全：同模块直调重启可用（装载周期在真机经
 	 * 暖复位闭环——persistbench PB4/PB5 链）。 */
-	zassert_equal(ts_appmgr_app_start(9, app_wasm, app_wasm_len,
+	zassert_equal(ts_appmgr_app_start(1, app_wasm, app_wasm_len,
 					  "gpio:write:0-3"), TS_OK,
 		      "stop 后运行面可重启");
 	zassert_true(ts_appmgr_app_running());

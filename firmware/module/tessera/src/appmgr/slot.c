@@ -207,8 +207,17 @@ ts_res_t ts_appmgr_rollback(void)
 
 ts_res_t ts_appmgr_health_fail(void)
 {
-	/* M6：运行时单实例 = entry 0（M7 随 rt[] 分账接线） */
 	return ts_appmgr_rollback_n(0);
+}
+
+ts_res_t ts_appmgr_health_fail_id(uint16_t app_id)
+{
+	/* M7 分账（Q-32⑤/DEC-53）：rt 健康探针 → 对应 entry 回滚链
+	 * （app_id = entry+1；超界 = entry 0，防御面） */
+	if (app_id == 0 || app_id > CONFIG_TS_APP_MAX_INSTANCES) {
+		app_id = 1;
+	}
+	return ts_appmgr_rollback_n((uint8_t)(app_id - 1));
 }
 
 /* ---- boot 装载（M2b.2 收尾单元；HLD §4.4-8：APP 故障不阻塞启动）--------- */
@@ -476,13 +485,8 @@ ts_res_t ts_appmgr_boot_start(void)
 			 * STAGED（懒路径盲写 state = 装载结果被观测面抹掉）。 */
 			initialized = true;
 		}
-		if (e + 1 < meta.count) {
-			/* M6：运行时单实例（rt 静态单槽）——多 entry 装载随 M7
-			 * rt[] 并行面；如实留痕（合同 6：不阻塞）。 */
-			printk("[appmgr] boot: %u entries in meta, runtime single-instance "
-			       "(M7) — entry %u+ deferred\n", meta.count, e + 1);
-			break;
-		}
+		/* M7（Q-32③）：全部 entry 逐一装载（rt[] 并行面）——单 entry
+		 * 失败不阻塞后续（合同 6：APP 故障不阻塞启动）。 */
 #else
 		return TS_E_STATE; /* WAMR 未编入（CONFIG_TS_APP_WAMR） */
 #endif

@@ -117,15 +117,26 @@ struct ts_app_rt_stats {
 
 /** 启动 APP（wasm 字节 + 能力文法串；V1 字节由调用方提供——boot 从
  * slot 装载随下一单元接线）。返回 TS_E_PARAM = caps 非法或缺 health_ping
- * 导出；TS_E_STATE = 已有 APP 在跑。 */
+ * 导出；TS_E_STATE = 已有 APP 在跑。
+ * V0.4.0 M7（Q-32③）：app_id = entry+1（1..N）——rt[app_id-1] 槽位。 */
 ts_res_t ts_appmgr_app_start(uint16_t app_id, const uint8_t *wasm,
 			     uint32_t wasm_len, const char *caps);
 
-/** 停止并回收（DR-14 停止语义）。 */
+/** 停止并回收（DR-14 停止语义）——legacy = app_id 1。 */
 ts_res_t ts_appmgr_app_stop(void);
 
-/** 外部事件入 APP mailbox（满丢最旧 + 计数，DR-14）。 */
+/** 外部事件入 APP mailbox（满丢最旧 + 计数，DR-14）——legacy = app_id 1。 */
 ts_res_t ts_appmgr_app_evt(uint32_t payload);
+
+/** M7：按 id 停止/事件/运行态/统计（分账面）+ 事件广播（input monitor）。 */
+ts_res_t ts_appmgr_app_stop_id(uint16_t app_id);
+ts_res_t ts_appmgr_app_evt_id(uint16_t app_id, uint32_t payload);
+void ts_appmgr_app_evt_bcast(uint32_t payload);
+bool ts_appmgr_app_running_id(uint16_t app_id);
+void ts_appmgr_app_stats_id(uint16_t app_id, struct ts_app_rt_stats *out);
+
+/** M7：健康失败按实例分账（rt 健康探针 → 对应 entry 回滚链）。 */
+ts_res_t ts_appmgr_health_fail_id(uint16_t app_id);
 
 bool ts_appmgr_app_running(void);
 void ts_appmgr_app_stats(struct ts_app_rt_stats *out);

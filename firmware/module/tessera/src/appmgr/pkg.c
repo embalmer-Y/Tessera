@@ -160,21 +160,17 @@ ts_res_t ts_appmgr_stage_activate_n(uint8_t entry, ts_app_info_t *out)
 			       TSAP_DIGEST_SIZE) != TS_OK) {
 		return TS_E_IO;
 	}
-	/* G4（单元 H）：单活跃语义收口——激活 = 停运行 APP（DR-14 升级停止
-	 * 语义）。旧缺陷：翻转 meta 后旧包继续运行，观测面（sys/get-app）报
-	 * STAGED/新槽而运行时仍执行旧包 = 撕裂态；板侧以观测线程重启
-	 * workaround（deploybench DB4）。收敛后语义：激活即停，装载周期 =
-	 * 下次 boot（WAMR 换包怪癖〔已知偏差②〕——STAGED 待加载，不热换）。
-	 * 卡死（E_TIMEOUT）：生产照常翻转（WDT 升级重启后装载新槽收敛）；
-	 * TEST 如实失败返回（无复位面）。M6 运行时单实例：activate 任意
-	 * entry 均停当前运行者（M7 随 rt[] 分账为「同 app_id 替换即停」）。 */
-	if (ts_appmgr_app_running()) {
-		ts_res_t sr = ts_appmgr_app_stop();
-
+	/* G4（单元 H）+ M7（Q-32⑤）：激活 = 停**同 entry** 运行 APP（同 app_id
+	 * 替换即停——不同 entry 互不影响；legacy 单实例语义等价）。旧缺陷：
+	 * 翻转 meta 后旧包继续运行 = 撕裂态（deploybench DB4 workaround 时代）。
+	 * 卡死（E_TIMEOUT）：生产照常翻转（群组 WDT + 健康探针处置）；
+	 * TEST 如实失败返回（无复位面）。 */
+	if (ts_appmgr_app_running_id((uint16_t)(entry + 1))) {
+		ts_res_t sr = ts_appmgr_app_stop_id((uint16_t)(entry + 1));
 
 		if (sr != TS_OK) {
-			printk("[appmgr] activate: app_stop r=%d（stuck — abandon to "
-			       "WDT escalation）\n", (int)sr);
+			printk("[appmgr] activate[%u]: app_stop r=%d（stuck — abandon to "
+			       "group WDT）\n", entry, (int)sr);
 #ifdef CONFIG_TS_TEST
 			return sr;
 #endif
