@@ -65,14 +65,22 @@ def test_empty_verdict_section_is_error():
     assert not r.ok
 
 
-def test_caps_and_fs_paths_warnings():
+def test_caps_and_fs_paths_hard_errors():
+    """V0.4.0 M4（IR-17）：caps/fs_paths 硬校验——确定性 spec 期拦截。"""
     spec = ("【需求】x\n【资源】caps=[\"gpio:read:9\"]；"
             "fs_paths=[\"SD:/data\"]\n"
             "【判据】\"Z DONE 02\"\n【安全声明】限幅\n")
     r = sg.check_spec(spec)
-    assert r.ok  # 提示级不阻塞
-    assert any("caps 文法可疑" in w for w in r.warnings)
-    assert any("绝对路径" in w for w in r.warnings)
+    assert not r.ok  # 硬校验阻塞
+    assert any("caps 文法非法" in e for e in r.errors)
+    assert any("绝对路径" in e for e in r.errors)
+    # 合法形态（含 log 类）放行
+    ok_spec = ("【需求】x\n【资源】caps=[\"gpio:read:0-3\",\"log:write:0\"]\n"
+               "【判据】\"Z DONE 02\"\n【安全声明】限幅\n")
+    r2 = sg.check_spec(ok_spec)
+    assert r2.ok
+    assert not any("caps" in e for e in r2.errors)
+
 
 
 def test_safety_keywords_absent_warns():

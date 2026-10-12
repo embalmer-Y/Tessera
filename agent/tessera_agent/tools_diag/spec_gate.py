@@ -98,20 +98,22 @@ def check_spec(spec: str) -> SpecGateResult:
     res.pass_patterns = patterns
     res.primary_pattern = patterns[0] if patterns else ""
 
-    # 资源节：caps 文法 + fs_paths 绝对路径（提示级——与固件走查的差异
-    # 交 manifest 硬校验兜底，这里只做早期提示）
+    # 资源节：caps 文法 + fs_paths 绝对路径（V0.4.0 M4/IR-17 收口：硬校验
+    # ——确定性事实在 spec 期拦截，不值得烧 LLM 轮次后由 manifest 校验兜底）
     resrc = sections.get("资源", "")
     m = _CAPS_LIST_RE.search(resrc)
     if m:
         for cap in re.findall(r'"([^"]+)"', m.group(1)):
             if not _CAP_RE.match(cap):
-                res.warnings.append(f"caps 文法可疑: {cap!r}（ts_perm_v1: "
-                                    "class:op:instances）")
+                res.errors.append(f"caps 文法非法: {cap!r}（ts_perm_v1: "
+                                  "class:op:instances——class ∈ gpio|pwm|adc|"
+                                  "power|fs|av|log|msg|sys；op ∈ read|write|"
+                                  "set|list|delete；实例 0-3 数值/区间/逗号集）")
     m = _FS_PATHS_LIST_RE.search(resrc)
     if m:
         for p in re.findall(r'"([^"]+)"', m.group(1)):
             if not p.startswith("/") or ".." in p:
-                res.warnings.append(f"fs_paths 条目须绝对路径且禁 ..: {p!r}")
+                res.errors.append(f"fs_paths 条目须绝对路径且禁 ..: {p!r}")
 
     # 安全声明节：存在 + 关键词命中（弱启发式，提示级）
     safety = sections.get("安全声明", "")

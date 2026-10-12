@@ -778,3 +778,5 @@
 **〔2026-10-12 owner 裁决 → DEC-53〕**：**Q-32 六子项全部按建议值批准**（①N=2 起步可配 ②每 APP 双槽乒乓保留+meta v2 ③rt[N]+per-rt 线程 ④APPMGR 单源群组喂狗 ⑤v2 信封 app 字段+G4 同 app_id 替换 ⑥fs_paths 下沉 per-ctx）。指令：按计划连续开发至 V0.4.0 完成（M3-M15）。
 
 - 2026-10-12 · **M3 交付（C-1 稳定性定性·Agent 面根治）**：① **LLM APP DONE 后死亡根因铁证定案**——nvd 单迹源码（docs/evidence/nvd_app_source.c）health_ping 实现为 `return g_done ? 1 : 0`（注释自认「1=已完成终态」），**误解框架合同「0=健康/非零=病」**→ DONE 后 3 探针败 → 健康回滚 → state=dead（回滚链按设计工作，目标槽空拒翻）。② **对策三面**：app_develop 提示词写死合同（恒返回 0，完成态经 log 行表达）；**wasm_build 确定性门新增 health_ping 语义门**（函数体 return 含非零整型字面量 → 拒绝；剥字符串/注释；含函数调用的表达式静态不可知放行——evil(1) 实参教训）；tessera-safety skill 同步。③ 测试 +3（nvd 形态拒/-1 拒/变量与字符串数字放行），agent **116+2s**+ruff 全绿；存量 import 门测试首跑被新门抢序——修正启发式（调用表达式跳过）后序归位。④ SYWORK wdt 复位：间歇观察项维持（本单元无法稳定复现取证——随真机批次顺带，如实登记）。
+
+- 2026-10-12 · **M4 交付（A2 caps/fs_paths 硬预校验——IR-17 收口）**：spec_gate 资源节检查升级 提示级→**错误级**（caps 文法 + fs_paths 绝对路径——确定性事实在 spec 期拦截，不值得烧 LLM 轮次后由 manifest 校验兜底）；错误消息内联完整文法（class 九类含 log/op 五类/实例段形态）；测试更新（非法阻塞 + 合法含 log 放行）；agent 116+2s/ruff 绿。过程教训一枚（如实）：带转义代码经 bash heredoc 落盘再次炸引号（dev-env 教训 21⑥ 同族）——已用 Edit 工具修复，纪律重申：**代码段一律 Edit/Write 工具直写**。
