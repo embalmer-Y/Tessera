@@ -188,7 +188,9 @@ def _implement_system_prompt() -> str:
         "stack_kb≤64）。",
         *(_CONVENTIONS[:2]),
         _EXPORT_CONVENTION,
-        "工程形态：用 ws_write/ws_edit 编写多文件工程——**ws_* 路径以工程根为基准（直接写 main.c、include/util.h，不带 project/ 前缀）**，文件组织如 main.c/thermo.c/include/*.h，"
+        "工程形态：用 ws_write/ws_edit 编写多文件工程（main.c/thermo.c/"
+        "include/*.h）——**ws_* 路径以工程根为基准（直接写 main.c、"
+        "include/util.h，不带 project/ 前缀）**，"
         "工程内头文件用引号包含（#include \"include/util.h\"——仅限工程文件表内，"
         "系统 #include<> 禁止）；小文件（≤200 行）整文件再生，大文件用唯一锚点替换。",
         "manifest 就绪时随 ImplementOutcome 的 manifest 字段给出（app_id/threads "
