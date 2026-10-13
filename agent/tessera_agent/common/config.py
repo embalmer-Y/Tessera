@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import os
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +35,10 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
     "zenoh": {
         "router_locator": "tcp/127.0.0.1:7447",
     },
+    # 审批参数规则（Q-38⑤/DEC-57 · LLD-A02 §3.1）：{tool: {allow/deny: {参数: [值]}}}
+    "policy": {
+        "param_rules": {},
+    },
 }
 
 
@@ -53,6 +57,10 @@ class AgentConfig:
     default_model: str
     context_window: int
     router_locator: str
+    # {tool: {"allow"/"deny": {参数名: [值]}}}（Q-38⑤；compose 并入 PolicyTable）
+    policy_param_rules: dict[str, dict[str, dict[str, list]]] = field(
+        default_factory=dict
+    )
 
 
 def _expand(value: str) -> Path:
@@ -96,4 +104,9 @@ def load_config(path: str | Path | None = None) -> AgentConfig:
         default_model=default_model,
         context_window=int(merged["providers"].get("context_window", 32768)),
         router_locator=str(merged["zenoh"]["router_locator"]),
+        policy_param_rules={
+            tool: dict(spec)
+            for tool, spec in merged.get("policy", {}).get("param_rules", {}).items()
+            if isinstance(spec, dict)
+        },
     )

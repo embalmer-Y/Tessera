@@ -20,7 +20,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from tessera_agent.common.audit import args_preview
-from tessera_agent.common.errors import TaError
+from tessera_agent.common.errors import TA_E_APPROVAL_DENIED, TaError
 from tessera_agent.common.limits import ContextBudget
 from tessera_agent.gateway.approvals import ApprovalBroker
 
@@ -30,10 +30,53 @@ CATEGORIES = ("auto", "confirm", "strict")
 
 
 @dataclass
+class PolicyParamRules:
+    """参数级规则（Q-38⑤/DEC-57 · LLD-A02 §3.1）。
+
+    语义（owner 已批 Q-38⑤ 原义）：deny 命中 = 拒；allow 命中 = **strict 自动
+    放行**（白名单参数免逐次审批——如"仅允许目标 cube=开发板"的部署）。
+    载体 = config（人工维护，合同 10 不学习）；规则只可收紧（deny 恒优先）。
+    """
+
+    deny: dict[str, list[Any]] = field(default_factory=dict)
+    allow: dict[str, list[Any]] = field(default_factory=dict)
+
+
+def _rule_match(rule: dict[str, list[Any]], kwargs: dict[str, Any]) -> bool:
+    """规则内全部参数精确等值（AND）；值比对经 str 归一（toml int/str 与
+    工具参数 str 的桥接）；无通配——可预测性优先（LLD-A02 §3.1）。"""
+    return all(
+        str(kwargs.get(k)) in {str(v) for v in vals}
+        for k, vals in rule.items()
+    )
+
+
+def evaluate_param_rules(
+    tool: str, kwargs: dict[str, Any], policy: PolicyTable | None
+) -> str | None:
+    """求值序（唯一权威）：deny → allow → None（无规则命中走类别策略）。"""
+    if policy is None:
+        return None
+    rules = policy.param_rules.get(tool)
+    if rules is None:
+        return None
+    if rules.deny and _rule_match(rules.deny, kwargs):
+        return "deny"
+    if rules.allow and _rule_match(rules.allow, kwargs):
+        return "allow"
+    return None
+
+
+@dataclass
 class PolicyTable:
-    """工具名 → 类别；只可收紧不可放宽（收紧覆写经 config [policy]）。"""
+    """工具名 → 类别；只可收紧不可放宽（收紧覆写经 config [policy]）。
+
+    param_rules：参数级规则（Q-38⑤）——deny 恒优先；allow 仅作用 strict
+    审批的放行（类别不因规则降级）。
+    """
 
     entries: dict[str, str] = field(default_factory=dict)
+    param_rules: dict[str, PolicyParamRules] = field(default_factory=dict)
 
     def category_of(self, tool: str, declared: str = "auto") -> str:
         override = self.entries.get(tool)
@@ -56,7 +99,15 @@ def gated_tool(
 
         @functools.wraps(fn)
         async def wrapper(*args, **kwargs):
-            if cat == "strict":
+            verdict = evaluate_param_rules(name, kwargs, policy)
+            if verdict == "deny":
+                exc = TaError(
+                    TA_E_APPROVAL_DENIED,
+                    f"参数规则拒绝：{name}",
+                    detail={"tool": name, "args": args_preview(dict(kwargs))},
+                )
+                return f"工具 {name} 被拒绝：{json.dumps(exc.to_payload(), ensure_ascii=False)}"
+            if cat == "strict" and verdict != "allow":
                 approval = broker.request(name, args_preview(dict(kwargs)), reason="strict 工具")
                 try:
                     await broker.wait(approval)
