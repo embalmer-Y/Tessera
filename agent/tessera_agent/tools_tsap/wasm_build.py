@@ -163,6 +163,38 @@ def _gate_source(source_c: str) -> None:
     _gate_health_ping(source_c)
 
 
+# 多文件工程包含门（AG3 · LLD-A08 §2.2）：引号包含仅限工程内相对头
+_INCLUDE_ANGLE_RE = re.compile(r"^\s*#\s*include\s*<", re.M)
+_INCLUDE_QUOTED_RE = re.compile(r'^\s*#\s*include\s*"([^"]+)"', re.M)
+
+
+def _gate_project_sources(files: dict[str, str]) -> None:
+    """多文件工程源门：系统包含与 __has_include 全拒（IR2-03 读面纪律维持）；
+    引号包含 = 仅限工程文件表内相对头（规范化后不得越出文件表——防探读工程外）。"""
+    import posixpath
+
+    names = set(files)
+    for name, src in files.items():
+        if "__has_include" in src or _INCLUDE_ANGLE_RE.search(src):
+            raise TaError(
+                TA_E_ARGS,
+                f"{name}: 含 #include<>/__has_include（自由固件零依赖：natives 经 extern 声明）",
+                domain="app_compile",
+            )
+        for m in _INCLUDE_QUOTED_RE.finditer(src):
+            inc = m.group(1)
+            norm = posixpath.normpath(posixpath.join(posixpath.dirname(name), inc))
+            if (posixpath.isabs(norm) or ".." in norm.split("/")
+                    or norm not in names):
+                raise TaError(
+                    TA_E_ARGS,
+                    f"{name}: 引号包含越界（仅限工程文件表内头文件）: {inc}",
+                    domain="app_compile",
+                    detail={"file": name, "include": inc},
+                )
+        _gate_health_ping(src)
+
+
 def _gate_health_ping(source_c: str) -> None:
     """health_ping 返回值语义门（V0.4.0 M3，nvd 单迹定性对策）。
 
@@ -206,15 +238,24 @@ def _gate_health_ping(source_c: str) -> None:
             )
 
 
-def _run_clang(c_path: Path, wasm_path: Path, timeout_s: float,
-               extra_flags: list[str] | None = None) -> None:
-    """clang 编译；失败/超时 → TaError（stderr 完整保留，供 LLM 反馈回路）。
+def _run_clang_files(
+    c_paths: list[Path],
+    wasm_path: Path,
+    timeout_s: float,
+    extra_flags: list[str] | None = None,
+    exports: list[str] | None = None,
+) -> None:
+    """clang 聚合编译（单/多文件同一实现）；失败/超时 → TaError（stderr 完整保留）。
 
-    IR2-09：start_new_session + 超时杀整进程组（clang 派生孙进程不遗留；
-    proc.py 同纪律）。extra_flags：线程档追加（M19/DEC-55）。"""
+    IR2-09：start_new_session + 超时杀整进程组。exports：逐符号
+    `-Wl,--export=`——符号缺失即链接错（工程清单 fail-closed，Q-39①）。"""
+    cmd = [
+        CLANG, *CLANG_FLAGS, *(extra_flags or []),
+        *[f"-Wl,--export={e}" for e in (exports or [])],
+        "-o", str(wasm_path), *[str(p) for p in c_paths],
+    ]
     proc = subprocess.Popen(
-        [CLANG, *CLANG_FLAGS, *(extra_flags or []), "-o", str(wasm_path),
-         str(c_path)],
+        cmd,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
         start_new_session=True,
     )
@@ -232,6 +273,12 @@ def _run_clang(c_path: Path, wasm_path: Path, timeout_s: float,
         msg = f"clang 编译失败（exit {proc.returncode}）"
         raise TaError(TA_E_TSAP, msg, domain="app_compile",
                       detail={"stderr": (err or "")[-4000:], "stdout": ""})
+
+
+def _run_clang(c_path: Path, wasm_path: Path, timeout_s: float,
+               extra_flags: list[str] | None = None) -> None:
+    """单文件兼容包装（既有调用面不变）。"""
+    _run_clang_files([c_path], wasm_path, timeout_s, extra_flags)
 
 
 def compile_app_c(
@@ -299,5 +346,86 @@ def compile_app_c(
         "imports": sorted(imports),
         "exports": sorted(exports),
         "source_sha256": hashlib.sha256(source_c.encode()).hexdigest(),
+        "deterministic": True,
+    }
+
+
+def compile_project_c(
+    files: dict[str, str],
+    out_dir: str,
+    allowed_roots: list[str],
+    *,
+    exports: list[str] | None = None,
+    max_bytes: int = DEFAULT_MAX_BYTES,
+    timeout_s: float = DEFAULT_TIMEOUT_S,
+    threads: int = 1,
+) -> dict[str, Any]:
+    """多文件工程 → 单 wasm（AG3 · LLD-A08 §2.2/§4——工程清单驱动，Q-39①）。
+
+    files = {相对路径: 源文本}（.c 入编译命令；.h 落盘供引号包含解析）；
+    exports = 工程清单导出表 → 逐符号 `-Wl,--export=`（缺符号 = 链接错，
+    fail-closed）。门与单文件链一致：工程包含门（_gate_project_sources）、
+    双编译字节一致、尺寸、导入白名单、必需导出。
+    返回 {wasm_path, size, imports, exports, files_sha256, deterministic}。
+    """
+    if not files or not any(n.endswith(".c") for n in files):
+        raise TaError(TA_E_ARGS, "工程须含至少一个 .c 文件", domain="app_compile")
+    _gate_project_sources(files)
+    max_bytes = min(int(max_bytes), DEFAULT_MAX_BYTES)
+    real = _resolve_within(out_dir, allowed_roots)
+    src_dir = real / "src"
+    src_dir.mkdir(parents=True, exist_ok=True)
+    c_paths: list[Path] = []
+    for name, content in sorted(files.items()):
+        p = src_dir / name
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(content, encoding="utf-8")
+        if name.endswith(".c"):
+            c_paths.append(p)
+    need = list(exports) if exports else sorted(MIN_EXPORTS)
+    wasm_path = real / "app.wasm"
+    wasm2_path = real / "app.wasm.check"
+    thr_flags = CLANG_FLAGS_THREADS if int(threads) > 1 else []
+    with _dir_lock(real):  # IR2-10：同 out_dir 串行
+        _run_clang_files(c_paths, wasm_path, timeout_s, thr_flags, need)
+        _run_clang_files(c_paths, wasm2_path, timeout_s, thr_flags, need)
+        deterministic = wasm_path.read_bytes() == wasm2_path.read_bytes()
+        wasm2_path.unlink()
+    if not deterministic:
+        raise TaError(
+            TA_E_TSAP, "双编译产物字节不一致（编译环境非确定性——拒绝）",
+            domain="app_compile",
+        )
+    size = wasm_path.stat().st_size
+    if size > max_bytes:
+        raise TaError(
+            TA_E_TSAP,
+            f"wasm 尺寸 {size}B 超上限 {max_bytes}B（档位门——Q-39⑤ 分档双门）",
+            domain="app_compile",
+            detail={"size": size, "max_bytes": max_bytes},
+        )
+    imports, got_exports = wasm_func_surface(wasm_path)
+    bad = sorted(imports - NATIVE_WHITELIST)
+    if bad:
+        raise TaError(
+            TA_E_TSAP, f"导入面越权（natives 白名单外）: {bad}",
+            domain="app_compile",
+            detail={"imports": sorted(imports), "whitelist": sorted(NATIVE_WHITELIST)},
+        )
+    missing = sorted(set(need) - got_exports)
+    if missing:
+        raise TaError(
+            TA_E_TSAP, f"缺少必需导出: {missing}",
+            domain="app_compile",
+            detail={"exports": sorted(got_exports), "required": sorted(set(need))},
+        )
+    return {
+        "wasm_path": str(wasm_path),
+        "size": size,
+        "imports": sorted(imports),
+        "exports": sorted(got_exports),
+        "files_sha256": {
+            n: hashlib.sha256(c.encode()).hexdigest() for n, c in sorted(files.items())
+        },
         "deterministic": True,
     }

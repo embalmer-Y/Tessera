@@ -42,7 +42,7 @@ agent/workspace/<task_id>/          # task_id = 任务注册表既有 id（t-<he
 }
 ```
 
-**纪律**：文件表与 exports 表 = 编译输入与面检查的**唯一来源**；`exports` 缺项 → verifier.compile 以 `-Wl,--export=` 逐符号链接**编译期即红**（fail-closed，Q-39①）。
+**纪律**：文件表与 exports 表 = 编译输入与面检查的**唯一来源**；`-Wl,--export=` 逐符号传递，缺项由**面检查一票拒**（`--allow-undefined` 为 natives 未定义符号所必需——链接期不可区分缺导出与未实现 native，fail-closed 由面门承载，与单文件链同型；AG3 实证定案）。
 
 ### 2.3 roots 钳制（HLD §5.2 落地）
 
