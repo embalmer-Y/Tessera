@@ -149,6 +149,12 @@ class CreationLoop:
 
     # ---- 主流程 ----------------------------------------------------------
 
+    def _snapshot(self) -> None:
+        """状态迁移/轮末快照（AG5 · LLD-A08 §6.2——原子写；失败如实抛）。"""
+        from tessera_agent.creation import snapshot
+
+        snapshot.take(self)
+
     async def run(self) -> LoopResult:
         self.state = PLANNING
         self._emit("state", {"state": self.state})
@@ -159,6 +165,7 @@ class CreationLoop:
 
         self.state = IMPLEMENTING
         self._emit("state", {"state": self.state})
+        self._snapshot()
         failure_reason = ""
         while self.round < self.budget:
             prompt = self._assemble_prompt()
@@ -169,6 +176,7 @@ class CreationLoop:
                 "declared_done": outcome.declared_done,
                 "summary": outcome.summary,
             })
+            self._snapshot()
             if not outcome.declared_done:
                 continue
             self.state = VERIFYING
@@ -183,6 +191,7 @@ class CreationLoop:
                                             "round": self.round})
                 self.state = IMPLEMENTING
                 self._emit("state", {"state": self.state})
+                self._snapshot()
                 continue
             self.state = CONVERGED
             self._emit("state", {"state": self.state})

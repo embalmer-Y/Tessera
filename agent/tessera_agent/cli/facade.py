@@ -33,6 +33,7 @@ class TerminalOptions:
 
 
 ABORTED = "ABORTED"  # 门面级终态：owner 在计划确认处拒绝（LLD-A09 §4）
+INTERRUPTED = "INTERRUPTED"  # 门面级终态：SIGINT 优雅退出（快照续跑——LLD-A09 §4）
 
 
 class _Aborted(Exception):
@@ -142,6 +143,19 @@ class TerminalFrontend:
             result = LoopResult(
                 state=ABORTED, rounds_used=loop.round, plan=loop.plan,
                 workspace=str(ws.root), failure_reason=str(exc),
+            )
+        except KeyboardInterrupt:
+            # SIGINT：快照已随轮末落盘（loop._snapshot）；此处优雅汇报续跑路径
+            from tessera_agent.creation import snapshot as _snap
+
+            try:
+                _snap.take(loop)
+            except Exception:  # noqa: BLE001——中断路径的快照失败不掩盖主信号
+                pass
+            result = LoopResult(
+                state=INTERRUPTED, rounds_used=loop.round, plan=loop.plan,
+                workspace=str(ws.root),
+                failure_reason=f"中断（--resume {ws.root.name} 续跑）",
             )
         self._report(result)
         return result
