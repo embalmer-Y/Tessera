@@ -188,7 +188,7 @@ def _implement_system_prompt() -> str:
         "stack_kb≤64）。",
         *(_CONVENTIONS[:2]),
         _EXPORT_CONVENTION,
-        "工程形态：用 ws_write/ws_edit 编写多文件工程（main.c/util.c/include/*.h），"
+        "工程形态：用 ws_write/ws_edit 编写多文件工程——**ws_* 路径以工程根为基准（直接写 main.c、include/util.h，不带 project/ 前缀）**，文件组织如 main.c/thermo.c/include/*.h，"
         "工程内头文件用引号包含（#include \"include/util.h\"——仅限工程文件表内，"
         "系统 #include<> 禁止）；小文件（≤200 行）整文件再生，大文件用唯一锚点替换。",
         "manifest 就绪时随 ImplementOutcome 的 manifest 字段给出（app_id/threads "
@@ -246,6 +246,23 @@ class PydanticLoopRunner:
         async def read_skill(name: str) -> str:
             return skill_loader.read_skill(name)
 
+        def _safe(fn):
+            """TaError → 结构化字符串返回（LLM 反馈回喂——与 gated_tool 同语义，
+            AG7 实证：路径错之类模型侧失误不该炸穿循环）。"""
+            import functools
+
+            @functools.wraps(fn)
+            async def wrapper(*args, **kwargs):
+                try:
+                    result = fn(*args, **kwargs)
+                    if asyncio.iscoroutine(result):
+                        return await result
+                    return result
+                except TaError as exc:
+                    return (f"工具 {fn.__name__} 失败："
+                            f"{json.dumps(exc.to_payload(), ensure_ascii=False)}")
+            return wrapper
+
         self._plan_agent = Agent(
             m, output_type=PlanOutcome, retries=OUTPUT_RETRIES,
             system_prompt=_plan_system_prompt(),
@@ -256,11 +273,11 @@ class PydanticLoopRunner:
             system_prompt=_implement_system_prompt(),
             model_settings={"max_tokens": OUTPUT_MAX_TOKENS_WITH_CODE},
         )
-        impl.tool_plain(tools.ws_read)
-        impl.tool_plain(tools.ws_write)
-        impl.tool_plain(tools.ws_edit)
-        impl.tool_plain(tools.ws_list)
-        impl.tool_plain(read_skill)
+        impl.tool_plain(_safe(tools.ws_read))
+        impl.tool_plain(_safe(tools.ws_write))
+        impl.tool_plain(_safe(tools.ws_edit))
+        impl.tool_plain(_safe(tools.ws_list))
+        impl.tool_plain(_safe(read_skill))
         self._impl_agent = impl
         self.requirements_summary = ""
         self.safety_notes: list[str] = []

@@ -1,0 +1,39 @@
+{
+  "app_id": "acme.thermo.ag7",
+  "app_ver": "1.0.0",
+  "compile_flags_extra": [],
+  "exports": [
+    "app_init",
+    "app_tick",
+    "app_evt",
+    "health_ping"
+  ],
+  "files": [
+    "include/thermo.h",
+    "main.c",
+    "thermo.c"
+  ],
+  "manifest": {
+    "app_id": "acme.thermo.ag7",
+    "app_ver": "1.0.0",
+    "caps": [
+      "adc:read:0",
+      "gpio:write:0",
+      "kv:write:0"
+    ],
+    "exports": [
+      "app_init",
+      "app_tick",
+      "app_evt",
+      "health_ping"
+    ],
+    "heap_kb": 8,
+    "min_fw_ver": "0.4.0",
+    "stack_kb": 32
+  },
+  "needs": null,
+  "resources": [],
+  "schema": 1,
+  "threads": 1,
+  "tier": "small"
+}

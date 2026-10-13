@@ -138,11 +138,22 @@ class Workspace:
         except ValueError:
             return False
 
+    @staticmethod
+    def _strip_project_alias(path: str) -> str:
+        """AG7 实证别名规整：LLM 自然写 project/xxx 前缀——确定性剥除
+        （提示词已声明工程根基准；本层兜底，路径语义不变）。"""
+        if path == "project":
+            return "."
+        if path.startswith("project/"):
+            return path[len("project/"):]
+        return path
+
     def resolve_read(self, path: str) -> Path:
         """读可达面：工程根相对路径 + artifacts/**（前缀显式，只读）+ ro_roots（绝对路径）。
 
         .session/ 永不可达（防快照自篡改）。
         """
+        path = self._strip_project_alias(path)
         candidate = Path(path)
         if not candidate.is_absolute():
             if path.startswith(("artifacts/", ".session/")):
@@ -171,6 +182,7 @@ class Workspace:
 
     def resolve_write(self, path: str) -> Path:
         """写可达面 = project/**（工程根相对——作者视角的根）。保留前缀与仓库只读面全拒。"""
+        path = self._strip_project_alias(path)
         candidate = Path(path)
         if not candidate.is_absolute():
             if path.startswith(("artifacts/", ".session/")):

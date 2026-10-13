@@ -182,3 +182,17 @@ def test_atomic_write_leaves_no_tmp(env):
     tools.ws_write("m.c", "int m;\n")
     leftovers = [p.name for p in ws.project_dir.rglob("*.tmp")]
     assert leftovers == []
+
+
+def test_project_alias_normalization(env):
+    """AG7 实证：LLM 自然带 project/ 前缀——确定性剥除（提示词声明 + 兜底）。"""
+    ws, tools, ro = env
+    tools.ws_write("main.c", "int a;\n")
+    out = tools.ws_read("project/main.c")  # 别名读
+    assert "int a;" in out["content"]
+    out = tools.ws_list("project")  # 别名列目录 = 工程根
+    assert any(e["file"] == "main.c" for e in out["entries"])
+    tools.ws_write("project/util.c", "int u;\n")  # 别名写
+    project = ws.load_project()
+    assert "util.c" in project["files"]
+    assert _err_code(tools.ws_write, "project/../evil.c", "x") == TA_E_WORKSPACE_PATH
