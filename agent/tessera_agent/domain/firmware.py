@@ -77,6 +77,8 @@ class FirmwareDomainPack(DomainPackBase):
         "sim_validate_scenario", "sim_run",
         "tsap_keygen", "tsap_package", "tsap_verify",
         "deploy_discover", "deploy_status", "deploy_push_app", "deploy_push_prov",
+        "ln_create", "ln_list", "ln_remove", "ln_status", "ln_deploy",
+        "ln_estop_clear",
         "app_develop", "app_deploy", "app_compile",
         "diag_classify", "spec_check", "simreal_diff",
     ])
@@ -88,6 +90,8 @@ class FirmwareDomainPack(DomainPackBase):
         "tsap_keygen": "strict",
         "deploy_push_app": "strict",
         "deploy_push_prov": "strict",
+        "ln_deploy": "strict",  # DEC-54①：组部署 = N 成员写操作
+
         "app_develop": "confirm",
         "app_deploy": "strict",
         "diag_classify": "confirm",
@@ -252,6 +256,102 @@ class FirmwareDomainPack(DomainPackBase):
             def work() -> dict:
                 with ZenohService(ctx.cfg.router_locator) as svc:
                     return net_deploy.status(svc, node, cube)
+
+            return await asyncio.to_thread(work)
+
+        @mcp.tool
+        @audited("ln_create")
+        async def ln_create(ln_id: str, members: list[dict],
+                            linkloss_policy: str = "continue") -> dict:
+            """创建逻辑节点（V0.4.x M16/DEC-54① 方案 A——Agent 侧编排）。
+
+            members = [{"node": ..., "cube": ...}, ...]（≥1）；linkloss_policy
+            ∈ continue|pause（降级策略语义提示）。注册表 = server 生存期内存态。"""
+            def work() -> dict:
+                from tessera_agent.tools_net.lno import REGISTRY
+                ln = REGISTRY.create(
+                    ln_id, [(m["node"], m["cube"]) for m in members],
+                    linkloss_policy=linkloss_policy)
+                return {"ln_id": ln.ln_id, "members": len(ln.members),
+                        "linkloss_policy": ln.linkloss_policy}
+
+            return await asyncio.to_thread(work)
+
+        @mcp.tool
+        @audited("ln_list")
+        async def ln_list() -> dict:
+            """列出全部逻辑节点（成员拓扑 + 策略）。"""
+            def work() -> dict:
+                from tessera_agent.tools_net.lno import REGISTRY
+                return {"nodes": REGISTRY.list()}
+
+            return await asyncio.to_thread(work)
+
+        @mcp.tool
+        @audited("ln_remove")
+        async def ln_remove(ln_id: str) -> dict:
+            """移除逻辑节点注册（不动成员 cube 状态）。"""
+            def work() -> dict:
+                from tessera_agent.tools_net.lno import REGISTRY
+                REGISTRY.remove(ln_id)
+                return {"removed": ln_id}
+
+            return await asyncio.to_thread(work)
+
+        @mcp.tool
+        @audited("ln_status")
+        async def ln_status(ln_id: str) -> dict:
+            """组状态聚合：逐成员四合一快照 + linkloss 降级视图。"""
+            def work() -> dict:
+                from tessera_agent.tools_net import lno
+                with ZenohService(ctx.cfg.router_locator) as svc:
+                    return lno.ln_status(lno.REGISTRY, svc, ln_id)
+
+            return await asyncio.to_thread(work)
+
+        @mcp.tool
+        @audited("ln_deploy")
+        async def ln_deploy(ln_id: str, package_path: str, pub_key_path: str,
+                            app: int = 1) -> dict:
+            """组部署（strict：挂起宿主审批）：顺序扇出至全部成员。
+
+            **非原子**（DEC-54① 如实）：失败成员不阻断后续；聚合视图逐成员
+            标注 deployed/failed。app = 实例位（多 APP 板，缺省 1）。"""
+            args = {"ln_id": ln_id, "package_path": package_path,
+                    "pub_key_path": pub_key_path, "app": app}
+
+            async def body(task) -> dict:
+                log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
+                approval = ctx.approvals.request(
+                    "ln_deploy", args,
+                    reason="strict 类：组部署（N 成员远程安装 APP）",
+                )
+                task.state = "input_required"
+                try:
+                    await ctx.approvals.wait(approval)
+                finally:
+                    task.state = "working"
+
+                def work() -> dict:
+                    from tessera_agent.tools_net import lno
+                    with ZenohService(ctx.cfg.router_locator) as svc:
+                        return lno.ln_deploy(lno.REGISTRY, svc, ln_id,
+                                             package_path, pub_key_path,
+                                             app=app, log_fn=log)
+
+                return await asyncio.to_thread(work)
+
+            return await ctx.registry.start(
+                "ln_deploy", args, body, budget=ctx.budget)
+
+        @mcp.tool
+        @audited("ln_estop_clear")
+        async def ln_estop_clear(ln_id: str) -> dict:
+            """组恢复：扇出 sys/estop-clear（confirm 硬令牌；幂等安全）。"""
+            def work() -> dict:
+                from tessera_agent.tools_net import lno
+                with ZenohService(ctx.cfg.router_locator) as svc:
+                    return lno.ln_estop_clear(lno.REGISTRY, svc, ln_id)
 
             return await asyncio.to_thread(work)
 
