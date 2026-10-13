@@ -30,6 +30,7 @@ venv/
 agent/audit/
 agent/keys/
 agent/build/
+agent/workspace/
 agent/config.toml
 .ruff_cache/
 *.egg-info/
