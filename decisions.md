@@ -880,3 +880,37 @@
 - 2026-10-13 · **AI CLI 深度调研批交付（owner 指令：「调研其他开源 AI CLI（codex/zcode/opencode 等）具体编程流程/工具调用/编码约束实现；深度调研后制定 Agent 下一阶段新功能；下一阶段开发重心 = Agent 侧」）**：四路并行实抓（Codex CLI〔仓库 HEAD config.schema.json + 源码 handlers + 外迁前文档交叉——developers.openai.com 403 如实〕/ opencode v1.19.0〔docs 全套 + 源码 src/tool、src/lsp〕/ Gemini CLI〔docs 25+ 页〕/ Claude Code〔官方文档 20 页，参考项〕）+ ZCode 第一人称自省 + aider 增量（R1-R8 基础）→ `docs/agent-cli-research-01.md`。核心结论：① 业界约束实现收敛**五层模型**（提示层/指令文件层〔**AGENTS.md 事实标准——四家全支持**〕/机械门禁层〔2026 hooks 拦截面四家收敛 + 诊断回喂三型〕/权限沙箱层〔参数级 specifier 规则 + OS 沙箱 + workspace-write 网络默认禁〕/流程结构层〔plan mode/todo/checkpoint/多代理〕）；② Tessera Agent **机械门禁层（四道确定性门 + sync_check 机械锁）与审计层强于全部调研对象**，运行时观测型反馈回路（diag_classify + simreal_diff）为五对象均无的域独有优势；③ 缺口集中**流程结构层**（会话持久化/计划工具/hooks 拦截面/回放）与审批粒度（工具级 vs 参数级）；④ §5 九项候选呈递待 owner 排序——建议前三杠杆 = 任务链持久化恢复 + 计划/进度外显 + 部署域诊断自动回喂；多代理与通用文件工具面建议维持不做（域封闭面 = 安全边界）。**下一版本批随 owner 裁决定**。
 
 - 2026-10-13 · **DEC-56（需求校准批裁决：通用域解放——owner 回复「全部按照建议」+ DEC-12 修订明示）**：owner 四轮校准定案（2026-10-13 会话）：① **设备形态不限**（owner 原文：「立方体只是一个比喻，设备硬件形态是不做限制的」）——平台 = 形态不限的智能设备框架；触摸屏等仅为设备可能外设的**例子**（owner 原文：「并不是说我们要单独做触摸屏相关的功能而是做通用的复杂功能的处理以及通用的设备作为单独硬件运行的开发能力」），不做专项功能批；② **APP 复杂度不受结构性预设限制**（D4 方向确认：16KB 尺寸门/单源文件工程/每实例内存账/整文件再生编辑模型**全部重开重定**——具体值走 research→design→Q 呈递）；③ **设备独立运行（standalone）与远程编排同为一级模式**（D6 方向确认：断链 fail-safe 语义按部署模式声明化、本地控制源入仲裁模型——estop 硬件通道至高不变；安全合同本体修订走门④随合同泛化批）；④ **DEC-12 修订（owner 原文）**：「Agent 不但要自带一个简单的 AI 客户端，另外也要能够作为 server 通过 MCP A2A 等方式接入其他 AI 应用」——Agent 双角色 + 智能内化（创作面放宽〔创作工作区 scoped 文件工具/多文件工程/sim 自测循环〕、交付面确定性门不撤）。**分期裁决（D3）**：R 批四路 research（① Agent 创作循环架构〔复用 docs/agent-cli-research-01.md〕② 复杂 APP 工程链与资源泛化 ③ standalone 运行模式合同泛化 ④ 多开发者信任链〔生态批输入〕）→ **Agent 批**（独立终端 CLI + 创作工作区，V0.6.0 候选）→ **合同泛化批**（安全合同修订〔门④〕+ 资源分级 + 设备能力发现与安装匹配 + LLD 全库「立方体→设备」术语清扫）→ **生态批**（信任链〔D5 分期：此前维持单开发者单根〕/侧载分发）。同批落文：FOUNDING_PROMPT v1.1（使命重述 + DEC-01/02/12 修订 + §6 同步）、plan §11d、HLD 双注记（修订随各设计批展开）。
+
+- 2026-10-13 · **R 批 research 四篇交付（通用域解放先导批——R6/R7/R8/R9，Q-38…Q-41 四呈递登记停门）**：三路 web 实抓（wasm 工程链/信任链/工业仲裁先例）+ 一路本地综合（创作循环，复用 agent-cli-research-01）。详见 `docs/research/R6…R9`。**Q-38 = Agent 批开工前置（owner 已定 Agent 侧为开发重心）；Q-39/Q-41 = 合同泛化批前置；Q-40 = 生态批前置。**
+
+## Q-38（Agent 创作循环与独立 CLI——通用域解放 Agent 批呈递停门，2026-10-13）
+
+**背景**：DEC-56 定案 Agent 双角色 + 智能内化；现状 app_develop = 单工位 LLM（填 JSON 字段），无文件面/无跨轮编辑/repair 环靠外环手动转——复杂 APP 承载力不足。设计事实与架构资产盘点见 `docs/research/R6-agent-creation-loop.md`。
+
+**呈递五子项（均建议 A）**：① **内环形态**：A = app_develop 升级为工作区创作循环（计划→编辑→编译→sim→迭代，轮次预算 8-12，repair 证据自动回喂——opencode LSP 自动回喂模式）；B = 仅加文件面保持单工位（不建议——复杂 APP 收敛力不足）。② **独立 CLI 门面**：A = `tessera-agent run "需求"`（交互式终端：进度实时呈现 + 审批终端确认 + 结果汇报 + `--resume`），复用同一 compose 根（三门面共享 ctx/audit/tasks）。③ **scoped 文件工具面**：A = 新增 read/write/edit/list 四域动词，roots = `agent/workspace/<app_id>/**`（读写）+ 仓库白名单只读集（框架头/skills/docs）；IR2-03 读面纪律对仓库面维持。④ **会话持久化**：A = 任务级快照（工作区 + 轮次摘要 + 进度），`--resume` 续跑；对话级回放不做。⑤ **审批粒度**：A = PolicyTable 增参数白名单规则（strict 类先行）；审批闸本体不动（双通道加固 = 已登记观察项）。
+
+**影响**：Agent 批（V0.6.0 候选）实施批的直接输入；交付门清单（四道确定性门 + 验签 + 判据）一条不撤（"创作面放宽、交付面不撤"的机械保证）。
+
+## Q-39（复杂 APP 资源分级与工程链——合同泛化批资源面呈递，2026-10-13）
+
+**背景**：DEC-56 D4——四道结构上限（16KB 尺寸门/单源文件/每实例内存账/整文件再生）全部重开重定。业界事实见 `docs/research/R7-complex-app-engineering.md`（wasm-ld 标准链/WAMR fast interp 2× 预编译码代价/minimp3 34KB 标尺/Android largeHeap 与 Wasmtime ResourceLimiter 先例）。
+
+**呈递五子项（均建议 A）**：① **工程链**：A = 工作区多文件 + clang 单命令聚合（`-Wl,--export=` 逐符号导出 = fail-closed），交付单 wasm（TSAP 容器不变）；② **档位模型**：A = manifest 声明 tier（small/large 起步）+ 安装期设备能力匹配拒装 + get-info 自报档位（异构设备生态基础）；③ **资源放置**：A = 大资源外置 ts-fs（fs_paths 白名单扩展资源语义），wasm 内嵌仅小常量；④ **内存账**：A = `-Wl,--initial-memory/--max-memory` 链接期钉死（manifest 三方一致纪律平移），fast interp 2× 代价入账，AOT 复评挂 large 档；⑤ **尺寸门**：A = 单门改按档位双门（small 维持 16KB/large 值实测定）——**门不撤只分档**。
+
+**影响**：数值（large 档 KB 级）待 Agent 批真实大 APP 实测后随实施批 Q 补呈；固件面改动集中在 appmgr/store（槽池分级/装载缓冲档）。
+
+## Q-40（多开发者信任链方向——生态批输入呈递，2026-10-13）
+
+**背景**：DEC-56 D5——生态批前维持单开发者单根（DEC-49 现状）。业界事实见 `docs/research/R9-multi-developer-trust.md`（安卓自签哲学/MCUboot 多公钥 KEYHASH/TUF 离线撤销/RFC 9052 多签容器不可互换/OpenWrt 反面教材）。
+
+**呈递四子项（均建议 A，方向性——具体方案生态批展开）**：① **信任根形态**：A = 设备侧信任根表（prov 扩展：开发者公钥注册/撤销 + 单调版本号防回滚——TUF 离线撤销模式）+ COSE_Sign1 单签名维持（开发者身份 = 其私钥）；② **注册/撤销通道**：A = 网络侧（provisioning 命令面）起步，本地侧载随设备形态按需；③ **安装期权限确认**：A = 有本地交互设备走本地确认（D6 前提）；无交互设备走 Agent 呈报 + strict 审批；④ **TSAP 容器**：维持 COSE_Sign1，多签不引入（业界证据：单签名 + 多信任根已覆盖多开发者语义）。
+
+**影响**：生态批（最远批）；本呈递只锁方向，防后期架构返工（如误换多签容器 = 格式门③级返工）。
+
+## Q-41（standalone 部署模式与控制源仲裁——安全合同泛化呈递停门〔门④〕，2026-10-13）
+
+**背景**：DEC-56 D6——standalone 与远程编排同为一级模式。合同 3（断链 fail-safe）为被编排端点所写，对 standalone 设备语义错误（例：无网温控器断 WiFi 被迫停控）。工业先例见 `docs/research/R8-standalone-mode-arbitration.md`（EtherCAT 按通道替代值/ISO 17757 失联≠故障/EN 60204-1 §9.2.4 本地站压制远程/ISO 13850 estop 复位仅本地/HOA 惯例/bumpless transfer）。
+
+**呈递四子项（建议 A，门④——安全合同本体措辞随 design 批定稿再呈一次）**：① **部署模式声明**：A = prov 扩展 `orchestrated | standalone`（orchestrated 现行语义不变；standalone 断链不触发状态迁移仅留痕；混合〔按通道组〕design 批评估是否 V1 需要）；② **控制源席位**：A = 仲裁主体 = {zenoh 租约, 本地交互源（设备外设事实——有则占席）}，本地源激活时压制远程写命令（EN 60204-1 §9.2.4 同型），切换只改仲裁不产生输出（§9.2.3）；③ **estop 清除通道**：A = 按设备能力声明（无本地交互 = 远程带令牌维持现状；有本地交互 = 本地清除为主、远程可禁用）——estop 触发面（硬件 ISR 至高）双方一致不动；④ **无扰交接**：V1 先"交接=重声明"简化，bumpless（输出跟踪）登记差距留后续。
+
+**影响**：安全合同 3 的模式化修订 + 合同新增部署模式条目 = 门④级（须 owner 批措辞）；固件面 = prov schema/linkmon 触发条件/租约模型扩席；LLD 全库「立方体→设备」术语清扫随本批。
