@@ -22,12 +22,12 @@
 - 行为：`auto` 直行；`confirm` 记审计直行（V1 会话内策略〔Q-19 提案 7〕；收紧为挂起由 config 控制）；`strict` → `raise ApprovalRequired` → Frontend 呈现 → sys_approve（token）→ 重入执行；拒绝/超时 → `SkipToolExecution` 返回拒绝结果给模型。
 - **不可绕过性**：闸在编排层唯一入口上；产物侧另有工具内强制（tsap_package 必签名等，HLD §5.2）双层对冲。
 
-### 3.1 审批参数规则（Q-38⑤，DEC-57）
+### 3.1 审批参数规则（Q-38⑤，DEC-57；v0.2.1 措辞修正）
 
 - PolicyTable 条目扩展可选 `param_rules: {allow: {<参数名>: [<值>]}, deny: {…}}`（示例：`deploy_push_app: {allow: {cube: ["xiao-1"]}}`）。
-- **求值序（唯一权威，A01/MCP 与 A09/终端同链）**：deny 规则命中 → 拒（TA_E_APPROVAL_DENIED，detail 含命中规则）→ allow 规则命中 → 按类别策略（strict 类仍走 broker——**allow 规则只免参数级问询，不越过 strict 审批**）→ 无规则命中 → 类别策略。
-- **只可收紧**（DEC-38 语义平移）：参数规则不得使 strict 类降级为 auto/confirm；config `[policy]` 载体、人工维护、运行时不自修改（合同 10 同构）。多值参数匹配 = 精确等值（无通配——可预测性优先，通配需求实证后另立 Q）。
-- 测试要点：求值序矩阵（deny>allow>类别）/规则不可放宽断言/多参数交叉（全命中才 allow）。
+- **求值序（唯一权威，A01/MCP 与 A09/终端同链）**：deny 规则命中 → 拒（TA_E_APPROVAL_DENIED，detail 含命中规则）→ allow 规则命中 → **strict 自动放行**（owner 已批 Q-38⑤ 原义：白名单参数免逐次审批——如「仅允许目标 cube=开发板」的部署）→ 无规则命中 → 类别策略。〔v0.2.1 修正：初版「allow 只免参数级问询、不越过 strict」与 owner 批准语义相悖，按批准义实现（AG6 落地）〕
+- **只可收紧**（deny 恒优先于 allow）：参数规则不得使 strict 类降级为 auto/confirm；config `[policy.param_rules]` 载体、人工维护、运行时不自修改（合同 10 同构）。多值参数匹配 = 精确等值（无通配——可预测性优先，通配需求实证后另立 Q）。
+- 测试要点：求值序矩阵（deny>allow>类别）/allow 自动放行断言/多参数交叉（全命中才 allow）。
 
 ## 4. 结构化产物（需求→设计阶段的强制校验）
 
