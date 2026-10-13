@@ -833,6 +833,26 @@
 
 **建议（批内按此实施）**：**av 类音频变体**——① manifest `av_fmt` 扩枚举 **"pcm16"**（mono 16kHz 16-bit——MP34DT05 硬件降采样档；帧语义 = 320 采样/帧 = 640B 定长，`av_w`=采样率/1000、`av_h` 弃用语义留 0）；`av:read:0` 权限复用（采集面同语义）；② 驱动 `CONFIG_TS_DRV_PDM`（默认 n）：zephyr,user `pdm-uid` + pinctrl（**引脚按原理图核验档实施第一步：疑似 GPIO42 CLK / GPIO41 DATA**）+ i2s_ll PDM RX（hal_espressif 寄存器层，零上游补丁）+ GDMA 环形缓冲；native_sim = 确定性桩（零数据 + 桩计数）；③ 消费者 = D-PDM demo（采集 → ts_net_publish 分片〔avq 通道复用，fid=帧号〕→ PC 侧落盘 .pcm）；④ ts_av_capture 返回语义按 fmt 分派（图像帧/音频帧同 API——调用方按 manifest 声明知晓形态）。*备选 B = 独立 ts_audio_* API 面（新 natives + 权限类——面更大，av 类已含"采集"语义，不推荐）。*
 
+## Q-37（真 wasm 多线程启用面——V2 纵深批 M19 设计批呈递停门，2026-10-13）
+
+> 依据：Q-33 threads 申报制（1-4，运行时恒单线程，启用留 V0.5+）+ V2 纵深批 owner 点向；**DEC-31 局部翻案呈递**（编译期禁用条款修订）。事实调研底稿 = WAMR 2.4.5 源码实查（2026-10-13）。
+
+**事实（WAMR 2.4.5 实查）**：① Zephyr 平台层**已实现** `os_thread_create(_with_prio)`（zephyr_thread.c:304，含 MPU 栈处理）——线程使能零平台补丁；② 三件套 = `WASM_ENABLE_SHARED_MEMORY`（共享线性内存 + 原子指令验证）+ `WASM_ENABLE_LIB_PTHREAD`（wasm 侧 pthread natives）+ `WASM_ENABLE_THREAD_MGR`（线程生命周期/cluster 管理，含 `wasm_cluster_terminate_all`——APP 停止语义可承载）；③ 线程终止面完备（terminate_all/except_self/is_terminated）；④ 指令计量 = per exec_env（thread-mgr 为每线程建独立 aux env——**每线程预算接线点为实施批待钉项**，thread_manager.c 无计量钩子，如实标注）；⑤ 内存账：共享线性内存一份（不变）+ 每线程 aux env + Zephyr 线程栈（~8KB 档）→ threads=2-4 ≈ +8-32KB/实例。
+
+**建议（分级启用）**：**A = Kconfig 门控启用 + 重放合同定点豁免**——
+- ① 新 `CONFIG_TS_APP_THREADS`（默认 n）：开 WAMR 三件套编译宏 + runtime 接线（manifest threads 2-4 → 真线程池）；默认关 = 既有构建/回归基线零扰动（twister 15/15 不动）；
+- ② 编程模型 = **wasm pthread**（APP C 用 pthread_create/join + 原子内建——LLM 生成面语义熟悉；app_compile 链需加 `-pthread --shared-memory` 编译档 + wasm pthread 运行库〔WAMR 侧资产——实施批钉〕）；
+- ③ **合同 9（重放确定性）定点豁免**：threads>1 的 APP = 非重放类（sim golden 对拍不适用，判定降级为输出/判据行——最小切口，不重构合同体系）；
+- ④ 合同 4（wdt）：wasm 线程不入 ts_wdt 注册表——**L2 指令计量为硬上界**（每线程预算封顶，超限异常即线程终止）+ 停止语义 = `wasm_cluster_terminate_all` + join 超时；
+- ⑤ natives 线程安全审计入实施批（写路径 DEC-43 已锁 ✓/avq 有锁 ✓/kv〔M9〕待审/log 窗口限速竞争良性待证）；
+- ⑥ 实施切分：M19a runtime 接线（sim 双线程用例）→ M19b 真 LLM demo（threads=2 汇合计数真机判据）→ M19c 回归收口。
+
+**备选**：B = 全量默认启用（所有构建开三件套——内存/审计/回归面全量重验，体量 2-3×，不推荐）；C = 维持 DEC-31 不启用（真多线程批取消，另择纵深项）。
+
+**DEC-31 修订面（批准 A 则生效）**：原「WAMR 线程/共享内存特性编译期不启用」→「默认编译期不启用；`TS_APP_THREADS=y` 构建显式启用（Kconfig 门控），threads>1 APP 重放合同豁免（定点）」；「V1 不提供创建导入」不变（pthread natives 属 WAMR 内建面非 ts_api_v1 扩展）。
+
+**待 owner 裁决**：A/B/C 或逐项例外（尤其 ③重放豁免 与 ④wdt 语义两处合同切口）。
+
 - 2026-10-13 · **V0.4.0 收口（tag fw-v0.4.0）：语义扩展批终态——15 单元 = 13 交付 + 2 呈递停门**。① **交付面**：M1 设计批（Q-32/DEC-53）/M2 日志面（IR-16）/M3 稳定性定性+health_ping 语义门/M4 caps 硬校验（IR-17）/M5 输入中断（DR-02）/M6 存储面（槽池+meta v2）/M7 运行时并行（rt[N] + **真机双 APP MA PASS**）/M7b 寻址面/M8 threads 申报制（Q-33）/M9 kv 状态持久化（DR-15）/M10 push_prov（Q-34）/M11 丢失资产重建（dav_recv+ota_client）/M12 接缝价值裁剪（t_window IR-18 + HTTP 门面）。② **停门项**（V0.2.0/V2-2 先例——随 V0.4.x 补批）：M13 逻辑节点（**Q-35**：建议 A = Agent 侧编排——固件零改动 + V1 安全合同不变 + zenoh 键虚拟化；B = cube 侧分布式安全仲裁〔4+ 会话大题〕）；M14 PDM（**Q-36**：av 类 pcm16 变体 + TS_DRV_PDM 寄存器级路径在档——md12c 既定点执行，引脚原理图核验为实施第一步）。③ **回归终态**：twister 15/15（**92 用例**——V0.3.0 的 80 → 92，+12）/agent **119+2s**（+6）/L5 6/6/repo 2/host 工具链 m32 ✓；真机面：双 APP 并行 MA PASS（证据 docs/evidence/ma_PASS_console.txt）+ 板级 kv/prov/接缝判据随板级复跑批。④ **版本性质**：V1→V2 语义跨越落地（多 APP 并行点亮）+ Agent 能力面铺开（kv/prov 远程运维 + HTTP 远程门面 + 质量门三连）。
 
 **〔2026-10-13 owner 裁决 → DEC-54〕**：**Q-35 与 Q-36 双双按建议批准，按建议序实施**（Q-35 实现Ⅰ先行——纯 Agent 面快速交付；Q-36 PDM 批随续——寄存器级驱动慢工）。① Q-35 → **DEC-54①：方案 A（Agent 侧编排）**——LN = Agent 层编排对象（注册表 + 命令扇出/状态聚合 + 组安全策略〔组 estop-clear 扇出 + 成员 linkloss 降级视图〕），固件零改动 + V1 安全合同不变（每 cube 独立 fail-closed 闭环），组操作非原子如实呈现（聚合视图逐成员状态）。② Q-36 → **DEC-54②：av 类 pcm16 变体 + TS_DRV_PDM**——manifest av_fmt="pcm16"（mono 16kHz 16bit，帧 = 640B 定长）+ av:read:0 复用 + i2s_ll PDM RX 寄存器级驱动（零上游补丁）+ GDMA + 引脚 DT（GPIO41/42 按评估档疑点，实施第一步原理图核验）+ native_sim 确定性桩 + D-PDM demo（采集→发布→PC 落盘 .pcm）。
@@ -847,4 +867,6 @@
 
 - 2026-10-13 · **V2 纵深批开工（owner 指令：「多真机 LN 暂时没办法接入第二块板卡，请先开始 V2 级纵深」）**：多真机 LN 拓扑验证挂起（随第二块 cube 到位重启）；批范围 = M18 D-PDM demo（**DEC-54② 既定第③项执行——demo 链路无新设计决策，不需新 Q**）+ M19 真多线程设计批（**Q-37 呈递停门，门③**）+ M20 收口（tag fw-v0.5.0）；D-AV 纵深盘点维持上游观察（1KB 档/JPEG 变长帧均上游缺陷域）。排期 = plan §11c。
 
-- 2026-10-13 · **M18 交付（V2 纵深批①：D-PDM demo 全链——DEC-54② 既定③收口，DP PASS 双侧）**：① **真 LLM 链**：spec（D-AV 四约束同款）→ MiniMax-M3 两轮收敛（轮 1 缺 health_ping 由硬校验反馈回路拦下）→ wasm 2261B（导入面恰 = ts_av_capture/ts_log_write/ts_net_publish）+ TSAP 4944B；manifest 三方一致（pcm16/av_w=16/无 av_h/av:read:0）。② **载体** pdmdemo（avdemo 克隆−摄像头栈+TS_DRV_PDM；基础板目标——PDM 引脚走 zephyr,user 无需 Sense 变体；prov dpn/dpc cbor2 机械派生 + 往返 dav blob 验证编码器〔教训 27〕）。③ **真机终态**：DP1-3 全链 + `[pdm] init` 惰性 bring-up + **"DP DONE frames=10 bytes=6400"**；PC 侧 pdm_recv **8 帧完整（分片 crc 全过、损坏 0、span=4222 非平坦）→ .pcm 5120B + .wav 落盘 = DP PASS（PC 侧）**（证据 docs/evidence/dp_PASS_console.txt）。④ **顺带两缺陷收口**：（a）av.c pcm16 路径缺驱动初始化接线（ts_drv_pdm_init 无人调 → 恒 E_IO——pdmbench 由 bench main 显式调掩盖）→ 修为惰性 bring-up（首采幂等初始化，任意载体零接线）；（b）**M11 重建 dav_recv 整帧误校验**（合同 = avq.c 分片级 crc32，重建件写成整帧比对——真机链顺延未复跑故未暴露）→ dav_recv/pdm_recv 双修为逐分片校验（M11「真机链随板级批」债就此清偿）。⑤ 回归：twister 15/15（92）/L5 6/6/repo 2/ruff/agent 125+2s 全绿。
+- 2026-10-13 · **M18 交付（V2 纵深批①：D-PDM demo 全链——DEC-54② 既定③收口，DP PASS 双侧）**：① **真 LLM 链**：spec（D-AV 四约束同款）→ MiniMax-M3 两轮收敛（轮 1 缺 health_ping 由硬校验反馈回路拦下）→ wasm 2261B（导入面恰 = ts_av_capture/ts_log_write/ts_net_publish）+ TSAP 4944B；manifest 三方一致（pcm16/av_w=16/无 av_h/av:read:0）。② **载体** pdmdemo（avdemo 克隆−摄像头栈+TS_DRV_PDM；基础板目标——PDM 引脚走 zephyr,user 无需 Sense 变体；prov dpn/dpc cbor2 机械派生 + 往返 dav blob 验证编码器〔教训 27〕）。③ **真机终态**：DP1-3 全链 + `[pdm] init` 惰性 bring-up + **"DP DONE frames=10 bytes=6400"**；PC 侧 pdm_recv **8 帧完整（分片 crc 全过、损坏 0、span=4222 非平坦）→ .pcm 5120B + .wav 落盘 = DP PASS（PC 侧）**（证据 docs/evidence/dp_PASS_console.txt）。④ **顺带两缺陷收口**：（a）av.c pcm16 路径缺驱动初始化接线（ts_drv_pdm_init 无人调 → 恒 E_IO——pdmbench 由 bench main 显式调掩盖）→ 修为惰性 bring-up（首采幂等初始化，任意载体零接线）；（b）**M11 重建 dav_recv 整帧误校验**（合同 = avq.c 分片级 crc32，重建件写成整帧比对——真机链顺延未复跑故未暴露）→ dav_recv/pdm_recv 双修为逐分片校验（M11「真机链随板级批」债就此清偿）。⑤ 回归：twister 15/15（92）/L5 6/6/repo 2/ruff/agent 125+2s 全绿。⑥ 登记注记：dav_recv 原为仓外件（MD1.2h 惯例），随本批 crc 修正**正式入仓 tools/board/**（pdm_recv 同入；.gitignore `/tools/` west 防护规则下 tools/board 显式 -f 先例延续）。
+
+- 2026-10-13 · **M19 交付（V2 纵深批②：真多线程设计批——Q-37 呈递停门，门③）**：WAMR 2.4.5 源码实查五事实（Zephyr 平台 `os_thread_create` 在位——零平台补丁；SHARED_MEMORY/LIB_PTHREAD/THREAD_MGR 三件套默认关；`wasm_cluster_terminate_all` 终止面完备；指令计量 per exec_env——thread-mgr 无计量钩子，每线程预算接线为实施批待钉项；内存账 threads=2-4 ≈ +8-32KB/实例）。**Q-37 全文呈递**（本文件 Q-37 节）：建议 A = `CONFIG_TS_APP_THREADS`（默认 n）门控启用 + wasm pthread 编程模型 + **合同 9 重放确定性定点豁免**（threads>1 = 非重放类，判定降级输出判据）+ 合同 4 wdt 语义（L2 计量为硬上界 + terminate_all 停止）；备选 B 全量默认启用（体量 2-3×）/C 维持 DEC-31；附 DEC-31 修订面（默认编译期不启用 → Kconfig 门控显式启用）。**待 owner 裁决后实施批开工（M19a runtime/M19b 真 LLM demo/M19c 回归）**。

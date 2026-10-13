@@ -140,7 +140,7 @@
 | 序 | 单元 | 内容 | 门 |
 |---|------|------|----|
 | M18 | D-PDM demo ✅ | 真 LLM 生成 demo.dpm（wasm 2261B/TSAP 4944B，两轮收敛）→ pdmdemo 载体（avdemo 克隆−摄像头+TS_DRV_PDM）→ 真机 DP DONE frames=10 + PC 侧 8 帧完整（crc 全过/span 4222/.pcm+.wav 落盘）= **DP PASS 双侧**（证据 docs/evidence/dp_PASS_console.txt）；顺带修 av.c 惰性 bring-up（缺此恒 E_IO）与 dav_recv/pdm_recv 重建件整帧误校验（合同 = 分片级 crc——M11 真机债收口） | — |
-| M19 | 真多线程设计批（呈递） | **Q-37 呈递停门**：WAMR 线程启用面（DEC-31 局部翻案）/manifest threads 1-4 启用路径/指令配额 per 线程/wdt/锁纪律/内存账（~150KB/实例 + 线程栈） | 门③（Q-37 停门） |
+| M19 | 真多线程设计批 ✅（呈递停门） | **Q-37 呈递停门**（decisions.md Q-37 全文）：WAMR 2.4.5 事实调研（Zephyr 平台 os_thread 在位/三件套/terminate_all/计量 per-env/内存账）+ 建议 A = Kconfig TS_APP_THREADS 门控启用 + 重放合同定点豁免（DEC-31 局部翻案）；实施切分 M19a-c 随裁决 | 门③（Q-37 停门） |
 | M20 | 收口 | 登记 + 回归定格 + tag fw-v0.5.0 | — |
 
 - 每单元后：twister 15/15 + agent pytest + L5 回归（军规 10）。
