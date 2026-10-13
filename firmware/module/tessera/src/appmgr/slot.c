@@ -349,18 +349,29 @@ static ts_res_t boot_load_entry(uint8_t entry, const ts_appmgr_meta_t *meta)
 			/* V1 消耗运行时常量（见上注释） */
 		} else if (strcmp(key, "threads") == 0) {
 			/* Q-33/DEC-53（V0.4.0 M8）：wasm 线程申报制（1-4；越界 = 包
-			 * 非法 fail-closed）。V0.4.0 运行时恒单线程执行——申报 >1
-			 * 如实留痕（启用留 V0.5+ 线程批）。 */
+			 * 非法 fail-closed）。DEC-55（Q-37 A，M19a）：TS_APP_THREADS
+			 * 构建下 threads>1 = 真线程（宿主侧 spawn 编排，总并发含主）；
+			 * 默认构建维持单线程如实留痕（DEC-31 语义）。 */
 			uint64_t v;
 
 			if (!ts_cbor_uint(&r, &v) || v < 1 || v > 4) {
 				return TS_E_PARAM;
 			}
+#ifdef CONFIG_TS_APP_THREADS
+			ts_appmgr_app_set_threads((uint16_t)(entry + 1),
+						  (uint8_t)v);
 			if (v > 1) {
-				printk("[appmgr] boot[%u]: threads=%u declared, "
-				       "runtime single-threaded (V0.4.0)\n",
+				printk("[appmgr] boot[%u]: threads=%u "
+				       "(multi-threading enabled)\n",
 				       entry, (unsigned)v);
 			}
+#else
+			if (v > 1) {
+				printk("[appmgr] boot[%u]: threads=%u declared, "
+				       "runtime single-threaded (TS_APP_THREADS=n)\n",
+				       entry, (unsigned)v);
+			}
+#endif
 #ifdef CONFIG_TS_HAL_FS
 		} else if (strcmp(key, "fs_paths") == 0) {
 			/* DEC-47⑤（MD1.2e）：路径前缀白名单（数组 → ';' CSV；

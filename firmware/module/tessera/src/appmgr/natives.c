@@ -272,6 +272,50 @@ static int32_t native_net_publish(wasm_exec_env_t env, uint32_t ctx_opaque,
 #endif /* CONFIG_TS_NET */
 #endif /* CONFIG_TS_HAL_AV */
 
+/* ---- ts-thread natives（M19a，DEC-55/Q-37 A）---------------------------
+ * 宿主侧线程编排：ts_thread_start(ctx, name, name_len, arg) → 句柄；
+ * ts_thread_join(ctx, handle) → worker 返回值（>=0）或 ts_res_t。
+ * worker = 一次性任务（入口返回即线程结束）；每线程指令预算在宿主回调
+ * 先行设定（L2 硬上界）；跨线程数据 = 共享线性内存 + 原子内建。 */
+#ifdef CONFIG_TS_APP_THREADS
+extern int ts_app_rt_thread_start(struct ts_app_rt *r, const char *name,
+				  uint32_t arg, uint32_t *handle);
+extern int ts_app_rt_thread_join(struct ts_app_rt *r, uint32_t handle);
+
+static int32_t native_thread_start(wasm_exec_env_t env, uint32_t ctx_opaque,
+				   uint32_t name_off, uint32_t name_len,
+				   uint32_t arg)
+{
+	ARG_UNUSED(ctx_opaque);
+	wasm_module_inst_t inst = wasm_runtime_get_module_inst(env);
+	char name[24];
+
+	if (name_len == 0 || name_len >= sizeof(name) ||
+	    !wasm_runtime_validate_app_addr(inst, name_off, name_len)) {
+		return TS_E_PARAM;
+	}
+	const char *src =
+		(const char *)wasm_runtime_addr_app_to_native(inst, name_off);
+
+	memcpy(name, src, name_len);
+	name[name_len] = '\0';
+	uint32_t handle = 0;
+	int r = ts_app_rt_thread_start(
+		(struct ts_app_rt *)wasm_runtime_get_user_data(env), name,
+		arg, &handle);
+
+	return (r == TS_OK) ? (int32_t)handle : (int32_t)r;
+}
+
+static int32_t native_thread_join(wasm_exec_env_t env, uint32_t ctx_opaque,
+				  uint32_t handle)
+{
+	ARG_UNUSED(ctx_opaque);
+	return (int32_t)ts_app_rt_thread_join(
+		(struct ts_app_rt *)wasm_runtime_get_user_data(env), handle);
+}
+#endif /* CONFIG_TS_APP_THREADS */
+
 /* wasm 导入符号表（namespace "env"；签名 = wasm 参数/返回类型） */
 
 static NativeSymbol ts_native_syms[] = {
@@ -296,6 +340,10 @@ static NativeSymbol ts_native_syms[] = {
 #ifdef CONFIG_TS_NET
 	{"ts_net_publish", native_net_publish, "(iiiiii)i", NULL},
 #endif
+#endif
+#ifdef CONFIG_TS_APP_THREADS
+	{"ts_thread_start", native_thread_start, "(iiii)i", NULL},
+	{"ts_thread_join", native_thread_join, "(ii)i", NULL},
 #endif
 };
 

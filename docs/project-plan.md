@@ -140,8 +140,8 @@
 | 序 | 单元 | 内容 | 门 |
 |---|------|------|----|
 | M18 | D-PDM demo ✅ | 真 LLM 生成 demo.dpm（wasm 2261B/TSAP 4944B，两轮收敛）→ pdmdemo 载体（avdemo 克隆−摄像头+TS_DRV_PDM）→ 真机 DP DONE frames=10 + PC 侧 8 帧完整（crc 全过/span 4222/.pcm+.wav 落盘）= **DP PASS 双侧**（证据 docs/evidence/dp_PASS_console.txt）；顺带修 av.c 惰性 bring-up（缺此恒 E_IO）与 dav_recv/pdm_recv 重建件整帧误校验（合同 = 分片级 crc——M11 真机债收口） | — |
-| M19 | 真多线程设计批 ✅（呈递停门） | **Q-37 呈递停门**（decisions.md Q-37 全文）：WAMR 2.4.5 事实调研（Zephyr 平台 os_thread 在位/三件套/terminate_all/计量 per-env/内存账）+ 建议 A = Kconfig TS_APP_THREADS 门控启用 + 重放合同定点豁免（DEC-31 局部翻案）；实施切分 M19a-c 随裁决 | 门③（Q-37 停门） |
-| M20 | 收口 | 登记 + 回归定格 + tag fw-v0.5.0 | — |
+| M19 | 真多线程实施批 ✅（DEC-55 落地） | **M19a runtime**：TS_APP_THREADS（默认 n）+ ts_thread_start/join natives（宿主 k_thread 编排——绕开 WAMR os_thread 族三缺陷与 lib-pthread 计量死结）+ 每线程 L2 预算 + xtensa 软 8 字节原子垫片 + framework.threads 套件（3 用例）；**M19b demo**：agent 线程档编译链 + 真 LLM demo.dthread.count（threads=2）→ thrdemo 载体 → 真机 **"DT DONE cnt=2000 rc=2000"**（docs/evidence/dt_PASS_console.txt）；**M19c**：twister 16/16（95）/L5/repo 2/ruff/agent 126 全绿；教训 35 入册 | — |
+| M20 | 收口 ✅ | 登记 + 回归定格 + tag fw-v0.5.0 | — |
 
 - 每单元后：twister 15/15 + agent pytest + L5 回归（军规 10）。
 

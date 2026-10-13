@@ -36,6 +36,9 @@ NATIVE_WHITELIST = frozenset({
     "ts_fs_read", "ts_fs_write", "ts_fs_list", "ts_fs_delete",  # DEC-47④（MD1.2e）
     "ts_av_capture", "ts_net_publish",  # DEC-47③⑥（MD1.2g）
     "ts_kv_save", "ts_kv_load",  # V0.4.0 M9（DR-15）：业务状态持久化
+    # V2 纵深 M19（DEC-55/Q-37 A）：宿主侧线程编排——固件 TS_APP_THREADS
+    # 门控注册（默认构建不存在 = 装载期未解析导入即拒，fail-closed 仍闭环）
+    "ts_thread_start", "ts_thread_join",
 })
 
 # 框架回调（runtime lookup：health_ping 必有；app_init/app_tick/app_evt
@@ -47,6 +50,14 @@ MIN_EXPORTS = frozenset({"health_ping"})
 CLANG_FLAGS = [
     "--target=wasm32", "-O2", "-nostdlib", "-ffreestanding", "-fno-builtin",
     "-Wl,--no-entry", "-Wl,--allow-undefined", "-Wl,--strip-all",
+]
+
+# 线程档追加 flags（M19/DEC-55）= firmware/tests/threads/thrdw/build.sh
+# 同款（WAMR samples/spawn-thread 官方配方）：-pthread（原子内建）+
+# 共享内存 + aux stack（-z stack-size）+ max-memory 上界。
+CLANG_FLAGS_THREADS = [
+    "-pthread", "-z", "stack-size=32768",
+    "-Wl,--shared-memory", "-Wl,--max-memory=131072",
 ]
 
 # 尺寸上限默认 = CONFIG_TS_APP_LOAD_MAX 默认 16384（固件装载缓冲结构性
@@ -195,13 +206,15 @@ def _gate_health_ping(source_c: str) -> None:
             )
 
 
-def _run_clang(c_path: Path, wasm_path: Path, timeout_s: float) -> None:
+def _run_clang(c_path: Path, wasm_path: Path, timeout_s: float,
+               extra_flags: list[str] | None = None) -> None:
     """clang 编译；失败/超时 → TaError（stderr 完整保留，供 LLM 反馈回路）。
 
     IR2-09：start_new_session + 超时杀整进程组（clang 派生孙进程不遗留；
-    proc.py 同纪律）。"""
+    proc.py 同纪律）。extra_flags：线程档追加（M19/DEC-55）。"""
     proc = subprocess.Popen(
-        [CLANG, *CLANG_FLAGS, "-o", str(wasm_path), str(c_path)],
+        [CLANG, *CLANG_FLAGS, *(extra_flags or []), "-o", str(wasm_path),
+         str(c_path)],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
         start_new_session=True,
     )
@@ -229,12 +242,15 @@ def compile_app_c(
     required_exports: list[str] | None = None,
     max_bytes: int = DEFAULT_MAX_BYTES,
     timeout_s: float = DEFAULT_TIMEOUT_S,
+    threads: int = 1,
 ) -> dict[str, Any]:
     """C 源 → wasm 自由固件 + 面检查（DEC-45；全部 fail-closed）。
 
     返回 {wasm_path, size, imports, exports, source_sha256, deterministic}。
     拒绝条件（任一）：编译失败/超时；导入非白名单符号；缺必需导出；
     尺寸超限；双编译字节不一致。
+    threads>1（M19/DEC-55）：线程档——共享内存 + 原子 + aux stack flags
+    （CLANG_FLAGS_THREADS）。
     """
     if not source_c or not source_c.strip():
         raise TaError(TA_E_ARGS, "source_c 为空", domain="app_compile")
@@ -246,11 +262,12 @@ def compile_app_c(
     c_path = real / "app.c"
     wasm_path = real / "app.wasm"
     wasm2_path = real / "app.wasm.check"
+    thr_flags = CLANG_FLAGS_THREADS if int(threads) > 1 else []
     with _dir_lock(real):  # IR2-10：同 out_dir 串行（防交叉污染）
         c_path.write_text(source_c, encoding="utf-8")
-        _run_clang(c_path, wasm_path, timeout_s)
+        _run_clang(c_path, wasm_path, timeout_s, thr_flags)
         # 确定性自证：同源重编译逐字节比对（R5；不一致 = 环境泄漏）
-        _run_clang(c_path, wasm2_path, timeout_s)
+        _run_clang(c_path, wasm2_path, timeout_s, thr_flags)
         deterministic = wasm_path.read_bytes() == wasm2_path.read_bytes()
         wasm2_path.unlink()
     if not deterministic:

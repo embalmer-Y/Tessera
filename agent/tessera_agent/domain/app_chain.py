@@ -262,7 +262,8 @@ async def app_develop(
                 need = list(outcome.manifest.get("exports", ["health_ping"]))
                 compiled = compile_app_c(
                     outcome.source_c, out_dir, ctx.roots(),
-                    required_exports=need)
+                    required_exports=need,
+                    threads=int(outcome.manifest.get("threads") or 1))
             break
         except Exception as exc:  # noqa: BLE001
             feedback = str(exc)

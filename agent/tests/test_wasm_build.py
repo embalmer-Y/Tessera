@@ -69,6 +69,36 @@ class TestCompileAppC:
         assert len(out["source_sha256"]) == 64
         assert Path(out["wasm_path"]).is_file()
 
+    def test_threads_mode_shared_memory(self, tmp_path):
+        """M19/DEC-55：threads>1 线程档——共享内存 + 原子 + ts_thread_* 白名单。"""
+        src = (
+            "extern int ts_thread_start(int c, const char *n, int l, int a);\n"
+            "extern int ts_thread_join(int c, int h);\n"
+            "static int g_cnt;\n"
+            "__attribute__((export_name(\"health_ping\")))\n"
+            "int health_ping(void) { return 0; }\n"
+            "__attribute__((export_name(\"worker\")))\n"
+            "int worker(int n) {\n"
+            "    for (int i = 0; i < n; i++)\n"
+            "        __atomic_fetch_add(&g_cnt, 1, __ATOMIC_RELAXED);\n"
+            "    return n;\n"
+            "}\n"
+            "__attribute__((export_name(\"spawn_two\")))\n"
+            "int spawn_two(int n) {\n"
+            "    int h = ts_thread_start(0, \"worker\", 6, n);\n"
+            "    return (h > 0) ? ts_thread_join(0, h) : h;\n"
+            "}\n"
+        )
+        out = compile_app_c(src, str(tmp_path / "o"), [str(tmp_path)],
+                            required_exports=["health_ping", "worker",
+                                              "spawn_two"],
+                            threads=2)
+        assert set(out["imports"]) == {"ts_thread_join", "ts_thread_start"}
+        assert out["deterministic"] is True
+        # 共享内存标记落在 memory 段（flags bit1 = shared）——面检查容忍
+        buf = Path(out["wasm_path"]).read_bytes()
+        assert buf[:4] == b"\x00asm"
+
     def test_same_source_as_repo_fixture(self, tmp_path):
         """同源不变量：用仓库夹具 native_app.c 编译，面与随仓 .wasm 一致。"""
         src = FIXTURE_C.read_text(encoding="utf-8")

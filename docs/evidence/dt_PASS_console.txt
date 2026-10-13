@@ -1,0 +1,12 @@
+D-THR demo 真机证据（V2 纵深批 M19b，DEC-55/Q-37 A，2026-10-13）
+=== console（判据行） ===
+DT0 thrdemo（V2 纵深 M19b：D-THR 真 wasm 多线程全链）
+[appmgr] wamr pool heap: buf=0x3c030060 size=262144 (psram/smh)
+DT1 app_start r=0
+[app1/l0] dtr init
+[app1/l0] DT DONE cnt=2000 rc=2000
+DT2 alive t=5032 state=1 ticks=49 health_fails=0
+DT2 alive t=10033 state=1 ticks=99 health_fails=0
+DT2 alive t=15035 state=1 ticks=149 health_fails=0
+DT2 alive t=20036 state=1 ticks=199 health_fails=0
+DT2 alive t=25037 state=1 ticks=248 health_fails=0

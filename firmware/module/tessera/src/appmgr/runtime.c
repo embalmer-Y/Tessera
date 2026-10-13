@@ -27,6 +27,18 @@
 #define APP_WASM_STACK   4096 /* wasm 应用栈（manifest.mem.stack 上限 8KB 前
 			       * 的 V1 缺省；随 manifest 实装读入） */
 #define APP_WASM_HEAP    8192
+#ifdef CONFIG_TS_APP_THREADS
+#define TS_APP_THR_SLOTS 3U /* manifest threads ≤4 → 额外线程 ≤3（Q-33 域） */
+#define THR_NAME_MAX     24U
+
+/* worker 线程上下文（per rt per slot；k_thread 对象 + 退出值回传位） */
+struct ts_thr_ctx {
+	uint8_t used; /* spawn 起 join 止 */
+	wasm_exec_env_t env;
+	struct k_thread thread;
+	int32_t ret;
+};
+#endif
 
 extern bool ts_app_natives_register(void);
 
@@ -45,6 +57,20 @@ struct ts_app_rt {
 	uint32_t evt_seen, tick_count, health_fails, mb_dropped, init_res;
 	int32_t last_evt;
 	bool health_failed;
+#ifdef CONFIG_TS_APP_THREADS
+	/* DEC-55（Q-37 A）：宿主侧线程编排——一次性 worker 模型。
+	 * threads_max = manifest threads（总并发含主；boot 装载期注入，
+	 * 0/1 = 单线程 APP spawn 即拒）；槽位 = threads_max-1 个
+	 * （wasm 侧句柄 = 槽位 +1；join 后槽复用）。
+	 * 线程载体 = 我方 k_thread（app 主线程同款机制）——**不经 WAMR
+	 * zephyr 平台层 os_thread 族**（2.4.5 实证缺陷：join 对已退线程
+	 * 恒 0 空返、退出值从不回传、thread_obj 回收断言竞态——sim 三态
+	 * 复现）；WAMR 侧仅用公共 API spawn_exec_env/destroy（纯对象
+	 * 创建/回收，无线程参与）。 */
+	uint8_t threads_max;
+	uint8_t threads_active;
+	struct ts_thr_ctx thr[TS_APP_THR_SLOTS];
+#endif
 };
 
 static struct ts_app_rt rt[CONFIG_TS_APP_MAX_INSTANCES];
@@ -84,6 +110,159 @@ void ts_appmgr_app_set_idstr(uint16_t app_id, const char *idstr)
 		sizeof(rt[app_id - 1].app_id_str) - 1);
 	rt[app_id - 1].app_id_str[sizeof(rt[app_id - 1].app_id_str) - 1] = '\0';
 }
+
+#ifdef CONFIG_TS_APP_THREADS
+void ts_appmgr_app_set_threads(uint16_t app_id, uint8_t threads)
+{
+	/* boot 装载期注入 manifest threads（DEC-55：总并发含主；1-4 域已在
+	 * slot.c manifest 走查期校验——此处收口为 rt 上限）。 */
+	if (app_id == 0 || app_id > CONFIG_TS_APP_MAX_INSTANCES) {
+		return;
+	}
+	rt[app_id - 1].threads_max = (threads > 4) ? 4 : threads;
+}
+
+/* ---- 宿主侧线程编排（DEC-55/Q-37 A）------------------------------------
+ * WAMR 侧仅用公共 API：wasm_runtime_spawn_exec_env（创建共享内存兄弟
+ * 实例 + 独立 exec_env——纯对象创建，无线程参与）/ destroy_spawned_exec_env。
+ * 线程载体 = 我方 k_thread（app 主线程同款已证机制）——**不经 WAMR zephyr
+ * 平台层 os_thread 族**（2.4.5 实证缺陷：join 对已退线程恒 0 空返且退出值
+ * 从不回传、thread_obj 回收断言竞态——sim 三态复现；本段替其语义）。
+ * ctx 注入（user_data）与每线程指令预算（DEC-55④ L2 硬上界）都在 wasm
+ * 调用前由宿主设定（绕开 lib-pthread 计量初值 0 的上游死结）。worker =
+ * 一次性任务：入口返回即线程结束（跨线程数据 = 共享线性内存 + 原子内建）。 */
+struct ts_thr_arg {
+	struct ts_app_rt *rt;
+	uint8_t slot;
+	char name[THR_NAME_MAX];
+	uint32_t arg;
+};
+/* per-rt per-slot 静态参数区（k_malloc 不入模块依赖——基线构建零新增
+ * Kconfig 面；槽生命周期 = spawn→join，join 即线程已终止 → 复用零竞态） */
+static struct ts_thr_arg thr_args[CONFIG_TS_APP_MAX_INSTANCES][TS_APP_THR_SLOTS];
+static K_THREAD_STACK_ARRAY_DEFINE(
+	thr_stacks, CONFIG_TS_APP_MAX_INSTANCES * TS_APP_THR_SLOTS,
+	CONFIG_TS_APP_THREAD_WSTACK);
+
+static void thr_entry(void *p1, void *p2, void *p3)
+{
+	ARG_UNUSED(p2);
+	ARG_UNUSED(p3);
+	struct ts_thr_arg *a = p1;
+	struct ts_thr_ctx *c = &a->rt->thr[a->slot];
+	wasm_exec_env_t env = c->env;
+	int32_t rc = (int32_t)TS_E_NOTFOUND;
+
+	wasm_runtime_set_user_data(env, a->rt); /* natives ctx 注入（跨线程同 rt） */
+	wasm_runtime_set_instruction_count_limit(env,
+						 CONFIG_TS_APP_INSTR_THREAD);
+	wasm_function_inst_t fn = wasm_runtime_lookup_function(
+		wasm_runtime_get_module_inst(env), a->name);
+
+	if (fn != NULL) {
+		uint32_t argv[1] = {a->arg};
+
+		if (wasm_runtime_call_wasm(env, fn, 1, argv)) {
+			rc = (int32_t)argv[0];
+		} else {
+			/* 失败可见性（军规 7）：worker 异常文本留痕 */
+			const char *exc = wasm_runtime_get_exception(
+				wasm_runtime_get_module_inst(env));
+
+			if (exc != NULL) {
+				printk("[appmgr] app%u thread '%s' exception: %s\n",
+				       (unsigned)a->rt->app_id, a->name, exc);
+			}
+			rc = (int32_t)TS_E_IO;
+		}
+	} else {
+		printk("[appmgr] app%u thread '%s' entry not found\n",
+		       (unsigned)a->rt->app_id, a->name);
+	}
+	c->ret = rc; /* join 回传（k_thread_join 后读——线程退出即写毕可见） */
+	wasm_runtime_destroy_spawned_exec_env(env);
+}
+
+int ts_app_rt_thread_start(struct ts_app_rt *r, const char *name, uint32_t arg,
+			   uint32_t *handle)
+{
+	if (r == NULL || name == NULL || handle == NULL) {
+		return TS_E_PARAM;
+	}
+	if (r->threads_max < 2) {
+		return TS_E_STATE; /* 未申报 threads（DEC-31 单线程语义，fail-closed） */
+	}
+	if (r->threads_active >= r->threads_max - 1 ||
+	    r->threads_active >= TS_APP_THR_SLOTS) {
+		return TS_E_RANGE; /* 并发上限（manifest threads 域） */
+	}
+	size_t n = strlen(name);
+
+	if (n == 0 || n >= THR_NAME_MAX) {
+		return TS_E_PARAM;
+	}
+	int slot = -1;
+
+	for (size_t i = 0; i < TS_APP_THR_SLOTS; i++) {
+		if (r->thr[i].used == 0) {
+			slot = (int)i;
+			break;
+		}
+	}
+	if (slot < 0) {
+		return TS_E_RANGE;
+	}
+	wasm_exec_env_t env = wasm_runtime_spawn_exec_env(r->env);
+
+	if (env == NULL) {
+		return TS_E_NOMEM;
+	}
+	struct ts_thr_arg *a = &thr_args[r - rt][slot];
+
+	a->rt = r;
+	a->slot = (uint8_t)slot;
+	memcpy(a->name, name, n + 1);
+	a->arg = arg;
+	r->thr[slot].env = env;
+	r->thr[slot].ret = 0;
+	r->thr[slot].used = 1;
+	k_tid_t tid = k_thread_create(
+		&r->thr[slot].thread,
+		thr_stacks[(r - rt) * TS_APP_THR_SLOTS + slot],
+		K_THREAD_STACK_SIZEOF(thr_stacks[0]), thr_entry, a, NULL, NULL,
+		CONFIG_TS_APP_THREAD_PRIORITY, 0, K_NO_WAIT);
+	if (tid == NULL) {
+		wasm_runtime_destroy_spawned_exec_env(env);
+		r->thr[slot].used = 0;
+		return TS_E_NOMEM;
+	}
+	r->threads_active++;
+	*handle = (uint32_t)slot + 1; /* wasm 侧句柄（1 起） */
+	return TS_OK;
+}
+
+int ts_app_rt_thread_join(struct ts_app_rt *r, uint32_t handle)
+{
+	if (r == NULL || handle == 0 || handle > TS_APP_THR_SLOTS) {
+		return TS_E_PARAM;
+	}
+	size_t slot = handle - 1;
+
+	if (r->thr[slot].used == 0) {
+		return TS_E_STATE; /* 未 spawn/已 join（幂等拒绝） */
+	}
+	/* join 有界：worker 被 L2 计量硬封顶（DEC-55④）+ natives 全非阻塞。
+	 * APP 停止路径同此（stop 先 join 全部 worker 再回收主实例——兄弟实例
+	 * 共享主线性内存，序不可反）。 */
+	if (k_thread_join(&r->thr[slot].thread, K_FOREVER) != 0) {
+		return TS_E_IO;
+	}
+	r->thr[slot].used = 0;
+	r->threads_active--;
+	return r->thr[slot].ret; /* worker 返回值（>=0）或 ts_res_t */
+}
+#endif /* CONFIG_TS_APP_THREADS */
+
 /* 每 rt 独立 mailbox（DR-14 深度 DEC-27 #15: 8，满丢最旧 + 计数） */
 static uint32_t mb_bufs[CONFIG_TS_APP_MAX_INSTANCES][CONFIG_TS_APP_MBOX_DEPTH];
 static struct k_msgq mbs[CONFIG_TS_APP_MAX_INSTANCES];
@@ -490,6 +669,17 @@ ts_res_t ts_appmgr_app_stop_id(uint16_t app_id)
 		       (unsigned)app_id);
 		return TS_E_TIMEOUT;
 	}
+#ifdef CONFIG_TS_APP_THREADS
+	/* DEC-55：先 join 全部 worker 再回收主实例——兄弟实例共享主线性
+	 * 内存（共享内存模块），逆序回收 = use-after-free 面。worker 被
+	 * L2 计量封顶（终有界）+ natives 非阻塞 → join 有界；未 join 槽
+	 * （APP 遗漏）在此强收。 */
+	for (size_t i = 0; i < TS_APP_THR_SLOTS; i++) {
+		if (r->thr[i].used != 0) {
+			(void)ts_app_rt_thread_join(r, (uint32_t)i + 1);
+		}
+	}
+#endif
 	wasm_runtime_destroy_exec_env(r->env);
 	wasm_runtime_deinstantiate(r->inst);
 	/* 模块全局缓存持有（怪癖规避——不卸载） */

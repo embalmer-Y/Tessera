@@ -138,6 +138,12 @@ void ts_appmgr_app_stats_id(uint16_t app_id, struct ts_app_rt_stats *out);
 /** M9（DR-15）：注入 manifest 串身份（boot 装载期；kv 哈希源）。 */
 void ts_appmgr_app_set_idstr(uint16_t app_id, const char *idstr);
 
+#ifdef CONFIG_TS_APP_THREADS
+/** M19a（DEC-55/Q-37 A）：注入 manifest threads（boot 装载期；总并发含
+ * 主，1-4）。threads<2 = spawn 拒绝（DEC-31 单线程语义收口）。 */
+void ts_appmgr_app_set_threads(uint16_t app_id, uint8_t threads);
+#endif
+
 /** M7：健康失败按实例分账（rt 健康探针 → 对应 entry 回滚链）。 */
 ts_res_t ts_appmgr_health_fail_id(uint16_t app_id);
 

@@ -177,6 +177,8 @@ python3.12 -m venv ~/project/agent-venv
 
 34. **esp32s3 裸外设 RCC 三步定式 + 分层焊盘镜像诊断法（2026-10-13 PDM bring-up 收口实证，M17b）**：① Zephyr 下直驱 esp32s3 外设（不经树内驱动）**时钟三步缺一不可**：`*_ll_enable_bus_clock` + **`*_ll_reset_register`（出复位——boot 后 `SYSTEM.perip_rst_en1` 多外设默认 1〔实证 dma_rst=1〕，被按在复位态的外设寄存器全读 0、写不落、静默无错）** + （可选）`force_enable_reg_clock`；I2S/GDMA 各自独立走这三步。② **PDM RX 时钟计划官方算式**（IDF i2s_pdm.c）：DSR_16S 时 bclk = fs×**128**（不是 64——sinc 滤波器入口双倍），bck_div 硬下限 **8**（I2S_PDM_RX_BCLK_DIV_MIN），mclk = bclk×bck_div；16kHz 即 2.048MHz/8/16.384MHz（恰回 MP34DT05 规格域 1.2-3.25MHz）。③ **"寄存器全对而引脚全平"的鉴别定式 = 分层焊盘镜像**：把 MCLK/BCK/WS 三信号分别矩阵路由到空置脚（GPIO43/44 = USB-JTAG console 下的 UART0 脚）电平回读——MCLK（纯分频域）活 + WS/BCK（FSM/背压门控域）死 ⇒ 数据通路背压（本例 = GDMA 复位态致 FIFO 灌满）；比逻辑分析仪快的板内自证法。④ GPIO 回读假阳性：只开输入使能读到的是上拉，须输出+输入双使能；PWM 级快信号（MHz 级）回读计数呈混叠分布（4.8%-41% 波动属正常，判据 = 非 0 非全量即可）。
 
+35. **WAMR 2.4.5 三坑（2026-10-13 真多线程批 M19 实证）**：① **loader 原地改写 wasm 缓冲**——`is_load_from_file_buf` 路径把 import 串整体后移 1 字节（借 LEB 长度字节造 C 串，wasm_runtime.c const_str_list_insert）；**嵌入 wasm 必须放可写段**（`static uint8_t`；const → 写 RO 段即 SIGSEGV〔sim〕/装载怪错〔板〕）——tests/app 的 xxd 非 const 头是活例，自写生成器须同形。② **Zephyr 平台层 os_thread 族不可用于嵌入侧 spawn**：join 对已退线程恒返 0 空操作、退出值从不回传（value_ptr 弃用）、thread_obj 回收断言竞态（tid != thread_data->tid abort）——替代定式 = `wasm_runtime_spawn_exec_env`（纯对象创建）+ 我方 k_thread/k_thread_join（app 主线程同款机制）。③ **xtensa 无 8 字节原子且 SDK 无 libatomic**——SHARED_MEMORY 解释器路径引 `__atomic_load_8` 族即链接失败；wamr_compat.c 垫片（irq_lock 单核语义）。④ **lib-pthread × 指令计量 = 上游不兼容**（线程 env 计量初值 0 + 计量宏 ==0 即异常 → 线程首指令死）——宿主侧 ts_thread_* natives 编排替代（DEC-55）。
+
 ## 9. 原生 x86 Linux 环境（2026-10-11 迁移重建——**当前事实源**；§1-§8 为 WSL 历史记录）
 
 > 迁移依据：owner 裁决 + `docs/migration-x86.md`。本节以重建实测为准；WSL 时代的教训中标注"已消失"者不再适用（/tmp tmpfs 清空、usbipd、Windows PATH 泄漏、Hyper-V 防火墙）。
@@ -240,6 +242,7 @@ sudo usermod -aG dialout emb   # 重新登录生效
 - 迁移包处置确认后执行 Windows 侧清除（migration-x86.md §6 owner 决定项）。
 
 ## 修订记录
+- v2.22 · 2026-10-13：M19 真多线程批——§5 增教训 35（WAMR loader 原地改写 wasm 缓冲——嵌入必须可写段/os_thread 族三缺陷 → 宿主 k_thread 替代/xtensa 软 8 字节原子/lib-pthread × 计量不兼容）；thrdemo 真机 DT PASS。
 - v2.21 · 2026-10-13：M17b PDM bring-up 收口——§5 增教训 34（esp32s3 裸外设 RCC 三步〔出复位缺失 = 寄存器全 0 写不落〕+ PDM RX 官方时钟算式〔fs×128/bck_div≥8〕+ 分层焊盘镜像诊断法 + GPIO 回读假阳性）；pdmbench PDMB PASS（docs/evidence/pdmb_PASS_console.txt）。
 - v2.20 · 2026-10-11：**原生 x86 Linux 环境重建（§9 新立，当前事实源）**——无 sudo 全用户态手法（venv --without-pip/pip 工具链/clang 18.1.8 tarball+libtinfo5+rpath/deb 解包头文件与 libgcc 编 C 扩展/SDK 手动 gnu/ 布局）；网络通道定版（FlClash 7890 + ghfast.top 镜像 insteadOf + HTTP/1.1）；验证：agent 113+2s+ruff/repo pytest 2/板级构建 xiao_esp32s3 全绿；twister 阻塞 host gcc（owner sudo 待办 §9.6）；**登记 tools/board 34 脚本未实际入仓（b1a31e4 三处登记失实）**；Python 3.12→3.14 版本差异实证兼容。
 - v2.19 · 2026-10-11：批 A 收口——教训 33 转正（ts-prov 换烧必擦：27② 在档仍三连踩，升级为烧录编排第一步固定擦 ts 五分区的流程定式）；dsdbench SD 卡介质故障结案（换卡即愈，环境资产域非代码面）。

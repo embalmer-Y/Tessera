@@ -172,8 +172,18 @@ if(CONFIG_TS_APP_WAMR)
   set(WAMR_BUILD_LIBC_BUILTIN 1)
   set(WAMR_BUILD_LIBC_WASI 0)         # DEC-25：WASI 全关
   set(WAMR_BUILD_MULTI_MODULE 0)
-  set(WAMR_BUILD_SHARED_MEMORY 0)     # DEC-31：共享内存不启用
-  set(WAMR_BUILD_LIB_PTHREAD 0)       # DEC-31：APP 自建线程编译期禁用
+  # DEC-31 → DEC-55 修订（Q-37 A）：默认编译期不启用（基线构建/回归零
+  # 扰动）；CONFIG_TS_APP_THREADS=y 显式启用（thread-mgr + 共享内存——
+  # 宿主侧 spawn 编排，lib-pthread 仍不启用：其线程 env 计量初值 0 +
+  # 计量宏 ==0 即异常 = 线程首指令死〔WAMR 2.4.5 上游已知不兼容面，
+  # 实查定案〕；ts_thread_* natives 替代其语义）。
+  set(WAMR_BUILD_LIB_PTHREAD 0)
+  if(CONFIG_TS_APP_THREADS)
+    set(WAMR_BUILD_SHARED_MEMORY 1)
+    set(WAMR_BUILD_THREAD_MGR 1)
+  else()
+    set(WAMR_BUILD_SHARED_MEMORY 0)
+  endif()
   set(WAMR_BUILD_GLOBAL_HEAP_POOL 1)  # 池模式（PSRAM 分层纪律，DEC-27）。
   # 注（板级六实证）：WAMR-2.4.5 中本旗标对 runtime 路径已无消费者——池
   # 语义实际由 runtime.c 经 wasm_runtime_full_init(Alloc_With_Pool, 注入堆
