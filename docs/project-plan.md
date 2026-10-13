@@ -129,7 +129,7 @@
 | 序 | 单元 | 内容 | 状态 |
 |---|------|------|------|
 | M16 | Q-35 实现Ⅰ · LN 逻辑节点编排 ✅ | lno.py（注册表/扇出/聚合/组恢复）+ MCP 六工具 + 双 FakeCube 测试（+5）——固件零改动 + V1 合同不变 | 交付（agent 124→125） |
-| M17 | Q-36 · PDM 批 ✅（半程如实） | M17a pcm16 格式面六面全量（+2 测试）；M17b TS_DRV_PDM 驱动 + pdmbench（bring-up 8 轮：挂死根因定案/寄存器 dump 达成/**时钟链不出——待逻辑分析仪或 IDF 差分**） | 交付（bring-up 续批候选） |
+| M17 | Q-36 · PDM 批 ✅ | M17a pcm16 格式面六面全量（+2 测试）；M17b TS_DRV_PDM 驱动 + pdmbench——**bring-up 收口（2026-10-13 补批后）**：双缺陷定案（GDMA 复位态 dma_rst=1 + bck_div/fs×128 时钟计划误推导），官方对照 + 分层焊盘镜像诊断，**PDMB PASS ×2**（docs/evidence/pdmb_PASS_console.txt） | 交付（完整） |
 
 - 回归基线：twister 15/15（92）/agent 125+2s/L5 6/6/repo 2。
 

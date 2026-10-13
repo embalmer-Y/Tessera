@@ -7,23 +7,26 @@
  * + Seeed wiki）：GPIO41 = PDM DATA 入（I2S0I_SD 矩阵）、GPIO42 = PDM CLK
  * 出（I2S0I_WS_OUT 矩阵——S3 无独立 PDM CLK 信号，IDF 同路由）。
  *
- * 时钟（fs=16kHz mono 16bit，帧 = 320 采样 × 2B = 640B 定长）：
- *   sclk = PLL_160M；mclk = fs*256 = 4.096MHz（frac 除 39+1/16）；
- *   bclk(PDM CLK) = fs*64 = 1.024MHz（bck_div = 4，I2S_LL_PDM_BCK_FACTOR=64）
- *   ——MP34DT05 CLK 域 1.2-3.25MHz？1.024MHz 为下界邻域（数据手册下限
- *   1.2MHz 之上裕量不足时 bring-up 迭代位 1：bck_div=3 → 1.365MHz）。
+ * 时钟（fs=16kHz mono 16bit，帧 = 320 采样 × 2B = 640B 定长；官方对齐 =
+ * IDF i2s_pdm.c i2s_pdm_rx_calculate_clock）：
+ *   sclk = XTAL 40M；bclk(PDM CLK) = fs*128 = 2.048MHz（DSR_16S 时 sinc
+ *   入口双倍 = I2S_LL_PDM_BCK_FACTOR*2——在 MP34DT05 规格域 1.2-3.25M 内）；
+ *   bck_div = 8（I2S_PDM_RX_BCLK_DIV_MIN 官方硬下限）；mclk = bclk*8 = 16.384M。
  *   dsr = 16S（sinc 降采样档，SNR 优先）。
  * 采集面：GDMA ch0 in ← I2S0（peri_sel=3）；4×640B 环形描述符；EOF =
  * in_suc_eof（rx_eof_num=640 每帧触发）；轮询 suc_eof_des_addr 前进取帧。
  * cache 纪律：读前 invalidate（GDMA 直写 DRAM，Zephyr GDMA 驱动同款）。
  *
- * bring-up 状态（2026-10-13，8 轮真机迭代后如实登记为**半程**）：
- * init PASS（时钟树序修正：rx_reset 清 rx_clk_active → 使能须后置；
- * 缺 rx_enable_clock = rx_update 自旋实证）；但时钟链不出——寄存器回读
- * dump 全部配置位正确（rx_clk_active=1/rx_pdm_en=1/rx_start=1/分频写入
- * 0x24000009/0x080c080f），MCLK 与 WS 均不翻转（XTAL/PLL160 双源同象；
- * GPIO42 电平回读实证）。收口条件 = 逻辑分析仪或 IDF 同配置寄存器对照
- * 差分（盲调边界已到）。诊断面保留：无帧超时打印 GDMA/I2S 寄存器组。 */
+ * bring-up 定案（2026-10-13 官方源对照 + 分层焊盘镜像诊断，PDMB PASS 收口）：
+ * 双缺陷叠加。①时钟计划误推导——bck_div 写 4 低于官方硬下限 8
+ * （IDF I2S_PDM_RX_BCLK_DIV_MIN）且 bclk 按 fs*64 算（DSR_16S 应 fs*128 =
+ * 2.048M，恰回 MP34DT05 规格域）——已按 IDF i2s_pdm.c 全量对齐；
+ * ②致命项 = GDMA 整外设按在复位态（boot 后 SYSTEM.perip_rst_en1.dma_rst
+ * 默认 1）：通道寄存器全 0 写不落 → I2S RX FIFO 灌满 → FSM 背压关 WS/BCK
+ * 输出（MCLK 纯分频不受背压——"寄存器全对而引脚全平"矛盾的根源）。
+ * 修复 = gdma_ll_reset_register(0) 出复位（置于 enable_bus_clock 后）。
+ * mono 语义同步对齐（HW v2 = mono_mode false + 左槽 active_chan_mask）。
+ * 诊断面保留：无帧超时打印 GDMA/I2S 寄存器组与引脚电平。 */
 #include <string.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
@@ -34,7 +37,6 @@
 #include <hal/dma_types.h>
 #include <hal/hal_utils.h>
 #include <soc/gpio_sig_map.h>
-#include <esp_private/periph_ctrl.h> /* I2S0_MCLK_OUT_IDX（诊断） */
 #include <rom/gpio.h> /* esp_rom 矩阵函数（IO matrix——S3 PDM 无 IO_MUX 直通） */
 
 /* 引脚绑定：zephyr,user（data-gpios = GPIO41 入；clk-gpios = GPIO42 出）——
@@ -51,8 +53,9 @@ static const struct gpio_dt_spec pdm_clk =
 #define PDM_FS_HZ       16000U
 #define PDM_FRAME_BYTES 640U
 #define PDM_NDESC       4U
-#define PDM_MCLK_HZ     (PDM_FS_HZ * 256U)  /* 4.096MHz */
-#define PDM_BCLK_HZ     (PDM_FS_HZ * 64U)   /* 1.024MHz（PDM CLK 出） */
+#define PDM_BCLK_HZ     (PDM_FS_HZ * 128U)  /* 2.048MHz（DSR_16S = fs×64×2——官方 dn_sample_factor） */
+#define PDM_BCK_DIV     8U                  /* I2S_PDM_RX_BCLK_DIV_MIN（官方硬下限；bring-up 实证 4 = 时钟链不出） */
+#define PDM_MCLK_HZ     (PDM_BCLK_HZ * PDM_BCK_DIV) /* 16.384MHz */
 #define PDM_SCLK_HZ     40000000U           /* XTAL（bring-up 实证源选择） */
 #define GDMA_CH         0U
 #define GDMA_PERIPH_I2S0 3                  /* dma_esp32.h ESP_GDMA_TRIG_PERIPH_I2S0 */
@@ -92,26 +95,29 @@ int ts_drv_pdm_init(void)
 	i2s_ll_rx_reset_fifo(i2s);
 	i2s_ll_rx_clk_set_src(i2s, I2S_CLK_SRC_XTAL);
 
-	/* mclk 分频（frac）：XTAL 40M / (9 + 49/64) = 4.096MHz */
+	/* mclk 分频（frac）：XTAL 40M / (2 + 113/256) = 16.384MHz（精确） */
 	hal_utils_clk_div_t mdiv = {
-		.integer = 9, .numerator = 49, .denominator = 64, /* 9.765625 */
+		.integer = 2, .numerator = 113, .denominator = 256, /* 2.44140625 */
 	};
-	uint32_t bck_div = PDM_MCLK_HZ / PDM_BCLK_HZ;      /* 4 */
 
 	i2s_ll_rx_set_mclk(i2s, &mdiv);
-	i2s_ll_rx_set_bck_div_num(i2s, bck_div);
+	i2s_ll_rx_set_bck_div_num(i2s, PDM_BCK_DIV);
 	i2s_ll_mclk_bind_to_rx_clk(i2s);
 	i2s_ll_rx_enable_clock(i2s); /* 复位后置（缺此 = rx_update 自旋，bring-up 实证） */
 	i2s_ll_rx_set_sample_bit(i2s, 16, 16);
-	i2s_ll_rx_set_ws_width(i2s, 32);
-	i2s_ll_rx_set_half_sample_bit(i2s, 16);
-	i2s_ll_rx_enable_mono_mode(i2s, true);
+	i2s_ll_rx_set_half_sample_bit(i2s, 16); /* 官方 PDM 定值 16 */
+	/* 官方 i2s_hal_pdm_set_rx_slot（HW v2）：mono 不走 mono_mode（HW v1
+	 * 语义）而走左槽 mask；ws_width 属 TDM 面，官方 PDM 路径不设。 */
+	i2s_ll_rx_enable_mono_mode(i2s, false);
+	i2s_ll_rx_set_active_chan_mask(i2s, 0x01 /* I2S_PDM_SLOT_LEFT */);
 	i2s_ll_rx_set_pdm_dsr(i2s, I2S_PDM_DSR_16S);
 	i2s_ll_rx_set_eof_num(i2s, PDM_FRAME_BYTES);
 	i2s_ll_rx_enable_pdm(i2s, true);
 
 	/* GDMA：环形描述符（owner check 关——环形覆写语义，取帧靠 EOF 轮询） */
 	gdma_ll_enable_bus_clock(0, true); /* 组号形参（RCC 宏包） */
+	gdma_ll_reset_register(0); /* 出复位（1→0 脉冲）——缺此 = 通道寄存器全 0、
+				    * 写不落地（bring-up 实证：rst_en1.dma_rst=1） */
 	gdma_ll_force_enable_reg_clock(gdma, true);
 	gdma_ll_rx_reset_channel(gdma, GDMA_CH);
 	gdma_ll_rx_enable_owner_check(gdma, GDMA_CH, false);
@@ -130,19 +136,6 @@ int ts_drv_pdm_init(void)
 
 	i2s_ll_rx_start(i2s);
 
-	/* bring-up 诊断：GPIO42（PDM CLK）电平回读——翻转 = 时钟活 */
-	{
-		rom_gpio_pad_input_enable(pdm_clk.pin); /* 输出 + 输入使能 = 回读 */
-		uint32_t hi = 0;
-		const uint32_t samples = 20000;
-
-		for (uint32_t i = 0; i < samples; i++) {
-			hi += gpio_pin_get_raw(pdm_clk.port, pdm_clk.pin);
-		}
-		printk("[pdm] clk readback: %u/%u high (%s)\n", (unsigned)hi,
-		       (unsigned)samples,
-		       (hi > 100 && hi < samples - 100) ? "TOGGLING" : "FLAT");
-	}
 	printk("[pdm] init: fs=%u mclk=%u bclk(PDM CLK)=%u dsr=16S ring=%ux%uB\n",
 	       (unsigned)PDM_FS_HZ, (unsigned)PDM_MCLK_HZ,
 	       (unsigned)PDM_BCLK_HZ, (unsigned)PDM_NDESC,

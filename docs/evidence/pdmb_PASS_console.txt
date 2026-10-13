@@ -1,0 +1,48 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x2b (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037636a
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fc8dfc0,len:0x1e30
+load:0x40374000,len:0x9fb0
+load:0x50000000,len:0x24
+SHA-256 comparison failed:
+Calculated: 46cbd16db2fda326f47fb9905e41af8068a7602d9b24faddef816649c143122a
+Expected: 00000000b0410000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x40377cc8
+I (soc_init): ESP Simple boot
+I (soc_init): compile time Oct 13 2026 09:30:06
+W (soc_init): Unicore bootloader
+I (soc_init): chip revision: v0.2
+I (flash_init): Boot SPI Speed : 80MHz
+I (flash_init): SPI Mode       : DIO
+I (flash_init): SPI Flash Size : 8MB
+I (boot): DRAM	: lma=00000020h vma=3fc8dfc0h size=01e30h (  7728)
+I (boot): IRAM	: lma=00001e58h vma=40374000h size=09fb0h ( 40880)
+I (boot): RTC_DATA	: lma=0000be10h vma=50000000h size=00024h (    36)
+I (boot): IROM	: lma=00010000h vma=42000000h size=04300h ( 17152)
+I (boot): DROM	: lma=00020000h vma=3c010000h size=01194h (  4500)
+I (boot): libc heap size 338 kB.
+I (cache): Instruction cache: size 16KB, 8Ways, cache line size 32Byte
+I (spi_flash): detected chip: gd
+I (spi_flash): flash io: dio
+*** Booting Zephyr OS build v4.5.0-rc1 ***
+PDMB0 pdmbench start
+[pdm] init: fs=16000 mclk=16384000 bclk(PDM CLK)=2048000 dsr=16S ring=4x640B
+PDMB1 init ok
+PDMB2 f=0 len=640 min=-726 max=4605 mean=592
+PDMB2 f=1 len=640 min=956 max=1113 mean=1037
+PDMB2 f=2 len=640 min=1403 max=1448 mean=1427
+PDMB2 f=3 len=640 min=1494 max=1526 mean=1510
+PDMB2 f=4 len=640 min=1506 max=1536 mean=1521
+PDMB2 f=5 len=640 min=1494 max=1524 mean=1508
+PDMB2 f=6 len=640 min=1482 max=1518 mean=1500
+PDMB2 f=7 len=640 min=1485 max=1514 mean=1499
+PDMB3 span=[-726,4605] alive=1
+PDMB PASS
+PDMB idle
+PDMB idle
+PDMB idle
+PDMB idle

@@ -175,6 +175,8 @@ python3.12 -m venv ~/project/agent-venv
 
 33. **ts-prov 换烧必擦——27② 流程化升级（2026-10-10 批 A 三连踩定式，2026-10-11 转正）**：多个 bench 共用 flash ts 五分区——**换烧任何 bench 固件前必须先 esptool erase_region 0x170000 0x14000**，否则新 bench 以旧 bench 的 prov 身份/APP 槽状态上线（症状 = 凭空冒出上一 bench 的 node/app_id、判据全错且不报错——「成功掩盖污染」形态）。教训 27② 在档仍两连踩（批 A 内 netbench→deploybench→avdemo 覆盖 dbn/dbc 为第三/四次），说明**知识在档 ≠ 流程吸收**——定式：仓外烧录编排（dsdb_flash.sh / deploy 烧录脚本等）第一步固定为 ts 分区擦除，换烧即执行；不依赖记忆。
 
+34. **esp32s3 裸外设 RCC 三步定式 + 分层焊盘镜像诊断法（2026-10-13 PDM bring-up 收口实证，M17b）**：① Zephyr 下直驱 esp32s3 外设（不经树内驱动）**时钟三步缺一不可**：`*_ll_enable_bus_clock` + **`*_ll_reset_register`（出复位——boot 后 `SYSTEM.perip_rst_en1` 多外设默认 1〔实证 dma_rst=1〕，被按在复位态的外设寄存器全读 0、写不落、静默无错）** + （可选）`force_enable_reg_clock`；I2S/GDMA 各自独立走这三步。② **PDM RX 时钟计划官方算式**（IDF i2s_pdm.c）：DSR_16S 时 bclk = fs×**128**（不是 64——sinc 滤波器入口双倍），bck_div 硬下限 **8**（I2S_PDM_RX_BCLK_DIV_MIN），mclk = bclk×bck_div；16kHz 即 2.048MHz/8/16.384MHz（恰回 MP34DT05 规格域 1.2-3.25MHz）。③ **"寄存器全对而引脚全平"的鉴别定式 = 分层焊盘镜像**：把 MCLK/BCK/WS 三信号分别矩阵路由到空置脚（GPIO43/44 = USB-JTAG console 下的 UART0 脚）电平回读——MCLK（纯分频域）活 + WS/BCK（FSM/背压门控域）死 ⇒ 数据通路背压（本例 = GDMA 复位态致 FIFO 灌满）；比逻辑分析仪快的板内自证法。④ GPIO 回读假阳性：只开输入使能读到的是上拉，须输出+输入双使能；PWM 级快信号（MHz 级）回读计数呈混叠分布（4.8%-41% 波动属正常，判据 = 非 0 非全量即可）。
+
 ## 9. 原生 x86 Linux 环境（2026-10-11 迁移重建——**当前事实源**；§1-§8 为 WSL 历史记录）
 
 > 迁移依据：owner 裁决 + `docs/migration-x86.md`。本节以重建实测为准；WSL 时代的教训中标注"已消失"者不再适用（/tmp tmpfs 清空、usbipd、Windows PATH 泄漏、Hyper-V 防火墙）。
@@ -238,6 +240,7 @@ sudo usermod -aG dialout emb   # 重新登录生效
 - 迁移包处置确认后执行 Windows 侧清除（migration-x86.md §6 owner 决定项）。
 
 ## 修订记录
+- v2.21 · 2026-10-13：M17b PDM bring-up 收口——§5 增教训 34（esp32s3 裸外设 RCC 三步〔出复位缺失 = 寄存器全 0 写不落〕+ PDM RX 官方时钟算式〔fs×128/bck_div≥8〕+ 分层焊盘镜像诊断法 + GPIO 回读假阳性）；pdmbench PDMB PASS（docs/evidence/pdmb_PASS_console.txt）。
 - v2.20 · 2026-10-11：**原生 x86 Linux 环境重建（§9 新立，当前事实源）**——无 sudo 全用户态手法（venv --without-pip/pip 工具链/clang 18.1.8 tarball+libtinfo5+rpath/deb 解包头文件与 libgcc 编 C 扩展/SDK 手动 gnu/ 布局）；网络通道定版（FlClash 7890 + ghfast.top 镜像 insteadOf + HTTP/1.1）；验证：agent 113+2s+ruff/repo pytest 2/板级构建 xiao_esp32s3 全绿；twister 阻塞 host gcc（owner sudo 待办 §9.6）；**登记 tools/board 34 脚本未实际入仓（b1a31e4 三处登记失实）**；Python 3.12→3.14 版本差异实证兼容。
 - v2.19 · 2026-10-11：批 A 收口——教训 33 转正（ts-prov 换烧必擦：27② 在档仍三连踩，升级为烧录编排第一步固定擦 ts 五分区的流程定式）；dsdbench SD 卡介质故障结案（换卡即愈，环境资产域非代码面）。
 - v2.18 · 2026-10-10：P4 无线面批——§5 增教训 32（owner EIM 环境布局/esp_hosted 目录名/SDIO datapath 三态定值 STREAM/C6 烧录顺序铁律/Zephyr esp_hosted 数据面缺陷定案——RPC 通而数据帧挂，上游域）。
