@@ -133,6 +133,18 @@
 
 - 回归基线：twister 15/15（92）/agent 125+2s/L5 6/6/repo 2。
 
+## 11c. V2 纵深批（2026-10-13 owner 点向开工：多真机 LN 挂起〔第二块 cube 未接入，随硬件到位重启〕，先启 V2 纵深）
+
+> **范围**：V2 级纵深两主线——M18 PDM 产品化（**DEC-54② 既定第③项执行，无需新裁决**：demo.d.pdm 真 LLM 生成 → 真机采集→分片发布→PC 落盘）+ M19 真 wasm 多线程（**设计批 + Q-37 呈递停门〔门③〕**——DEC-31 局部翻案 + 安全合同影响面，批准后实施）。D-AV 纵深盘点维持上游观察（1KB 档/JPEG 变长帧均上游缺陷域，无批内可执行项）。
+
+| 序 | 单元 | 内容 | 门 |
+|---|------|------|----|
+| M18 | D-PDM demo ✅ | 真 LLM 生成 demo.dpm（wasm 2261B/TSAP 4944B，两轮收敛）→ pdmdemo 载体（avdemo 克隆−摄像头+TS_DRV_PDM）→ 真机 DP DONE frames=10 + PC 侧 8 帧完整（crc 全过/span 4222/.pcm+.wav 落盘）= **DP PASS 双侧**（证据 docs/evidence/dp_PASS_console.txt）；顺带修 av.c 惰性 bring-up（缺此恒 E_IO）与 dav_recv/pdm_recv 重建件整帧误校验（合同 = 分片级 crc——M11 真机债收口） | — |
+| M19 | 真多线程设计批（呈递） | **Q-37 呈递停门**：WAMR 线程启用面（DEC-31 局部翻案）/manifest threads 1-4 启用路径/指令配额 per 线程/wdt/锁纪律/内存账（~150KB/实例 + 线程栈） | 门③（Q-37 停门） |
+| M20 | 收口 | 登记 + 回归定格 + tag fw-v0.5.0 | — |
+
+- 每单元后：twister 15/15 + agent pytest + L5 回归（军规 10）。
+
 ## 12. 执行纪律（不变）
 
 - 规范套件（tag `std-v1`：testing/versioning/progress/coding）+ 军规十条 + 安全与确定性合同（AGENTS.md §6）。

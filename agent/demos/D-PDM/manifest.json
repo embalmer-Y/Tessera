@@ -1,0 +1,18 @@
+{
+ "av_w": 16,
+ "caps": [
+  "av:read:0"
+ ],
+ "app_id": "demo.dpm",
+ "av_fmt": "pcm16",
+ "app_ver": "1.0.0",
+ "exports": [
+  "app_evt",
+  "app_init",
+  "app_tick",
+  "health_ping"
+ ],
+ "heap_kb": 4,
+ "stack_kb": 16,
+ "min_fw_ver": "0.4.0"
+}

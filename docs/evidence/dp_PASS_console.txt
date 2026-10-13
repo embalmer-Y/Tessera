@@ -1,0 +1,50 @@
+D-PDM demo 真机证据（V2 纵深 M18，2026-10-13）
+=== console（判据行） ===
+DP0 pdmdemo（V2 纵深 M18：D-PDM demo pcm16 全链）
+DP1 wifi_connect rc=0
+DPw associated t=2750
+DP1b prov load=-8 burn=0
+DP1c install r=0 state=2 slot=0
+[ts-net] init prov_load=-8 node=n-dev cube=c-dev
+[appmgr] wamr pool heap: buf=0x3c0b0060 size=262144 (psram/smh)
+[app1/l4] dpm init
+[pdm] init: fs=16000 mclk=16384000 bclk(PDM CLK)=2048000 dsr=16S ring=4x640B
+[ts-net] zenoh_open: CONNECTED loc=tcp/192.168.2.91:9955
+DP2 session CONNECTED t=3933
+DP3 APP ACTIVE app=demo.dpm
+[app1/l4] dpm frame 1 len 640 chunks 10
+[app1/l4] dpm frame 2 len 640 chunks 10
+[app1/l4] dpm frame 3 len 640 chunks 10
+[app1/l4] dpm frame 4 len 640 chunks 10
+DP4 alive t=8935 net=1 state=3 dropped=0
+[app1/l4] dpm frame 5 len 640 chunks 10
+[app1/l4] dpm frame 6 len 640 chunks 10
+[app1/l4] dpm frame 7 len 640 chunks 10
+[app1/l4] dpm frame 8 len 640 chunks 10
+[app1/l4] dpm frame 9 len 640 chunks 10
+DP4 alive t=13937 net=1 state=3 dropped=0
+[app1/l4] dpm frame 10 len 640 chunks 10
+[app1/l4] DP DONE frames=10 bytes=6400
+DP4 alive t=18938 net=1 state=3 dropped=0
+DP4 alive t=23939 net=1 state=3 dropped=0
+DP4 alive t=28940 net=1 state=3 dropped=0
+DP4 alive t=33942 net=1 state=3 dropped=0
+DP4 alive t=38943 net=1 state=3 dropped=0
+DP4 alive t=43944 net=1 state=3 dropped=0
+DP4 alive t=48945 net=1 state=3 dropped=0
+DP4 alive t=53947 net=1 state=3 dropped=0
+DP4 alive t=58948 net=1 state=3 dropped=0
+
+=== PC 侧 pdm_recv ===
+=== pdm_recv 订阅中（router=tcp/127.0.0.1:9955，目标 8 帧，超时 70.0s） ===
+frame 1: 完整 640B
+frame 2: 完整 640B
+frame 3: 完整 640B
+frame 4: 完整 640B
+frame 5: 完整 640B
+frame 6: 完整 640B
+frame 7: 完整 640B
+frame 8: 完整 640B
+=== 完成：8 帧完整（fid=[1, 2, 3, 4, 5, 6, 7, 8]）；损坏 0；span=4222（阈值 100） ===
+=== 落盘：/home/emb/project/logs/dpm_frames/demo_dpm_8f_5120B.pcm / /home/emb/project/logs/dpm_frames/demo_dpm.wav ===
+=== 判据：DP PASS（PC 侧） ===

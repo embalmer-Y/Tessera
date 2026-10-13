@@ -158,6 +158,11 @@ ts_res_t ts_av_capture(ts_ctx_t c, uint8_t *buf, uint32_t cap, uint32_t *len)
 			return TS_E_RANGE;
 		}
 #if defined(CONFIG_TS_DRV_PDM)
+		/* 惰性 bring-up：首采初始化（幂等——pdmbench 曾由 bench main 显式
+		 * 调 init，av 面自洽后任意载体零接线；M18 真机实证缺此 = 恒 -1）。 */
+		if (ts_drv_pdm_init() != 0) {
+			return TS_E_IO;
+		}
 		return ts_drv_pdm_capture(buf, PCM16_FRAME_BYTES); /* M17b 板级后端 */
 #elif defined(CONFIG_TS_TEST)
 		/* TEST 确定性桩：递增样本模式（sim/对拍零依赖；真机路径 = PDM） */
