@@ -124,6 +124,15 @@
 - **质量债随批清偿**（不单开）：C-4 低风险打包债（impl-review-02 §4 族）随 M2-M7 各批顺带；WAMR version.h 屏障源头取证随 M3；CI 间歇红观察维持。
 - **每单元后**：twister 15/15 + agent pytest + L5 回归（军规 10）。
 
+## 11b. V0.4.x 补批（2026-10-13 owner 双批准 DEC-54：Q-35→A / Q-36→av pcm16）
+
+| 序 | 单元 | 内容 | 状态 |
+|---|------|------|------|
+| M16 | Q-35 实现Ⅰ · LN 逻辑节点编排 ✅ | lno.py（注册表/扇出/聚合/组恢复）+ MCP 六工具 + 双 FakeCube 测试（+5）——固件零改动 + V1 合同不变 | 交付（agent 124→125） |
+| M17 | Q-36 · PDM 批 ✅（半程如实） | M17a pcm16 格式面六面全量（+2 测试）；M17b TS_DRV_PDM 驱动 + pdmbench（bring-up 8 轮：挂死根因定案/寄存器 dump 达成/**时钟链不出——待逻辑分析仪或 IDF 差分**） | 交付（bring-up 续批候选） |
+
+- 回归基线：twister 15/15（92）/agent 125+2s/L5 6/6/repo 2。
+
 ## 12. 执行纪律（不变）
 
 - 规范套件（tag `std-v1`：testing/versioning/progress/coding）+ 军规十条 + 安全与确定性合同（AGENTS.md §6）。
