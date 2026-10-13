@@ -116,6 +116,56 @@ class TerminalFrontend:
 
     # ---- 主驱动 ------------------------------------------------------------
 
+    async def resume(
+        self,
+        spec: str,
+        ws: Workspace,
+        verifier: CreationVerifier,
+        runner: Any,
+        snap: dict[str, Any],
+        *,
+        options: TerminalOptions | None = None,
+        budget: int = 12,
+        key_path: str | None = None,
+    ) -> LoopResult:
+        """断点续跑（AG6 · LLD-A09 §3 --resume）：快照重建后同 run() 驱动。"""
+        from tessera_agent.creation.loop import CreationLoop
+        from tessera_agent.creation.snapshot import restore
+
+        opts = options or TerminalOptions()
+        self._json_mode = opts.json_mode
+        loop = CreationLoop(
+            ws, verifier, runner, spec,
+            criteria=list(snap.get("criteria", [])), budget=budget,
+            key_path=key_path, on_event=self._on_event(opts),
+        )
+        restore(loop, snap)
+        return await self._drive(loop)
+
+    async def _drive(self, loop: CreationLoop) -> LoopResult:
+        try:
+            result = await loop.run()
+        except _Aborted as exc:
+            result = LoopResult(
+                state=ABORTED, rounds_used=loop.round, plan=loop.plan,
+                workspace=str(loop.ws.root), failure_reason=str(exc),
+            )
+        except KeyboardInterrupt:
+            # SIGINT：快照已随轮末落盘（loop._snapshot）；此处优雅汇报续跑路径
+            from tessera_agent.creation import snapshot as _snap
+
+            try:
+                _snap.take(loop)
+            except Exception:  # noqa: BLE001——中断路径的快照失败不掩盖主信号
+                pass
+            result = LoopResult(
+                state=INTERRUPTED, rounds_used=loop.round, plan=loop.plan,
+                workspace=str(loop.ws.root),
+                failure_reason=f"中断（--resume {loop.ws.root.name} 续跑）",
+            )
+        self._report(result)
+        return result
+
     async def run(
         self,
         spec: str,
@@ -137,28 +187,7 @@ class TerminalFrontend:
             key_path=key_path,
             on_event=self._on_event(opts),
         )
-        try:
-            result = await loop.run()
-        except _Aborted as exc:
-            result = LoopResult(
-                state=ABORTED, rounds_used=loop.round, plan=loop.plan,
-                workspace=str(ws.root), failure_reason=str(exc),
-            )
-        except KeyboardInterrupt:
-            # SIGINT：快照已随轮末落盘（loop._snapshot）；此处优雅汇报续跑路径
-            from tessera_agent.creation import snapshot as _snap
-
-            try:
-                _snap.take(loop)
-            except Exception:  # noqa: BLE001——中断路径的快照失败不掩盖主信号
-                pass
-            result = LoopResult(
-                state=INTERRUPTED, rounds_used=loop.round, plan=loop.plan,
-                workspace=str(ws.root),
-                failure_reason=f"中断（--resume {ws.root.name} 续跑）",
-            )
-        self._report(result)
-        return result
+        return await self._drive(loop)
 
     def _report(self, result: LoopResult) -> None:
         """终报（LLD-A09 §4）：--json = 结构化行；文本 = render_final。"""

@@ -42,10 +42,18 @@ class PlanItem:
 
 @dataclass
 class RoundOutcome:
-    """implement 轮的结构化产物（runner 返回）。"""
+    """implement 轮的结构化产物（runner 返回）。
+
+    manifest/app_id/threads：LLM 就绪时随轮给出（AG6 PydanticLoopRunner）；
+    循环引擎不消费（工程清单落盘由 runner 侧完成——引擎保持域无关），
+    上层（app_develop 接线/门面呈现）消费。
+    """
 
     declared_done: bool
     summary: str = ""
+    manifest: dict[str, Any] | None = None
+    app_id: str | None = None
+    threads: int | None = None
 
 
 class LoopRunner(Protocol):
@@ -65,6 +73,7 @@ class LoopResult:
     artifact: PackageOutcome | None = None
     workspace: str = ""
     failure_reason: str = ""
+    facts: dict[str, Any] = field(default_factory=dict)  # 收敛轮验证事实（编译/面）
 
 
 class CreationLoop:
@@ -96,6 +105,8 @@ class CreationLoop:
         self.round = 0
         self.plan: list[PlanItem] = []
         self.evidence_log: list[dict[str, Any]] = []
+        self.facts: dict[str, Any] = {}  # 收敛轮验证事实（AG6 返回映射消费）
+        self._last_summary = ""  # 上轮小结（AG6：manifest 校验反馈等非证据类回喂）
 
     # ---- 内部 ------------------------------------------------------------
 
@@ -115,6 +126,8 @@ class CreationLoop:
         ]
         if self.criteria:
             parts.append("【判据】\n" + "\n".join(f'- "{c}"' for c in self.criteria))
+        if self._last_summary:
+            parts.append(f"【上轮小结】{self._last_summary[:300]}")
         if self.evidence_log:
             blocks = []
             for ev in self.evidence_log[-3:]:  # 近 3 条证据（上下文预算）
@@ -129,7 +142,7 @@ class CreationLoop:
         return "\n\n".join(parts)
 
     async def _verify(self) -> list[dict[str, Any]]:
-        """三步验证；返回失败证据列表（空 = 全绿）。"""
+        """三步验证；返回失败证据列表（空 = 全绿）。通过轮的事实并入 self.facts。"""
         fails: list[dict[str, Any]] = []
         for step, fn, args in (
             ("compile", self.verifier.compile, (self.ws,)),
@@ -139,12 +152,16 @@ class CreationLoop:
             if not outcome.ok:
                 fails.append({"step": step, "detail": outcome.detail,
                               "facts": outcome.facts})
+            else:
+                self.facts.setdefault(step, {}).update(outcome.facts)
         if self.scenario is not None:
             sim: VerifyOutcome = await asyncio.to_thread(
                 self.verifier.simulate, self.ws, self.scenario)
             if not sim.ok:
                 fails.append({"step": "simulate", "detail": sim.detail,
                               "facts": sim.facts})
+            else:
+                self.facts.setdefault("simulate", {}).update(sim.facts)
         return fails
 
     # ---- 主流程 ----------------------------------------------------------
@@ -177,6 +194,7 @@ class CreationLoop:
                 "summary": outcome.summary,
             })
             self._snapshot()
+            self._last_summary = outcome.summary if not outcome.declared_done else ""
             if not outcome.declared_done:
                 continue
             self.state = VERIFYING
@@ -226,6 +244,7 @@ class CreationLoop:
             artifact=artifact,
             workspace=str(self.ws.root),
             failure_reason=failure_reason,
+            facts=self.facts,
         )
 
     # ---- 快照面（AG5 消费；AG3 预留一致性检查） --------------------------

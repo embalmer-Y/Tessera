@@ -91,47 +91,82 @@ def test_app_develop_full_chain(tmp_path, keys):
     tsap_tools.tsap_verify(out["package_path"], out["pub_key_path"])  # 产物可独立复验
 
 
-def test_app_develop_source_c_compiled(tmp_path, keys, monkeypatch):
-    """DEC-45：LLM 产 source_c → 链内编译（此处 stub 编译器，链逻辑隔离；
-    真编译器由 test_wasm_build 覆盖）→ 打包用编译产物。"""
-    key, _pub = keys
-    fake_wasm = tmp_path / "llm.wasm"
-    fake_wasm.write_bytes(bytes([0]) + b"asm" + bytes([1, 0, 0, 0]) + b"CODE" * 8)
-    called = {}
+_LOOP_MANIFEST = {
+    "app_id": "com.t.loop", "app_ver": "1.0.0", "min_fw_ver": "0.1.0",
+    "caps": [], "stack_kb": 4, "heap_kb": 16,
+    "exports": ["health_ping", "app_tick"],
+}
 
-    def fake_compile(src, out_dir, roots, **kw):
-        called["src"] = src
-        called["exports"] = kw.get("required_exports")
-        return {"wasm_path": str(fake_wasm), "size": 44,
-                "imports": ["ts_pwm_set"], "exports": ["health_ping", "app_tick"],
-                "source_sha256": "ab" * 32, "deterministic": True}
+_GOOD_SRC = (
+    "int health_ping(void) { return 0; }\n"
+    "int app_tick(void) { return 1; }\n"
+)
+_BAD_SRC = "int health_ping(void) { return 0; }\n"  # 缺 app_tick → 面门拦
 
-    monkeypatch.setattr(app_chain, "compile_app_c", fake_compile)
 
-    def model(messages, info):
-        async def fn(m, i):
-            import json as _json
-
-            from pydantic_ai.messages import ModelResponse, TextPart
-            payload = {"requirements_summary": "src demo",
-                       "manifest": _VALID_MANIFEST,
-                       "source_c": "int main_no_entry; /* 完整 C 源 */",
-                       "steps": ["s"]}
-            return ModelResponse(parts=[TextPart(content=_json.dumps(payload))])
-        return fn
-
+def _loop_model(bad_first: bool):
+    """创作循环剧本：plan → implement r1（ws_write 源〔可先坏〕+ done+manifest）
+    →（若坏源）r2 修好 → done。单 FunctionModel 状态机按调用序分派。"""
+    from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart
     from pydantic_ai.models.function import FunctionModel
+
+    calls = {"n": 0}
+
+    async def fn(messages, info) -> ModelResponse:
+        calls["n"] += 1
+        n = calls["n"]
+        if n == 1:  # plan
+            payload = {"requirements_summary": "loop demo",
+                       "safety_notes": ["n"], "test_plan": ["t"],
+                       "steps": ["主逻辑", "验证"]}
+            return ModelResponse(parts=[TextPart(content=json.dumps(payload))])
+        if n == 2:  # implement r1：写源文件
+            src = _BAD_SRC if bad_first else _GOOD_SRC
+            return ModelResponse(parts=[ToolCallPart(
+                "ws_write", {"path": "main.c", "content": src})])
+        if n == 3:  # implement r1：声明完成 + manifest
+            payload = {"declared_done": True, "summary": "v1",
+                       "manifest": _LOOP_MANIFEST, "app_id": "com.t.loop"}
+            return ModelResponse(parts=[TextPart(content=json.dumps(payload))])
+        # n == 4/5（仅 bad_first）：r2 修好源并再声明
+        if n == 4:
+            return ModelResponse(parts=[ToolCallPart(
+                "ws_write", {"path": "main.c", "content": _GOOD_SRC})])
+        payload = {"declared_done": True, "summary": "v2",
+                   "manifest": _LOOP_MANIFEST}
+        return ModelResponse(parts=[TextPart(content=json.dumps(payload))])
+
+    return FunctionModel(fn)
+
+
+def test_app_develop_loop_converges(tmp_path, keys):
+    """AG6 创作循环路径：plan → ws_write 多轮编辑 → 真编译/面检查 → 打包
+    复验；返回键与单发流兼容 + 循环新键。"""
+    key, _pub = keys
+    logs: list[str] = []
     out = asyncio_run(app_chain.app_develop(
-        _ctx(tmp_path), "呼吸灯", key, out_dir=str(tmp_path),
-        model=FunctionModel(model(None, None)),
+        _ctx(tmp_path), "呼吸灯", key,
+        model=_loop_model(bad_first=False), log_fn=logs.append,
     ))
+    assert out["state"] == "PACKAGED" and out["rounds"] == 1
     assert out["compiled"] is True
-    assert called["exports"] == _VALID_MANIFEST["exports"]
-    assert "完整 C 源" in called["src"]
-    assert out["source_sha256"] == "ab" * 32
-    with open(out["package_path"], "rb") as fh:  # 打包进的是编译产物
-        blob = fh.read()
-    assert b"CODE" * 8 in blob
+    assert out["manifest"] == _LOOP_MANIFEST
+    assert out["task_id"].startswith("t-") and out["task_id"] in out["workspace"]
+    assert Path(out["package_path"]).is_file()
+    assert out["compile_facts"]["exports"] == ["app_tick", "health_ping"]
+    tsap_tools.tsap_verify(out["package_path"], out["pub_key_path"])
+    assert any(ln.startswith("loop:state") or "loop:" in ln for ln in logs)
+
+
+def test_app_develop_loop_evidence_round_fixes(tmp_path, keys):
+    """AG6 证据回喂：r1 坏源（缺导出）→ 面门证据 → r2 修复收敛。"""
+    key, _pub = keys
+    out = asyncio_run(app_chain.app_develop(
+        _ctx(tmp_path), "呼吸灯", key,
+        model=_loop_model(bad_first=True),
+    ))
+    assert out["state"] == "PACKAGED" and out["rounds"] == 2
+    assert out["compile_facts"]["exports"] == ["app_tick", "health_ping"]
 
 
 def test_app_develop_invalid_manifest_refused(tmp_path, keys):
