@@ -37,10 +37,12 @@
 
 ### 2.2 高层任务层（2 个；DEC-34 "V1 先 2-3 个"）
 
-| 工具 | 编排（见 HLD S2/S5） | 审批 |
+| 工具 | 编排（见 HLD S2'/S5） | 审批 |
 |---|---|---|
-| app_develop | 需求→计划(PlanDto)→编码(经编辑工具)→fw_build/fw_twister→sim_run→tsap_package；返回 {task_id}，结果含产物路径+会话审计 ID | 链内各步按各自类别；strict 步挂起等宿主 |
+| app_develop | **v0.2 升级为 A08 创作循环后端**（入参/返回契约不变；内部 = 循环引擎 + ws_* 编辑 + verifier 验证——LLD-A08）；循环过程经 task_log 轮事件流观测 | 链内各步按各自类别；strict 步挂起等宿主；**参数规则求值 = A02 §3.1 唯一权威** |
 | app_deploy | tsap_verify→deploy_discover→push_app→deploy_status 验证 | strict |
+
+> **v0.2 面纪律**：MCP 面不新增 ws_* 工具（外层 AI CLI 自带文件工具——面窄是安全属性，HLD-agent v0.2 §2.1）；终端门面（A09）为第二 Frontend，与本文共享 PolicyTable/broker。
 
 ## 3. 长任务句柄接线（A00 TaskRegistry）
 
@@ -72,5 +74,6 @@
 
 ## 修订记录
 
+- v0.2 · 2026-10-13：**AG1 修订（DEC-57）**——§2.2 app_develop 升级为 A08 循环后端（契约不变）；MCP 面不增 ws_*（面窄 = 安全属性）；参数规则求值指向 A02 §3.1；A09 终端门面共享语义注记。
 - v0.1 · 2026-09-22：初版。
 - v0.1.1 · 2026-09-22：DEC-38 同步——§4 OutputLimit 改动态上限引用（A00 §5 公式）。

@@ -22,6 +22,13 @@
 - 行为：`auto` 直行；`confirm` 记审计直行（V1 会话内策略〔Q-19 提案 7〕；收紧为挂起由 config 控制）；`strict` → `raise ApprovalRequired` → Frontend 呈现 → sys_approve（token）→ 重入执行；拒绝/超时 → `SkipToolExecution` 返回拒绝结果给模型。
 - **不可绕过性**：闸在编排层唯一入口上；产物侧另有工具内强制（tsap_package 必签名等，HLD §5.2）双层对冲。
 
+### 3.1 审批参数规则（Q-38⑤，DEC-57）
+
+- PolicyTable 条目扩展可选 `param_rules: {allow: {<参数名>: [<值>]}, deny: {…}}`（示例：`deploy_push_app: {allow: {cube: ["xiao-1"]}}`）。
+- **求值序（唯一权威，A01/MCP 与 A09/终端同链）**：deny 规则命中 → 拒（TA_E_APPROVAL_DENIED，detail 含命中规则）→ allow 规则命中 → 按类别策略（strict 类仍走 broker——**allow 规则只免参数级问询，不越过 strict 审批**）→ 无规则命中 → 类别策略。
+- **只可收紧**（DEC-38 语义平移）：参数规则不得使 strict 类降级为 auto/confirm；config `[policy]` 载体、人工维护、运行时不自修改（合同 10 同构）。多值参数匹配 = 精确等值（无通配——可预测性优先，通配需求实证后另立 Q）。
+- 测试要点：求值序矩阵（deny>allow>类别）/规则不可放宽断言/多参数交叉（全命中才 allow）。
+
 ## 4. 结构化产物（需求→设计阶段的强制校验）
 
 - DTO（Pydantic 模型，版本化 `dto_version` 字段）：
@@ -31,9 +38,13 @@
 
 ## 5. 编辑工具（自建最小编码集，DEC-37）
 
-- `read_file(path, range?)`、`write_file(path, content)`、`apply_patch(path, diff)`（unified diff，严格格式+失败即错误不猜）、`exec(cmd, args[], timeout)`。
-- 全部经 A00 run_proc/白名单纪律；exec 审批类别 = confirm（仅限 workspace 内、超时必填）；写操作产物路径必在 workspace。
-- patch 失败率高时的改进（编辑格式升级）留 Q 另立。
+> **v0.2 注**：创作循环的编辑工具族 = **LLD-A08 §3 ws_\* 四动词**（唯一锚定替换 + roots 钳制——R6/R7 证据定案）；本节原始规格（apply_patch/exec 形态）**作废留档**——实现从未走通用 exec/patch 面（域封闭纪律），ws_* 为正式继承者。
+
+## 5a. 创作循环编排触点（v0.2 · DEC-57）
+
+- `app_develop` 升级为 A08 循环后端：入参/返回契约不变（spec→任务句柄），内部 = spec_check 门 → A08 建工作区 → 循环（§LLD-A08 §5）→ PACKAGED；循环过程经 task_log 轮事件流观测（MCP/终端两门面同源）。
+- SessionOrchestrator 增创作任务类型：PydanticAI Agent 构造 = 系统提示（`_develop_system_prompt` + 循环纪律段）+ 工具面（ws_* + read_skill + verifier 结果由引擎注入非工具）+ `parallel_tool_calls=False`；轮间 message_history 维持 + 70% 压缩（§2 既有机制上移一层，存活项 = LLD-A08 §5.4）。
+- repair_feedback 入参（NV-1 既有）兼容：非空时作为首轮证据块注入（S8 场景——部署后诊断再入循环）。
 
 ## 6. 审计导出
 
@@ -53,5 +64,6 @@
 
 ## 修订记录
 
-- v0.1 · 2026-09-22：初版。
+- v0.2 · 2026-10-13：**AG1 修订（DEC-57）**——§3.1 审批参数规则（求值序唯一权威/只可收紧/精确等值）；§5 编辑工具规格作废注（ws_* 继承，LLD-A08 §3）；§5a 创作循环编排触点（app_develop 升级/轮事件流/repair_feedback 兼容）。
 - v0.1.1 · 2026-09-22：DEC-38 同步——§2 上下文管理重写（动态预算 + 70% 压缩 + 32k 最低窗口；替换原"固定 100k 超限失败"）；§7 增上下文测试要点。
+- v0.1 · 2026-09-22：初版。
