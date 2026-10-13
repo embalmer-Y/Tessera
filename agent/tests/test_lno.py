@@ -5,13 +5,14 @@
 """
 from __future__ import annotations
 
-import pytest
+from pathlib import Path
 
-from tessera_agent.common.errors import TA_E_ARGS, TaError
+import pytest
+from test_deploy import FakeCube, _make_pkg
+
+from tessera_agent.common.errors import TaError
 from tessera_agent.tools_net import lno
 from tessera_agent.tools_net.deploy import CmdError
-from test_deploy import FakeCube, _make_pkg
-from pathlib import Path
 
 
 class LnCube(FakeCube):

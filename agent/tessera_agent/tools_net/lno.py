@@ -17,8 +17,9 @@ LN（Logical Node）= Agent 层编排对象：多 cube 并联为一个业务单�
 from __future__ import annotations
 
 import secrets
-from dataclasses import dataclass, field
-from typing import Any, Callable
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 
 from tessera_agent.common.errors import TA_E_ARGS, TaError
 from tessera_agent.tools_net import deploy, keys
