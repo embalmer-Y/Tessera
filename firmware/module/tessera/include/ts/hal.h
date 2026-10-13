@@ -104,6 +104,9 @@ ts_res_t ts_fs_delete(ts_ctx_t c, const char *path);
 typedef enum {
 	TS_AV_FMT_JPEG,   /* DEC-47②：JPEG 优先（OV2640 硬件压缩） */
 	TS_AV_FMT_RGB565, /* 演示保底（无压缩，QQVGA ~38KB/帧） */
+	TS_AV_FMT_PCM16,  /* V0.4.x M17（Q-36/DEC-54②）：PDM 音频 mono 16kHz
+			   * 16-bit——帧 = 320 采样 × 2B = 640B 定长；bind 的
+			   * w = 采样率 kHz（V1 = 16），h 弃用（0） */
 } ts_av_fmt_t;
 
 ts_res_t ts_av_config_bind(uint16_t app_id, ts_av_fmt_t fmt, uint16_t w, uint16_t h);
@@ -186,6 +189,13 @@ ts_res_t ts_kv_save(ts_ctx_t c, uint32_t key_hash, const uint8_t *data,
 
 /** 读本 APP 最新 blob；返回拷贝长度（≥0）或 ts_res_t 负值。 */
 int32_t ts_kv_load(ts_ctx_t c, uint32_t key_hash, uint8_t *out, uint16_t max);
+
+#ifdef CONFIG_TS_DRV_PDM
+/** [boot/board] PDM 后端初始化 + 阻塞取一帧（V0.4.x M17b/Q-36；pdm.c）。
+ * 返回 640 = 帧长；负值 = 未就绪/无帧（500ms 上界）。 */
+int ts_drv_pdm_init(void);
+int ts_drv_pdm_capture(uint8_t *buf, uint32_t len);
+#endif
 
 /** [boot/board] 真机 ADC 输入后端初始化（板级九；api.c）。
  * 依赖 CONFIG_TS_DRV_ADC=y + zephyr,user 节点（adc-uid + io-channels）；

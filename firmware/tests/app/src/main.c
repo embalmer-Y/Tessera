@@ -255,6 +255,22 @@ ZTEST(framework_app, test_06_av_gates)
 	zassert_equal(ts_av_capture(ctx, b, sizeof(b), &n), TS_E_STATE,
 		      "未声明格式 = 拒绝");
 
+	/* V0.4.x M17（Q-36/DEC-54②）：pcm16 音频面——w 恒 16/h 弃/帧 640 定长
+	 * （TEST 桩 = 确定性样本模式；真机路径 = TS_DRV_PDM〔M17b〕）。 */
+	uint8_t pb[640];
+	uint32_t plen = 0;
+
+	zassert_equal(ts_av_config_bind_ctx(ctx, TS_AV_FMT_PCM16, 48, 0),
+		      TS_E_PARAM, "pcm16 采样率 V1 恒 16kHz");
+	zassert_equal(ts_av_config_bind_ctx(ctx, TS_AV_FMT_PCM16, 16, 0), TS_OK);
+	zassert_equal(ts_av_capture(ctx, pb, 639, &plen), TS_E_RANGE,
+		      "帧 > 缓冲 = RANGE");
+	zassert_equal(ts_av_capture(ctx, pb, sizeof(pb), &plen), TS_OK);
+	zassert_equal(plen, 640, "音频帧 640B 定长");
+	uint16_t *ps = (uint16_t *)pb;
+
+	zassert_not_equal(ps[0], ps[1], "确定性样本模式非全零");
+
 	/* 配置绑定 + 参数域（分辨率界 16..800 与 agent 校验器对齐） */
 	zassert_equal(ts_av_config_bind_ctx(ctx, TS_AV_FMT_JPEG, 160, 120), TS_OK);
 	zassert_equal(ts_av_config_bind(0x5c, TS_AV_FMT_JPEG, 8, 120), TS_E_PARAM,

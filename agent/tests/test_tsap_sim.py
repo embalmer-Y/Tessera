@@ -339,3 +339,26 @@ def test_evaluate_t_window_semantics():
     r = _evaluate(writes, [SimExpectation(ch="led", op="count", value=3,
                                           t_window_ms=0)], horizon_ms=500)
     assert r["pass"] is True
+
+
+def test_manifest_pcm16_group():
+    """V0.4.x M17（Q-36/DEC-54②）：pcm16 音频格式组——w 恒 16、无 av_h。"""
+    good = {**VALID_MANIFEST, "caps": ["av:read:0"],
+            "av_fmt": "pcm16", "av_w": 16}
+    m = TsapManifest(**good)
+    data = m.to_cbor()
+    back = TsapManifest.from_cbor(data)
+    assert back.av_fmt == "pcm16" and back.av_w == 16 and back.av_h is None
+    # CBOR 不携带 av_h（schema 纪律）
+    import cbor2 as _c
+    raw = _c.loads(data)
+    assert "av_h" not in raw
+
+    for bad in [
+        {**VALID_MANIFEST, "caps": ["av:read:0"], "av_fmt": "pcm16",
+         "av_w": 16, "av_h": 120},  # pcm16 携带 h = 拒绝
+        {**VALID_MANIFEST, "caps": ["av:read:0"], "av_fmt": "pcm16",
+         "av_w": 48},  # 采样率 V1 恒 16kHz
+    ]:
+        with pytest.raises(ValidationError):
+            TsapManifest(**bad)

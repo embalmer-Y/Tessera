@@ -244,6 +244,11 @@ static ts_res_t boot_load_entry(uint8_t entry, const ts_appmgr_meta_t *meta)
 	uint8_t slot = meta->entries[entry].active_slot;
 	uint8_t hdr[TSAP_HEADER_SIZE];
 
+	/* 静态采集态按 entry 复位（M7 多 entry 装载——跨 entry 泄漏防御；
+	 * boot_caps/fs_paths 在 walk 内复位，av_set 此处统一） */
+#ifdef CONFIG_TS_HAL_AV
+	boot_av_set = 0;
+#endif
 	if (ts_store_slot_read(slot, 0, hdr, sizeof(hdr)) != TS_OK) {
 		return TS_E_IO;
 	}
@@ -391,7 +396,8 @@ static ts_res_t boot_load_entry(uint8_t entry, const ts_appmgr_meta_t *meta)
 #endif /* CONFIG_TS_HAL_FS */
 #ifdef CONFIG_TS_HAL_AV
 		} else if (strcmp(key, "av_fmt") == 0) {
-			/* DEC-47③（MD1.2g）：采集格式（jpeg/rgb565——DEC-47② JPEG 优先） */
+			/* DEC-47③（MD1.2g）+ Q-36/DEC-54②：采集格式（jpeg/rgb565
+			 * 图像；pcm16 音频 = mono 16kHz 16bit，帧 640B 定长） */
 			char f[8];
 
 			if (!ts_cbor_tstr(&r, f, sizeof(f))) {
@@ -401,6 +407,8 @@ static ts_res_t boot_load_entry(uint8_t entry, const ts_appmgr_meta_t *meta)
 				boot_av_fmt = TS_AV_FMT_JPEG;
 			} else if (strcmp(f, "rgb565") == 0) {
 				boot_av_fmt = TS_AV_FMT_RGB565;
+			} else if (strcmp(f, "pcm16") == 0) {
+				boot_av_fmt = TS_AV_FMT_PCM16;
 			} else {
 				return TS_E_PARAM;
 			}
@@ -412,9 +420,16 @@ static ts_res_t boot_load_entry(uint8_t entry, const ts_appmgr_meta_t *meta)
 				return TS_E_PARAM;
 			}
 			if (key[3] == 'w') {
+				/* pcm16：w = 采样率 kHz（V1 = 16 硬校验） */
+				if (boot_av_fmt == TS_AV_FMT_PCM16 && v != 16) {
+					return TS_E_PARAM;
+				}
 				boot_av_w = (uint16_t)v;
 				boot_av_set |= 2U;
 			} else {
+				if (boot_av_fmt == TS_AV_FMT_PCM16) {
+					return TS_E_PARAM; /* pcm16 无 av_h（schema 纪律） */
+				}
 				boot_av_h = (uint16_t)v;
 				boot_av_set |= 4U;
 			}
@@ -450,8 +465,14 @@ static ts_res_t boot_load_entry(uint8_t entry, const ts_appmgr_meta_t *meta)
 	}
 #endif
 #ifdef CONFIG_TS_HAL_AV
-	if (sr == TS_OK && boot_av_set == 0x7) {
-		(void)ts_av_config_bind(entry + 1, boot_av_fmt, boot_av_w, boot_av_h);
+	/* 完备掩码：图像 = fmt|w|h（0x7）；pcm16 = fmt|w（0x3，h 不存在） */
+	{
+		uint8_t need = (boot_av_fmt == TS_AV_FMT_PCM16) ? 0x3U : 0x7U;
+
+		if (sr == TS_OK && boot_av_set == need) {
+			(void)ts_av_config_bind(entry + 1, boot_av_fmt, boot_av_w,
+						boot_av_h); /* DEC-47③ */
+		}
 	}
 #endif
 	return sr;

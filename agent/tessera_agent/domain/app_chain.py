@@ -132,7 +132,8 @@ def _develop_system_prompt() -> str:
         "仅当 caps 含 kv:write:0 / kv:read:0 时可用——静态状态优先存全局变量，"
         "仅**跨重启/升级需要保留**的才用 kv。）"
         "（ts_av_capture 阻塞取一帧到 buf，返回帧长；仅当 caps 含 av:read:0 且 "
-        "manifest 声明 av_fmt/av_w/av_h 时可用。ts_net_publish 发布一分片：把帧"
+        "manifest 声明 av_fmt/av_w（图像另需 av_h；pcm16 音频 = av_w 恒 16、"
+        "无 av_h，帧 640B 定长）时可用。ts_net_publish 发布一分片：把帧"
         "按 ≤1024 字节切块、frame_id 每帧自增、chunk_id/n_chunks 标注分片序；"
         "宿主负责打拍与重试——连续调用无需自行等待；返回 <0 且为 -5（BUSY）时"
         "稍后重发同一分片即可。）",

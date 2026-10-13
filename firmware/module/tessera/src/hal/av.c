@@ -34,14 +34,22 @@ static struct {
 
 ts_res_t ts_av_config_bind(uint16_t app_id, ts_av_fmt_t fmt, uint16_t w, uint16_t h)
 {
-	if ((fmt != TS_AV_FMT_JPEG && fmt != TS_AV_FMT_RGB565) ||
-	    w < 16 || w > 800 || h < 16 || h > 800) {
+	if (fmt == TS_AV_FMT_PCM16) {
+		/* Q-36/DEC-54②：mono 16kHz 16bit（w = 采样率 kHz，V1 = 16；
+		 * h 弃用——调用方传 0）。 */
+		if (w != 16) {
+			return TS_E_PARAM;
+		}
+		av_cfg.h = 0;
+	} else if ((fmt != TS_AV_FMT_JPEG && fmt != TS_AV_FMT_RGB565) ||
+		   w < 16 || w > 800 || h < 16 || h > 800) {
 		return TS_E_PARAM;
+	} else {
+		av_cfg.h = h;
 	}
 	av_cfg.app = app_id;
 	av_cfg.fmt = fmt;
 	av_cfg.w = w;
-	av_cfg.h = h;
 	av_cfg.valid = true;
 	return TS_OK;
 }
@@ -142,6 +150,31 @@ ts_res_t ts_av_capture(ts_ctx_t c, uint8_t *buf, uint32_t cap, uint32_t *len)
 	}
 	if (!av_cfg.valid || c.app_id != av_cfg.app) {
 		return TS_E_STATE; /* 未声明 av_fmt/av_w/av_h = fail-closed */
+	}
+	if (av_cfg.fmt == TS_AV_FMT_PCM16) {
+		/* Q-36/DEC-54②：音频帧 = 640B 定长（320 采样 × 2B）。 */
+#define PCM16_FRAME_BYTES 640U
+		if (cap < PCM16_FRAME_BYTES) {
+			return TS_E_RANGE;
+		}
+#if defined(CONFIG_TS_DRV_PDM)
+		return ts_drv_pdm_capture(buf, PCM16_FRAME_BYTES); /* M17b 板级后端 */
+#elif defined(CONFIG_TS_TEST)
+		/* TEST 确定性桩：递增样本模式（sim/对拍零依赖；真机路径 = PDM） */
+		static uint16_t pcm_seed;
+
+		pcm_seed += 7;
+		uint16_t *s = (uint16_t *)buf;
+
+		for (uint32_t i = 0; i < PCM16_FRAME_BYTES / 2; i++) {
+			s[i] = (uint16_t)(pcm_seed + i);
+		}
+		*len = PCM16_FRAME_BYTES;
+		return TS_OK;
+#else
+		printk("[av] no pdm backend (stub path)\n");
+		return TS_E_IO; /* 无 PDM 后端（板未配 TS_DRV_PDM）：如实失败 */
+#endif
 	}
 #if DT_HAS_CHOSEN(zephyr_camera)
 	if (!stream_started) {

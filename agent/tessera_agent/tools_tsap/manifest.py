@@ -37,7 +37,7 @@ class TsapManifest(BaseModel):
     # DEC-47⑤（MD1.2e）：ts-fs 路径前缀白名单（绝对路径、无 ..；缺省 = 无 fs 授权）
     fs_paths: list[str] | None = None
     # DEC-47③（MD1.2g）：ts-av 采集格式/分辨率声明（与 caps 含 "av:" 互为充要）
-    av_fmt: Literal["jpeg", "rgb565"] | None = None
+    av_fmt: Literal["jpeg", "rgb565", "pcm16"] | None = None
     av_w: int | None = Field(default=None, ge=16, le=800)
     av_h: int | None = Field(default=None, ge=16, le=800)
     # Q-33/DEC-53（V0.4.0 M8）：wasm 线程申报制（1-4，缺省 1；V0.4.0
@@ -46,10 +46,19 @@ class TsapManifest(BaseModel):
 
     @model_validator(mode="after")
     def _av_group(self) -> TsapManifest:
-        """caps 的 av: 能力与 av_fmt/av_w/av_h 声明须成组出现（DEC-47③：
-        固件侧配置绑定要求三者齐备；缺组 = boot 装载拒绝——fail-closed）。"""
+        """caps 的 av: 能力与格式声明须成组出现（DEC-47③ + Q-36/DEC-54②）：
+        图像（jpeg/rgb565）= fmt/w/h 三者齐备；pcm16 音频 = fmt/w 两齐
+        （w = 采样率 kHz 恒 16；h 不存在——携带 h = schema 拒绝）。"""
         has_av = any(c.startswith("av:") for c in self.caps)
-        if has_av and (self.av_fmt is None or self.av_w is None or self.av_h is None):
+        if self.av_fmt == "pcm16":
+            if self.av_h is not None:
+                msg = "pcm16 无 av_h（音频帧定长 640B；Q-36）"
+                raise ValueError(msg)
+            if self.av_w != 16:
+                msg = f"pcm16 采样率 V1 = 16kHz（av_w=16）: av_w={self.av_w}"
+                raise ValueError(msg)
+        if has_av and (self.av_fmt is None or self.av_w is None or
+                       (self.av_fmt != "pcm16" and self.av_h is None)):
             msg = "caps 含 av: 但 av_fmt/av_w/av_h 未齐备声明（DEC-47③）"
             raise ValueError(msg)
         if not has_av and self.av_fmt is not None:
@@ -119,7 +128,8 @@ class TsapManifest(BaseModel):
         if self.av_fmt is not None:
             m["av_fmt"] = self.av_fmt  # DEC-47③：仅在有声明时携带
             m["av_w"] = self.av_w
-            m["av_h"] = self.av_h
+            if self.av_fmt != "pcm16":
+                m["av_h"] = self.av_h  # pcm16 无 h（Q-36）
         if self.threads != 1:
             m["threads"] = self.threads  # Q-33：仅申报 ≠1 时携带（兼容面最小）
         return cbor2.dumps(m, canonical=True)

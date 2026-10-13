@@ -572,6 +572,18 @@ config TS_HAL_INPUT_DEBOUNCE_MS
 	help
 	  Delay between edge interrupt and the immediate re-poll (contact debounce bound).
 
+config TS_DRV_PDM
+	bool "ts-hal: PDM microphone input backend (V0.4.x M17b, Q-36/DEC-54②)"
+	depends on TS_HAL && SOC_ESP32S3
+	default n
+	help
+	  MP34DT05 PDM mic capture via I2S0 PDM RX (i2s_ll register-level, zero
+	  upstream patches) + GDMA ring descriptors + polled frame fetch. Requires
+	  the ts_pdm_pins DT node (pinctrl: I2S0_I_SD_GPIO41 data-in,
+	  I2S0_I_WS_GPIO42 clk-out with output-enable). pcm16 format (16kHz mono
+	  16-bit, 640B frames) is dispatched from ts_av_capture. Board bring-up
+	  iteration knobs: bck_div (PDM CLK = mclk/bck_div) and PDM DSR.
+
 config TS_STORE_KV
 	bool "ts-store: APP state kv persistence (V0.4.0 M9, DR-15)"
 	depends on TS_STORE
