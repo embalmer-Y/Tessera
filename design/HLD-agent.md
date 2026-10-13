@@ -9,6 +9,8 @@
 
 Tessera Agent = PC 侧（Linux/WSL）**全 Python 单进程程序**：封装"模块 API + 模拟器 + 构建工具链"（DEC-12），以 MCP server 形态供其他 AI 工具调用（ZCode/Claude Code/Cursor 等），能力链 = 需求分析 → 软件设计 → 编程开发 → 模拟测试 → 部署（DEC-11/12），产出 = 业务 APP（TSAP 包）**与** 硬件配置（DEC-11）。**北极星（DEC-33）**：平台层与域工具解耦，未来接入 PCB/结构件等域 agent，最终支撑"机器人/Galatea 级项目完全自动化自己生产自己"；V1 范围 = 固件域一个工具域。
 
+> **DEC-56 校准（2026-10-13，本文待随 Agent 批修订）**：Agent = **双角色**（DEC-12 v1.1）——内嵌简单 AI 客户端（独立终端 CLI：人直接提需求 → Agent 独立开发完整程序）+ server 门面（MCP 既有；A2A〔DEC-36④ 预留〕/ACP〔DEC-35 预留〕等接入其他 AI 应用）；LLM 创作面放宽（创作工作区：scoped 文件工具/多文件工程/sim 自测循环）+ 交付确定性门不撤。本文结构修订随 R① 批 design 展开。
+
 **V1 不做**（裁剪清单见 §9）：ACP 适配（DEC-35 预留）、A2A（DEC-36④ 预留）、Streamable HTTP 远程门面、Temporal durable、多域、多客户端并发。
 
 ## 1. 系统上下文
