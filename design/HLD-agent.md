@@ -16,7 +16,7 @@ Tessera Agent = PC 侧（Linux）**全 Python 单进程程序**，**双角色**�
 ## 1. 系统上下文（v0.2：三门面同根）
 
 ```text
-人（终端）──TerminalFrontend(A09)──┐                    ┌── zenoh ──▶ 立方体/zenohd
+人（终端）──TerminalFrontend(A09)──┐                    ┌── zenoh ──▶ 设备/zenohd
                                   ├─▶ compose 根（AppContext：│             （设备——形态不限）
 外部 AI CLI ──MCP 门面(A01)──────┘   cfg/budget/audit/  │
                                      tasks/policy/skills）┴── 子进程 ──▶ west/clang/twister/pytest

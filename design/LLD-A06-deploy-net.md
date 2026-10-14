@@ -40,7 +40,7 @@
 ## 5. 测试要点（L7）
 
 - ZenohService 线程桥：并发 put/get/订阅回调有序性；断连重连（router 重启）恢复。
-- deploy_discover/status：对 router + native_sim 仿真立方体（M3a 测试资产；L3 复跑方法 dev-environment.md §8）集成。
+- deploy_discover/status：对 router + native_sim 仿真设备（M3a 测试资产；L3 复跑方法 dev-environment.md §8）集成。
 - push_app：签名复验强制（无签名包必拒）；分块传输完整性（注入丢块重拉）；断点续传（中断后 offset 续）；分步状态机（upload/verify/activate 各失败注入）；确认回读语义。
 - push_prov：维护模式门外拒绝；固件键序 CBOR 构造对拍（固件 prov 解析器）。
 - 租约闭环：push 全程持有 → 崩溃模拟 → TTL 过期后他方可 acquire。
@@ -48,7 +48,7 @@
 
 ## 6. 未决依赖
 
-- **MA3.1（2026-09-25）已落地**：固件部署命令面（sys/app-*，gated）+ ts_appmgr_stage_* 分步链 + Agent tools_net（keys 镜像/ZenohService 线程桥/discover/status/push_app）+ MCP 三工具 + FakeCube 单测 10 例 + E2E 门控测试（`TESSERA_E2E_DEPLOY=1`，断言 spec→TSAP→部署仿真立方体 confirmed/slot 切换/容器自洽）——MA3 退出标准的部署链部分达成。
+- **MA3.1（2026-09-25）已落地**：固件部署命令面（sys/app-*，gated）+ ts_appmgr_stage_* 分步链 + Agent tools_net（keys 镜像/ZenohService 线程桥/discover/status/push_app）+ MCP 三工具 + FakeCube 单测 10 例 + E2E 门控测试（`TESSERA_E2E_DEPLOY=1`，断言 spec→TSAP→部署仿真设备 confirmed/slot 切换/容器自洽）——MA3 退出标准的部署链部分达成。
 - **MA3.2（待启动）**：A07 skills loader + 4 skill + DomainPack 装配 + 高层链 app_develop/app_deploy（消费本批工具）。
 - push_prov：依赖维护模式语义（M2b.2/板级）——工具与固件通道随后批落地。
 

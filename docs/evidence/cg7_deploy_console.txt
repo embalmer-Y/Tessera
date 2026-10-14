@@ -1,0 +1,117 @@
+DBw associated t=6388
+DB2 prov load=0 burn=0（0=OK/-8=空）
+[wdt] 上次异常复位留痕 reason=0x00020000（noinit 归因）
+[ts-net] init prov_load=0 node=dbn cube=dbc
+[appmgr] wamr pool heap: buf=0x3c0b0060 size=524288 (psram/smh)
+[app1/l0] ag7 init
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[app1/l0] AG7 DONE cycles=200 heat=0
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: z_open rc=-102 loc=tcp/192.168.2.91:9955
+[ts-net] zenoh_open: CONNECTED loc=tcp/192.168.2.91:9955
+DB6 app running app_id=acme.thermo.ag7 slot=1 t=51438
+DB PASS
+DB alive t=53440 net=1
+DB alive t=63441 net=1
+DB alive t=73447 net=1
+DB alive t=83448 net=1
+DB alive t=93449 net=1
+DB4 activated slot=0（2s 后暖复位装载）
+DB5 warm reboot
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x2b (SPI_FAST_FLASH_BOOT)
+Saved PC:0x403817f8
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fc94230,len:0x5604
+load:0x40374000,len:0x10214
+load:0x50000000,len:0x24
+SHA-256 comparison failed:
+Calculated: ba314222cdcbbf5c3f6dcd621b794104be50c24bf5bdf097e5061618e8af24ab
+Expected: 0000000080a70000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4037bb18
+I (soc_init): ESP Simple boot
+I (soc_init): compile time Oct 14 2026 23:30:44
+W (soc_init): Unicore bootloader
+I (soc_init): chip revision: v0.2
+I (flash_init): Boot SPI Speed : 80MHz
+I (flash_init): SPI Mode       : DIO
+I (flash_init): SPI Flash Size : 8MB
+I (boot): DRAM	: lma=00000020h vma=3fc94230h size=05604h ( 22020)
+I (boot): IRAM	: lma=0000562ch vma=40374000h size=10214h ( 66068)
+I (boot): RTC_DATA	: lma=00015848h vma=50000000h size=00024h (    36)
+I (boot): IROM	: lma=00020000h vma=42000000h size=8b470h (570480)
+I (boot): DROM	: lma=000b0000h vma=3c090000h size=100a4h ( 65700)
+I (boot): libc heap size 1 kB.
+I (cache): Instruction cache: size 16KB, 8Ways, cache line size 32Byte
+I (spi_flash): detected chip: gd
+I (spi_flash): flash io: dio
+I (octal_psram): vendor id    : 0x0d (AP)
+I (octal_psram): dev id       : 0x02 (generation 3)
+I (octal_psram): density      : 0x03 (64 Mbit)
+I (octal_psram): good-die     : 0x01 (Pass)
+I (octal_psram): Latency      : 0x01 (Fixed)
+I (octal_psram): VCC          : 0x01 (3V)
+I (octal_psram): SRF          : 0x01 (Fast Refresh)
+I (octal_psram): BurstType    : 0x01 (Hybrid Wrap)
+I (octal_psram): BurstLen     : 0x01 (32 Byte)
+I (octal_psram): Readlatency  : 0x02 (10 cycles@Fixed)
+I (octal_psram): DriveStrength: 0x00 (1/1)
+I (esp_psram): Found 8MB PSRAM device
+I (esp_psram): Speed: 40MHz
+I (esp_psram): SPI SRAM memory test OK
+*** Booting Zephyr OS build v4.5.0-rc1 ***
+DB0 deploybench start
+DB1 wifi_connect rc=0
+DBw associated t=6354
+DB2 prov load=0 burn=0（0=OK/-8=空）
+[ts-net] init prov_load=0 node=dbn cube=dbc
+[appmgr] wamr pool heap: buf=0x3c0b0060 size=524288 (psram/smh)
+[ts-net] zenoh_open: CONNECTED loc=tcp/192.168.2.91:9955
+DB6 app running app_id=com.tessera.cg7 slot=0 t=6647
+DB PASS
+DB alive t=8649 net=1
+DB alive t=18651 net=1

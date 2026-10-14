@@ -8,7 +8,7 @@
 ## 1. 范围与目标
 
 - **V1 交付物**：在 native_sim 上可运行、可测试的固件框架：安全层、HAL、APP 运行时（WAMR）、数据面（zenoh-pico）、受控供电（桩）、可插拔外设描述层（桩）。
-- **V1 明确不做**（裁剪清单）：逻辑节点（多立方体并联）实现——仅命名空间与接口预留〔DEC-26〕；真机三板移植（ESP32-S3/P4/H7，DEC-28 后；M3 后按 DEC-15 另列）；真机在环测试；**APP 业务状态持久化**（升级/回滚后状态丢弃，DR-15）；**审计留痕落盘**（V1 = 内存环形 + sys:get-audit 导出，掉电丢失，DR-07）；输入遥测为轮询变化上报（无硬件中断驱动，DR-02）。
+- **V1 明确不做**（裁剪清单）：逻辑节点（多设备并联）实现——仅命名空间与接口预留〔DEC-26〕；真机三板移植（ESP32-S3/P4/H7，DEC-28 后；M3 后按 DEC-15 另列）；真机在环测试；**APP 业务状态持久化**（升级/回滚后状态丢弃，DR-15）；**审计留痕落盘**（V1 = 内存环形 + sys:get-audit 导出，掉电丢失，DR-07）；输入遥测为轮询变化上报（无硬件中断驱动，DR-02）。
 - **验收基线**：DEC-13 模拟深度（native_sim + 外设桩全链路）+ 安全合同十条全部有对应机制与机械检查（`docs/std/testing.md`）。
 
 ## 2. 架构总览
@@ -89,8 +89,8 @@
 
 ```text
 tessera/<node>/<cube>/<class>/<instance>/<action>
-  node   逻辑节点 ID（V1 单立方体 = cube ID；DEC-02 预留层）
-  cube   立方体 ID（出厂烧录）
+  node   逻辑节点 ID（V1 单设备 = cube ID；DEC-02 预留层）
+  cube   设备 ID（出厂烧录；命名空间段名维持 cube——API 兼容）
   class  gpio | pwm | adc | power | app | sys
   action telemetry | event | cmd | hb
 命令：zenoh query 打到 .../cmd/**，响应 = 回执 {status, data}（超时/重试在 Agent 侧）
@@ -106,7 +106,7 @@ tessera/<node>/<cube>/<class>/<instance>/<action>
 ### 3.6 ts-power / ts-periph
 
 - ts-power：供电槽 = 特殊输出通道（三安全态必声明）；软件开关、限流（ts-safety 执行）、功率预算上报（遥测）。V1 在 native_sim 以桩实现语义。
-- ts-periph：外设描述符管理 + 插拔事件（V1 桩）；为 DEC-02 跨立方体编址预留间接层（资源 ID ≠ 本地硬件地址）。
+- ts-periph：外设描述符管理 + 插拔事件（V1 桩）；为 DEC-02 跨设备编址预留间接层（资源 ID ≠ 本地硬件地址）。
 
 ## 4. 安全架构（合同逐条映射）
 

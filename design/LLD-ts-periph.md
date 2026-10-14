@@ -1,7 +1,7 @@
 # LLD · ts-periph v0.5（M3b 已实现 + 板级九真机接线）
 
 > **状态**：v0.5（2026-10-02 板级九：真机后端接线 + Kconfig 结构修复；前 v0.4 impl-review-01 修复批：F-2 注册源静态表化 + F-1 插拔事件外发兑现 + F-5 已知限制登记；twister framework.periph 4 用例全绿）。上位：HLD §3.6；公共约定 `LLD-00-common.md`。
-> **职责**：外设描述符管理与插拔事件、逻辑名→硬件资源绑定（可插拔外设的框架侧落点；DEC-02 跨立方体编址的间接层）。
+> **职责**：外设描述符管理与插拔事件、逻辑名→硬件资源绑定（可插拔外设的框架侧落点；DEC-02 跨设备编址的间接层）。
 > **合同关联**：合同 1/10（描述符携带三安全态与安全参数，注册期冻结）；DEC-14（板差异隔离于此层）。
 
 ## 1. 内部结构
@@ -38,7 +38,7 @@ ts_res_t ts_periph_register(const ts_periph_desc_t *d);  /* init 步骤 5 批量
 
 - 事件：`TS_EVT_PERIPH_ATTACH/DETACH`（payload：uid/kind）——native_sim 测试可注入；真机检测（连接器感知）第三阶段硬件定型后补。
 - DETACH 语义：通道进 SAFE_FAULT（物理不在场 = 故障态，输出拒绝）+ key 下线通告（事件外发——**ts-net pub.c 订阅兑现〔impl-review-01 F-1〕**：extra = `{"uid", "pkind"}`，按 uid 路由 `…/<uid>/event`，QoS = 尽力而为〔DEC-42 安全类集合之外的观测类〕）。
-- DEC-02 预留：资源 ID 已是逻辑名，跨立方体编址在此层之上扩展（`<cube>:<uid>` 形态留待逻辑节点 HLD，Q-07）。
+- DEC-02 预留：资源 ID 已是逻辑名，跨设备编址在此层之上扩展（`<cube>:<uid>` 形态留待逻辑节点 HLD，Q-07）。
 
 ## 4. native_sim 外设桩（DEC-13 固件侧挂点）
 
@@ -65,12 +65,13 @@ ts_res_t ts_periph_register(const ts_periph_desc_t *d);  /* init 步骤 5 批量
 
 - **已实现（2026-09-25）**：desc.c（注册职责链：GPIO/PWM → safety 通道；POWER → ts-power 槽；ADC → 仅 ts-hal 输入侧〔DR-13〕）+ hotplug.c（ATTACH/DETACH 事件 payload = ts_periph_evt_t{uid,kind}；DETACH → 单通道 SAFE_FAULT，ATTACH → 上电态重放——机制面 = ts_safety_force_channel_fault/ts_safety_channel_recover 新公共 API）。
 - **板级真机后端接线（2026-10-02，板级九；docs/board-periph-01.md）**：注册链首次在真机全链走通（PWM 描述符经 ts_periph_register → safety 通道 → hal 实例 → ts_pwm_set 写 → LEDC 寄存器）。真驱动落点：PWM = ts-safety driver_dispatch（CONFIG_TS_DRV_PWM；LLD-ts-safety §6）；ADC = ts-hal 输入面（CONFIG_TS_DRV_ADC；LLD-ts-hal §3）。**Kconfig 结构修复**：TS_POWER/TS_PERIPH 此前误嵌 `if TS_NET` 块（TS_NET=n 时不可见）——板级九被阻塞后修复，现仅 depends TS_HAL（语义与各 LLD 一致）。
-- Q-07（跨立方体编址预留）：uid 已是逻辑名，`<cube>:<uid>` 扩展留逻辑节点 HLD。
+- Q-07（跨设备编址预留）：uid 已是逻辑名，`<cube>:<uid>` 扩展留逻辑节点 HLD。
 
-- Q-07（跨立方体编址预留边界）、Q-10（描述符容量）。
+- Q-07（跨设备编址预留边界）、Q-10（描述符容量）。
 
 ## 修订记录
 
+- v0.4.1 · 2026-10-14：CG7 术语清扫——「跨立方体编址」→「跨设备编址」（DEC-56 形态不限；uid/cube 命名空间段名维持——API 兼容）。
 - v0.5 · 2026-10-02：板级九——§7 增真机后端接线状态（PWM 全链真机走通 + ADC 输入面）与 Kconfig 结构修复留痕（TS_POWER/TS_PERIPH 误嵌 if TS_NET）；回归 twister 15/15（65 用例）/L5 6/6。
 - v0.4 · 2026-09-25：impl-review-01 修复批（F-1/F-2/F-5）——§2 注册源静态表化生命周期契约 + 已知限制（无回滚）登记；§3 插拔事件外发兑现说明（ts-net pub.c 订阅）。回归：framework.periph 4 用例（+test_04 栈描述符回归）全绿。
 - v0.1 · 2026-09-20：首版草案。
