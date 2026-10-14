@@ -62,6 +62,14 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 - **事件串行化（DR-14）**：tick 与 app_evt 均在 APP 线程内执行；外部事件入每 APP mailbox（深度〔DEC-27 #15： 8〕，满则丢最旧 + 计数），线程主循环顺序消费——单线程内无重入。
 - **卸载/升级停止语义（DR-14）**：停止投递 → 排空 mailbox → join（超时〔DEC-27 #15： 2s〕强杀并回收）；强杀不影响框架喂狗（TS_WDT_APPMGR 独立喂狗源）。APP 业务状态 V1 不持久化（HLD §1 裁剪，DR-15）。
 
+## 5a. 资源档位与安装期匹配（CG1 · Q-39②④⑤——实现随 CG4，消费 AG7 实测数值）
+
+- **manifest v2 增字段（Q-42 呈递——门③）**：`tier: "small" | "large"`（缺省 small——v1 包向后兼容）+ large 附 `needs: {linear_memory_kb, stack_kb, resources[]}`（linear_memory/stack 在编译期经 `-Wl,--initial-memory/--max-memory/-z stack-size` 链接钉死——三方一致纪律平移，Agent 侧 compile_project_c 消费）。
+- **尺寸门分档（Q-39⑤：门不撤只分档）**：`TS_APP_SIZE_GATE_SMALL`（=16384 维持）与 `TS_APP_SIZE_GATE_LARGE`（建议 262144 = 256KB——AG7 数值：资源型 wasm = 资源 + 147B 线性 8-512KB 全谱；终值 CG4 呈 Q-42 裁）——装载校验按包 tier 取门。
+- **安装期匹配矩阵（验签后、槽写入前新增步骤）**：tier 设备支持否 / linear_memory 预算 ≤ 设备档位上限否 / 资源清单 fs_paths 前缀可满足否——任一不满足 = 拒装（TS_E_RANGE + detail 指明缺口，回执结构化）——**安装期拒装替代运行期 OOM**（Android getMemoryClass 同型）。
+- **装载缓冲与槽池**：`TS_APP_LOAD_MAX` 板级配置联动（large 档板 = 门值 ≥ gate_large）；槽池维持统一大槽 + 档位逻辑上限（不碎片化存储——LLD-ts-store §4 注）。
+- **设备能力自报**：`sys/get-info` 增 caps 块 `{tiers, max_linear_memory_kb, slot_pool_kb}`（异构设备生态基础；Agent deploy_discover 消费）。
+
 ## 6. 测试要点
 
 - L1：包解析/验签（坏签名/截断/字段缺失矩阵）；slot 切换掉电注入（meta 撕裂恢复）。
@@ -80,6 +88,7 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
   - **收尾单元落地（v0.4）**：ts_appmgr_boot_start（active slot TSAP → manifest canonical 走查〔未知键 fail-closed；caps ';' 组合——ts_perm_parse 位图或合并；app_id/app_ver 提取；stack_kb/heap_kb 读取但 V1 消耗运行时常量〕→ wasm 装载〔CONFIG_TS_APP_LOAD_MAX 结构性上限〕→ app_start → STAGED→ACTIVE）；boot 步骤 8 app_load 尾部追加（APP 故障不阻塞启动 = 合同 6 显式例外〔HLD §4.4-8〕）；CONFIG_TS_APP_WAMR 默认 y；Agent E2E 使用固件同源夹具 wasm。
 
 ## 修订记录
+- v0.6 · 2026-10-14：CG1（Q-39 · HLD-contract-v2 §7）——§5a 资源档位与安装期匹配（manifest tier/needs + 尺寸门分档双门 + 匹配矩阵 + get-info caps——实现随 CG4 消费 AG7 数值；字段呈 Q-42 门③）。
 
 - v0.5.2 · 2026-10-02：板级十第二修复——boot 装载成功路径补 initialized=true + active_slot=meta.active_slot（此前首次 get_info 惰性初始化盲写 state=STAGED 把 ACTIVE 打回〔装载结果被观测面抹掉〕，且 active_slot 不回填 = activate/get-app 槽位对拍必败；真机 DB6/get-app 对拍首证，docs/board-deploy-01.md）。
 

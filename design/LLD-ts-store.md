@@ -51,7 +51,10 @@ typedef struct {
   char     zenoh_cred[96];                /* TLS/认证凭证（Q-04） */
   uint32_t power_budget_ma;               /* ts-power 预算 */
   uint8_t  estop_trigger_flags;           /* 触发沿等（DR-11） */
-} ts_prov_t;                              /* 序列化 = CBOR，schema v1〔DEC-30⑤〕 */
+  /* —— schema v2（CG1 · DEC-56/57/Q-41）：部署模式与 estop 清除通道 —— */
+  uint8_t  deploy_mode;                   /* 0=orchestrated（缺省）/1=standalone〔Q-41①〕 */
+  uint8_t  estop_remote_clear;            /* 0=disabled/1=enabled；**v1 prov 缺字段 = enabled（现网兼容——无本地交互设备的唯一通道）**；有本地交互设备出厂 disabled〔Q-41③；LLD-ts-safety §5a〕 */
+} ts_prov_t;                              /* 序列化 = CBOR，schema v1〔DEC-30⑤〕；v2 增字段（Q-42 呈递——门③） */
 ts_res_t ts_store_prov_load(void);        /* 启动一次：CRC 校验失败 → fail-safe（合同 6） */
 const ts_prov_t *ts_store_prov(void);     /* [any] 只读指针；无写接口（写通道仅烧录期/测试构建注入） */
 ```
@@ -97,6 +100,7 @@ ts_res_t ts_store_slot_erase(uint8_t slot);  /* 全槽抹除：安装序前置�
 - DEC-20（locator/宿主）、DEC-21（根公钥体系）、DEC-23（分区布局）、DEC-27（META_MAX）、DEC-30⑤（CBOR schema v1）已裁；无未决。
 
 ## 修订记录
+- v0.4 · 2026-10-14：CG1（Q-41/Q-39 · HLD-contract-v2 §7）——prov schema v2 增 `deploy_mode`（0=orchestrated 缺省/1=standalone——linkmon 模式守卫消费）与 `estop_remote_clear`（v1 缺字段 = enabled 现网兼容；有交互设备出厂 disabled）；槽池档位结构注（统一大槽 + 档位逻辑上限——实现随 CG4）。
 
 - v0.1 · 2026-09-20：首版（design review-01 DR-01/17 处置新增）。
 - v0.1.1 · 2026-09-21：裁决同步——DEC-20/21/23/27/30 出处收敛（SC-02）。

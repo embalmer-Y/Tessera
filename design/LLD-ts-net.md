@@ -75,7 +75,7 @@ int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>
 | get-budget | 功率预算/用量（ts-power，M3b 落地） |
 | get-audit | 安全审计环形导出（含溢出丢弃计数，DR-07；V1 最新 6 条/次，分片游标随信封 v2） |
 | set-time | 设置墙钟（**仅数据字段**，合同 9；DR-08） |
-| estop-clear | 清除 SAFE_FAULT（参数须带确认令牌 `confirm="estop"`；调用 ts_safety_clear_fault） |
+| estop-clear | 清除 SAFE_FAULT（参数须带确认令牌 `confirm="estop"`；调用 ts_safety_clear_fault）。**CG1/Q-41③**：命令入口按 prov `estop_remote_clear` 守卫——缺省 disabled 时无本地交互设备**显式启用才可达**（有交互设备本地清除为主；LLD-ts-safety §5a——现有部署 prov 未含该字段 → **向后兼容：缺字段 = enabled**（现网行为不变），本地交互设备接入后出厂缺省翻 disabled） |
 | lease-acquire / lease-release / lease-get | 控制租约面（DEC-41，见 §4.5） |
 | app-begin / app-chunk / app-verify / app-activate | 远程部署面（MA3.1，LLD-A06 §3；**gated：仅 v2 信封 + 租约持有者 = src**——DEC-41 写类准入首个落点） |
 | get-app | 当前 APP 信息快照（active_slot 回读确认，只读豁免） |
@@ -97,6 +97,7 @@ int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>
 - **V1 形态（DEC-41）**：单租约——`sys/lease-acquire {holder≤24}` → `{lease_id, expires_at_ms}`；TTL 默认 10s〔DEC-41：≈断链窗口 6s（DEC-22）×1.5+余量〕；持有者周期续期（re-acquire 幂等，id 不变）；`lease-release {holder}` 主动归还（他人代还 = TS_E_STATE）；TTL 到期自动失效（**惰性过期**——访问时判定，无定时器；控制方崩溃 = 天然失权）。lease_id 从 1 起单调递增不复用（过期/归还后新授予必得新 id）。拒绝回执回填当前 {holder, lease_id, expires_at_ms} 供调用方归因（同信任域 host 面）。
 - **准入挂钩**：写类命令（未来 hal 写/app 命令，M2b.2 面）须持有有效租约；sys 面只读族与 estop-clear **豁免**（estop 安全路径不受租约约束——合同 5 优先）。挂钩实现随 M2b.2 命令面接入。
 - **与安全态的关系（DEC-41）**：租约**只管命令准入，不联动安全态**——输出安全态唯一判定源仍是 linkmon/estop（合同 3/5 单源纪律）；租约全部失效 ≠ 输出进安全态。
+- **本地席位联动（CG1/Q-41② · 合同 11）**：本地交互源激活（ts-safety arb_owner → LOCAL）= 租约**强制失效视图**（持有中租约立即视为失效，新 acquire 回执带 local_active 降级提示）；本地释放 = 远程可重新 acquire（LLD-ts-safety §5b；接线随 CG3）。
 - 不做（V1）：多资源粒度、优先级抢占（NeuroLink 全形态）——单 cube 单控制方的现实负载下无需求，留 V2。
 
 ## 5. 发布（pub.c）
@@ -107,11 +108,11 @@ int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>
 - **信封 v1（DEC-42，已实现）**：事件 payload = `{"ver":1, "kind":32+evt_id, "t_ms", "wall_ms", <extra 扁平键值对 0…3 个>}`——extra：安全态迁移 = `{"state"}`（按 uid 路由 `…/<uid>/event`）；periph 插拔 = `{"uid", "pkind"}`（按 uid 路由）；功率预算拒绝 = `{"requested_ma", "used_ma", "budget_ma"}`（路由 `…/sys/event`）；遥测 payload = `{"ver":1, "kind":96, "dev", "value_u", "wall_ms"}`（原 M3a.2 的设备种类键 `"kind"` 让位信封 kind，改名 `"dev"`——破坏性变更随本批与消费端同步切换）。消费端（host/Agent）对未知 kind **透传存储不解析**（§0 前向兼容落点）；固件产生端只产注册表内 kind。
 - 优先级映射（DEC-42，已实现，经 `ts_net_qos_t` 穿透 pubq→transport）：安全事件（estop/安全态迁移/越权）= zenoh congestion **BLOCK** + priority **REAL_TIME**；遥测/心跳/**periph 插拔与预算事件**（DEC-42 安全类集合之外的观测类，类属缺省）= 缺省（DROP + DATA）——参考 MatrixMechanic priority 位思想，用 zenoh 原生 QoS 承接（不自造位域）。
 
-## 6. 心跳监视（linkmon.c）——合同 3 判定源
+## 6. 心跳监视（linkmon.c）——合同 3 判定源（模式化 · CG1/Q-41①）
 
-- 发送：周期〔DEC-22：prov 可配，出厂默认 1000ms〕pub `…/sys/hb`；监视：host 侧 `…/sys/hb-host` 超过〔DEC-22：默认 6〕个周期未达 → `ts_safety_set_link(false)`（经 sysworkq 串行迁移）；恢复带滞回（连续〔DEC-27：2〕个周期）才 `set_link(true)`。
+- 发送：周期〔DEC-22：prov 可配，出厂默认 1000ms〕pub `…/sys/hb`；监视：host 侧 `…/sys/hb-host` 超过〔DEC-22：默认 6〕个周期未达 → **模式守卫后** `ts_safety_set_link(false)`（经 sysworkq 串行迁移）——**`deploy_mode == orchestrated` 才触发迁移**（缺省；现行行为不变）；`standalone` 下断链仅留观测事件（TS_EVT_NET_LINK_DOWN / link 计数），**不调 set_link**（LLD-ts-safety §3a）；恢复带滞回（连续〔DEC-27：2〕个周期）才 `set_link(true)`（对称地仅 orchestrated）。
 - 判定完全本地（不依赖 router 确认自己的存在——合同 8）；输入/遥测方向不受 set_link 影响（合同 3）。
-- 测试注入：`CONFIG_TS_TEST` 构建提供 hb 帧注入/抑制接口（L4 断链场景驱动）。
+- 测试注入：`CONFIG_TS_TEST` 构建提供 hb 帧注入/抑制接口（L4 断链场景驱动）；**模式守卫测试注入随 CG2**（standalone 构建断链 = 状态零迁移断言）。
 
 ## 7. Kconfig（节选）
 

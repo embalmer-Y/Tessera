@@ -6,6 +6,7 @@
 
 ## 1. 当前状态
 
+- **2026-10-14（一〇九） · CG1 交付（合同泛化 LLD 修订批）：四 LLD 修订 + 安全合同 v2 正典落节（AGENTS.md §6 + FOUNDING_PROMPT §5——DEC-58 批准措辞：合同 3 模式化/合同 5 清除附注/新增合同 11 控制源仲裁/合同 8 立方体→设备）+ Q-42 呈递登记停门（门③）**。① LLD-ts-safety v0.3（§3a 部署模式守卫/§5a estop 清除按设备能力〔无交互设备远程令牌 = 有据偏离登记〕/§5b arb_owner 控制源仲裁〔激活压制远程 + 切换零输出 + 审计 src 维度〕）；② LLD-ts-net（linkmon 模式守卫 + estop-clear prov 守卫〔**兼容性修正：v1 缺字段 = enabled 保现网**〕+ 租约本地席位联动）；③ LLD-ts-appmgr v0.6（§5a 档位与安装期匹配：tier/needs + 尺寸门双门〔small 16KB 维持/large 建议 256KB——AG7 数值〕+ 匹配矩阵拒装 + get-info caps）；④ LLD-ts-store v0.4（prov schema v2：deploy_mode/estop_remote_clear）。**Q-42 停门（门③）**：prov v2 字段（缺省兼容）+ manifest v2 tier/needs + 门值建议（256KB）——CG2-CG4 开工前置。**待 owner：Q-42 裁决（可「按建议」）→ CG2 部署模式实现开工**
 - **2026-10-14（一〇八） · AG8 收口（Agent 批 V0.6.0 完结，tag fw-v0.6.0）——通用域解放第一版本批交付：Agent 双角色 + 智能内化落地**。回归定格：**twister 16/16（95 用例）/ repo pytest 2 / agent 170+2s / ruff / sync_check 全绿**（显式退出码核验）；plan §11e AG1-AG8 全 ✅（v1.71）；LLD-A02 §3.1 措辞修正（allow = strict 自动放行——owner 批准义，v0.2.1）。**V0.6.0 终态**：创作循环全栈（AG2 工作区+ws_*〔roots 钳制/防盲写/锚定编辑〕/ AG3 域无关循环引擎+验证器插件 / AG4 终端门面〔Frontend 第二实现〕/ AG5 快照 resume+SIGINT / AG6 双路径 app_develop+参数规则+run 子命令 / AG7 真机 PASS〔真 LLM 4 轮多文件工程收敛 + 无线部署 + 判据命中 + large 数值〕）+ 质量优先条款全程生效（AG7 真实拦下 3 缺陷：路径别名/工具异常炸穿/提交纪律第三复发——均已修）。**下一批 CG1（合同泛化 LLD 修订批——CG0 门④措辞已裁 DEC-58）：safety/net/appmgr/store 四 LLD 修订 → CG2 部署模式 → CG3 控制源仲裁 → CG4 资源档位（消费 AG7 数值）→ CG5 能力发现+资源打包 → CG6 estop 清除 → CG7 术语清扫+全 bench 复验 tag fw-v0.7.0**
 - **2026-10-14（一〇七） · AG7 交付（复杂 APP 真机实测——**AG7 PASS**：真 LLM 创作循环全链首次真机点亮 + large 档数值采集）——Agent 批实现⑥**。① **全链**：D-AG7 spec（四节模板：温控滞回 + kv 持久化 + **多文件工程**〔main.c/thermo.c/include/thermo.h——引号包含头文件〕）→ **真 LLM（MiniMax-M3）创作循环 4 轮收敛 215s**（r3 manifest 缺 heap_kb 被「上轮小结」通道修复——AG6 反馈机制实战生效）→ wasm 1793B（imports 恰 = ts_adc_read/ts_gpio_write/ts_kv_save/ts_log_write）→ zenoh 无线部署 slot1 激活 → **真机判据精确命中 `[app1/l0] AG7 DONE cycles=200 heat=0`**（证据 docs/evidence/ag7_console.txt；heat=0 = ADC 悬空残压高于滞回开阈——确定性如实）。② **顺带拦下两真缺陷**（真 LLM 实测价值）：ws_* 路径别名（LLM 自然写 project/ 前缀——确定性剥除 + 提示词声明工程根基准）；**工具异常炸穿循环**（TaError 直抛顶层——改 gated_tool 同语义的结构化反馈回喂）。③ **large 档数值采集**（Q-39/CG4 输入）：真实复杂逻辑 APP 1793B；资源型直编译探针（绕交付门仅测量）——wasm = 资源 + 147B 固定开销，8/16/32/64/128/256/512KB 全线性（512KB 表 → 524KB wasm）；32KB 表即撞现 16KB 门（服务端钳制 IR2-03 生效实证）。④ demo 归档 agent/demos/D-AG7/（spec/三源文件/project.json/wasm/tsap）。⑤ 驱动 = ~/project/logs/ag7_demo.py（仓外惯例）。回归：**170+2s / ruff / sync_check 全绿**（别名测试 +1）。**下一单元 AG8：回归定格（twister 16 套件全量 + repo 2）+ 文档同步 + tag fw-v0.6.0**
 - **2026-10-14（一〇六） · AG6 余项交付完毕——Agent 批实现⑤收官：app_develop 升级为创作循环后端（双路径）+ PydanticAI runner + `tessera-agent run` 子命令**。① **app_develop 双路径**：wasm_path=None → **创作循环主路径**（spec_check 门 → 工作区〔task_id 工作区 + 仓库白名单只读 roots〕→ CreationLoop〔判据注入/事件日志/repair_feedback 首轮证据〕→ PACKAGED → 独立复验〔asyncio.to_thread〕→ 返回键兼容 + additive〔task_id/workspace/state/rounds〕）；wasm_path 给出 → **单发流原样维持**（AG6 前行为，自带产物/既有剧本）。② **PydanticLoopRunner**：plan/implement 双 Agent（PlanOutcome/ImplementOutcome DTO）；implement 工具面 = ws_* 四动词 + read_skill（渐进披露维持）；**manifest 随轮硬校验**——不过转 declared_done=False 带小结（loop 新增「上轮小结」回喂通道）不抛崩循环；TsapManifest 校验 + 工程清单落盘（exports 同步链接导出面）。③ **提示词拆块**：_CONVENTIONS 约定块单发/循环共用（改一处两流同步）+ _plan/_implement 系统提示（多文件工程纪律：工程内头文件引号包含/≤200 行整文件再生/大文件锚点替换）。④ **loop.py 扩展**：RoundOutcome 增 manifest/app_id/threads（引擎不消费——域无关维持）+ 收敛轮 facts 收集（LoopResult.facts）+ 上轮小结通道。⑤ **TerminalFrontend.resume()** 公共续跑方法（快照判据恢复）+ __main__ `run` 子命令（--resume/--yes/--json/--no-plan-confirm/--deploy/--key-path；退出码 0/1/2；keys 目录探查）。⑥ **test_app_chain 迁移**：source_c 单发剧本 → 两条循环剧本（收敛全链真 clang 真签名 + 证据回喂两轮修复）；单发/wasm_path 与 deploy 六测原样绿。**169+2s / ruff / sync_check 全绿**。**下一单元 AG7：复杂 APP 真机实测（真 LLM 多文件工程 demo + large 档数值采集〔Q-39 补呈输入〕）**
@@ -494,18 +495,19 @@
 9. **顺手重构禁止**：任务外的发现登记不动手，不混入本批交付。
 10. **交付即验证**：DoD 对照 + 构建/测试全绿 + lint 通过，才算完成；有缺口如实列出。
 
-## 6. 安全与确定性合同（硬约束；HLD 可细化，不得削弱）
+## 6. 安全与确定性合同（硬约束；HLD 可细化，不得削弱；v2 · DEC-58 措辞批准 2026-10-13）
 
 1. **三安全态**：每个输出通道（含受控供电）显式声明上电态 / 断链态 / 故障态；无声明不予注册。
 2. **写入路径唯一**：一切输出必经保护层校验（限幅 / slew-rate / 限流）后才落驱动；绕过保护层的写入 = 缺陷（须可机械检查）。
-3. **断链 fail-safe**：宿主/网络失联 → 输出进安全态；输入流不因保护而中断。
+3. **断链 fail-safe（部署模式化）**：**被编排的设备**：宿主/网络失联 → 输出进安全态（断链 fail-safe）；**独立运行的设备**：编排通道失联为留痕事件，不改变输出控制权；输入流不因保护而中断（两种模式相同）。部署模式由 provisioning 显式声明，运行时不推断。
 4. **看门狗**：超时 → 全输出安全态；每子系统独立喂狗（可定位卡死来源）。
-5. **estop 硬件通道**：急停 ISR 直达安全态，**不经协议栈、不经调度排队**；响应时间上界可测；事后补发事件。
+5. **estop 硬件通道**：急停 ISR 直达安全态，**不经协议栈、不经调度排队**；响应时间上界可测；事后补发事件。**清除**：具备本地交互能力的设备以本地清除为主（远程清除可由 provisioning 禁用）；无本地交互能力的设备允许远程清除但须硬令牌确认。清除不解除锁存条件外任何状态、不引发输出。
 6. **初始化顺序固定**：任一步失败 → 全系统 fail-safe，不得半启动。
 7. **受控供电**（DEC-03）纳入 1–6 同一合同（它是特殊形式的输出）。
-8. **并联安全归属**（DEC-02 遗留题）：estop 与保护必须能在**本地立方体**独立生效，不依赖逻辑节点内部通信——这是逻辑节点拓扑设计的硬约束。
+8. **并联安全归属**（DEC-02 遗留题）：estop 与保护必须能在**本地设备**独立生效，不依赖逻辑节点内部通信——这是逻辑节点拓扑设计的硬约束。
 9. **确定性**：同一输入序列必得同一输出序列（重放测试机械验证）；禁依赖未播种随机、墙钟、容器迭代序。
 10. **固件核心不学习**：安全参数、权限模型、输出限值不经运行时自适应修改；APP 权限清单是硬边界，越权访问一律拒绝并留痕。
+11. **控制源仲裁**：设备可接受远程编排与本地交互两类控制源。本地交互源激活期间，远程写命令被拒绝；控制权切换本身不产生输出，且全程留痕。estop 硬件通道高于一切控制源（合同 5 不受本条影响）。
 
 ## 7. 仓库地图
 

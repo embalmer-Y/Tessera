@@ -881,6 +881,20 @@
 
 - 2026-10-13 · **DEC-56（需求校准批裁决：通用域解放——owner 回复「全部按照建议」+ DEC-12 修订明示）**：owner 四轮校准定案（2026-10-13 会话）：① **设备形态不限**（owner 原文：「立方体只是一个比喻，设备硬件形态是不做限制的」）——平台 = 形态不限的智能设备框架；触摸屏等仅为设备可能外设的**例子**（owner 原文：「并不是说我们要单独做触摸屏相关的功能而是做通用的复杂功能的处理以及通用的设备作为单独硬件运行的开发能力」），不做专项功能批；② **APP 复杂度不受结构性预设限制**（D4 方向确认：16KB 尺寸门/单源文件工程/每实例内存账/整文件再生编辑模型**全部重开重定**——具体值走 research→design→Q 呈递）；③ **设备独立运行（standalone）与远程编排同为一级模式**（D6 方向确认：断链 fail-safe 语义按部署模式声明化、本地控制源入仲裁模型——estop 硬件通道至高不变；安全合同本体修订走门④随合同泛化批）；④ **DEC-12 修订（owner 原文）**：「Agent 不但要自带一个简单的 AI 客户端，另外也要能够作为 server 通过 MCP A2A 等方式接入其他 AI 应用」——Agent 双角色 + 智能内化（创作面放宽〔创作工作区 scoped 文件工具/多文件工程/sim 自测循环〕、交付面确定性门不撤）。**分期裁决（D3）**：R 批四路 research（① Agent 创作循环架构〔复用 docs/agent-cli-research-01.md〕② 复杂 APP 工程链与资源泛化 ③ standalone 运行模式合同泛化 ④ 多开发者信任链〔生态批输入〕）→ **Agent 批**（独立终端 CLI + 创作工作区，V0.6.0 候选）→ **合同泛化批**（安全合同修订〔门④〕+ 资源分级 + 设备能力发现与安装匹配 + LLD 全库「立方体→设备」术语清扫）→ **生态批**（信任链〔D5 分期：此前维持单开发者单根〕/侧载分发）。同批落文：FOUNDING_PROMPT v1.1（使命重述 + DEC-01/02/12 修订 + §6 同步）、plan §11d、HLD 双注记（修订随各设计批展开）。
 
+- 2026-10-14 · **CG1 交付（合同泛化 LLD 修订批——四 LLD v 修订 + 合同正典落节 + Q-42 呈递登记停门〔门③〕）**：① **LLD-ts-safety v0.3**：§3a 部署模式守卫（orchestrated 现行为不变/standalone 断链仅留痕不迁移）+ §5a estop 清除按设备能力（无交互设备维持远程令牌 = 有据偏离登记）+ §5b 控制源仲裁状态（arb_owner 席位/激活压制远程/切换零输出/审计 src 维度）。② **LLD-ts-net**：§6 linkmon 模式守卫 + estop-clear 按 prov 守卫（**兼容性修正：v1 prov 缺字段 = enabled——现网无本地交互设备的唯一清除通道不能被缺省切断；有交互设备出厂 disabled**——对 HLD-contract-v2 §4.1"缺省 disabled"的现场 reconcilation，随 Q-42 呈递）+ §4.5 租约本地席位联动注。③ **LLD-ts-appmgr v0.6**：§5a 资源档位与安装期匹配（manifest tier/needs + 尺寸门分档双门〔small=16KB 维持/large 建议 256KB——AG7 数值〕+ 匹配矩阵 + get-info caps）。④ **LLD-ts-store v0.4**：prov schema v2 增 deploy_mode/estop_remote_clear。⑤ **合同正典落节**：AGENTS.md §6 + FOUNDING_PROMPT §5 同步 v2 措辞（合同 3 模式化/合同 5 清除附注/新增合同 11；合同 8 立方体→设备）。**Q-42 呈递（门③）全文如下。**
+
+## Q-42（prov schema v2 + manifest 档位字段 + 尺寸门分档值——CG1 格式变更呈递停门，2026-10-14）
+
+**背景**：CG2-CG4 实现的格式面变更须过门③（公共 API/文件格式）。字段语义已在 Q-39/Q-41（DEC-57 全 A）裁向，本呈递只批**字段与数值**。
+
+**① prov schema v2（CBOR，向后兼容）**：增 `deploy_mode`（u8：0=orchestrated **缺省**/1=standalone）与 `estop_remote_clear`（u8：0=disabled/1=**enabled——v1 prov 缺字段按 enabled 解码**〔现网兼容：现部署设备无本地交互，远程清除是唯一通道〕；有本地交互能力的设备出厂配置 disabled——保守侧）。v1 烧录件零重烧。
+
+**② manifest v2 增字段（TSAP，向后兼容）**：`tier`（"small"**缺省**/"large"）+ large 附 `needs {linear_memory_kb, stack_kb, resources[]}`（编译期链接钉死——Agent compile_project_c 已消费 project.json 同名字段）。未知键 fail-closed 走查既有纪律对 v1 无影响（v1 无 tier = small）。
+
+**③ 尺寸门分档双门（建议值）**：`TS_APP_SIZE_GATE_SMALL = 16384`（维持）；`TS_APP_SIZE_GATE_LARGE = 262144`（256KB）。**依据（AG7 实测）**：资源型 wasm = 资源 + 147B 线性 8-512KB 全谱；256KB 档覆盖"字体级 UI 资源 + 复杂逻辑"量级；S3 PSRAM 8MB（现用量 <5%）与槽池扩容（CG4 联动板级配置）可承载。板级可收紧（native_sim CI 维持 small 档）。
+
+**建议**：三项全按建议值批准。**影响**：CG2（prov 解码 + linkmon 守卫）/CG3（仲裁）/CG4（档位实现）开工前置；Agent 侧 manifest 镜像同步（TsapManifest 增 tier/needs 可选字段——CG4 同批）。
+
 - 2026-10-13 · **R 批 research 四篇交付（通用域解放先导批——R6/R7/R8/R9，Q-38…Q-41 四呈递登记停门）**：三路 web 实抓（wasm 工程链/信任链/工业仲裁先例）+ 一路本地综合（创作循环，复用 agent-cli-research-01）。详见 `docs/research/R6…R9`。**Q-38 = Agent 批开工前置（owner 已定 Agent 侧为开发重心）；Q-39/Q-41 = 合同泛化批前置；Q-40 = 生态批前置。**
 
 ## Q-38（Agent 创作循环与独立 CLI——通用域解放 Agent 批呈递停门，2026-10-13）
