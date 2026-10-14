@@ -1409,6 +1409,13 @@ ZTEST(framework_net, test_16_arb_lease_view)
 	zassert_equal(ts_net_cmd_dispatch("sys/lease-acquire", req, rlen, resp,
 					  sizeof(resp), &rl2), TS_OK,
 		      "本地释放后远程重新授予");
+
+	/* CG5-B 构建面裁剪：本套件无 TS_HAL_FS → fs-* 命令不在面（NOTFOUND 如实） */
+	rlen = build_req_v2(req, sizeof(req), "fs-begin", "rid-arb6", NULL, NULL,
+			    0, NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/fs-begin", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_NOTFOUND,
+		      "无 fs 能力构建 = 命令面不存在");
 }
 
 ZTEST_SUITE(framework_net, NULL, NULL, NULL, NULL, NULL);

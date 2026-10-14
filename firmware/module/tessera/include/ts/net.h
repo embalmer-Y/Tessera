@@ -125,6 +125,11 @@ typedef struct {
 	 * 长度上限 CONFIG_TS_NET_APP_CHUNK_MAX） */
 	const uint8_t *chunk;
 	uint32_t chunk_len;
+	/* CG5-B（Q-39③ 方案 A）：宿主资源推送面 fs-begin/chunk/commit */
+	bool has_path;
+	char path[68];    /* fs-begin：设备侧目标绝对路径（fs_paths 同文法上限） */
+	bool has_sha256;
+	uint8_t sha256[32]; /* fs-begin：整文件摘要（fs-commit 读回校验对象） */
 } ts_net_cmd_args_t;
 
 typedef ts_res_t (*ts_net_cmd_fn)(const ts_net_cmd_args_t *args,

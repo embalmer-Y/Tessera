@@ -24,6 +24,9 @@ ts_res_t ts_appmgr_scan_needs(const uint8_t *man, uint32_t ml, ts_app_needs_t *o
 		return TS_E_PARAM;
 	}
 	memset(out, 0, sizeof(*out));
+#ifdef CONFIG_TS_HAL_FS
+	out->res_csv[0] = '\0';
+#endif
 	ts_cbor_rd_t r;
 	uint32_t pairs;
 
@@ -90,6 +93,20 @@ ts_res_t ts_appmgr_scan_needs(const uint8_t *man, uint32_t ml, ts_app_needs_t *o
 						    strstr(pfx, "..") != NULL) {
 							return TS_E_PARAM;
 						}
+#ifdef CONFIG_TS_HAL_FS
+						/* CG5-B：前缀累积 CSV（res registry 数据源；
+						 * 容量 = CONFIG_TS_HAL_FS_PATHS_MAX，超限拒绝） */
+						size_t pl = strlen(pfx);
+						size_t cur = strlen(out->res_csv);
+
+						if (cur + pl + 2 >= sizeof(out->res_csv)) {
+							return TS_E_PARAM;
+						}
+						if (cur > 0) {
+							out->res_csv[cur++] = ';';
+						}
+						memcpy(out->res_csv + cur, pfx, pl + 1);
+#endif
 					}
 					out->resources = (uint16_t)n;
 				} else {
@@ -351,6 +368,23 @@ ts_res_t ts_appmgr_stage_activate_n(uint8_t entry, ts_app_info_t *out)
 	initialized = true;
 	const ts_evt_t evt = {.id = TS_EVT_APP_LOADED, .t_ms = ts_time_ms()};
 	ts_evt_publish(&evt);
+#if defined(CONFIG_TS_APP_WAMR) && defined(CONFIG_TS_HAL_FS)
+	/* CG5-B（方案 A）：资源白名单随激活绑定（部署会话在激活后经 sys/fs-*
+	 * 推送 needs.resources 前缀下的资源文件；无 needs = 清除——覆盖式）。
+	 * 解析与安装期/boot 同源（scan_needs 单一事实源）。 */
+	{
+		static uint8_t man_act[512];
+		ts_app_needs_t needs;
+
+		if (ts_store_slot_read(stage.slot, TSAP_CONTENT_OFF, man_act,
+				       v.manifest_len) == TS_OK &&
+		    ts_appmgr_scan_needs(man_act, v.manifest_len, &needs) == TS_OK) {
+			ts_appmgr_res_bind(entry + 1, needs.res_csv);
+		} else {
+			ts_appmgr_res_bind(entry + 1, ""); /* 读/扫描失败 = 清除（fail-closed 侧） */
+		}
+	}
+#endif
 	memset(&stage, 0, sizeof(stage)); /* 终态清台（下轮 begin 重置） */
 	return TS_OK;
 }

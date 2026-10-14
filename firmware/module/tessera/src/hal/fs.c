@@ -39,6 +39,32 @@ ts_res_t ts_fs_paths_bind_ctx(ts_ctx_t c, const char *csv)
 	return ts_fs_paths_bind(c.app_id, csv);
 }
 
+/* 前缀匹配（边界纪律：前缀后须 '/' 或恰好等长——防前缀绕过）。
+ * CG5-B 提取为公共助手：APP 面（ts_fs_path_allowed）与宿主资源推送面
+ * （appmgr res registry 消费）同一语义——单一事实源。 */
+bool ts_fs_prefix_match(const char *csv, const char *path)
+{
+	if (csv == NULL || path == NULL || path[0] != '/') {
+		return false;
+	}
+	const char *p = csv;
+
+	while (*p != '\0') {
+		const char *seg = strchr(p, ';');
+		size_t sl = (seg != NULL) ? (size_t)(seg - p) : strlen(p);
+
+		if (sl > 0 && strncmp(path, p, sl) == 0 &&
+		    (path[sl] == '\0' || path[sl] == '/')) {
+			return true;
+		}
+		if (seg == NULL) {
+			break;
+		}
+		p = seg + 1;
+	}
+	return false;
+}
+
 ts_res_t ts_fs_path_allowed(ts_ctx_t c, const char *path)
 {
 	if (path == NULL || path[0] != '/') {
@@ -47,22 +73,7 @@ ts_res_t ts_fs_path_allowed(ts_ctx_t c, const char *path)
 	if (bound_app == 0xFFFF || c.app_id != bound_app || bound_paths[0] == '\0') {
 		return TS_E_PERM; /* 未绑定 = 拒绝（fail-closed） */
 	}
-	const char *p = bound_paths;
-
-	while (*p != '\0') {
-		const char *seg = strchr(p, ';');
-		size_t sl = (seg != NULL) ? (size_t)(seg - p) : strlen(p);
-
-		if (sl > 0 && strncmp(path, p, sl) == 0 &&
-		    (path[sl] == '\0' || path[sl] == '/')) {
-			return TS_OK;
-		}
-		if (seg == NULL) {
-			break;
-		}
-		p = seg + 1;
-	}
-	return TS_E_PERM;
+	return ts_fs_prefix_match(bound_paths, path) ? TS_OK : TS_E_PERM;
 }
 
 /* 双层裁决共用入口 */
@@ -157,6 +168,20 @@ ts_res_t ts_fs_write(ts_ctx_t c, const char *path, uint32_t off, const uint8_t *
 	if (g != TS_OK) {
 		return g;
 	}
+	return ts_fs_host_write(path, off, data, len);
+}
+
+/* ---- 宿主原语（CG5-B · Q-39③ 方案 A）--------------------------------------
+ * sys/fs-* 命令面的后端直达通道：**无 APP 权限门**（宿主面授权 = appmgr
+ * res registry〔随包 needs.resources 前缀白名单〕+ 租约，在 net cmd 层）；
+ * 后端语义与 APP 面完全同一（部分写 = 失败；未挂载 = TS_E_IO 如实）。
+ * printk 留痕同型（host 归因）。 */
+ts_res_t ts_fs_host_write(const char *path, uint32_t off, const uint8_t *data, uint16_t len)
+{
+	if (path == NULL || path[0] != '/' || strstr(path, "..") != NULL ||
+	    (data == NULL && len > 0)) {
+		return TS_E_PARAM;
+	}
 	struct fs_file_t f;
 
 	fs_file_t_init(&f);
@@ -173,9 +198,43 @@ ts_res_t ts_fs_write(ts_ctx_t c, const char *path, uint32_t off, const uint8_t *
 	if (r >= 0 && r != (ssize_t)len) {
 		return TS_E_IO; /* 部分写 = 失败（无句柄面不做续写） */
 	}
-	printk("[fs] write app=%u path=%s len=%u off=%u\n",
-	       (unsigned)c.app_id, path, (unsigned)len, (unsigned)off);
+	printk("[fs] host write path=%s len=%u off=%u\n", path, (unsigned)len, (unsigned)off);
 	return (r < 0) ? TS_E_IO : TS_OK;
+}
+
+ts_res_t ts_fs_host_read(const char *path, uint32_t off, uint8_t *buf, uint16_t *len)
+{
+	if (path == NULL || buf == NULL || len == NULL || *len == 0) {
+		return TS_E_PARAM;
+	}
+	struct fs_file_t f;
+
+	fs_file_t_init(&f);
+	if (fs_open(&f, path, FS_O_READ) != 0) {
+		return TS_E_IO;
+	}
+	if (off != 0 && fs_seek(&f, off, FS_SEEK_SET) != 0) {
+		fs_close(&f);
+		return TS_E_IO;
+	}
+	ssize_t r = fs_read(&f, buf, *len);
+
+	fs_close(&f);
+	if (r < 0) {
+		return TS_E_IO;
+	}
+	*len = (uint16_t)r;
+	return TS_OK;
+}
+
+ts_res_t ts_fs_host_delete(const char *path)
+{
+	if (path == NULL) {
+		return TS_E_PARAM;
+	}
+	int r = fs_unlink(path);
+
+	return (r == 0) ? TS_OK : TS_E_IO;
 }
 
 ts_res_t ts_fs_delete(ts_ctx_t c, const char *path)

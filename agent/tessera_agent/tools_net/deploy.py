@@ -12,6 +12,7 @@ push_app 纪律（全部硬点，工具内强制）：
 
 from __future__ import annotations
 
+import hashlib
 import secrets
 import struct
 import time
@@ -269,6 +270,77 @@ def push_app(
             except TaError as exc:
                 result["released"] = False
                 result["release_error"] = exc.to_payload()
+                log(f"WARN lease release 失败（TTL 兜底失权）: {exc.message}")
+
+
+def push_resources(
+    svc: ZenohService,
+    node: str,
+    cube: str,
+    files: dict[str, bytes],
+    *,
+    app: int = 1,
+    holder: str = keys.DEFAULT_SRC,
+    chunk_size: int = CHUNK_DEFAULT,
+    log_fn: Callable[[str], None] | None = None,
+) -> dict[str, Any]:
+    """部署会话资源推送（CG5-B · Q-39③ 方案 A——HLD-contract-v2 §6）。
+
+    授权 = 目标 entry 激活包 needs.resources 前缀白名单（固件 activate/boot
+    绑定）+ 租约（gated）；完整性 = 每文件 sha256 随 fs-begin 携带、固件
+    全量读回校验（verified 回执）——失配固件侧自删（fail-closed）。
+    files = {设备绝对路径: 内容字节}；推送序按路径排序（确定性）。
+    app = 目标实例（与 push_app 部署位一致）。"""
+    log = log_fn or (lambda m: None)
+    if not files:
+        raise TaError(TA_E_ARGS, "files 为空", domain="deploy")
+    if not 1 <= app <= 4:
+        raise TaError(TA_E_ARGS, f"app 越界 [1,4]: {app}", domain="deploy")
+    for p in files:
+        if not p.startswith("/") or ".." in p:
+            msg = f"资源路径非法（须绝对路径禁 ..）: {p!r}"
+            raise TaError(TA_E_ARGS, msg, domain="deploy")
+
+    d = secrets.token_hex(3)
+
+    def rid(tag: str) -> str:
+        return f"{d}-fs{tag}"[: keys.RID_MAX]
+
+    result: dict[str, Any] = {"app": app, "files": []}
+    lease_acquired = False
+    try:
+        # 租约先行（fs-begin 门控；跨多文件会话持续续期）
+        _cmd_ok(svc, node, cube, "lease-acquire", rid("la"), holder=holder)
+        lease_acquired = True
+        log(f"lease acquired: holder={holder}")
+
+        for path, data in sorted(files.items()):
+            sha = hashlib.sha256(data).digest()
+            r = _cmd_ok(svc, node, cube, "fs-begin", rid("b"), app=app,
+                        path=path, total=len(data), sha256=sha, holder=holder)
+            log(f"fs-begin: {path} ({len(data)}B staged={r.get('staged')})")
+            for off in range(0, len(data), chunk_size):
+                _retry(
+                    lambda o=off, d=data: _cmd_ok(  # 默认参绑定循环变量（B023）
+                        svc, node, cube, "fs-chunk", rid("c"), app=app,
+                        offset=o, data=d[o:o + chunk_size], holder=holder),
+                    retries=CHUNK_RETRY_MAX, log=log)
+            _cmd_ok(svc, node, cube, "lease-acquire", rid("lr"), holder=holder)
+            c = _cmd_ok(svc, node, cube, "fs-commit", rid("m"), app=app,
+                        holder=holder)
+            if c.get("verified") is not True:
+                msg = f"资源完整性校验未过: {path}（回执 {c}）"
+                raise TaError(TA_E_TSAP, msg, domain="deploy",
+                              detail={"path": path, "reply": c})
+            result["files"].append({"path": path, "bytes": len(data)})
+            log(f"fs-commit verified: {path}")
+        return result
+    finally:
+        if lease_acquired:
+            try:
+                _cmd_ok(svc, node, cube, "lease-release", rid("lx"),
+                        holder=holder)
+            except TaError as exc:
                 log(f"WARN lease release 失败（TTL 兜底失权）: {exc.message}")
 
 

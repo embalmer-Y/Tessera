@@ -1,6 +1,6 @@
 # LLD · ts-net v0.3.9
 
-> **状态**：v0.3.10（2026-10-14 CG3 · Q-41②：**租约本地席位降级视图实现**——held_by/acquire 视词语义 + acquire 回执 local_active 装饰 + TS_EVT_ARB_CHANGED 订阅外发〔八类〕+ get-audit 审计 src 维度）。上位：HLD §3.5 + HLD-contract-v2 §2-§4；公共约定 `LLD-00-common.md`。
+> **状态**：v0.3.11（2026-10-14 CG5-B：**宿主资源推送命令面**——sys/fs-begin/chunk/commit〔gated+租约+随包 needs.resources 前缀白名单+sha256 读回校验〕）；v0.3.10（2026-10-14 CG3 · Q-41②：**租约本地席位降级视图实现**——held_by/acquire 视词语义 + acquire 回执 local_active 装饰 + TS_EVT_ARB_CHANGED 订阅外发〔八类〕+ get-audit 审计 src 维度）。上位：HLD §3.5 + HLD-contract-v2 §2-§4；公共约定 `LLD-00-common.md`。
 > **职责**：zenoh-pico 会话管理、命名空间构造、命令-回执分发、遥测/事件发布、心跳监视（断链判定）、控制租约（DEC-41）。
 > **合同关联**：合同 3（断链 fail-safe 判定源）、8（本地独立生效——判定不依赖外部确认）、9（rx 串行化）、10（命令准入/留痕）。
 > **外部依赖**：zenoh-pico 1.10.1（钉版，DR-22；上游零源码补丁，接线要点见 docs/dev-environment.md §7/§8）。
@@ -79,6 +79,7 @@ int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>
 | lease-acquire / lease-release / lease-get | 控制租约面（DEC-41，见 §4.5） |
 | app-begin / app-chunk / app-verify / app-activate | 远程部署面（MA3.1，LLD-A06 §3；**gated：仅 v2 信封 + 租约持有者 = src**——DEC-41 写类准入首个落点） |
 | get-app | 当前 APP 信息快照（active_slot 回读确认，只读豁免） |
+| fs-begin / fs-chunk / fs-commit | **宿主资源推送**（CG5-B · Q-39③ 方案 A，HLD-contract-v2 §6）：begin{app?, path, total≤256KB, sha256(32B)} → chunk{offset, data} → commit{}（全量读回流式 sha256 校验——失配/读回失败**删残片 + TS_E_IO**，通过 = TS_EVT_RESOURCE_WRITTEN 留痕）。**授权 = appmgr res registry**（随包 needs.resources 前缀——activate 绑定 + boot 恢复；越权 = TS_E_PERM + PERM_DENIED 事件）+ 租约门控（gated）；后端 = hal 宿主原语（未挂载 = TS_E_IO 如实——与授权层可区分）。订阅面九类（+RESOURCE_WRITTEN） |
 
 - **gated 装配（impl-review-01 F-3）**：`ts_net_cmd_sys_init`（返回 `ts_res_t`，表满/撞名上抛 → init fail-safe，合同 6）按 **suffix 回查**回填 gated 位——公共注册面占首个空位，若 sys 表非首个注册方则下标与表位错开，按名回填使门控恒指向本命令（按下标回填错位 = 写命令未门控，不可接受）。
 
@@ -142,6 +143,7 @@ int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>
 
 ## 修订记录
 
+- v0.3.11 · 2026-10-14：**CG5-B（Q-39③ 方案 A · 资源推送命令面）**——sys/fs-begin/chunk/commit（gated+租约；随包 res registry 授权 + sha256 读回校验 fail-closed + TS_EVT_RESOURCE_WRITTEN）；args 增 path/sha256 键；订阅九类；CMD_TABLE_MAX 17→20；用例 framework.app test_12（registry 矩阵/命令分层——授权拒 vs 后端 E_IO）+ framework.net 构建面裁剪断言。Agent 侧 deploy.push_resources + keys.envelope path/sha256。真机 net+SD 组合面 = 板级批验证项（现无该组合 bench——如实登记）。
 - v0.3.10 · 2026-10-14：**CG3（Q-41② · 租约本地席位视图实现）**——§4.5 视词语义落地（held_by/acquire + cmd 层 local_active 装饰）；§5 订阅八类（+TS_EVT_ARB_CHANGED → …/sys/event，extra {arb, old}，安全类 QoS）；§4.3 kind 注册表事件面 = 32+TS_EVT_ID_COUNT（ARB 自动入位）；get-audit 内存环条目末位加 src（ts_src_t——加性）；§8 用例 test_16_arb_lease_view。
 - v0.3.9 · 2026-10-14：**CG2（Q-41①③/Q-42 · 部署模式实现）**——§6 linkmon 模式守卫落地（`link_migrates_safety()`：仅 orchestrated 调 set_link，断链/恢复对称）+ **standalone boot 链路声明**（ts_net_init 期 set_link(true) 一次——镜像 TS_NET=n glue 模式；CG1 文本未覆盖的 ACTIVE 驱动者缺口，本批定案）+ §4 estop-clear prov 守卫（`estop_remote_clear=0` → TS_E_STATE + need=local-clear；v1 缺字段 = enabled）；用例 framework.net test_14/15（零迁移断言 + 守卫矩阵）。同批：agent/tools/flash_prov.py 修复分区头缺失（u32 len + u16 crc16-ccitt——此前直写裸 CBOR 装载器必拒，生产烧录路径既有缺陷）+ v2 字段输出。
 - v0.3.8 · 2026-10-07：MD1.2g（单元 A，DEC-47①②⑥）——§3 增 `ts_net_key_av`（专用帧分片通道 …/av/<id>/frame）；§5 增 avq（信封/打拍/重试/背压/DOWN 自弃语义）；cbor_min 增 put_bstr；Kconfig 增 TS_NET_PUBLISH_* 族与 TS_NET_AVQ_DEPTH（§7 同步——常量出处 = DEC-47②）。用例 framework.net test_12_avq。回归 twister 15/15（68 用例）。

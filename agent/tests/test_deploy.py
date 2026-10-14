@@ -16,6 +16,7 @@ import pytest
 
 from tessera_agent.common.errors import TA_E_ARGS, TA_E_TSAP, TaError
 from tessera_agent.tools_net import deploy, keys
+from tessera_agent.tools_net.deploy import CmdError
 from tessera_agent.tools_tsap import tools as tsap_tools
 
 # ---- FakeCube：固件命令面语义桩（v2 信封 + 门控 + staging）------------------
@@ -24,11 +25,16 @@ from tessera_agent.tools_tsap import tools as tsap_tools
 class FakeCube:
     """deploy 依赖面（query/query_one）的最小固件语义实现。"""
 
-    GATED = {"app-begin", "app-chunk", "app-verify", "app-activate", "prov-write"}
+    GATED = {"app-begin", "app-chunk", "app-verify", "app-activate",
+             "prov-write", "fs-begin", "fs-chunk", "fs-commit"}  # CG5-B
 
     def __init__(self, node: str = "fn", cube: str = "fc") -> None:
         self.node, self.cube = node, cube
         self.caps: dict | None = None  # CG5-A：None = 旧固件（无 caps 块）
+        self.res_prefixes: list[str] = []  # CG5-B：资源白名单（[] = 全拒）
+        self.fs_files: dict[str, bytes] = {}
+        self.fs_stage: dict | None = None
+        self.fs_corrupt = False  # 注入：commit 期篡改一字节（摘要失配路径）
         self.lease_holder: str | None = None
         self.lease_deny = False
         self.active_slot = 0
@@ -98,6 +104,36 @@ class FakeCube:
             self.prov_blob = bytes(data)
             self.prov_written = True
             return self._enc(rid, 0, {"written": True, "applies": "next-reboot"})
+        if op == "fs-begin":
+            path, total = args["path"], int(args["total"])
+            sha = bytes(args["sha256"])
+            if not any(path == px or path.startswith(px.rstrip("/") + "/")
+                       for px in self.res_prefixes):
+                return self._enc(rid, -3, {"need": "resource-prefix"})
+            self.fs_stage = {"path": path, "total": total, "sha": sha,
+                             "buf": bytearray(total)}
+            return self._enc(rid, 0, {"staged": True, "total": total})
+        if op == "fs-chunk":
+            st = self.fs_stage
+            off, data = int(args["offset"]), bytes(args["data"])
+            if st is None or off + len(data) > st["total"]:
+                return self._enc(rid, -1, {})
+            st["buf"][off:off + len(data)] = data
+            return self._enc(rid, 0, {"written": len(data)})
+        if op == "fs-commit":
+            st = self.fs_stage
+            if st is None:
+                return self._enc(rid, -4, {})
+            buf = bytes(st["buf"])
+            if self.fs_corrupt and buf:
+                buf = buf[:-1] + bytes([buf[-1] ^ 0xFF])
+            import hashlib as _h
+            if _h.sha256(buf).digest() != st["sha"]:
+                self.fs_stage = None
+                return self._enc(rid, -8, {})
+            self.fs_files[st["path"]] = bytes(st["buf"])
+            self.fs_stage = None
+            return self._enc(rid, 0, {"verified": True, "bytes": st["total"]})
         if op == "app-begin":
             self.stage = {"total": args["total"], "hw": 0, "verified": False,
                           "slot": self.active_slot ^ 1,
@@ -271,6 +307,43 @@ def test_push_app_device_caps_precheck(tmp_path):
                   "slot_pool_kb": 512}
     with pytest.raises(TaError, match="线性内存"):
         deploy.push_app(fake3, "fn", "fc", pkg2, pub2)
+
+
+def test_push_resources_happy_and_gates():
+    """CG5-B：资源推送——白名单内多文件全链（sha256 verified）/前缀外拒/
+    摘要失配拒（fail-closed）。"""
+    fake = FakeCube()
+    fake.res_prefixes = ["/SD:/res"]
+    files = {"/SD:/res/font.bin": b"F" * 700, "/SD:/res/ui/table.dat": b"T" * 64}
+    out = deploy.push_resources(fake, "fn", "fc", files, chunk_size=256)
+    assert [f["path"] for f in out["files"]] == sorted(files)
+    assert fake.fs_files == files, "分块重组 = 原字节（700B → 3 块）"
+    assert fake.lease_holder is None, "租约已归还"
+
+    # 前缀外 = 越权拒（E_PERM -3）
+    fake2 = FakeCube()
+    fake2.res_prefixes = ["/SD:/res"]
+    with pytest.raises(CmdError):
+        deploy.push_resources(fake2, "fn", "fc", {"/SD:/etc/x": b"X"})
+
+    # 白名单空 = 全拒
+    fake3 = FakeCube()
+    with pytest.raises(CmdError):
+        deploy.push_resources(fake3, "fn", "fc", {"/SD:/res/x": b"X"})
+
+    # 客户端文法校验（相对路径/..）
+    with pytest.raises(TaError, match="绝对路径"):
+        deploy.push_resources(fake3, "fn", "fc", {"rel/x": b"X"})
+    with pytest.raises(TaError, match="files 为空"):
+        deploy.push_resources(fake3, "fn", "fc", {})
+
+    # 摘要失配（固件读回校验拒 + 自删——fail-closed；客户端如实抛 CmdError）
+    fake4 = FakeCube()
+    fake4.res_prefixes = ["/SD:/res"]
+    fake4.fs_corrupt = True
+    with pytest.raises(CmdError, match="fs-commit"):
+        deploy.push_resources(fake4, "fn", "fc", {"/SD:/res/x": b"ABC"})
+    assert fake4.fs_files == {}, "失配文件不入库"
 
 
 def test_push_app_tampered_refused_before_upload(tmp_path):

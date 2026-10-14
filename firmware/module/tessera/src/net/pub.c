@@ -165,13 +165,14 @@ ts_res_t ts_net_pub_init(void)
 	}
 	/* 订阅容量 = CONFIG_TS_CORE_MAX_SUBS **按事件类型分桶**（events.c 的
 	 * subs[id][N]，各类型独立 4 位——F-1 修复时更正早前"总量 4"误读）；
-	 * 本处八类订阅各占一桶一位，单桶满员属装配错误（TS_E_NOMEM 如实上报） */
+	 * 本处九类订阅各占一桶一位，单桶满员属装配错误（TS_E_NOMEM 如实上报） */
 	const ts_evt_id_t ids[] = {
 		TS_EVT_ESTOP, TS_EVT_SAFE_STATE_CHANGED,
 		TS_EVT_PERM_DENIED, TS_EVT_INPUT_CHANGED,
 		TS_EVT_PERIPH_ATTACH, TS_EVT_PERIPH_DETACH,
 		TS_EVT_POWER_BUDGET,
 		TS_EVT_ARB_CHANGED, /* CG3 · 合同 11：控制权切换留痕外发 */
+		TS_EVT_RESOURCE_WRITTEN, /* CG5-B：资源推送完成留痕（观测类） */
 	};
 
 	for (size_t i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {

@@ -28,6 +28,10 @@ typedef struct {
 	uint32_t linear_memory_kb; /* 声明线性内存预算（0 = 未声明） */
 	uint32_t stack_kb;         /* 声明栈预算（0 = 未声明；V1 记录不消费） */
 	uint16_t resources;        /* 资源路径条数（fs 前缀需求面） */
+#ifdef CONFIG_TS_HAL_FS
+	char res_csv[CONFIG_TS_HAL_FS_PATHS_MAX]; /* CG5-B：资源前缀 CSV（';' 分隔
+		 *——activate/boot 绑定 res registry 的数据源；容量对齐 fs_paths） */
+#endif
 } ts_app_needs_t;
 
 /** manifest 键分发扫描：跳过非 tier/needs 键（ts_cbor_skip），仅提取档位

@@ -124,6 +124,8 @@ def envelope(
     total: int | None = None,
     offset: int | None = None,
     data: bytes | None = None,
+    path: str | None = None,        # CG5-B：fs-begin 资源目标路径
+    sha256: bytes | None = None,    # CG5-B：fs-begin 整文件摘要（恰 32B）
     holder: str | None = None,
     time_ms: int | None = None,
     confirm: str | None = None,
@@ -134,8 +136,9 @@ def envelope(
 ) -> bytes:
     """命令信封 v2 请求（DEC-40）：map{ver,kind,rid,src,op,args?}。
 
-    args 定序：total → offset → data → holder → time_ms → confirm → idem
-    → to → audit_src → app（固件解码键序无关，编码侧定序保确定性——合同 9；
+    args 定序：total → offset → data → path → sha256 → holder → time_ms
+    → confirm → idem → to → audit_src → app（固件解码键序无关，编码侧定序
+    保确定性——合同 9；path/sha256 = CG5-B 资源推送面；
     audit_src = get-audit 源选择 "flash"，DEC-52①——键名避开信封层 src；
     app = 目标实例 app_id 1..N〔Q-32⑤/V0.4.0 M7b〕，缺省 None = 旧客户端
     兼容——固件侧缺省实例 1）。
@@ -156,6 +159,16 @@ def envelope(
         items.append((_tstr("offset"), _uint(offset)))
     if data is not None:
         items.append((_tstr("data"), _bstr(data)))
+    if path is not None:
+        if not path.startswith("/") or ".." in path:
+            msg = f"资源路径非法（须绝对路径禁 ..）: {path!r}"
+            raise ValueError(msg)
+        items.append((_tstr("path"), _tstr(path)))
+    if sha256 is not None:
+        if len(sha256) != 32:
+            msg = f"sha256 须恰 32B: {len(sha256)}"
+            raise ValueError(msg)
+        items.append((_tstr("sha256"), _bstr(bytes(sha256))))
     if holder is not None:
         items.append((_tstr("holder"), _tstr(holder)))
     if time_ms is not None:

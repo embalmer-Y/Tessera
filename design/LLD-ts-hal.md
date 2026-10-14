@@ -44,6 +44,8 @@ ts_res_t ts_msg_send  (ts_ctx_t c, const char *to_app, const void *buf, uint32_t
 /* ts-fs 能力面（DEC-47④⑤，MD1.2e）：无句柄四函数；路径授权 = manifest fs_paths
  * 前缀白名单（加载期 ts_fs_paths_bind 绑定；前缀边界 = 后须 '/' 或恰好等长；
  * 未绑定/不匹配 = TS_E_PERM fail-closed）。后端 = Zephyr fs（V1 挂载 FAT）。 */
+
+**宿主资源推送原语（CG5-B · Q-39③ 方案 A，v0.2.3）**：`ts_fs_host_write/read/delete`（sys/fs-* 命令面后端直达——**无 APP 权限门**；宿主面授权 = appmgr res registry〔随包 needs.resources〕+ 租约，裁决在 net cmd 层）+ `ts_fs_prefix_match` 公共助手（前缀边界纪律单一事实源——APP 面 path_allowed 与 res registry 同语义）；ts_fs_write 改经 host_write 复用（gate 后直达——行为不变）。
 ts_res_t ts_fs_list  (ts_ctx_t c, const char *dir, char *out, uint16_t cap, uint16_t *out_len);
 ts_res_t ts_fs_read  (ts_ctx_t c, const char *path, uint32_t off, uint8_t *buf, uint16_t *len);
 ts_res_t ts_fs_write (ts_ctx_t c, const char *path, uint32_t off, const uint8_t *data, uint16_t len);
@@ -98,6 +100,8 @@ ts_res_t ts_hal_register_class(const ts_periph_desc_t *desc);  /* ts-periph 调�
 - DEC-21（manifest/TSAP）、DEC-27（实例容量）已裁；无未决。
 
 ## 修订记录
+
+- v0.2.3 · 2026-10-14：CG5-B（Q-39③ 方案 A）——宿主原语三件 + prefix_match 公共助手提取（§3 fs 节注）。
 
 - v0.2.3 · 2026-10-07：MD1.2g（单元 A）——§2 文法补 fs/av 类（DEC-47⑤，fs 补记 MD1.2e）；§3 增 ts-av 面（ts_av_capture/ts_av_publish，读类 + av:read:0 门 + manifest av_fmt/av_w/av_h 绑定）；fs 四函数补记（MD1.2e 已实现未入册）。回归：twister 15/15（68 用例）/L5 6/6。
 - v0.1 · 2026-09-20：首版草案。

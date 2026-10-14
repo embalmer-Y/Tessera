@@ -23,8 +23,9 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 #include "internal.h"
+#include "../store/internal.h" /* ts_sha256 流式（CG5-B fs-commit 读回校验——verify.c 同型跨子系统引用） */
 
-#define CMD_TABLE_MAX  17 /* 7 基础 sys + 3 租约（DEC-41）+ 5 部署面（MA3.1）+ prov-write（M10）+ 余量 */
+#define CMD_TABLE_MAX  20 /* 7 基础 sys + 3 租约（DEC-41）+ 5 部署面（MA3.1）+ prov-write（M10）+ 3 资源推送（CG5-B）+ 余量 */
 #define RESP_DATA_MAX  384 /* data 暂存上限（回执总预算 512 内扣除头） */
 #define REQ_TO_MAX_MS  5000 /* 带内超时上界（DEC-40：断链窗口 6000 − 余量） */
 #define RID_MAX        16
@@ -371,6 +372,172 @@ static ts_res_t cmd_estop_clear(const ts_net_cmd_args_t *a, uint8_t *r, size_t c
 }
 
 /* ---- sys 命令实现：控制租约（DEC-41，LLD §4.5）-------------------------- */
+
+/* ---- 宿主资源推送（CG5-B · Q-39③ 方案 A · HLD-contract-v2 §6）------------
+ * 授权 = appmgr res registry（随包 needs.resources 前缀，activate 绑定 +
+ * boot 恢复）+ 租约门控（gated 表项）；完整性 = fs-begin 携带整文件
+ * sha256，fs-commit 全量读回流式校验——失配/读回失败即删（fail-closed）
+ * + 事件留痕（TS_EVT_RESOURCE_WRITTEN）。后端未挂载 = TS_E_IO 如实。 */
+#if defined(CONFIG_TS_APP_WAMR) && defined(CONFIG_TS_HAL_FS)
+#define FS_RES_MAX_BYTES 262144u /* 资源文件上限 = large 档门同值（Q-42/DEC-59） */
+
+static struct {
+	bool active;
+	uint8_t app;       /* 目标实例（1..N） */
+	char path[68];
+	uint32_t total;
+	uint32_t high_water;
+	uint8_t sha[32];
+} fs_stage;
+
+static ts_res_t cmd_fs_begin(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
+{
+	size_t p = 0;
+	uint8_t app = a->has_app ? a->app : 1;
+
+	if (!a->has_path || !a->has_total || !a->has_sha256) {
+		if (ts_cbor_put_map(r, cap, &p, 1) && ts_cbor_put_tstr(r, cap, &p, "need") &&
+		    ts_cbor_put_tstr(r, cap, &p, "path+total+sha256")) {
+			*n = p;
+		}
+		return TS_E_PARAM;
+	}
+	if (a->total == 0 || a->total > FS_RES_MAX_BYTES ||
+	    a->path[0] != '/' || strstr(a->path, "..") != NULL) {
+		return TS_E_PARAM;
+	}
+	if (ts_appmgr_res_allows(app, a->path) != TS_OK) {
+		/* 随包白名单外 = 越权留痕（合同 10 观测面——与验签拒同型） */
+		const ts_evt_t evt = {.id = TS_EVT_PERM_DENIED, .t_ms = ts_time_ms()};
+
+		ts_evt_publish(&evt);
+		if (ts_cbor_put_map(r, cap, &p, 1) && ts_cbor_put_tstr(r, cap, &p, "need") &&
+		    ts_cbor_put_tstr(r, cap, &p, "resource-prefix")) {
+			*n = p;
+		}
+		return TS_E_PERM;
+	}
+	memset(&fs_stage, 0, sizeof(fs_stage));
+	fs_stage.active = true;
+	fs_stage.app = app;
+	strncpy(fs_stage.path, a->path, sizeof(fs_stage.path) - 1);
+	fs_stage.total = a->total;
+	memcpy(fs_stage.sha, a->sha256, 32);
+	if (!ts_cbor_put_map(r, cap, &p, 2) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "staged") ||
+	    !ts_cbor_put_bool(r, cap, &p, true) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "total") ||
+	    !ts_cbor_put_uint(r, cap, &p, a->total)) {
+		return TS_E_IO;
+	}
+	*n = p;
+	return TS_OK;
+}
+
+static ts_res_t cmd_fs_chunk(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
+{
+	if (!fs_stage.active) {
+		return TS_E_STATE; /* 无 begin 会话 */
+	}
+	if (a->chunk == NULL || a->chunk_len == 0) {
+		size_t p = 0;
+
+		if (ts_cbor_put_map(r, cap, &p, 1) && ts_cbor_put_tstr(r, cap, &p, "need") &&
+		    ts_cbor_put_tstr(r, cap, &p, "data")) {
+			*n = p;
+		}
+		return TS_E_PARAM;
+	}
+	if ((uint64_t)a->offset + a->chunk_len > fs_stage.total) {
+		return TS_E_PARAM; /* 越界拒绝（不静默截断） */
+	}
+	ts_res_t w = ts_fs_host_write(fs_stage.path, a->offset, a->chunk,
+				      (uint16_t)a->chunk_len);
+
+	if (w != TS_OK) {
+		return w; /* 后端如实（未挂载 = TS_E_IO——分层可区分：授权已过 */
+	}
+	if (a->offset + a->chunk_len > fs_stage.high_water) {
+		fs_stage.high_water = a->offset + a->chunk_len;
+	}
+	size_t p = 0;
+
+	if (!ts_cbor_put_map(r, cap, &p, 2) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "written") ||
+	    !ts_cbor_put_uint(r, cap, &p, a->chunk_len) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "high_water") ||
+	    !ts_cbor_put_uint(r, cap, &p, fs_stage.high_water)) {
+		return TS_E_IO;
+	}
+	*n = p;
+	return TS_OK;
+}
+
+static ts_res_t cmd_fs_commit(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
+{
+	ARG_UNUSED(a);
+	if (!fs_stage.active) {
+		return TS_E_STATE;
+	}
+	if (fs_stage.high_water < fs_stage.total) {
+		size_t p = 0;
+
+		if (ts_cbor_put_map(r, cap, &p, 1) && ts_cbor_put_tstr(r, cap, &p, "need") &&
+		    ts_cbor_put_tstr(r, cap, &p, "data")) {
+			*n = p;
+		}
+		return TS_E_STATE; /* 未收满不得验（fail-closed——app-verify 同型） */
+	}
+	/* 全量读回流式 sha256（buffer 256B——资源文件上限 256KB 无静态大缓冲） */
+	static uint8_t rb[256];
+	ts_sha256_ctx_t hc;
+	uint32_t done = 0;
+	bool ok = true;
+
+	ts_sha256_init(&hc);
+	while (done < fs_stage.total) {
+		uint16_t len = (fs_stage.total - done > sizeof(rb))
+				       ? (uint16_t)sizeof(rb)
+				       : (uint16_t)(fs_stage.total - done);
+
+		if (ts_fs_host_read(fs_stage.path, done, rb, &len) != TS_OK || len == 0) {
+			ok = false; /* 读回失败 = 文件不完整 */
+			break;
+		}
+		ts_sha256_update(&hc, rb, len);
+		done += len;
+	}
+	uint8_t dig[32];
+
+	if (ok) {
+		ts_sha256_final(&hc, dig);
+		ok = memcmp(dig, fs_stage.sha, 32) == 0;
+	}
+	if (!ok) {
+		/* fail-closed：摘要失配/读回失败 → 删除残片 + 如实拒 */
+		(void)ts_fs_host_delete(fs_stage.path);
+		printk("[fs] host commit FAIL app=%u path=%s（摘要失配/读回失败——已删）\n",
+		       (unsigned)fs_stage.app, fs_stage.path);
+		memset(&fs_stage, 0, sizeof(fs_stage));
+		return TS_E_IO;
+	}
+	const ts_evt_t evt = {.id = TS_EVT_RESOURCE_WRITTEN, .t_ms = ts_time_ms()};
+
+	ts_evt_publish(&evt);
+	size_t p = 0;
+
+	if (!ts_cbor_put_map(r, cap, &p, 2) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "verified") ||
+	    !ts_cbor_put_bool(r, cap, &p, true) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "bytes") ||
+	    !ts_cbor_put_uint(r, cap, &p, fs_stage.total)) {
+		return TS_E_IO;
+	}
+	*n = p;
+	memset(&fs_stage, 0, sizeof(fs_stage)); /* 终态清台 */
+	return TS_OK;
+}
+#endif /* CONFIG_TS_APP_WAMR && CONFIG_TS_HAL_FS */
 
 static ts_res_t cmd_lease_acquire(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
 {
@@ -769,6 +936,23 @@ static bool parse_args_body(ts_cbor_rd_t *r, uint32_t pairs, struct req_env *e)
 			    e->args.chunk_len > CONFIG_TS_NET_APP_CHUNK_MAX) {
 				return false;
 			}
+		} else if (e->v2 && strcmp(akey, "path") == 0) {
+			/* CG5-B（方案 A）：fs-begin 资源目标路径（绝对路径、禁 ..——
+			 * 文法校验在 handler；此处仅解码） */
+			if (!ts_cbor_tstr(r, e->args.path, sizeof(e->args.path))) {
+				return false;
+			}
+			e->args.has_path = true;
+		} else if (e->v2 && strcmp(akey, "sha256") == 0) {
+			/* CG5-B：整文件摘要（bstr 恰 32B——fs-commit 读回校验对象） */
+			const uint8_t *d;
+			uint32_t dl;
+
+			if (!ts_cbor_bstr_ref(r, &d, &dl) || dl != 32) {
+				return false;
+			}
+			memcpy(e->args.sha256, d, 32);
+			e->args.has_sha256 = true;
 		} else if (e->v2 && strcmp(akey, "idem") == 0) {
 			if (!ts_cbor_tstr(r, e->idem, sizeof(e->idem))) {
 				return false;
@@ -1124,6 +1308,11 @@ ts_res_t ts_net_cmd_sys_init(void)
 		{"sys/app-chunk", cmd_app_chunk, true},
 		{"sys/app-verify", cmd_app_verify, true},
 		{"sys/app-activate", cmd_app_activate, true},
+#if defined(CONFIG_TS_APP_WAMR) && defined(CONFIG_TS_HAL_FS)
+		{"sys/fs-begin", cmd_fs_begin, true},   /* CG5-B：资源推送（gated+租约） */
+		{"sys/fs-chunk", cmd_fs_chunk, true},
+		{"sys/fs-commit", cmd_fs_commit, true},
+#endif
 		{"sys/get-app", cmd_get_app, false},
 	};
 	for (size_t i = 0; i < sizeof(sys_cmds) / sizeof(sys_cmds[0]); i++) {

@@ -23,11 +23,38 @@ _Static_assert(2 * CONFIG_TS_APP_MAX_INSTANCES <= CONFIG_TS_STORE_SLOT_COUNT,
 ts_app_info_t current_apps[CONFIG_TS_APP_MAX_INSTANCES];
 bool initialized;
 
+/* ---- 宿主资源推送白名单 registry（CG5-B · Q-39③ 方案 A）------------------
+ * 随包联动：activate 绑定 + boot 恢复（needs.resources → scan res_csv）；
+ * sys/fs-* 命令面授权源。匹配语义 = ts_fs_prefix_match（边界纪律单一事实源）。 */
+#if defined(CONFIG_TS_APP_WAMR) && defined(CONFIG_TS_HAL_FS)
+static char res_paths[CONFIG_TS_APP_MAX_INSTANCES][CONFIG_TS_HAL_FS_PATHS_MAX];
+
+void ts_appmgr_res_bind(uint8_t app_id, const char *csv)
+{
+	if (app_id == 0 || app_id > CONFIG_TS_APP_MAX_INSTANCES || csv == NULL) {
+		return;
+	}
+	strncpy(res_paths[app_id - 1], csv, sizeof(res_paths[0]) - 1);
+	res_paths[app_id - 1][sizeof(res_paths[0]) - 1] = '\0';
+}
+
+ts_res_t ts_appmgr_res_allows(uint8_t app_id, const char *path)
+{
+	if (app_id == 0 || app_id > CONFIG_TS_APP_MAX_INSTANCES || path == NULL) {
+		return TS_E_PARAM;
+	}
+	return ts_fs_prefix_match(res_paths[app_id - 1], path) ? TS_OK : TS_E_PERM;
+}
+#endif
+
 #ifdef CONFIG_TS_TEST
 void ts_appmgr_test_reset(void)
 {
 	initialized = false;
 	memset(current_apps, 0, sizeof(current_apps));
+#if defined(CONFIG_TS_APP_WAMR) && defined(CONFIG_TS_HAL_FS)
+	memset(res_paths, 0, sizeof(res_paths));
+#endif
 }
 #endif
 
@@ -491,6 +518,11 @@ static ts_res_t boot_load_entry(uint8_t entry, const ts_appmgr_meta_t *meta)
 			       needs.tier == 1 ? "large" : "small");
 			return TS_E_PARAM;
 		}
+#ifdef CONFIG_TS_HAL_FS
+		/* CG5-B：资源白名单 boot 恢复（activate 绑定的重放——单一解析源
+		 * scan_needs 的 res_csv；无 needs = 清除该 entry） */
+		ts_appmgr_res_bind(entry + 1, needs.res_csv);
+#endif
 	}
 	/* 数值 app_id = entry+1（M6 单实例装载 entry 0 → 1，与 V1 审计归因
 	 * 兼容；M7 多实例 = 各 entry 各 id）。串身份随载注入（M9：kv 哈希源）。 */

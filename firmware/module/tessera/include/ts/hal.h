@@ -94,6 +94,18 @@ ts_res_t ts_fs_write(ts_ctx_t c, const char *path, uint32_t off, const uint8_t *
 /** 删除文件（目录非空 = 拒绝——由 FS 后端语义决定）。 */
 ts_res_t ts_fs_delete(ts_ctx_t c, const char *path);
 
+/* ---- 宿主资源推送原语（CG5-B · Q-39③ 方案 A——sys/fs-* 命令面后端）-------
+ * **无 APP 权限门**：宿主面授权 = appmgr 资源白名单（随包 needs.resources
+ * 前缀，activate 绑 + boot 恢复）+ 租约门控（net cmd 层裁决）。后端语义
+ * 与 APP 面完全同一（部分写 = 失败；未挂载 = TS_E_IO 如实）。 */
+ts_res_t ts_fs_host_write(const char *path, uint32_t off, const uint8_t *data, uint16_t len);
+ts_res_t ts_fs_host_read(const char *path, uint32_t off, uint8_t *buf, uint16_t *len);
+ts_res_t ts_fs_host_delete(const char *path);
+
+/** 前缀匹配公共助手（边界纪律单一事实源：APP 面 path_allowed 与 appmgr
+ * 资源白名单同语义）。csv = ';' 分隔前缀表。 */
+bool ts_fs_prefix_match(const char *csv, const char *path);
+
 /* ---- ts-av 能力面（DEC-47③⑥，MD1.2g）-------------------------------------
  * 最小采集面：阻塞取一帧到 APP 缓冲；格式/分辨率经 manifest 声明
  * （av_fmt/av_w/av_h）→ ts_av_config_bind 随载绑定，未绑定 = TS_E_STATE

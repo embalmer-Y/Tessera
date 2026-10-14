@@ -157,6 +157,19 @@ void ts_appmgr_app_stats(struct ts_app_rt_stats *out);
  * CONFIG_TS_APP_LOAD_MAX；stack_kb/heap_kb V1 消耗运行时常量（已知限制）。 */
 ts_res_t ts_appmgr_boot_start(void);
 
+/* ---- 宿主资源推送白名单（CG5-B · Q-39③ 方案 A · HLD-contract-v2 §6）------
+ * 随包联动授权：entry 激活包 manifest needs.resources 前缀表（activate 时
+ * 绑定 + boot 装载恢复；无该字段的包 = 该 entry 白名单清空全拒）。
+ * 消费方 = sys/fs-* 命令面（net 层再叠加租约门控）；匹配语义与 APP 面
+ * fs_paths 同源（ts_fs_prefix_match 边界纪律）。 */
+#if defined(CONFIG_TS_APP_WAMR) && defined(CONFIG_TS_HAL_FS)
+/** 绑定/清除 entry 资源白名单（app_id 1..N；csv = ';' 前缀表；"" = 清除）。 */
+void ts_appmgr_res_bind(uint8_t app_id, const char *csv);
+
+/** 白名单裁决：path 前缀命中 = TS_OK；未绑定/不命中 = TS_E_PERM（fail-closed）。 */
+ts_res_t ts_appmgr_res_allows(uint8_t app_id, const char *path);
+#endif
+
 /* ---- 测试钩子（CONFIG_TS_TEST）------------------------------------------- */
 #ifdef CONFIG_TS_TEST
 void ts_appmgr_test_reset(void);

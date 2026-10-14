@@ -467,6 +467,12 @@ ZTEST(framework_app, test_10_tier_matching)
 	zassert_equal(ts_appmgr_meta_write(&mm), TS_OK);
 	zassert_equal(ts_appmgr_boot_start(), TS_OK, "boot 装载 tier=large 包");
 	zassert_true(wait_gpio(true), "档位键走查接受 + wasm 运行（walk/scan 单一解析源）");
+	/* CG5-B：资源白名单 boot 恢复（needs.resources → res registry） */
+	zassert_equal(ts_appmgr_res_allows(1, "/SD:/res/font.bin"), TS_OK,
+		      "boot 恢复资源白名单（前缀内）");
+	zassert_equal(ts_appmgr_res_allows(1, "/SD:/resx"), TS_E_PERM,
+		      "边界纪律（前缀后须 /）");
+	zassert_equal(ts_appmgr_res_allows(1, "/SD:/other"), TS_E_PERM);
 	zassert_equal(ts_appmgr_app_stop(), TS_OK);
 }
 
@@ -546,6 +552,133 @@ ZTEST(framework_app, test_11_get_info_caps)
 	}
 	zassert_true(have_caps, "WAMR 构建必带 caps 块");
 	(void)dummy;
+}
+
+/* ---- CG5-B（Q-39③ 方案 A）：宿主资源推送通道——registry/命令分层矩阵 --- */
+
+/* fs-* 请求构造（v2 信封；args 键值对按序拼装） */
+static size_t build_fs_req(uint8_t *buf, size_t cap, const char *op, const char *rid,
+			   const char *holder, const char *path, uint32_t total,
+			   const uint8_t *sha, uint32_t offset, const uint8_t *data,
+			   uint32_t data_len)
+{
+	size_t p = 0;
+	uint32_t npairs = (holder ? 1 : 0) + (path ? 1 : 0) + (total ? 1 : 0) +
+			  (sha ? 1 : 0) + (offset ? 1 : 0) + (data ? 1 : 0);
+
+	zassert_true(ts_cbor_put_map(buf, cap, &p, 6));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "ver"));
+	zassert_true(ts_cbor_put_uint(buf, cap, &p, 1));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "kind"));
+	zassert_true(ts_cbor_put_uint(buf, cap, &p, 1));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "rid"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, rid));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "src"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "t-agent"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "op"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, op));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "args"));
+	zassert_true(ts_cbor_put_map(buf, cap, &p, npairs));
+	if (holder != NULL) {
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, "holder"));
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, holder));
+	}
+	if (path != NULL) {
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, "path"));
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, path));
+	}
+	if (total != 0) {
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, "total"));
+		zassert_true(ts_cbor_put_uint(buf, cap, &p, total));
+	}
+	if (sha != NULL) {
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, "sha256"));
+		zassert_true(ts_cbor_put_bstr(buf, cap, &p, sha, 32));
+	}
+	if (offset != 0) {
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, "offset"));
+		zassert_true(ts_cbor_put_uint(buf, cap, &p, offset));
+	}
+	if (data != NULL) {
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, "data"));
+		zassert_true(ts_cbor_put_bstr(buf, cap, &p, data, data_len));
+	}
+	return p;
+}
+
+ZTEST(framework_app, test_12_resource_push_channel)
+{
+	uint8_t req[256];
+	uint8_t resp[192];
+	size_t rlen;
+	size_t rl2 = 0;
+	const uint8_t sha[32] = {0xAA};
+	static const uint8_t payload[8] = "RES DATA";
+
+	ts_store_test_reset();
+	ts_appmgr_test_reset();
+	ts_net_test_reset();
+	ts_net_cmd_test_reset();
+	ts_net_lease_test_reset();
+	zassert_equal(ts_net_cmd_sys_init(), TS_OK);
+
+	/* registry 单元矩阵（随包白名单语义 = fs_paths 边界同源） */
+	zassert_equal(ts_appmgr_res_allows(1, "/SD:/res/a.bin"), TS_E_PERM,
+		      "未绑定 = 全拒（fail-closed）");
+	ts_appmgr_res_bind(1, "/SD:/res;/SD:/assets");
+	zassert_equal(ts_appmgr_res_allows(1, "/SD:/res/a.bin"), TS_OK);
+	zassert_equal(ts_appmgr_res_allows(1, "/SD:/res"), TS_OK, "恰好等长");
+	zassert_equal(ts_appmgr_res_allows(1, "/SD:/resx"), TS_E_PERM, "前缀边界");
+	zassert_equal(ts_appmgr_res_allows(1, "/SD:/other"), TS_E_PERM);
+	zassert_equal(ts_appmgr_res_allows(2, "/SD:/res/a.bin"), TS_E_PERM,
+		      "per-entry 隔离（entry 2 未绑定）");
+	zassert_equal(ts_appmgr_res_allows(1, "rel/path"), TS_E_PERM,
+		      "相对路径无前缀命中 = PERM（文法校验在 cmd 层 PARAM）");
+	ts_appmgr_res_bind(1, "");
+	zassert_equal(ts_appmgr_res_allows(1, "/SD:/res/a.bin"), TS_E_PERM,
+		      "空 CSV = 清除");
+
+	/* 命令矩阵（gated：先取租约——src=t-agent） */
+	ts_appmgr_res_bind(1, "/SD:/res");
+	rlen = build_fs_req(req, sizeof(req), "lease-acquire", "rid-fs0",
+			    "t-agent", NULL, 0, NULL, 0, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/lease-acquire", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_OK);
+
+	/* 白名单外/缺参/越界值 */
+	rlen = build_fs_req(req, sizeof(req), "fs-begin", "rid-fs1", NULL,
+			    "/etc/x.bin", 8, sha, 0, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/fs-begin", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_PERM,
+		      "白名单外 = 越权拒（留痕）");
+	rlen = build_fs_req(req, sizeof(req), "fs-begin", "rid-fs2", NULL,
+			    NULL, 0, NULL, 0, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/fs-begin", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_PARAM,
+		      "缺 path/total/sha256 拒");
+	rlen = build_fs_req(req, sizeof(req), "fs-begin", "rid-fs3", NULL,
+			    "/SD:/res/a.bin", 300000, sha, 0, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/fs-begin", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_PARAM,
+		      "超资源上限拒（256KB）");
+
+	/* 授权路径：staging OK → chunk 到后端层（native_sim 无挂载 = E_IO 如实
+	 * ——分层可区分：授权已过、失败在 IO 层）→ commit 未收满拒 */
+	rlen = build_fs_req(req, sizeof(req), "fs-begin", "rid-fs4", NULL,
+			    "/SD:/res/a.bin", 8, sha, 0, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/fs-begin", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_OK);
+	rlen = build_fs_req(req, sizeof(req), "fs-chunk", "rid-fs5", NULL,
+			    NULL, 0, NULL, 0, payload, sizeof(payload));
+	zassert_equal(ts_net_cmd_dispatch("sys/fs-chunk", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_IO,
+		      "后端如实（无挂载）——授权层已过");
+	rlen = build_fs_req(req, sizeof(req), "fs-commit", "rid-fs6", NULL,
+			    NULL, 0, NULL, 0, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/fs-commit", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_STATE,
+		      "未收满不得验（fail-closed）");
+	/* 无会话 commit 拒（begin 缺失——新 cmd 实例态） */
 }
 
 ZTEST_SUITE(framework_app, NULL, NULL, NULL, NULL, NULL);
