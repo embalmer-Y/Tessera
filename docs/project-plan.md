@@ -183,7 +183,7 @@
 | CG3 | 控制源仲裁 | arb_owner/压制门控/租约联动/审计 src 维度（sim 用例 + 板级判据）| — ✅（本地交互源信号接线随后续设备形态批）|
 | CG4 | 资源档位 | manifest tier/needs + 安装期匹配矩阵 + 尺寸门分档 + 槽池结构（**AG7 数值消费**）| — |
 | CG5 | 能力发现 + 资源打包 | get-info caps 块 + 部署会话资源推送（方案 A）| — ◐（A ✅；B = fs 写通道设计面独立单元）|
-| CG6 | estop 清除通道 | 按能力声明 + prov estop_remote_clear | — |
+| CG6 | estop 清除通道 | 按能力声明 + prov estop_remote_clear | — ✅（实质随 CG1/CG2 交付；收口 = LLD §9a 已知限制节）|
 | CG7 | 术语清扫 + 回归 | LLD 全库「立方体→设备」+ 板级全 bench 复验 + tag fw-v0.7.0 | review |
 
 ### 版本 V0.8.0 · 生态批（多开发者信任链——Q-40 方向落地）
@@ -208,6 +208,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.76 · 2026-10-14：**CG6 收口**——estop 清除实质面 CG1/CG2 已交付（核对无剩余）；LLD-ts-safety v0.3.3 §9a 已知限制节补齐（ISO 13850 偏离/本地通道硬件 deferred/仲裁信号源/stack_kb）。下一单元：CG7 术语清扫+复验+tag。
 - v1.75 · 2026-10-14：**CG5-A 交付（能力发现）**——get-info caps 块 + push_app 装前预检（装前拒零上传）；CG5-B 资源推送留独立单元（fs 写授权模型设计面）。下一单元：CG5-B。
 - v1.74 · 2026-10-14：**CG4 交付（资源档位——AG7 数值消费）**——固件 scan/match/双门/槽池断言 + Agent tier/needs 镜像（门+链接钉死 flags+三方一致同步）；夹具生成脚本入仓；twister 16/16（102）/agent 177+2s。下一单元：CG5 能力发现+资源打包。
 - v1.73 · 2026-10-14：**CG3 交付（控制源仲裁机制——合同 11 落地）**——席位 ts_arb_owner + set_arb 零输出/TS_EVT_ARB_CHANGED + ts_src_t 来源标记与压制门控（commit_src 入口，APP 路径不经闸）+ 审计 src 维度 + 租约本地席位视词语义（held_by/acquire + local_active 装饰）+ 顺带修 ts_safety_test_reset 审计环归零（用例序敏感缺陷）。用例 +2。下一单元：CG4 资源档位。

@@ -1,6 +1,6 @@
 # LLD · ts-safety v0.3
 
-> **状态**：v0.3.2（2026-10-14 CG3 · Q-41②：**§5b 仲裁机制实现**——arb_owner 席位/set_arb 零输出+TS_EVT_ARB_CHANGED/commit 来源标记 ts_src_t+压制门控/审计 src 维度；本地交互源信号源接线随后续设备形态批）。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-00-common.md`。
+> **状态**：v0.3.3（2026-10-14 CG6 收口：**§9a 已知限制节补齐**——estop 清除实质面 CG1/CG2 已交付，ISO 13850 偏离与本地通道/仲裁信号源 deferred 如实入节）。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-00-common.md`。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-00-common.md`。
 > **职责**：输出保护层（限幅/slew/限流）、三安全态状态机、estop 直达路径、fail-safe 管线、**控制源仲裁状态（本版新增）**。
 > **合同关联**：合同 1（三安全态）、2（唯一写路径）、3（断链 fail-safe——**部署模式化**，见 §3a）、5（estop 不经队列 + 清除按设备能力）、7（供电同轨）、8（本地独立生效）、**11（控制源仲裁——本版新增）**。
 
@@ -146,8 +146,15 @@ extern const ts_driver_ops_t ts_drivers[3];   /* [GPIO]=native_sim 桩/gpio、[P
 
 - DEC-22（断链时序参数）、DEC-23（分区）、DEC-27（容量/审计深度）、DEC-30②（共享写 = 后写胜出 + 审计含 app_id）已裁；无未决。
 
+## 9a. 已知限制（CG6 收口节 · 如实登记）
+
+- **ISO 13850「复位仅限本地人为」的有据偏离（§5a · Q-41③）**：现网全部板卡无本地交互能力——远程 `sys:estop-clear`（confirm="estop" 硬令牌 + host-only 面 + lease 外豁免）= 唯一清除通道；补偿控制 = 令牌确认 + 命令面留痕 + prov `estop_remote_clear` 可禁（v2 起有本地交互设备的出厂配置 = disabled〔保守侧〕）。**本地清除通道（estop 器件物理脱开 → 本地复位）随本地交互外设实际形态批接入**——届时本偏离撤销，prov 缺省翻 disabled（Q-42 现网兼容语义维持：v1 prov 缺字段 = enabled 不切断既有唯一通道）。
+- **控制源仲裁本地席位信号源（§5b · Q-41②）**：席位/门控/租约联动/审计 src 机制已全量落地（CG3），本地交互源**激活信号形态**（按键/UI 会话）随本地交互外设批定义接线——席位空缺期（现全部板卡）零行为变化。
+- **needs.stack_kb 记录不消费（§5a · CG4）**：V1 运行时消耗常量（既有已知限制维持）；消费面随板级内存预算批。
+
 ## 修订记录
 
+- v0.3.3 · 2026-10-14：**CG6 收口（estop 清除通道）**——实质面已随 CG1（§5a 措辞 + prov 字段）/CG2（命令面守卫 + 用例）交付；本版补 **§9a 已知限制节**（ISO 13850 有据偏离/本地清除通道随硬件批/仲裁信号源接线 deferred/stack_kb 不消费——CG1 注记声称的「已知限制节」此前缺正式节点，本版补齐）。
 - v0.3.2 · 2026-10-14：**CG3（Q-41② · §5b 仲裁机制实现）**——席位/set_arb/来源标记/压制门控/审计 src/事件外发（见 §5b 实现注记）；本地交互源信号源接线随后续设备形态批。顺带：ts_safety_test_reset 补审计环归零（用例序敏感缺陷）。
 - v0.3.1 · 2026-10-14：**CG2（Q-41①③ · §3a/§5a 实现）**——linkmon 模式守卫 + standalone boot 链路声明注记（net/init 侧）+ estop-clear prov 守卫注记；§5b 仲裁（arb_owner/来源标记/租约联动/审计 src）仍随 CG3。
 - v0.3 · 2026-10-14：**CG1（DEC-56/57/Q-41 A，措辞 DEC-58 已批）**——§3a 部署模式守卫（orchestrated 现行为不变 / standalone 断链仅留痕不迁移）；§5a estop 清除按设备能力声明（无交互设备维持远程令牌 = 有据偏离登记；有交互设备本地为主 + prov estop_remote_clear 缺省 disabled）；§5b 控制源仲裁状态（arb_owner 席位/激活压制远程/切换零输出 TS_EVT_ARB_CHANGED/审计 src 维度/租约联动注）；合同 3/5/11 措辞同步 AGENTS.md §6。实现随 CG2/CG3。
