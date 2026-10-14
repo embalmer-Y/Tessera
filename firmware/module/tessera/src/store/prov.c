@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /*
- * provisioning 只读访问（LLD-ts-store §4，DEC-30⑤ CBOR schema v1）。
+ * provisioning 只读访问（LLD-ts-store §4，DEC-30⑤ CBOR schema v1 + CG2 v2）。
  * 合同 10 强制点：**本文件零写调用**（L5 机械检查目标）；写通道仅烧录期
  *（prov_test.c 测试注入 / 外部工具 / Agent deploy_push_prov，MA3）。
  *
@@ -9,14 +9,23 @@
  *   map{"v":1, "node_id":tstr, "cube_id":tstr, "routers":[tstr×≤4],
  *        "pk0":bstr(32), "pk1":bstr(32), "cred":tstr,
  *        "pwr_ma":uint, "estop":uint}
- * 解码器为该固定 schema 的**确定性子集实现**（definite-length map/text/bytes/
- * uint；任何超集/不定长 = TS_E_IO）——不引入通用 CBOR 依赖（真机足迹纪律）。
+ * CBOR schema v2（CG2 · Q-42，键序 = v1 前缀 + 尾部追加）：
+ *   map{"v":2, …v1 同序九键…, "deploy_mode":uint(0|1), "estop_remote_clear":uint(0|1)}
+ * v1 兼容缺省（Q-42）：缺字段 = deploy_mode orchestrated + estop_remote_clear
+ * enabled（现网无本地交互设备的唯一清除通道）。解码器为固定 schema 的
+ * **确定性子集实现**（definite-length map/text/bytes/uint；任何超集/不定长
+ * = TS_E_IO）——不引入通用 CBOR 依赖（真机足迹纪律）。
  */
 #include <string.h>
 #include <ts/store.h>
 #include "internal.h"
 
-static ts_prov_t prov;
+/* 未装载/装载失败兜底 = v1 等义（estop_remote_clear enabled——测试构建常
+ * 无 prov；装载失败生产板走 boot fail-safe，此值仅为失败前的观测安全侧）。 */
+static ts_prov_t prov = {
+	.deploy_mode = TS_DEPLOY_ORCHESTRATED,
+	.estop_remote_clear = 1,
+};
 
 /* V0.4.0 M10（Q-34）：schema 走查（validate 与 load 共用——定义在 load 后） */
 static ts_res_t prov_walk(const uint8_t *cbor, uint32_t cbor_len, ts_prov_t *out);
@@ -150,16 +159,23 @@ static ts_res_t prov_walk(const uint8_t *cbor, uint32_t cbor_len, ts_prov_t *out
 	}
 	uint32_t pairs;
 
-	if (!rd_len(&r, ib & 0x1F, &pairs) || pairs != 9) {
+	/* v1 = 9 对；v2 = 11 对（键序 = v1 前缀 + 尾部追加，Q-42） */
+	if (!rd_len(&r, ib & 0x1F, &pairs) ||
+	    (pairs != 9 && pairs != 11)) {
 		return TS_E_IO;
 	}
 
-	char key[16];
+	/* v1 缺字段缺省（Q-42 现网兼容）——先置再走查（out 可能为脏 scratch） */
+	out->deploy_mode = TS_DEPLOY_ORCHESTRATED;
+	out->estop_remote_clear = 1;
+
+	char key[20];
 	uint32_t u;
 
 	/* 键序固定（定稿 schema）；逐键消费 */
-	static const char *const keys[9] = {
-		"v", "node_id", "cube_id", "routers", "pk0", "pk1", "cred", "pwr_ma", "estop",
+	static const char *const keys[11] = {
+		"v", "node_id", "cube_id", "routers", "pk0", "pk1", "cred", "pwr_ma",
+		"estop", "deploy_mode", "estop_remote_clear",
 	};
 
 	for (uint32_t k = 0; k < pairs; k++) {
@@ -167,8 +183,8 @@ static ts_res_t prov_walk(const uint8_t *cbor, uint32_t cbor_len, ts_prov_t *out
 			return TS_E_IO;
 		}
 		switch (k) {
-		case 0: /* v */
-			if (!rd_uint(&r, &u) || u != 1) {
+		case 0: /* v：9 对 ⇔ v1、11 对 ⇔ v2（错配 = 结构损坏） */
+			if (!rd_uint(&r, &u) || u != (uint32_t)(pairs == 9 ? 1 : 2)) {
 				return TS_E_IO;
 			}
 			break;
@@ -224,11 +240,23 @@ static ts_res_t prov_walk(const uint8_t *cbor, uint32_t cbor_len, ts_prov_t *out
 				return TS_E_IO;
 			}
 			break;
-		default:
+		case 8:
 			if (!rd_uint(&r, &u) || u > 0xFFU) {
 				return TS_E_IO; /* estop 标志域 u8（防静默截断，IR-10） */
 			}
 			out->estop_trigger_flags = (uint8_t)u;
+			break;
+		case 9: /* deploy_mode：域外值 fail-closed（未知模式不静默归并） */
+			if (!rd_uint(&r, &u) || u > (uint32_t)TS_DEPLOY_STANDALONE) {
+				return TS_E_IO;
+			}
+			out->deploy_mode = (uint8_t)u;
+			break;
+		default: /* estop_remote_clear：0|1 之外 fail-closed */
+			if (!rd_uint(&r, &u) || u > 1U) {
+				return TS_E_IO;
+			}
+			out->estop_remote_clear = (uint8_t)u;
 			break;
 		}
 	}

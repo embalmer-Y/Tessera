@@ -363,7 +363,8 @@ class FirmwareDomainPack(DomainPackBase):
 
             硬点：lease 门控 + confirm 令牌 + 固件写前全量 schema 校验 +
             per-boot 一次性窗（再写须复位循环）；生效 = 下次复位（applies=
-            next-reboot）。prov_path = prov CBOR v1 schema 文件（不构造内容）。
+            next-reboot）。prov_path = prov CBOR v1/v2 schema 文件（不构造
+            内容；v2 = CG2 部署模式/estop 远程清除字段，旧固件只收 v1）。
             高危操作（换身份/根钥）——生产部署前安全评审（Q-34 B 升级项）。"""
             args = {"node": node, "cube": cube, "prov_path": prov_path,
                     "holder": holder}

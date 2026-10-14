@@ -46,7 +46,14 @@ ts_res_t ts_store_init(void);
 ts_res_t ts_store_meta_write(const void *buf, uint16_t len);
 ts_res_t ts_store_meta_read(void *buf, uint16_t *len);
 
-/* ---- provisioning（§4）：CBOR schema v1（DEC-30⑤），运行时只读 ------------- */
+/* ---- provisioning（§4）：CBOR schema v1/v2（DEC-30⑤ + CG2/Q-42），运行时只读 - */
+
+/* 部署模式（CG2 · Q-41①/Q-42）：prov 声明，运行时不可切换（重配 = 重新
+ * provision——显式可审计）。v1 prov 缺字段 = orchestrated（fail-safe 侧缺省）。 */
+typedef enum {
+	TS_DEPLOY_ORCHESTRATED = 0, /* 断链 → set_link(false) 全输出 SAFE_LINKLOSS（现行为） */
+	TS_DEPLOY_STANDALONE = 1,   /* 独立运行：断链 = 留痕事件不迁移（LLD-ts-safety §3a） */
+} ts_deploy_mode_t;
 
 typedef struct {
 	char node_id[16];
@@ -56,6 +63,11 @@ typedef struct {
 	char zenoh_cred[96];
 	uint32_t power_budget_ma;
 	uint8_t estop_trigger_flags;
+	/* —— schema v2（CG2 · Q-41/Q-42）：部署模式与 estop 远程清除通道 —— */
+	uint8_t deploy_mode;        /* ts_deploy_mode_t；v1 缺字段 = orchestrated */
+	uint8_t estop_remote_clear; /* 0=disabled/1=enabled；v1 缺字段 = enabled
+				     * （现网兼容——无本地交互设备的唯一清除通道；
+				     * LLD-ts-safety §5a） */
 } ts_prov_t;
 
 ts_res_t ts_store_prov_load(void);      /* init 期一次；失败 = TS_E_IO */

@@ -1,6 +1,6 @@
-# LLD · ts-store v0.1 草案（DR-01 处置：新增模块）
+# LLD · ts-store v0.4
 
-> **状态**：v0.1 草案，随 design review-01 深化批次待 owner review。上位：HLD v0.2 §3（模块表）/§4.6；公共约定 `LLD-00-common.md`。
+> **状态**：v0.4.1（2026-10-14 CG2 · Q-42：**prov schema v2 实现**——v1/v2 双形态确定性解码〔9/11 对，键序 = v1 前缀 + 尾部追加〕+ v1 缺字段缺省〔orchestrated + estop 远程清除开放〕+ 域外值 fail-closed + 未装载兜底 enabled）。上位：HLD v0.2 §3（模块表）/§4.6；公共约定 `LLD-00-common.md`。
 > **职责**：统一存储抽象——分区布局、掉电安全 meta（kv）、只读 provisioning（prov）、noinit 留痕区、APP slot 读写。此前散落各模块的"烧录配置/安全参数分区"引用全部收敛到本模块。
 > **合同关联**：合同 10（安全参数不经运行时修改——prov 运行时只读是强制点）；DEC-05（slot/版本/回滚）、DEC-07（MCUmgr 底线）。
 
@@ -60,6 +60,7 @@ const ts_prov_t *ts_store_prov(void);     /* [any] 只读指针；无写接口�
 ```
 
 - **运行时无写路径**（L5 检查：prov.c 不含写调用，DR-01 处置的强制面）；轮换 = 烧录期重写 + 双 root_pubkeys 支持交接。
+- **v2 解码实现细节（CG2）**：`prov_walk` 收 9 对（v=1）/ 11 对（v=2）两形态，v 值与对数错配 = 结构损坏拒；v1 走查前置缺省（`deploy_mode=orchestrated`、`estop_remote_clear=1`——out 可能为脏 scratch）；`deploy_mode > 1` / `estop_remote_clear > 1` = TS_E_IO（未知值不静默归并，IR-10 同型）；未装载/装载失败的静态兜底 = 同 v1 缺省（estop_remote_clear enabled——测试构建常无 prov，装载失败生产板走 boot fail-safe）。烧录工具侧：agent/tools/flash_prov.py 产 v1/v2 双形态分区镜像（v2 字段显式给值才追加——旧固件兼容）。
 
 ## 5. noinit（noinit.c）
 
@@ -100,6 +101,7 @@ ts_res_t ts_store_slot_erase(uint8_t slot);  /* 全槽抹除：安装序前置�
 - DEC-20（locator/宿主）、DEC-21（根公钥体系）、DEC-23（分区布局）、DEC-27（META_MAX）、DEC-30⑤（CBOR schema v1）已裁；无未决。
 
 ## 修订记录
+- v0.4.1 · 2026-10-14：**CG2（Q-42 · prov schema v2 实现）**——§4 双形态解码 + 缺省/域外值/兜底语义（见 §4 实现细节条）；用例 framework.store test_prov_v2_fields（v2 字段/域外拒/v-pairs 错配拒）+ test_prov_ok 增 v1 缺省断言。
 - v0.4 · 2026-10-14：CG1（Q-41/Q-39 · HLD-contract-v2 §7）——prov schema v2 增 `deploy_mode`（0=orchestrated 缺省/1=standalone——linkmon 模式守卫消费）与 `estop_remote_clear`（v1 缺字段 = enabled 现网兼容；有交互设备出厂 disabled）；槽池档位结构注（统一大槽 + 档位逻辑上限——实现随 CG4）。
 
 - v0.1 · 2026-09-20：首版（design review-01 DR-01/17 处置新增）。

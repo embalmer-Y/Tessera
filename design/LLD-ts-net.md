@@ -1,6 +1,6 @@
-# LLD · ts-net v0.3.6
+# LLD · ts-net v0.3.9
 
-> **状态**：v0.3.6（2026-09-26 DEC-43：pubq 互斥——push/flush 并发安全〔锁内出队 + 锁外发送〕；锁序 write_lock → pubq 单向）。上位：HLD §3.5；公共约定 `LLD-00-common.md`。
+> **状态**：v0.3.9（2026-10-14 CG2 · Q-41①③/Q-42：**部署模式守卫实现**——linkmon 仅 orchestrated 迁移 + standalone boot 链路声明〔net/init〕+ estop-clear prov 守卫；CG1 措辞〔§4 estop-clear 行/§4.5 本地席位注/§6 模式化〕同文件 10-14 早前落节）。上位：HLD §3.5 + HLD-contract-v2 §2-§4；公共约定 `LLD-00-common.md`。
 > **职责**：zenoh-pico 会话管理、命名空间构造、命令-回执分发、遥测/事件发布、心跳监视（断链判定）、控制租约（DEC-41）。
 > **合同关联**：合同 3（断链 fail-safe 判定源）、8（本地独立生效——判定不依赖外部确认）、9（rx 串行化）、10（命令准入/留痕）。
 > **外部依赖**：zenoh-pico 1.10.1（钉版，DR-22；上游零源码补丁，接线要点见 docs/dev-environment.md §7/§8）。
@@ -111,8 +111,9 @@ int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>
 ## 6. 心跳监视（linkmon.c）——合同 3 判定源（模式化 · CG1/Q-41①）
 
 - 发送：周期〔DEC-22：prov 可配，出厂默认 1000ms〕pub `…/sys/hb`；监视：host 侧 `…/sys/hb-host` 超过〔DEC-22：默认 6〕个周期未达 → **模式守卫后** `ts_safety_set_link(false)`（经 sysworkq 串行迁移）——**`deploy_mode == orchestrated` 才触发迁移**（缺省；现行行为不变）；`standalone` 下断链仅留观测事件（TS_EVT_NET_LINK_DOWN / link 计数），**不调 set_link**（LLD-ts-safety §3a）；恢复带滞回（连续〔DEC-27：2〕个周期）才 `set_link(true)`（对称地仅 orchestrated）。
+- **standalone boot 链路声明（CG2 实现定案）**：`ts_net_init`（boot 步骤 net_init，线程上下文）在 prov 装载成功且 `deploy_mode == standalone` 时调 `ts_safety_set_link(true)` 一次——镜像 TS_NET=n 构建 glue 的 BOOT_DONE 声明模式。输出自此 ACTIVE（值保持 poweron 安全值直至显式 commit——DR-04 无回写），本地合同全量生效；「standalone = 本地逻辑照常」的 ACTIVE 驱动者由此落地（CG1 文本未覆盖的实现缺口，HLD §2「断链不迁移」的对称推论）。orchestrated（含 v1 prov 与装载失败缺省）不声明——现行为一分不变。
 - 判定完全本地（不依赖 router 确认自己的存在——合同 8）；输入/遥测方向不受 set_link 影响（合同 3）。
-- 测试注入：`CONFIG_TS_TEST` 构建提供 hb 帧注入/抑制接口（L4 断链场景驱动）；**模式守卫测试注入随 CG2**（standalone 构建断链 = 状态零迁移断言）。
+- 测试注入：`CONFIG_TS_TEST` 构建提供 hb 帧注入/抑制接口（L4 断链场景驱动）；**模式守卫测试已落（CG2）**：framework.net test_14（standalone 断链 = 状态零迁移断言 + orchestrated 对照迁移）+ test_15（estop-clear prov 守卫拒/放行）。
 
 ## 7. Kconfig（节选）
 
@@ -141,6 +142,7 @@ int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>
 
 ## 修订记录
 
+- v0.3.9 · 2026-10-14：**CG2（Q-41①③/Q-42 · 部署模式实现）**——§6 linkmon 模式守卫落地（`link_migrates_safety()`：仅 orchestrated 调 set_link，断链/恢复对称）+ **standalone boot 链路声明**（ts_net_init 期 set_link(true) 一次——镜像 TS_NET=n glue 模式；CG1 文本未覆盖的 ACTIVE 驱动者缺口，本批定案）+ §4 estop-clear prov 守卫（`estop_remote_clear=0` → TS_E_STATE + need=local-clear；v1 缺字段 = enabled）；用例 framework.net test_14/15（零迁移断言 + 守卫矩阵）。同批：agent/tools/flash_prov.py 修复分区头缺失（u32 len + u16 crc16-ccitt——此前直写裸 CBOR 装载器必拒，生产烧录路径既有缺陷）+ v2 字段输出。
 - v0.3.8 · 2026-10-07：MD1.2g（单元 A，DEC-47①②⑥）——§3 增 `ts_net_key_av`（专用帧分片通道 …/av/<id>/frame）；§5 增 avq（信封/打拍/重试/背压/DOWN 自弃语义）；cbor_min 增 put_bstr；Kconfig 增 TS_NET_PUBLISH_* 族与 TS_NET_AVQ_DEPTH（§7 同步——常量出处 = DEC-47②）。用例 framework.net test_12_avq。回归 twister 15/15（68 用例）。
 - v0.3.6 · 2026-09-26：DEC-43——§5 pubq 互斥（push/flush 并发安全；flush 锁内出队 + 锁外发送防传输阻塞反压；锁序 write_lock → pubq 单向无环）。回归 framework.conc test_03 + 全量 13/13（54 用例）。
 - v0.3.5 · 2026-09-25：impl-review-01 修复批（F-1/F-3/F-4）——§5 订阅扩至七类（periph 插拔/附着 + 功率预算拒绝归因外发，extra 扁平对 0…3 个）+ pubq 定容 128B（溯源见 §5）；§4.2 idem 回放判定置于 key/op 匹配后（跨 key 同 idem 拒绝）；§4.3 gated 按 suffix 回查回填 + sys_init 错误上抛。回归：twister 10/10（46 用例）/ L5 6/6 / pytest 全绿。

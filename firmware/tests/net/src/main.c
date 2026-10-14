@@ -1238,4 +1238,129 @@ ZTEST(framework_net, test_13_prov_write_gate)
 					  sizeof(resp), &rl2), TS_E_PARAM);
 }
 
+/* ---- CG2（Q-41①③/Q-42）：部署模式守卫 + estop 远程清除配置面 ------------- */
+
+/* prov v2 构造（store 测试同键序；走查正确性归 framework.store——此处仅
+ * 供 net 侧行为测试注入模式/清除字段） */
+static size_t build_prov_v2(uint8_t *buf, size_t cap, int ver, uint8_t deploy_mode,
+			    uint8_t estop_remote_clear)
+{
+	static const uint8_t pk[32]; /* 全零（域值面归 store 测试） */
+	size_t p = 0;
+
+	zassert_true(ts_cbor_put_map(buf, cap, &p, ver == 2 ? 11 : 9));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "v"));
+	zassert_true(ts_cbor_put_uint(buf, cap, &p, ver));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "node_id"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "nn"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "cube_id"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "cc"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "routers"));
+	zassert_true(ts_cbor_put_array(buf, cap, &p, 1));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "tcp/1.2.3.4:9955"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "pk0"));
+	zassert_true(ts_cbor_put_bstr(buf, cap, &p, pk, sizeof(pk)));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "pk1"));
+	zassert_true(ts_cbor_put_bstr(buf, cap, &p, pk, sizeof(pk)));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "cred"));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, ""));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "pwr_ma"));
+	zassert_true(ts_cbor_put_uint(buf, cap, &p, 100));
+	zassert_true(ts_cbor_put_tstr(buf, cap, &p, "estop"));
+	zassert_true(ts_cbor_put_uint(buf, cap, &p, 0));
+	if (ver == 2) {
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, "deploy_mode"));
+		zassert_true(ts_cbor_put_uint(buf, cap, &p, deploy_mode));
+		zassert_true(ts_cbor_put_tstr(buf, cap, &p, "estop_remote_clear"));
+		zassert_true(ts_cbor_put_uint(buf, cap, &p, estop_remote_clear));
+	}
+	return p;
+}
+
+/* LLD-ts-net §6 承诺用例：standalone 构建断链 = 状态零迁移断言 */
+ZTEST(framework_net, test_14_standalone_zero_migration)
+{
+	static const ts_out_ch_t led_ch = {
+		.uid = "saled", .kind = TS_CH_GPIO,
+		.poweron = {.b = false}, .linkloss = {.b = true}, .fault = {.b = false},
+	};
+	uint8_t prov[512];
+	size_t plen = build_prov_v2(prov, sizeof(prov), 2, TS_DEPLOY_STANDALONE, 1);
+	ts_ch_state_t st;
+
+	zassert_equal(ts_store_prov_write_test(prov, plen), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_OK);
+	ts_safety_test_reset();
+	zassert_equal(ts_safety_register_channel(&led_ch), TS_OK);
+	ts_net_test_reset();
+
+	/* standalone boot 链路声明（net/init.c 同型镜像）：输出 ACTIVE、值保持
+	 * poweron 安全值（DR-04 无回写） */
+	ts_safety_set_link(true);
+	zassert_equal(ts_safety_channel_state("saled", &st), TS_OK);
+	zassert_equal(st, TS_ST_ACTIVE);
+
+	/* hb 判定建立（滞回 2 次）——standalone 不额外迁移（幂等 ACTIVE） */
+	ts_net_linkmon_hb_host(100);
+	ts_net_linkmon_hb_host(1100);
+	zassert_true(ts_net_link_up());
+	zassert_equal(ts_safety_commit("saled", (ts_out_value_t){.b = true}), TS_OK,
+		      "本地逻辑照常（写路径开放）");
+
+	/* 断链超时：判定 down + 事件留痕，但状态零迁移（§3a）——仍 ACTIVE、
+	 * 写路径不受断链影响 */
+	ts_net_linkmon_tick(1100 + 6 * 1000 + 1);
+	zassert_false(ts_net_link_up(), "判定状态照常翻转（观测面不变）");
+	zassert_equal(ts_safety_channel_state("saled", &st), TS_OK);
+	zassert_equal(st, TS_ST_ACTIVE, "standalone 断链零迁移");
+	zassert_equal(ts_safety_commit("saled", (ts_out_value_t){.b = false}), TS_OK,
+		      "断链后本地写照常（合同 3 模式化）");
+
+	/* 对照：orchestrated（v1 缺省）同型驱动 → LINKLOSS 迁移（现行为不变） */
+	plen = build_prov_v2(prov, sizeof(prov), 1, 0, 0);
+	zassert_equal(ts_store_prov_write_test(prov, plen), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_OK);
+	ts_net_test_reset(); /* linkmon 判定复位（通道表保留） */
+	ts_net_linkmon_hb_host(100);
+	ts_net_linkmon_hb_host(1100);
+	zassert_true(ts_net_link_up());
+	ts_net_linkmon_tick(1100 + 6 * 1000 + 1);
+	zassert_equal(ts_safety_channel_state("saled", &st), TS_OK);
+	zassert_equal(st, TS_ST_SAFE_LINKLOSS, "orchestrated 断链迁移（对照）");
+	zassert_equal(ts_safety_commit("saled", (ts_out_value_t){.b = true}), TS_E_STATE,
+		      "orchestrated 断链写拒（对照）");
+}
+
+/* LLD-ts-safety §5a：estop_remote_clear=0 → 远程清除拒（有本地交互设备
+ * 保守缺省；v1 缺字段 = enabled 现网兼容） */
+ZTEST(framework_net, test_15_estop_clear_remote_disabled)
+{
+	uint8_t req[192];
+	uint8_t resp[192];
+	size_t rlen;
+	size_t rl2 = 0;
+	uint8_t prov[512];
+	size_t plen = build_prov_v2(prov, sizeof(prov), 2, TS_DEPLOY_ORCHESTRATED, 0);
+
+	zassert_equal(ts_store_prov_write_test(prov, plen), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_OK);
+	ts_net_test_reset();
+	ts_net_cmd_test_reset();
+	zassert_equal(ts_net_cmd_sys_init(), TS_OK);
+
+	/* 正确令牌仍被拒（通道结构性禁用——TS_E_STATE + need local-clear） */
+	rlen = build_req(req, sizeof(req), "estop-clear", "confirm", "estop", 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/estop-clear", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_STATE);
+	zassert_not_null(strstr((char *)resp, "local-clear"), "回执带 need=local-clear");
+
+	/* 恢复 enabled（v1 缺省等义）→ 既有放行语义 */
+	plen = build_prov_v2(prov, sizeof(prov), 1, 0, 0);
+	zassert_equal(ts_store_prov_write_test(prov, plen), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_OK);
+	rlen = build_req(req, sizeof(req), "estop-clear", "confirm", "estop", 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/estop-clear", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_OK);
+}
+
 ZTEST_SUITE(framework_net, NULL, NULL, NULL, NULL, NULL);

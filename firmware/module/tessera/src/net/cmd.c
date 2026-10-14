@@ -299,9 +299,19 @@ static ts_res_t cmd_prov_write(const ts_net_cmd_args_t *a, uint8_t *r, size_t ca
 }
 
 static ts_res_t cmd_estop_clear(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n){
-	/* 确认令牌硬点（DEC-30①）：confirm != "estop" → 拒绝（防误触） */
 	size_t p = 0;
 
+	/* CG2（Q-41③ · LLD-ts-safety §5a）：prov estop_remote_clear = disabled
+	 * → 远程清除通道拒（有本地交互设备的保守缺省——本地清除为主）；
+	 * v1 prov 缺字段 = enabled（现网兼容）。 */
+	if (ts_store_prov()->estop_remote_clear == 0) {
+		if (ts_cbor_put_map(r, cap, &p, 1) && ts_cbor_put_tstr(r, cap, &p, "need") &&
+		    ts_cbor_put_tstr(r, cap, &p, "local-clear")) {
+			*n = p;
+		}
+		return TS_E_STATE;
+	}
+	/* 确认令牌硬点（DEC-30①）：confirm != "estop" → 拒绝（防误触） */
 	if (strcmp(a->confirm, "estop") != 0) {
 		if (ts_cbor_put_map(r, cap, &p, 1) && ts_cbor_put_tstr(r, cap, &p, "need") &&
 		    ts_cbor_put_tstr(r, cap, &p, "confirm=estop")) {

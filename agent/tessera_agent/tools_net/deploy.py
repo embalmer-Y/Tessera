@@ -264,8 +264,8 @@ def push_prov(
 
     lease 门控 + confirm="prov" 硬令牌 + 固件侧写前全量 schema 校验 +
     per-boot 一次性窗（再写须复位循环）。生效 = 下次复位（返回 applies
-    ="next-reboot"——调用方按需复位板）。cbor = prov CBOR v1 schema 字节
-    （gen 脚本/迁移工具产出；本函数不构造内容）。"""
+    ="next-reboot"——调用方按需复位板）。cbor = prov CBOR v1/v2 schema 字节
+    （gen 脚本/迁移工具产出；本函数不构造内容——CG2 起固件双形态收）。"""
     log = log_fn or (lambda s: None)
     if not cbor:
         msg = "prov cbor 为空"

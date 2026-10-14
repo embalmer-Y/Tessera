@@ -1,6 +1,6 @@
 # LLD · ts-safety v0.3
 
-> **状态**：v0.3（2026-10-14 CG1 · DEC-56/57/Q-41 A：**控制源仲裁（arb_owner）+ estop 清除按设备能力 + 合同 3/5/11 措辞落节**——HLD-contract-v2 §2-§4 展开；措辞 owner 已批 DEC-58）。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-00-common.md`。
+> **状态**：v0.3.1（2026-10-14 CG2 · Q-41①③：**§3a/§5a 实现落地**——linkmon 模式守卫 + standalone boot 链路声明〔net/init 侧驱动〕+ estop-clear prov 守卫；§5b 仲裁机制仍随 CG3）。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-00-common.md`。
 > **职责**：输出保护层（限幅/slew/限流）、三安全态状态机、estop 直达路径、fail-safe 管线、**控制源仲裁状态（本版新增）**。
 > **合同关联**：合同 1（三安全态）、2（唯一写路径）、3（断链 fail-safe——**部署模式化**，见 §3a）、5（estop 不经队列 + 清除按设备能力）、7（供电同轨）、8（本地独立生效）、**11（控制源仲裁——本版新增）**。
 
@@ -56,6 +56,7 @@ SAFE_POWERON ──── 链路确立(ts_safety_set_link(true))──→ ACTIVE
 - **落点**：模式守卫在 linkmon 侧（LLD-ts-net §6）——`deploy_mode == TS_DEPLOY_ORCHESTRATED` 才触发迁移调用；prov schema v2 字段（LLD-ts-store §4），**fail-safe 侧缺省**（缺字段 = orchestrated）。
 - 恢复对称：orchestrated 恢复 = 显式重写（DR-04 既有）；standalone 无迁移故无恢复动作。
 - 运行时切换：V1 不做（prov 声明；重配 = 重新 provision——显式可审计）；混合形态（按通道组）机制余地留在 schema 数组形态，需求实证后另立 Q。
+- **实现注记（CG2）**：守卫落点 = linkmon `link_migrates_safety()`（断链/恢复对称仅 orchestrated 迁移）；standalone 的 ACTIVE 驱动者 = ts_net_init boot 链路声明（LLD-ts-net §6——CG1 文本未覆盖的实现缺口，本批定案）。用例 framework.net test_14（零迁移断言）。
 
 ## 4. 唯一写路径出口（commit.c）——合同 2 的强制点
 
@@ -99,6 +100,7 @@ ts_res_t ts_safety_clear_fault(void);   /* [thread] 清除通道（按设备能�
 - **无本地交互能力的设备**（现全部板卡）：维持现状——远程 `sys:estop-clear`（confirm="estop" 硬令牌，LLD-ts-net §4）。**对 ISO 13850「复位仅限本地人为」的有据偏离**：无本地手段可用，令牌 + host-only 面 = 补偿控制；登记本文件已知限制节。
 - **有本地交互能力的设备**（未来本地交互外设接入后）：本地清除为主（estop 器件物理脱开，ISO 13850 语义）；远程清除由 prov `estop_remote_clear` 配置（`enabled | disabled`，**缺省 disabled——保守侧**；enabled 时仍须令牌）。
 - 触发面（硬件 ISR 至高）**两形态一字不差**；清除不解除锁存条件外任何状态、不引发输出（既有语义维持）。
+- **实现注记（CG2）**：命令面守卫 = `sys:estop-clear` 入口按 prov `estop_remote_clear` 拒（TS_E_STATE + need=local-clear）；v1 prov 缺字段 = enabled（现网兼容——无本地交互设备的唯一清除通道）。用例 framework.net test_15。
 
 ## 5b. 控制源仲裁状态（Q-41② · 合同 11——本版新增）
 
@@ -145,6 +147,7 @@ extern const ts_driver_ops_t ts_drivers[3];   /* [GPIO]=native_sim 桩/gpio、[P
 
 ## 修订记录
 
+- v0.3.1 · 2026-10-14：**CG2（Q-41①③ · §3a/§5a 实现）**——linkmon 模式守卫 + standalone boot 链路声明注记（net/init 侧）+ estop-clear prov 守卫注记；§5b 仲裁（arb_owner/来源标记/租约联动/审计 src）仍随 CG3。
 - v0.3 · 2026-10-14：**CG1（DEC-56/57/Q-41 A，措辞 DEC-58 已批）**——§3a 部署模式守卫（orchestrated 现行为不变 / standalone 断链仅留痕不迁移）；§5a estop 清除按设备能力声明（无交互设备维持远程令牌 = 有据偏离登记；有交互设备本地为主 + prov estop_remote_clear 缺省 disabled）；§5b 控制源仲裁状态（arb_owner 席位/激活压制远程/切换零输出 TS_EVT_ARB_CHANGED/审计 src 维度/租约联动注）；合同 3/5/11 措辞同步 AGENTS.md §6。实现随 CG2/CG3。
 - v0.2.6 · 2026-10-02：板级九（PWM/ADC 真后端，docs/board-periph-01.md）——① §3 断链迁移补"声明值落驱动"（HLD §4.5-S2 欠账修复：此前仅改 shadow，物理输出滞留断链前值；真机 PB5 首证 linkloss 0% 落 LEDC）；② §6 增 CONFIG_TS_DRV_PWM 真机后端（zephyr,user 绑定 + err 计数；LEDC duty 六点 ±1‰ 真机验证）。回归：twister 15/15（65 用例）/L5 6/6 全绿。
 - v0.2.5 · 2026-10-01：板级八（estop 真机，docs/board-estop-01.md）——① §5 estop DT 绑定机制修订：**aliases**（`DT_ALIAS(ts_estop_gpio)` ← 板 overlay `aliases { ts-estop-gpio = &node; }`）替代 chosen——v4.4 EDT 管道不发射非 zephyr 前缀 chosen 宏（dtlib 属性在、edtlib 弃，实证留痕）；DR-11 语义不变；② 真机实证：引脚沿→ISR 直达→fault 落通道 ≤20ms（轮询粒度上界）→锁存→clear+显式 commit 恢复，×3 轮；合同 5 链路真机首证。

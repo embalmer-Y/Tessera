@@ -895,6 +895,10 @@
 
 **建议**：三项全按建议值批准。**影响**：CG2（prov 解码 + linkmon 守卫）/CG3（仲裁）/CG4（档位实现）开工前置；Agent 侧 manifest 镜像同步（TsapManifest 增 tier/needs 可选字段——CG4 同批）。
 
+- 2026-10-14 · **DEC-59（Q-42 裁决：三项全按建议值进入实施）**：owner 于 Q-42 呈递（门③）后回复「请你继续按照计划进行开发」（2026-10-14）——按项目既定纪律（呈递后 owner 泛指令继续 = 按计划建议值推进，先例 NV-5/NV-4 逾时顺延同型），登记为 **① prov schema v2（deploy_mode 0=orchestrated 缺省/1=standalone；estop_remote_clear v1 缺字段 = enabled 现网兼容）② manifest v2 tier/needs 字段（small 缺省/large + needs——CG4 消费）③ 尺寸门分档（small=16KB 维持/large=256KB）** 三项按建议值批准。**可逆性保障**：全字段向后兼容（v1 prov/manifest 零重烧零重打包）、档位值为常量、未装载兜底 = v1 等义——owner 后续逐项异议均可低成本翻正。若 owner 对任一项另有裁定，本登记按新裁修正。
+
+- 2026-10-14 · **CG2 交付（部署模式实现——DEC-59/Q-41①③ 落地）**：① **prov schema v2**（prov.c）：双形态确定性解码（9 对 v1 / 11 对 v2——键序 = v1 前缀 + 尾部追加 deploy_mode/estop_remote_clear）；v1 缺字段缺省（orchestrated + 远程清除开放）+ 域外值 fail-closed + v/对数错配拒 + 未装载静态兜底同 v1 缺省。② **linkmon 模式守卫**（linkmon.c）：`link_migrates_safety()`——断链/恢复对称仅 orchestrated 调 set_link；standalone 断链仅留观测事件（事件面不变）。③ **standalone boot 链路声明**（net/init.c）：prov 装载成功且 standalone → ts_net_init 期 set_link(true) 一次（镜像 TS_NET=n glue 的 BOOT_DONE 声明模式）——**CG1 文本未覆盖的 ACTIVE 驱动者缺口本批定案**（「standalone = 本地逻辑照常」的输出使能路径；输出值保持 poweron 安全值直至显式 commit——DR-04 无回写）。④ **estop-clear 命令面守卫**（cmd.c）：`estop_remote_clear=0` → TS_E_STATE + need=local-clear（有本地交互设备保守缺省；v1 兼容 enabled）。⑤ **测试**：framework.store test_prov_v2_fields（v2 字段/域外拒/错配拒；主+flash 两变体）+ test_prov_ok 增 v1 缺省断言；framework.net test_14（standalone 断链零迁移断言 + orchestrated 对照迁移）+ test_15（estop-clear 守卫矩阵）。⑥ **顺带修复既有缺陷**：agent/tools/flash_prov.py 此前直写裸 CBOR（缺 u32 len + u16 crc16 分区头——装载器必拒，生产 esptool 烧录路径缺陷；代码检视发现，非真机拦截）→ 修复 + v2 字段输出（v1 形状缺省维持——旧固件兼容）。回归：twister **16/16（99 用例，+4）**/agent/ruff/sync_check 全绿。**下一单元 CG3：控制源仲裁（arb_owner 席位/激活压制远程/切换零输出/租约联动/审计 src——LLD-ts-safety §5b）**。
+
 - 2026-10-13 · **R 批 research 四篇交付（通用域解放先导批——R6/R7/R8/R9，Q-38…Q-41 四呈递登记停门）**：三路 web 实抓（wasm 工程链/信任链/工业仲裁先例）+ 一路本地综合（创作循环，复用 agent-cli-research-01）。详见 `docs/research/R6…R9`。**Q-38 = Agent 批开工前置（owner 已定 Agent 侧为开发重心）；Q-39/Q-41 = 合同泛化批前置；Q-40 = 生态批前置。**
 
 ## Q-38（Agent 创作循环与独立 CLI——通用域解放 Agent 批呈递停门，2026-10-13）

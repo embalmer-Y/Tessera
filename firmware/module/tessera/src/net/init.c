@@ -8,6 +8,7 @@
 #include <string.h>
 #include <ts/core.h>
 #include <ts/net.h>
+#include <ts/safety.h>
 #include <ts/store.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
@@ -64,6 +65,18 @@ ts_res_t ts_net_init(void)
 	}
 	printk("[ts-net] init prov_load=%d node=%s cube=%s\n", (int)plr, node, cube);
 	(void)ts_net_set_ids(node, cube);
+
+	/* CG2（Q-41① · LLD-ts-safety §3a）：standalone 部署 boot 声明链路——
+	 * 镜像 TS_NET=n 构建的 glue BOOT_DONE 声明模式。输出自此 ACTIVE（值
+	 * 仍为 poweron 安全值直至显式 commit——DR-04 无回写），本地合同全量
+	 * 生效（estop/看门狗/限幅至高）；此后 linkmon 断链/恢复仅事件（§3a
+	 * 零迁移）。orchestrated（含 v1 prov 与装载失败缺省）不声明——现行
+	 * 为一分不变（boot 上下文线程态，set_link 写锁可用；通道表此刻已由
+	 * 板级 main 注册完毕）。 */
+	if (plr == TS_OK && prov->deploy_mode == TS_DEPLOY_STANDALONE) {
+		ts_safety_set_link(true);
+		printk("[ts-net] deploy_mode=standalone: link declared up (boot)\n");
+	}
 
 	/* sys 命令表 + 事件订阅（host_only；表满/订阅满 = 装配错误，如实返回） */
 	ts_res_t r = ts_net_cmd_sys_init();
