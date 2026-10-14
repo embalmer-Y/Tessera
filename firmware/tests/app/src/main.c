@@ -470,6 +470,84 @@ ZTEST(framework_app, test_10_tier_matching)
 	zassert_equal(ts_appmgr_app_stop(), TS_OK);
 }
 
+/* ---- CG5-A（Q-39④）：get-info caps 块——设备能力自报 --------------------- */
+ZTEST(framework_app, test_11_get_info_caps)
+{
+	uint8_t req[64];
+	uint8_t resp[256];
+	size_t rlen = 0;
+	size_t p = 0;
+
+	ts_net_cmd_test_reset();
+	zassert_equal(ts_net_cmd_sys_init(), TS_OK);
+	zassert_true(ts_cbor_put_map(req, sizeof(req), &p, 1));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "op"));
+	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "get-info"));
+	zassert_equal(ts_net_cmd_dispatch("sys/get-info", req, p, resp,
+					  sizeof(resp), &rlen), TS_OK);
+	/* 回执 = v1 信封 map{status, data:<原样 handler map>}（wrap_reply：
+	 * data 为裸 CBOR 值非 bstr——r2 从信封 value 位置续读）。caps 块：
+	 * small-only 设备（LOAD_MAX 16K < GATE_LARGE 256K）→ tiers 恰
+	 * ["small"]；max_linear = WAMR_HEAP/1024（本套件 393216 → 384）；
+	 * slot_pool = SLOT_SIZE×COUNT/1024（16384×4 → 64） */
+	char k[24];
+	uint32_t pairs;
+	int64_t st = 0;
+
+	ts_cbor_rd_t r;
+
+	ts_cbor_rd_init(&r, resp, rlen);
+	zassert_true(ts_cbor_map_open(&r, &pairs));
+	zassert_equal(pairs, 2U);
+	zassert_true(ts_cbor_tstr(&r, k, sizeof(k)));
+	zassert_equal(strcmp(k, "status"), 0);
+	zassert_true(ts_cbor_int(&r, &st));
+	zassert_equal(st, 0);
+	zassert_true(ts_cbor_tstr(&r, k, sizeof(k)));
+	zassert_equal(strcmp(k, "data"), 0);
+	ts_cbor_rd_t r2;
+	uint64_t dummy;
+
+	ts_cbor_rd_init(&r2, r.p, r.rem);
+	zassert_true(ts_cbor_map_open(&r2, &pairs));
+	bool have_caps = false;
+	ts_cbor_rd_t *const rr = &r2;
+
+	for (uint32_t i = 0; i < pairs; i++) {
+		zassert_true(ts_cbor_tstr(rr, k, sizeof(k)));
+		if (strcmp(k, "caps") != 0) {
+			zassert_true(ts_cbor_skip(rr, 0));
+			continue;
+		}
+		have_caps = true;
+		uint32_t cp, n = 0;
+		char tk[24];
+
+		zassert_true(ts_cbor_map_open(rr, &cp));
+		for (uint32_t j = 0; j < cp; j++) {
+			zassert_true(ts_cbor_tstr(rr, tk, sizeof(tk)));
+			if (strcmp(tk, "tiers") == 0) {
+				zassert_true(ts_cbor_array_open(rr, &n));
+				zassert_equal(n, 1, "small-only 设备 tiers 恰 1 项");
+				char t[8];
+				zassert_true(ts_cbor_tstr(rr, t, sizeof(t)));
+				zassert_equal(strcmp(t, "small"), 0);
+			} else if (strcmp(tk, "max_linear_memory_kb") == 0) {
+				zassert_true(ts_cbor_uint(rr, &dummy));
+				zassert_equal(dummy, (uint64_t)CONFIG_TS_APP_WAMR_HEAP / 1024);
+			} else if (strcmp(tk, "slot_pool_kb") == 0) {
+				zassert_true(ts_cbor_uint(rr, &dummy));
+				zassert_equal(dummy, (uint64_t)CONFIG_TS_STORE_SLOT_SIZE *
+						       CONFIG_TS_STORE_SLOT_COUNT / 1024);
+			} else {
+				zassert_true(false, "caps 未知键");
+			}
+		}
+	}
+	zassert_true(have_caps, "WAMR 构建必带 caps 块");
+	(void)dummy;
+}
+
 ZTEST_SUITE(framework_app, NULL, NULL, NULL, NULL, NULL);
 
 /* ---- G3（单元 F）：INPUT_CHANGED → APP mailbox 路由 ----------------------- */

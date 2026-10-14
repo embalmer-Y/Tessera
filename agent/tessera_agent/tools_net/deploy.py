@@ -136,7 +136,7 @@ def push_app(
         raise TaError(TA_E_ARGS, msg, domain="deploy")
 
     # ① tsap_verify 强制复验（不可跳过——工具内实现，链外直调同样强制）
-    tsap_tools.tsap_verify(package_path, pub_key_path)
+    verify = tsap_tools.tsap_verify(package_path, pub_key_path)
     pkg = Path(package_path).expanduser().read_bytes()
     if len(pkg) < _TSAP_HDR.size:
         msg = f"包长度不足（头 16B）: {len(pkg)}"
@@ -183,6 +183,27 @@ def push_app(
         last_renew = time.monotonic()
 
     try:
+        # ①b 设备能力预检（CG5-A · Q-39④：caps 消费——装前匹配前置到
+        # 部署会话，免整包上传后才被安装期矩阵拒；caps 缺失 = 旧固件 →
+        # 跳过（新固件安装期矩阵仍兜底）。get-info 只读豁免租约。
+        info = _cmd_ok(svc, node, cube, "get-info", rid("cap"))
+        caps = info.get("caps") or {}
+        tiers = caps.get("tiers") or []
+        manifest = verify.get("manifest") or {}
+        tier = str(manifest.get("tier") or "small")
+        if tiers and tier not in tiers:
+            msg = f"设备档位不支持 tier={tier}（caps.tiers={tiers}）"
+            raise TaError(TA_E_POLICY, msg, domain="deploy",
+                          detail={"tier": tier, "caps": caps})
+        lin = (manifest.get("needs") or {}).get("linear_memory_kb")
+        cap_lin = caps.get("max_linear_memory_kb")
+        if lin is not None and cap_lin is not None and int(lin) > int(cap_lin):
+            msg = f"线性内存申报 {lin}KB 超设备帽 {cap_lin}KB"
+            raise TaError(TA_E_POLICY, msg, domain="deploy",
+                          detail={"linear_memory_kb": lin,
+                                  "max_linear_memory_kb": cap_lin})
+        result["device_caps"] = caps or "legacy-fw"
+
         # ② 租约闭环：acquire（续期幂等——同 holder re-acquire）
         renew(force=True)
         lease_acquired = True

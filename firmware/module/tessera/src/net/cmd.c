@@ -74,6 +74,42 @@ static ts_res_t cmd_get_info(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap,
 	}
 	size_t p = 0;
 
+#ifdef CONFIG_TS_APP_WAMR
+	/* caps 块（CG5-A · Q-39④/HLD-contract-v2 §5.2：设备能力自报——异构
+	 * 设备生态基础；Agent 部署链消费做装前匹配）。tiers 派生：large 支持
+	 * ⇔ 装载缓冲 ≥ large 门（与安装期匹配矩阵同源——无独立开关）。 */
+	const bool large_ok =
+		CONFIG_TS_APP_LOAD_MAX >= CONFIG_TS_APP_SIZE_GATE_LARGE;
+
+	if (!ts_cbor_put_map(r, cap, &p, 6) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "fw") ||
+	    !ts_cbor_put_tstr(r, cap, &p, CONFIG_TS_FW_VERSION) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "board") ||
+	    !ts_cbor_put_tstr(r, cap, &p, CONFIG_BOARD) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "node") ||
+	    !ts_cbor_put_tstr(r, cap, &p, node) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "cube") ||
+	    !ts_cbor_put_tstr(r, cap, &p, cube) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "wall_ms") ||
+	    !ts_cbor_put_uint(r, cap, &p, ts_time_wall_ms()) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "caps") ||
+	    !ts_cbor_put_map(r, cap, &p, 3) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "tiers") ||
+	    !ts_cbor_put_array(r, cap, &p, large_ok ? 2U : 1U) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "small") ||
+	    (large_ok && !ts_cbor_put_tstr(r, cap, &p, "large")) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "max_linear_memory_kb") ||
+	    !ts_cbor_put_uint(r, cap, &p, (uint64_t)CONFIG_TS_APP_WAMR_HEAP / 1024) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "slot_pool_kb") ||
+	    !ts_cbor_put_uint(r, cap, &p,
+			      (uint64_t)CONFIG_TS_STORE_SLOT_SIZE *
+				      CONFIG_TS_STORE_SLOT_COUNT / 1024)) {
+		return TS_E_IO;
+	}
+	*n = p;
+	return TS_OK;
+#else
+	/* 无 WAMR 桩构建：无 APP 能力面——维持 v1 身份五键形态 */
 	if (!ts_cbor_put_map(r, cap, &p, 5) ||
 	    !ts_cbor_put_tstr(r, cap, &p, "fw") ||
 	    !ts_cbor_put_tstr(r, cap, &p, CONFIG_TS_FW_VERSION) ||
@@ -89,6 +125,7 @@ static ts_res_t cmd_get_info(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap,
 	}
 	*n = p;
 	return TS_OK;
+#endif
 }
 
 static ts_res_t cmd_get_link(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)

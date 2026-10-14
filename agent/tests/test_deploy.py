@@ -28,6 +28,7 @@ class FakeCube:
 
     def __init__(self, node: str = "fn", cube: str = "fc") -> None:
         self.node, self.cube = node, cube
+        self.caps: dict | None = None  # CG5-A：None = 旧固件（无 caps 块）
         self.lease_holder: str | None = None
         self.lease_deny = False
         self.active_slot = 0
@@ -64,8 +65,11 @@ class FakeCube:
                 return self._enc(rid, -4, {})
 
         if op == "get-info":
-            return self._enc(rid, 0, {"fw": "fake", "board": "fake",
-                                      "node": self.node, "cube": self.cube})
+            data = {"fw": "fake", "board": "fake",
+                    "node": self.node, "cube": self.cube}
+            if self.caps is not None:
+                data["caps"] = self.caps
+            return self._enc(rid, 0, data)
         if op == "get-link":
             return self._enc(rid, 0, {"state": 1, "link_up": True})
         if op == "get-safety":
@@ -199,16 +203,28 @@ def test_status_merges_four_faces():
 
 # ---- push_app --------------------------------------------------------------
 
-def _make_pkg(tmp_path: Path) -> tuple[str, str, bytes]:
-    tsap_tools.tsap_keygen("u-key", str(tmp_path), [str(tmp_path)])
+_PKG_SEQ = [0]
+
+
+def _make_pkg(tmp_path: Path, *, tier: str | None = None,
+              needs: dict | None = None) -> tuple[str, str, bytes]:
+    _PKG_SEQ[0] += 1  # 同 tmp_path 多次构造：密钥名唯一（拒绝覆盖纪律）"""
+    kname = f"u-key-{_PKG_SEQ[0]}"
+    tsap_tools.tsap_keygen(kname, str(tmp_path), [str(tmp_path)])
     wasm = tmp_path / "a.wasm"
     wasm.write_bytes(b"\x00asm\x01\x00\x00\x00" + b"UNIT" * 40)
+    manifest: dict = {"app_id": "com.t.unit", "app_ver": "0.1.0",
+                      "min_fw_ver": "0.1.0", "caps": [], "stack_kb": 4,
+                      "heap_kb": 16, "exports": ["health_ping"]}
+    if tier is not None:
+        manifest["tier"] = tier
+    if needs is not None:
+        manifest["needs"] = needs
     pkg = tsap_tools.tsap_package(
-        str(wasm), {"app_id": "com.t.unit", "app_ver": "0.1.0",
-                    "min_fw_ver": "0.1.0", "caps": [], "stack_kb": 4,
-                    "heap_kb": 16, "exports": ["health_ping"]},
-        str(tmp_path / "u-key.key"), str(tmp_path), [str(tmp_path)])
-    return pkg["package_path"], str(tmp_path / "u-key.pub"), Path(pkg["package_path"]).read_bytes()
+        str(wasm), manifest,
+        str(tmp_path / f"{kname}.key"), str(tmp_path), [str(tmp_path)])
+    raw = Path(pkg["package_path"]).read_bytes()
+    return pkg["package_path"], str(tmp_path / f"{kname}.pub"), raw
 
 
 def test_push_app_happy_path(tmp_path):
@@ -226,6 +242,35 @@ def test_push_app_happy_path(tmp_path):
     assert fake.activate_calls == 1 and fake.verify_calls == 1
     assert fake.lease_holder is None
     assert any("tsap_verify PASS" in ln for ln in logs)
+
+
+def test_push_app_device_caps_precheck(tmp_path):
+    """CG5-A：caps 预检——small-only 设备拒 large 包（装前，未起租约未上传）；
+    caps 含 large 放行；旧固件（无 caps）跳过（既有测试全为此形态）。"""
+    pkg, pub, raw = _make_pkg(tmp_path, tier="large",
+                              needs={"linear_memory_kb": 64, "stack_kb": 16})
+    fake = FakeCube()
+    fake.caps = {"tiers": ["small"], "max_linear_memory_kb": 256,
+                 "slot_pool_kb": 128}
+    with pytest.raises(TaError, match="设备档位不支持"):
+        deploy.push_app(fake, "fn", "fc", pkg, pub)
+    assert fake.stage is None and fake.lease_holder is None, "装前拒——零上传零租约"
+
+    fake2 = FakeCube()
+    fake2.caps = {"tiers": ["small", "large"], "max_linear_memory_kb": 256,
+                  "slot_pool_kb": 512}
+    out = deploy.push_app(fake2, "fn", "fc", pkg, pub)
+    assert out["confirmed"] is True
+    assert fake2.stage is not None and bytes(fake2.stage["buf"]) == raw
+
+    # 线性内存帽预检
+    pkg2, pub2, _ = _make_pkg(tmp_path, tier="large",
+                              needs={"linear_memory_kb": 512, "stack_kb": 16})
+    fake3 = FakeCube()
+    fake3.caps = {"tiers": ["small", "large"], "max_linear_memory_kb": 256,
+                  "slot_pool_kb": 512}
+    with pytest.raises(TaError, match="线性内存"):
+        deploy.push_app(fake3, "fn", "fc", pkg2, pub2)
 
 
 def test_push_app_tampered_refused_before_upload(tmp_path):
