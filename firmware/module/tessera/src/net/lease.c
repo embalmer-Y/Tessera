@@ -4,9 +4,16 @@
  * 惰性过期（访问时判定，无定时器——合同 9 确定性）；lease_id 单调递增不复用
  * （过期/归还后重新授予必得新 id）。只管命令准入，不联动安全态——输出安全态
  * 唯一判定源仍是 linkmon/estop（合同 3/5 单源纪律）。上下文：命令分发
- * （串行）与测试直调，无锁。 */
+ * （串行）与测试直调，无锁。
+ * CG3（Q-41②/合同 11 · LLD-ts-safety §5b 租约联动）：本地席位激活期
+ * （ts_safety arb_owner == LOCAL）= 租约**强制失效视图**——held_by 恒
+ * false（gated 写命令拒）+ acquire 拒（TS_E_STATE——回执由 cmd 层装饰
+ * local_active 提示）；本地释放（set_arb(REMOTE)）= 远程可重新 acquire。
+ * 不改写租约在册状态（视图语义——本地激活期 TTL 照常走完，释放后旧租约
+ * 若未过期仍有效，幂等续期不变）。 */
 #include <string.h>
 #include <ts/net.h>
+#include <ts/safety.h>
 #include "internal.h"
 
 struct lease_state {
@@ -28,6 +35,11 @@ ts_res_t ts_net_lease_acquire(const char *holder, uint64_t now_ms,
 {
 	if (holder == NULL || holder[0] == '\0' || strlen(holder) >= TS_NET_LEASE_HOLDER_MAX) {
 		return TS_E_PARAM;
+	}
+	/* CG3 · 本地席位激活期：acquire 拒（降级视图——含同 holder 续期；
+	 * 不改在册状态，见文件头注） */
+	if (ts_safety_arb_owner() == TS_ARB_LOCAL) {
+		return TS_E_STATE;
 	}
 	if (lease_valid(now_ms)) {
 		if (strcmp(lease.holder, holder) == 0) {
@@ -100,6 +112,12 @@ void ts_net_lease_get(uint64_t now_ms, bool *valid, char *holder, size_t holder_
 
 bool ts_net_lease_held_by(const char *holder, uint64_t now_ms)
 {
+	/* CG3：本地席位激活期 = 租约强制失效视图（gated 写命令拒——与
+	 * commit 入口的来源压制〔TS_SRC_ZENOH〕构成双层闸：租约面拦命令
+	 * 准入，安全层拦任何漏至写路径的远程来源） */
+	if (ts_safety_arb_owner() == TS_ARB_LOCAL) {
+		return false;
+	}
 	return holder != NULL && lease_valid(now_ms) &&
 	       strcmp(lease.holder, holder) == 0;
 }

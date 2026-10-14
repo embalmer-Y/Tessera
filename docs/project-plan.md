@@ -180,7 +180,7 @@
 | CG0 | 门④措辞裁决 | HLD-contract-v2 §2.4/§3.4/§4.2 三段合同措辞 owner 批准 | **门④**（呈递在档）✅ DEC-58 |
 | CG1 | LLD 修订批 | safety/net/appmgr/store 四 LLD 按 HLD-contract-v2 §7 修订 | 门③（schema v2 呈递）✅ Q-42→DEC-59 |
 | CG2 | 部署模式 | prov deploy_mode + linkmon 模式守卫 + standalone boot 声明 + 事件面 + estop-clear 守卫 | — ✅ |
-| CG3 | 控制源仲裁 | arb_owner/压制门控/租约联动/审计 src 维度（sim 用例 + 板级判据）| — |
+| CG3 | 控制源仲裁 | arb_owner/压制门控/租约联动/审计 src 维度（sim 用例 + 板级判据）| — ✅（本地交互源信号接线随后续设备形态批）|
 | CG4 | 资源档位 | manifest tier/needs + 安装期匹配矩阵 + 尺寸门分档 + 槽池结构（**AG7 数值消费**）| — |
 | CG5 | 能力发现 + 资源打包 | get-info caps 块 + 部署会话资源推送（方案 A）| — |
 | CG6 | estop 清除通道 | 按能力声明 + prov estop_remote_clear | — |
@@ -208,6 +208,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.73 · 2026-10-14：**CG3 交付（控制源仲裁机制——合同 11 落地）**——席位 ts_arb_owner + set_arb 零输出/TS_EVT_ARB_CHANGED + ts_src_t 来源标记与压制门控（commit_src 入口，APP 路径不经闸）+ 审计 src 维度 + 租约本地席位视词语义（held_by/acquire + local_active 装饰）+ 顺带修 ts_safety_test_reset 审计环归零（用例序敏感缺陷）。用例 +2。下一单元：CG4 资源档位。
 - v1.72 · 2026-10-14：**V0.7.0 合同泛化批开工推进（CG0 ✅ DEC-58 / CG1 ✅ Q-42→DEC-59 / CG2 ✅）**——CG1 四 LLD 修订 + 合同 v2 正典落节 + Q-42 呈递（门③）；DEC-59 三项按建议值（prov v2/manifest v2 档位字段/门值 256KB）；CG2 部署模式实现（prov 双形态解码 + linkmon 模式守卫 + standalone boot 声明〔ACTIVE 驱动者缺口定案〕+ estop-clear 守卫 + flash_prov.py 分区头缺陷顺带修复）。回归：twister 16/16（99 用例，+4）。下一单元：CG3 控制源仲裁。
 - v1.71 · 2026-10-14：**V0.6.0 Agent 批收口（AG1-AG8 全 ✅，tag fw-v0.6.0）**——创作循环全栈（工作区/ws_* 循环/域验证器/终端门面/快照/双路径 app_develop/参数规则/run 子命令）+ D-AG7 真机 PASS（真 LLM 4 轮多文件工程收敛 + 无线部署 + 判据命中）+ large 档数值（CG4 输入）。回归定格：twister 16/16（95）/repo 2/agent 170+2s/ruff/sync。下一批：CG0 已裁（DEC-58）→ CG1 LLD 修订批开工。
 - v1.70 · 2026-10-13：**通用域解放开发计划定稿（§11e 三版本批全单元）+ §12 质量优先条款入册**——DEC-57（Q-38…41 全 A + 质量指令）；深度设计两份随批：HLD-agent v0.2（A08 创作工作区域无关循环引擎 + A09 终端门面 = Frontend 第二实现 + AG1-8）、HLD-contract-v2（部署模式/控制源仲裁/资源档位/能力匹配 + 门④三段措辞呈递 + CG0-7）；生态批 EC1-5 方向锁定。下一步：CG0 门④措辞裁决（可与 AG1 并行）→ AG1 LLD 批开工。

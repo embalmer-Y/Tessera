@@ -60,6 +60,7 @@ typedef enum {
 	TS_EVT_WDT_WARN,
 	TS_EVT_POWER_BUDGET,
 	TS_EVT_PERM_DENIED, /* 合同10 越权留痕 */
+	TS_EVT_ARB_CHANGED, /* 控制源仲裁席变更（CG3 · 合同 11：old/owner/t——切换零输出） */
 	TS_EVT_ID_COUNT,
 } ts_evt_id_t;
 

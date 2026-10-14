@@ -29,6 +29,7 @@ extern size_t ts_ch_count;
 extern atomic_t ts_forced;      /* estop/fail 锁存标志（clear_fault 释放，IR-01） */
 extern atomic_t ts_forced_at;   /* forced 置位时刻（低 32 位，estop 补发事件用） */
 extern atomic_t ts_link_up;     /* 全局链路标志（LLD §3） */
+extern atomic_t ts_arb_owner;   /* 控制源席位（CG3 · 合同 11；ts_arb_owner_t） */
 
 /** estop 补发宣布位复位（clear_fault 调用；IR-01） */
 void ts_safety_estop_announce_reset(void);

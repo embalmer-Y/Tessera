@@ -225,13 +225,16 @@ static ts_res_t cmd_get_audit(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap
 	for (size_t i = 0; i < got; i++) {
 		const ts_audit_entry_t *e = &entries[i];
 
-		if (!ts_cbor_put_array(r, cap, &p, 6) ||
+		/* CG3 · 合同 11：末位追加 src（写路径来源维度；加性变更——
+		 * 消费端按位置取前 6 字段不受影响） */
+		if (!ts_cbor_put_array(r, cap, &p, 7) ||
 		    !ts_cbor_put_uint(r, cap, &p, e->t_ms) ||
 		    !ts_cbor_put_int(r, cap, &p, e->res) ||
 		    !ts_cbor_put_uint(r, cap, &p, e->ch_idx) ||
 		    !ts_cbor_put_uint(r, cap, &p, e->kind) ||
 		    !ts_cbor_put_uint(r, cap, &p, e->actor) ||
-		    !ts_cbor_put_uint(r, cap, &p, e->value_u)) {
+		    !ts_cbor_put_uint(r, cap, &p, e->value_u) ||
+		    !ts_cbor_put_uint(r, cap, &p, e->src)) {
 			return TS_E_IO;
 		}
 	}
@@ -354,6 +357,14 @@ static ts_res_t cmd_lease_acquire(const ts_net_cmd_args_t *a, uint8_t *r, size_t
 		    !ts_cbor_put_uint(r, cap, &p, id) ||
 		    !ts_cbor_put_tstr(r, cap, &p, "expires_at_ms") ||
 		    !ts_cbor_put_uint(r, cap, &p, exp)) {
+			return TS_E_IO;
+		}
+	} else if (res == TS_E_STATE && ts_safety_arb_owner() == TS_ARB_LOCAL) {
+		/* CG3 · 合同 11：本地席位激活期 = 租约降级视图——回执带
+		 * local_active 供调用方归因（区别于普通"他人持有"拒绝） */
+		if (!ts_cbor_put_map(r, cap, &p, 1) ||
+		    !ts_cbor_put_tstr(r, cap, &p, "local_active") ||
+		    !ts_cbor_put_bool(r, cap, &p, true)) {
 			return TS_E_IO;
 		}
 	} else if (res == TS_E_STATE) {

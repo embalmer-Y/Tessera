@@ -13,6 +13,7 @@ size_t ts_ch_count;
 atomic_t ts_link_up = ATOMIC_INIT(0); /* 初值 down：boot 后链路未确立 */
 atomic_t ts_forced = ATOMIC_INIT(0);
 atomic_t ts_forced_at = ATOMIC_INIT(0);
+atomic_t ts_arb_owner = ATOMIC_INIT(TS_ARB_REMOTE); /* CG3 · 合同 11：远程编排缺省（本地席位空缺 = 现行为零变化） */
 
 static bool value_within_limits(const ts_out_ch_t *ch, ts_out_value_t v)
 {
@@ -148,9 +149,48 @@ void ts_safety_test_reset(void)
 	atomic_set(&ts_forced, 0);
 	atomic_set(&ts_forced_at, 0);
 	atomic_set(&ts_link_up, 0);
+	atomic_set(&ts_arb_owner, TS_ARB_REMOTE);
 	ts_safety_estop_announce_reset();
+	ts_safety_audit_test_reset(); /* 审计环随复位（CG3：用例序无关的净基线） */
 }
 #endif
+
+/* ---- 控制源仲裁（CG3 · Q-41②/合同 11 · LLD §5b）------------------------ */
+
+ts_res_t ts_safety_set_arb(ts_arb_owner_t owner)
+{
+	if (owner != TS_ARB_REMOTE && owner != TS_ARB_LOCAL) {
+		return TS_E_PARAM;
+	}
+	if (k_is_in_isr()) {
+		return TS_E_PERM; /* [thread] API（事件发布经总线，ISR 禁入） */
+	}
+	ts_arb_owner_t old = (ts_arb_owner_t)atomic_get(&ts_arb_owner);
+
+	if (old == owner) {
+		return TS_OK; /* 幂等：同席位重复变更零事件零输出（确定性） */
+	}
+	atomic_set(&ts_arb_owner, owner);
+	/* 切换零输出（EN 60204-1 §9.2.3 同型）：本函数不触任何通道写入/
+	 * 状态迁移——输出连续性由 APP 逻辑承载；此处仅门控位 + 留痕事件。 */
+	const ts_arb_evt_t payload = {
+		.owner = (uint8_t)owner,
+		.old = (uint8_t)old,
+	};
+	const ts_evt_t evt = {
+		.id = TS_EVT_ARB_CHANGED,
+		.t_ms = ts_time_ms(),
+		.data = &payload,
+		.len = sizeof(payload),
+	};
+	ts_evt_publish(&evt);
+	return TS_OK;
+}
+
+ts_arb_owner_t ts_safety_arb_owner(void)
+{
+	return (ts_arb_owner_t)atomic_get(&ts_arb_owner);
+}
 
 ts_res_t ts_safety_force_channel_fault(const char *uid)
 {

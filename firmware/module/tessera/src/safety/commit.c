@@ -36,7 +36,7 @@ static ts_audit_entry_t audit_ring[CONFIG_TS_SAFETY_AUDIT_DEPTH];
 static uint32_t audit_head, audit_count, audit_dropped;
 
 static void audit_append(int ch_idx, ts_ch_kind_t kind, ts_out_value_t v, ts_res_t res,
-			 uint16_t actor)
+			 uint16_t actor, ts_src_t src)
 {
 	uint32_t next = (audit_head + 1) % CONFIG_TS_SAFETY_AUDIT_DEPTH;
 	ts_audit_entry_t e = {
@@ -45,7 +45,7 @@ static void audit_append(int ch_idx, ts_ch_kind_t kind, ts_out_value_t v, ts_res
 		.res = res,
 		.actor = actor, /* IR2-08（DEC-48⑥）：调用方归因（0=system；ts-hal 注入 app_id） */
 		.kind = (uint8_t)kind,
-		._rsv = 0,
+		.src = (uint8_t)src, /* CG3 · 合同 11：写路径来源维度（旧记录 0=APP） */
 		.value_u = ts_value_encode(kind, v),
 	};
 
@@ -64,7 +64,7 @@ static void audit_append(int ch_idx, ts_ch_kind_t kind, ts_out_value_t v, ts_res
 #endif
 }
 
-static ts_res_t commit_impl(const char *uid, ts_out_value_t v, uint16_t actor);
+static ts_res_t commit_impl(const char *uid, ts_out_value_t v, uint16_t actor, ts_src_t src);
 
 ts_res_t ts_safety_commit(const char *uid, ts_out_value_t v)
 {
@@ -72,7 +72,7 @@ ts_res_t ts_safety_commit(const char *uid, ts_out_value_t v)
 		return TS_E_PERM; /* [thread] API（ISR 禁入，LLD-00 §3） */
 	}
 	ts_safety_write_lock();
-	ts_res_t r = commit_impl(uid, v, 0);
+	ts_res_t r = commit_impl(uid, v, 0, TS_SRC_APP);
 	ts_safety_write_unlock();
 	return r;
 }
@@ -83,7 +83,21 @@ ts_res_t ts_safety_commit_a(const char *uid, ts_out_value_t v, uint16_t actor)
 		return TS_E_PERM; /* [thread] API（ISR 禁入，LLD-00 §3） */
 	}
 	ts_safety_write_lock();
-	ts_res_t r = commit_impl(uid, v, actor);
+	ts_res_t r = commit_impl(uid, v, actor, TS_SRC_APP);
+	ts_safety_write_unlock();
+	return r;
+}
+
+ts_res_t ts_safety_commit_src(const char *uid, ts_out_value_t v, ts_src_t src)
+{
+	/* CG3 · 合同 11（LLD §5b）：带来源标记的写路径——远程编排写
+	 *（TS_SRC_ZENOH）经此入口（未来 sys 写命令面/远程 hal 写）；压制
+	 * 门控在 commit_impl 入口（须持锁后与状态检查同序）。 */
+	if (k_is_in_isr()) {
+		return TS_E_PERM; /* [thread] API（ISR 禁入，LLD-00 §3） */
+	}
+	ts_safety_write_lock();
+	ts_res_t r = commit_impl(uid, v, 0, src);
 	ts_safety_write_unlock();
 	return r;
 }
@@ -91,10 +105,10 @@ ts_res_t ts_safety_commit_a(const char *uid, ts_out_value_t v, uint16_t actor)
 ts_res_t ts_safety_commit_locked(const char *uid, ts_out_value_t v)
 {
 	/* 调用方已持 write_lock（DEC-43：预算检查-提交原子化路径） */
-	return commit_impl(uid, v, 0);
+	return commit_impl(uid, v, 0, TS_SRC_APP);
 }
 
-static ts_res_t commit_impl(const char *uid, ts_out_value_t v, uint16_t actor)
+static ts_res_t commit_impl(const char *uid, ts_out_value_t v, uint16_t actor, ts_src_t src)
 {
 	int i = ts_ch_find(uid);
 	if (i < 0) {
@@ -103,12 +117,21 @@ static ts_res_t commit_impl(const char *uid, ts_out_value_t v, uint16_t actor)
 	struct ts_ch_slot *s = &ts_ch_table[i];
 	const ts_out_ch_t *ch = s->desc;
 
+	/* 压制门控（CG3 · 合同 11，EN 60204-1 §9.2.4「激活站独占引发权」同型）：
+	 * 本地席位激活期拒绝远程编排写（留痕）；APP/LOCAL 来源不受门控
+	 *（APP = 编排意图载体——LLD §5b）。置于状态检查前：压制是身份级
+	 * 拒绝，优先于通道态语义（审计 res=TS_E_STATE + src 归因可回溯）。 */
+	if (src == TS_SRC_ZENOH && (ts_arb_owner_t)atomic_get(&ts_arb_owner) == TS_ARB_LOCAL) {
+		audit_append(i, ch->kind, v, TS_E_STATE, actor, src);
+		return TS_E_STATE;
+	}
+
 	if (s->state != TS_ST_ACTIVE) {
-		audit_append(i, ch->kind, v, TS_E_STATE, actor); /* 安全态下写入被拒（合同 3） */
+		audit_append(i, ch->kind, v, TS_E_STATE, actor, src); /* 安全态下写入被拒（合同 3） */
 		return TS_E_STATE;
 	}
 	if (atomic_get(&ts_forced) != 0) {
-		audit_append(i, ch->kind, v, TS_E_STATE, actor);
+		audit_append(i, ch->kind, v, TS_E_STATE, actor, src);
 		return TS_E_STATE; /* fail-safe 锁存期 */
 	}
 
@@ -144,7 +167,7 @@ static ts_res_t commit_impl(const char *uid, ts_out_value_t v, uint16_t actor)
 
 	/* 3) 限流（TS_CH_POWER）：请求电流超限 → 整笔拒绝（LLD §4-5） */
 	if (ch->kind == TS_CH_POWER && v.pwr.en && v.pwr.ma > ch->limits.current_limit_ma) {
-		audit_append(i, ch->kind, v, TS_E_RANGE, actor);
+		audit_append(i, ch->kind, v, TS_E_RANGE, actor, src);
 		return TS_E_RANGE;
 	}
 
@@ -166,7 +189,7 @@ static ts_res_t commit_impl(const char *uid, ts_out_value_t v, uint16_t actor)
 		res = TS_E_STATE;
 	}
 
-	audit_append(i, ch->kind, v, res, actor);
+	audit_append(i, ch->kind, v, res, actor, src);
 	return res;
 }
 
@@ -200,3 +223,15 @@ uint32_t ts_safety_audit_dropped(void)
 {
 	return audit_dropped;
 }
+
+#ifdef CONFIG_TS_TEST
+void ts_safety_audit_test_reset(void)
+{
+	/* 测试隔离：审计环形随 ts_safety_test_reset 归零（full_scenario 的
+	 * 丢弃算术依赖净基线——此前仅因该用例首个执行成立，用例序敏感缺陷） */
+	audit_head = 0;
+	audit_count = 0;
+	audit_dropped = 0;
+	memset(audit_ring, 0, sizeof(audit_ring));
+}
+#endif

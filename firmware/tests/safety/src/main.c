@@ -216,3 +216,85 @@ ZTEST(framework_safety, test_poweron_writes_driver)
 	zassert_equal(n, 1, "poweron 落驱动 = 恰一笔物理写");
 	zassert_equal(w[0].value_u, 1U, "写值 = 声明 poweron（GPIO true）");
 }
+
+/* ---- 控制源仲裁（CG3 · Q-41②/合同 11 · LLD §5b）------------------------ */
+
+static ts_arb_evt_t arb_seen[4];
+static int arb_seen_n;
+
+static void arb_evt_fn(const ts_evt_t *evt, void *user)
+{
+	(void)user;
+	if (evt->id == TS_EVT_ARB_CHANGED && evt->data != NULL && arb_seen_n < 4) {
+		memcpy(&arb_seen[arb_seen_n++], evt->data, sizeof(ts_arb_evt_t));
+	}
+}
+
+ZTEST(framework_safety, test_arb_seat_and_suppression)
+{
+	static bool hooked;
+
+	if (!hooked) {
+		zassert_equal(ts_evt_subscribe(TS_EVT_ARB_CHANGED, arb_evt_fn, NULL), TS_OK);
+		hooked = true;
+	}
+	arb_seen_n = 0;
+	ts_safety_test_reset();
+
+	static const ts_out_ch_t ac = {
+		.uid = "arb-ch", .kind = TS_CH_GPIO,
+		.poweron = {.b = false}, .linkloss = {.b = true}, .fault = {.b = false},
+	};
+	ts_ch_state_t st;
+	ts_out_value_t rb;
+
+	zassert_equal(ts_safety_register_channel(&ac), TS_OK);
+	zassert_equal(ts_safety_poweron_init(), TS_OK);
+	ts_safety_set_link(true);
+	zassert_equal(ts_safety_commit("arb-ch", (ts_out_value_t){.b = true}), TS_OK);
+	ts_write_rec_t w0[8];
+	size_t n0 = ts_driversim_writes("arb-ch", w0, 8);
+
+	/* 席位变更：零输出（无新物理写/状态影子不变）+ 事件 old/owner */
+	zassert_equal(ts_safety_set_arb(TS_ARB_LOCAL), TS_OK);
+	zassert_equal(arb_seen_n, 1, "变更产一条事件");
+	zassert_equal(arb_seen[0].owner, TS_ARB_LOCAL);
+	zassert_equal(arb_seen[0].old, TS_ARB_REMOTE);
+	zassert_equal(ts_safety_channel_state("arb-ch", &st), TS_OK);
+	zassert_equal(st, TS_ST_ACTIVE, "席位变更零状态迁移");
+	zassert_equal(ts_safety_readback("arb-ch", &rb), TS_OK);
+	zassert_true(rb.b, "席位变更零输出（影子不变）");
+	ts_write_rec_t w1[8];
+	size_t n1 = ts_driversim_writes("arb-ch", w1, 8);
+	zassert_equal(n1, n0, "席位变更无新物理写（EN 60204-1 §9.2.3）");
+
+	/* 压制：ZENOH 来源拒（审计留痕 src 维度）；APP 路径放行 */
+	zassert_equal(ts_safety_commit_src("arb-ch", (ts_out_value_t){.b = false},
+					   TS_SRC_ZENOH),
+		      TS_E_STATE, "本地激活压制远程编排写");
+	ts_audit_entry_t ae[8];
+	size_t an = ts_safety_audit_copy(ae, 8);
+
+	zassert_true(an >= 2);
+	zassert_equal(ae[0].res, TS_E_STATE);
+	zassert_equal(ae[0].src, TS_SRC_ZENOH, "审计来源维度（压制归因）");
+	zassert_equal(ts_safety_commit("arb-ch", (ts_out_value_t){.b = false}), TS_OK,
+		      "APP 路径不经仲裁闸（编排意图载体）");
+	an = ts_safety_audit_copy(ae, 8);
+	zassert_equal(ae[0].src, TS_SRC_APP);
+
+	/* 幂等变更：零事件零输出 */
+	zassert_equal(ts_safety_set_arb(TS_ARB_LOCAL), TS_OK);
+	zassert_equal(arb_seen_n, 1, "幂等变更零事件");
+
+	/* 释放：远程来源恢复 */
+	zassert_equal(ts_safety_set_arb(TS_ARB_REMOTE), TS_OK);
+	zassert_equal(arb_seen_n, 2);
+	zassert_equal(arb_seen[1].owner, TS_ARB_REMOTE);
+	zassert_equal(arb_seen[1].old, TS_ARB_LOCAL);
+	zassert_equal(ts_safety_commit_src("arb-ch", (ts_out_value_t){.b = true},
+					   TS_SRC_ZENOH),
+		      TS_OK, "释放后远程写恢复");
+
+	ts_safety_test_reset(); /* 后序用例干净 */
+}

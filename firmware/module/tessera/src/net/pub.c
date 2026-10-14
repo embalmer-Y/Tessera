@@ -30,6 +30,7 @@ static ts_net_qos_t evt_qos(ts_evt_id_t id)
 	case TS_EVT_ESTOP:
 	case TS_EVT_SAFE_STATE_CHANGED:
 	case TS_EVT_PERM_DENIED:
+	case TS_EVT_ARB_CHANGED: /* CG3 · 合同 11：控制权切换 = 安全类（留痕必达优先） */
 		return TS_NET_QOS_SAFETY; /* DEC-42 QoS 映射 */
 	default:
 		return TS_NET_QOS_BESTEFFORT;
@@ -127,6 +128,24 @@ static void on_evt(const ts_evt_t *evt, void *user)
 		}
 		break;
 	}
+	case TS_EVT_ARB_CHANGED: {
+		/* payload: ts_arb_evt_t（safety.h——新/旧席主，CG3 · 合同 11）。
+		 * 路由 …/sys/event，extra = {"arb", "old"}（owner 字符串化——
+		 * 消费端零枚举耦合）。 */
+		const ts_arb_evt_t *pl = evt->data;
+		uint8_t extra[32];
+		size_t p = 0;
+
+		if (ts_cbor_put_tstr(extra, sizeof(extra), &p, "arb") &&
+		    ts_cbor_put_tstr(extra, sizeof(extra), &p,
+				     pl->owner == TS_ARB_LOCAL ? "local" : "remote") &&
+		    ts_cbor_put_tstr(extra, sizeof(extra), &p, "old") &&
+		    ts_cbor_put_tstr(extra, sizeof(extra), &p,
+				     pl->old == TS_ARB_LOCAL ? "local" : "remote")) {
+			push_evt(evt->id, evt->t_ms, "sys", extra, p, 2);
+		}
+		break;
+	}
 	case TS_EVT_PERM_DENIED: /* 合同 10 留痕外发 */
 	case TS_EVT_INPUT_CHANGED: /* DR-02 输入变化 */
 	default:
@@ -146,12 +165,13 @@ ts_res_t ts_net_pub_init(void)
 	}
 	/* 订阅容量 = CONFIG_TS_CORE_MAX_SUBS **按事件类型分桶**（events.c 的
 	 * subs[id][N]，各类型独立 4 位——F-1 修复时更正早前"总量 4"误读）；
-	 * 本处七类订阅各占一桶一位，单桶满员属装配错误（TS_E_NOMEM 如实上报） */
+	 * 本处八类订阅各占一桶一位，单桶满员属装配错误（TS_E_NOMEM 如实上报） */
 	const ts_evt_id_t ids[] = {
 		TS_EVT_ESTOP, TS_EVT_SAFE_STATE_CHANGED,
 		TS_EVT_PERM_DENIED, TS_EVT_INPUT_CHANGED,
 		TS_EVT_PERIPH_ATTACH, TS_EVT_PERIPH_DETACH,
 		TS_EVT_POWER_BUDGET,
+		TS_EVT_ARB_CHANGED, /* CG3 · 合同 11：控制权切换留痕外发 */
 	};
 
 	for (size_t i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {

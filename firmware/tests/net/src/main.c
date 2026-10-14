@@ -1363,4 +1363,52 @@ ZTEST(framework_net, test_15_estop_clear_remote_disabled)
 					  sizeof(resp), &rl2), TS_OK);
 }
 
+/* CG3（Q-41②/合同 11 · LLD-ts-safety §5b）：本地席位 = 租约强制失效视图 -- */
+ZTEST(framework_net, test_16_arb_lease_view)
+{
+	uint8_t req[192];
+	uint8_t resp[192];
+	size_t rlen;
+	size_t rl2 = 0;
+
+	ts_net_test_reset();
+	ts_net_cmd_test_reset();
+	ts_net_lease_test_reset();
+	ts_safety_test_reset();
+	zassert_equal(ts_net_cmd_sys_init(), TS_OK);
+	zassert_equal(ts_safety_set_arb(TS_ARB_REMOTE), TS_OK, "缺省席主（显式定基）");
+
+	/* 基线：远程 acquire OK；gated 命令过租约门（app-begin 到 handler 层） */
+	rlen = build_req_v2(req, sizeof(req), "lease-acquire", "rid-arb1",
+			    "holder", "t-agent", 0, NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/lease-acquire", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_OK);
+	rlen = build_req_v2(req, sizeof(req), "app-begin", "rid-arb2", NULL, NULL,
+			    0, NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/app-begin", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_PARAM,
+		      "过租约门（拒因来自 handler 参数面，非租约）");
+
+	/* 本地激活：acquire 拒 + local_active 装饰；gated 命令 = 租约失效视图拒 */
+	zassert_equal(ts_safety_set_arb(TS_ARB_LOCAL), TS_OK);
+	rlen = build_req_v2(req, sizeof(req), "lease-acquire", "rid-arb3",
+			    "holder", "t-agent", 0, NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/lease-acquire", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_STATE);
+	zassert_not_null(strstr((char *)resp, "local_active"), "降级回执带归因");
+	rlen = build_req_v2(req, sizeof(req), "app-begin", "rid-arb4", NULL, NULL,
+			    0, NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/app-begin", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_STATE,
+		      "本地激活期 gated 写命令 = 租约失效视图拒");
+
+	/* 释放：远程可重新 acquire */
+	zassert_equal(ts_safety_set_arb(TS_ARB_REMOTE), TS_OK);
+	rlen = build_req_v2(req, sizeof(req), "lease-acquire", "rid-arb5",
+			    "holder", "t-agent", 0, NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/lease-acquire", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_OK,
+		      "本地释放后远程重新授予");
+}
+
 ZTEST_SUITE(framework_net, NULL, NULL, NULL, NULL, NULL);

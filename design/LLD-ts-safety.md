@@ -1,6 +1,6 @@
 # LLD · ts-safety v0.3
 
-> **状态**：v0.3.1（2026-10-14 CG2 · Q-41①③：**§3a/§5a 实现落地**——linkmon 模式守卫 + standalone boot 链路声明〔net/init 侧驱动〕+ estop-clear prov 守卫；§5b 仲裁机制仍随 CG3）。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-00-common.md`。
+> **状态**：v0.3.2（2026-10-14 CG3 · Q-41②：**§5b 仲裁机制实现**——arb_owner 席位/set_arb 零输出+TS_EVT_ARB_CHANGED/commit 来源标记 ts_src_t+压制门控/审计 src 维度；本地交互源信号源接线随后续设备形态批）。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-00-common.md`。
 > **职责**：输出保护层（限幅/slew/限流）、三安全态状态机、estop 直达路径、fail-safe 管线、**控制源仲裁状态（本版新增）**。
 > **合同关联**：合同 1（三安全态）、2（唯一写路径）、3（断链 fail-safe——**部署模式化**，见 §3a）、5（estop 不经队列 + 清除按设备能力）、7（供电同轨）、8（本地独立生效）、**11（控制源仲裁——本版新增）**。
 
@@ -115,6 +115,7 @@ static atomic8_t arb_owner;   /* 远程编排 | 本地交互源 */
 - **租约联动**（LLD-ts-net §5 注）：本地激活 = 租约强制失效视图（远程 acquire 回执降级提示）；本地释放 = 远程可重新 acquire。
 - **审计来源维度**：§4-7 审计事件增 `src` 字段（zenoh | local）——回溯「谁在什么时候压着谁写了什么」。
 - 本地交互源的激活信号形态（按键/UI 会话打开）随本地交互外设实际接入定义——**本节先立席位与门控机制，信号源接线随后续设备形态批**。
+- **实现注记（CG3）**：席位 = `ts_arb_owner` 原子（channel.c，缺省 REMOTE——席位空缺 = 现行为零变化）；`ts_safety_set_arb` 幂等（同席零事件零输出）+ TS_EVT_ARB_CHANGED（payload ts_arb_evt_t{owner,old}）；来源标记 = `ts_src_t {APP, ZENOH, LOCAL}`——`ts_safety_commit_src` 新入口（既有 commit/commit_a/commit_locked = TS_SRC_APP 不变），压制门控在 commit_impl 入口（持锁后、状态检查前——身份级拒绝优先，审计 res=TS_E_STATE + src 归因）；审计 src 维度 = ts_audit_entry_t 原 `_rsv` 字段转正（旧记录 0=APP 兼容）；get-audit 内存环条目末位加 src（加性——位置消费不受影响）；租约联动 = 视词语义（LLD-ts-net §4.5——不改在册状态，TTL 照常走完）。用例 framework.safety test_arb_seat_and_suppression + framework.net test_16_arb_lease_view。顺带修复：ts_safety_test_reset 此前不清审计环（full_scenario 丢弃算术用例序敏感——新用例先跑即暴露），增 ts_safety_audit_test_reset。
 
 ## 6. driver_dispatch.c（唯一驱动调用点）
 
@@ -147,6 +148,7 @@ extern const ts_driver_ops_t ts_drivers[3];   /* [GPIO]=native_sim 桩/gpio、[P
 
 ## 修订记录
 
+- v0.3.2 · 2026-10-14：**CG3（Q-41② · §5b 仲裁机制实现）**——席位/set_arb/来源标记/压制门控/审计 src/事件外发（见 §5b 实现注记）；本地交互源信号源接线随后续设备形态批。顺带：ts_safety_test_reset 补审计环归零（用例序敏感缺陷）。
 - v0.3.1 · 2026-10-14：**CG2（Q-41①③ · §3a/§5a 实现）**——linkmon 模式守卫 + standalone boot 链路声明注记（net/init 侧）+ estop-clear prov 守卫注记；§5b 仲裁（arb_owner/来源标记/租约联动/审计 src）仍随 CG3。
 - v0.3 · 2026-10-14：**CG1（DEC-56/57/Q-41 A，措辞 DEC-58 已批）**——§3a 部署模式守卫（orchestrated 现行为不变 / standalone 断链仅留痕不迁移）；§5a estop 清除按设备能力声明（无交互设备维持远程令牌 = 有据偏离登记；有交互设备本地为主 + prov estop_remote_clear 缺省 disabled）；§5b 控制源仲裁状态（arb_owner 席位/激活压制远程/切换零输出 TS_EVT_ARB_CHANGED/审计 src 维度/租约联动注）；合同 3/5/11 措辞同步 AGENTS.md §6。实现随 CG2/CG3。
 - v0.2.6 · 2026-10-02：板级九（PWM/ADC 真后端，docs/board-periph-01.md）——① §3 断链迁移补"声明值落驱动"（HLD §4.5-S2 欠账修复：此前仅改 shadow，物理输出滞留断链前值；真机 PB5 首证 linkloss 0% 落 LEDC）；② §6 增 CONFIG_TS_DRV_PWM 真机后端（zephyr,user 绑定 + err 计数；LEDC duty 六点 ±1‰ 真机验证）。回归：twister 15/15（65 用例）/L5 6/6 全绿。

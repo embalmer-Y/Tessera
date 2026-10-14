@@ -1,6 +1,6 @@
 # LLD · ts-net v0.3.9
 
-> **状态**：v0.3.9（2026-10-14 CG2 · Q-41①③/Q-42：**部署模式守卫实现**——linkmon 仅 orchestrated 迁移 + standalone boot 链路声明〔net/init〕+ estop-clear prov 守卫；CG1 措辞〔§4 estop-clear 行/§4.5 本地席位注/§6 模式化〕同文件 10-14 早前落节）。上位：HLD §3.5 + HLD-contract-v2 §2-§4；公共约定 `LLD-00-common.md`。
+> **状态**：v0.3.10（2026-10-14 CG3 · Q-41②：**租约本地席位降级视图实现**——held_by/acquire 视词语义 + acquire 回执 local_active 装饰 + TS_EVT_ARB_CHANGED 订阅外发〔八类〕+ get-audit 审计 src 维度）。上位：HLD §3.5 + HLD-contract-v2 §2-§4；公共约定 `LLD-00-common.md`。
 > **职责**：zenoh-pico 会话管理、命名空间构造、命令-回执分发、遥测/事件发布、心跳监视（断链判定）、控制租约（DEC-41）。
 > **合同关联**：合同 3（断链 fail-safe 判定源）、8（本地独立生效——判定不依赖外部确认）、9（rx 串行化）、10（命令准入/留痕）。
 > **外部依赖**：zenoh-pico 1.10.1（钉版，DR-22；上游零源码补丁，接线要点见 docs/dev-environment.md §7/§8）。
@@ -97,7 +97,7 @@ int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>
 - **V1 形态（DEC-41）**：单租约——`sys/lease-acquire {holder≤24}` → `{lease_id, expires_at_ms}`；TTL 默认 10s〔DEC-41：≈断链窗口 6s（DEC-22）×1.5+余量〕；持有者周期续期（re-acquire 幂等，id 不变）；`lease-release {holder}` 主动归还（他人代还 = TS_E_STATE）；TTL 到期自动失效（**惰性过期**——访问时判定，无定时器；控制方崩溃 = 天然失权）。lease_id 从 1 起单调递增不复用（过期/归还后新授予必得新 id）。拒绝回执回填当前 {holder, lease_id, expires_at_ms} 供调用方归因（同信任域 host 面）。
 - **准入挂钩**：写类命令（未来 hal 写/app 命令，M2b.2 面）须持有有效租约；sys 面只读族与 estop-clear **豁免**（estop 安全路径不受租约约束——合同 5 优先）。挂钩实现随 M2b.2 命令面接入。
 - **与安全态的关系（DEC-41）**：租约**只管命令准入，不联动安全态**——输出安全态唯一判定源仍是 linkmon/estop（合同 3/5 单源纪律）；租约全部失效 ≠ 输出进安全态。
-- **本地席位联动（CG1/Q-41② · 合同 11）**：本地交互源激活（ts-safety arb_owner → LOCAL）= 租约**强制失效视图**（持有中租约立即视为失效，新 acquire 回执带 local_active 降级提示）；本地释放 = 远程可重新 acquire（LLD-ts-safety §5b；接线随 CG3）。
+- **本地席位联动（CG1/Q-41② · 合同 11）**：本地交互源激活（ts-safety arb_owner → LOCAL）= 租约**强制失效视图**（持有中租约立即视为失效，新 acquire 回执带 local_active 降级提示）；本地释放 = 远程可重新 acquire（LLD-ts-safety §5b；**CG3 已实现**——视词语义：held_by 恒 false + acquire 拒 TS_E_STATE，不改在册状态〔TTL 照常走完，释放后未过期租约仍有效〕；acquire 回执装饰由 cmd 层区分"本地激活"与"他人持有"两型拒绝）。
 - 不做（V1）：多资源粒度、优先级抢占（NeuroLink 全形态）——单 cube 单控制方的现实负载下无需求，留 V2。
 
 ## 5. 发布（pub.c）
@@ -142,6 +142,7 @@ int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>
 
 ## 修订记录
 
+- v0.3.10 · 2026-10-14：**CG3（Q-41② · 租约本地席位视图实现）**——§4.5 视词语义落地（held_by/acquire + cmd 层 local_active 装饰）；§5 订阅八类（+TS_EVT_ARB_CHANGED → …/sys/event，extra {arb, old}，安全类 QoS）；§4.3 kind 注册表事件面 = 32+TS_EVT_ID_COUNT（ARB 自动入位）；get-audit 内存环条目末位加 src（ts_src_t——加性）；§8 用例 test_16_arb_lease_view。
 - v0.3.9 · 2026-10-14：**CG2（Q-41①③/Q-42 · 部署模式实现）**——§6 linkmon 模式守卫落地（`link_migrates_safety()`：仅 orchestrated 调 set_link，断链/恢复对称）+ **standalone boot 链路声明**（ts_net_init 期 set_link(true) 一次——镜像 TS_NET=n glue 模式；CG1 文本未覆盖的 ACTIVE 驱动者缺口，本批定案）+ §4 estop-clear prov 守卫（`estop_remote_clear=0` → TS_E_STATE + need=local-clear；v1 缺字段 = enabled）；用例 framework.net test_14/15（零迁移断言 + 守卫矩阵）。同批：agent/tools/flash_prov.py 修复分区头缺失（u32 len + u16 crc16-ccitt——此前直写裸 CBOR 装载器必拒，生产烧录路径既有缺陷）+ v2 字段输出。
 - v0.3.8 · 2026-10-07：MD1.2g（单元 A，DEC-47①②⑥）——§3 增 `ts_net_key_av`（专用帧分片通道 …/av/<id>/frame）；§5 增 avq（信封/打拍/重试/背压/DOWN 自弃语义）；cbor_min 增 put_bstr；Kconfig 增 TS_NET_PUBLISH_* 族与 TS_NET_AVQ_DEPTH（§7 同步——常量出处 = DEC-47②）。用例 framework.net test_12_avq。回归 twister 15/15（68 用例）。
 - v0.3.6 · 2026-09-26：DEC-43——§5 pubq 互斥（push/flush 并发安全；flush 锁内出队 + 锁外发送防传输阻塞反压；锁序 write_lock → pubq 单向无环）。回归 framework.conc test_03 + 全量 13/13（54 用例）。

@@ -70,6 +70,28 @@ ts_res_t ts_safety_commit(const char *uid, ts_out_value_t v);
  * 侧传入调用方 app_id（ts_ctx_opaque.app_id）；actor=0 = system。 */
 ts_res_t ts_safety_commit_a(const char *uid, ts_out_value_t v, uint16_t actor);
 
+/* ---- 控制源仲裁状态（CG3 · Q-41②/合同 11 · LLD §5b）--------------------- */
+
+typedef enum { TS_ARB_REMOTE = 0, TS_ARB_LOCAL = 1 } ts_arb_owner_t;
+
+/* 写路径来源标记（§4 commit 入口）：TS_SRC_APP = natives（APP = 编排意图
+ * 载体，V1 不经仲裁闸）；TS_SRC_ZENOH = 远程编排写（压制门控唯一作用面）；
+ * TS_SRC_LOCAL = 本地交互写（未来本地 UI 面）。 */
+typedef enum { TS_SRC_APP = 0, TS_SRC_ZENOH = 1, TS_SRC_LOCAL = 2 } ts_src_t;
+
+/** [thread] 席位变更：仅改门控位 + 发布 TS_EVT_ARB_CHANGED——**零通道写入**
+ *（EN 60204-1 §9.2.3 同型：切换不产生输出；连续性由 APP 逻辑承载）。
+ * 幂等（同席位重复变更不产事件——确定性）。 */
+ts_res_t ts_safety_set_arb(ts_arb_owner_t owner);
+
+/** [any] 当前席主（远程编排 | 本地交互源）。 */
+ts_arb_owner_t ts_safety_arb_owner(void);
+
+/** [thread] 带来源标记的写路径：本地席位激活期（arb_owner == LOCAL）拒绝
+ * TS_SRC_ZENOH 来源请求（TS_E_STATE 留痕——EN 60204-1 §9.2.4「激活站
+ * 独占引发权」同型）；APP/LOCAL 来源不受门控。 */
+ts_res_t ts_safety_commit_src(const char *uid, ts_out_value_t v, ts_src_t src);
+
 /** [any] 影子值读回（不经驱动）。 */
 ts_res_t ts_safety_readback(const char *uid, ts_out_value_t *out);
 
@@ -145,7 +167,7 @@ typedef struct {
 	int32_t res;       /* commit 结果（TS_OK 或 TS_E_*） */
 	uint16_t actor;    /* 调用者 app_id（M1 恒 0=system；M2 起 ts-hal 注入） */
 	uint8_t kind;      /* ts_ch_kind_t（值语义按 kind 解释，原始 union 存 value） */
-	uint8_t _rsv;
+	uint8_t src;       /* ts_src_t 写路径来源（CG3 · 合同 11 审计维度；旧记录 0=APP） */
 	uint32_t value_u;  /* ts_out_value_t 的规范单字表示（b→0/1；pwr→en<<31|ma 截低 31 位） */
 } ts_audit_entry_t;
 
@@ -175,10 +197,18 @@ typedef struct {
 	uint32_t t_ms; /* estop 触发时刻（ISR 记录，补发时带上，合同 5） */
 } ts_estop_evt_t; /* TS_EVT_ESTOP */
 
+typedef struct {
+	uint8_t owner; /* ts_arb_owner_t 新席主 */
+	uint8_t old;   /* 原席主（幂等变更不产事件——owner == old 不发布） */
+} ts_arb_evt_t; /* TS_EVT_ARB_CHANGED（CG3 · 合同 11：切换零输出，仅留痕） */
+
 /* ---- 测试钩子（仅 CONFIG_TS_TEST）---------------------------------------- */
 #ifdef CONFIG_TS_TEST
 /** 最近一次 system_fail 的 reason（测试断言用；0 = 未发生）。 */
 uint32_t ts_safety_test_fail_reason(void);
+/** 审计环形归零（测试隔离——ts_safety_test_reset 内部调用；CG3 起用例序
+ * 不再影响丢弃算术）。 */
+void ts_safety_audit_test_reset(void);
 #endif
 
 /* ---- 驱动分发（LLD-ts-safety §6）——全库唯一驱动调用点 -------------------- */
