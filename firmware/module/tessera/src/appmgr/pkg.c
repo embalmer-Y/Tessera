@@ -13,6 +13,129 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 #include "internal.h"
+#include "../net/internal.h" /* ts_cbor_* 读助手（tessera 模块内复用） */
+
+/* ---- 资源档位扫描与安装期匹配（CG4 · Q-39②⑤/Q-42 · LLD §5a）------------ */
+#ifdef CONFIG_TS_APP_WAMR
+
+ts_res_t ts_appmgr_scan_needs(const uint8_t *man, uint32_t ml, ts_app_needs_t *out)
+{
+	if (man == NULL || out == NULL) {
+		return TS_E_PARAM;
+	}
+	memset(out, 0, sizeof(*out));
+	ts_cbor_rd_t r;
+	uint32_t pairs;
+
+	ts_cbor_rd_init(&r, man, ml);
+	if (!ts_cbor_map_open(&r, &pairs)) {
+		return TS_E_PARAM;
+	}
+	for (uint32_t i = 0; i < pairs; i++) {
+		char key[16];
+
+		if (!ts_cbor_tstr(&r, key, sizeof(key))) {
+			return TS_E_PARAM;
+		}
+		if (strcmp(key, "tier") == 0) {
+			char t[8];
+
+			if (!ts_cbor_tstr(&r, t, sizeof(t))) {
+				return TS_E_PARAM;
+			}
+			if (strcmp(t, "small") == 0) {
+				out->tier = 0;
+			} else if (strcmp(t, "large") == 0) {
+				out->tier = 1;
+			} else {
+				return TS_E_PARAM; /* 未知档位 fail-closed */
+			}
+		} else if (strcmp(key, "needs") == 0) {
+			out->has_needs = true;
+			uint32_t np;
+
+			if (!ts_cbor_map_open(&r, &np)) {
+				return TS_E_PARAM;
+			}
+			for (uint32_t j = 0; j < np; j++) {
+				char nk[20];
+
+				if (!ts_cbor_tstr(&r, nk, sizeof(nk))) {
+					return TS_E_PARAM;
+				}
+				if (strcmp(nk, "linear_memory_kb") == 0 ||
+				    strcmp(nk, "stack_kb") == 0) {
+					uint64_t v;
+
+					if (!ts_cbor_uint(&r, &v) || v == 0 ||
+					    v > 65535) {
+						return TS_E_PARAM;
+					}
+					if (nk[0] == 'l') {
+						out->linear_memory_kb = (uint32_t)v;
+					} else {
+						out->stack_kb = (uint32_t)v;
+					}
+				} else if (strcmp(nk, "resources") == 0) {
+					uint32_t n;
+
+					if (!ts_cbor_array_open(&r, &n) || n > 16) {
+						return TS_E_PARAM;
+					}
+					for (uint32_t k = 0; k < n; k++) {
+						char pfx[68]; /* fs_paths 同文法（agent 条目上限 64+NUL） */
+
+						if (!ts_cbor_tstr(&r, pfx, sizeof(pfx)) ||
+						    pfx[0] != '/' ||
+						    strstr(pfx, "..") != NULL) {
+							return TS_E_PARAM;
+						}
+					}
+					out->resources = (uint16_t)n;
+				} else {
+					return TS_E_PARAM; /* needs 内未知键 fail-closed */
+				}
+			}
+		} else if (!ts_cbor_skip(&r, 0)) {
+			return TS_E_PARAM; /* 非目标键跳过失败 = 结构非法 */
+		}
+	}
+	/* schema 纪律：needs 仅 large 可携（small 档资源面 = fs_paths 既有语义） */
+	if (out->has_needs && out->tier == 0) {
+		return TS_E_PARAM;
+	}
+	return TS_OK;
+}
+
+ts_res_t ts_appmgr_needs_match(const ts_app_needs_t *n)
+{
+	if (n == NULL) {
+		return TS_E_PARAM;
+	}
+	/* ① 线性内存预算 ≤ 设备帽（WAMR 实例堆池推导——V1 单实例账已知限制） */
+	if (n->linear_memory_kb != 0 &&
+	    (uint64_t)n->linear_memory_kb * 1024 > (uint64_t)CONFIG_TS_APP_WAMR_HEAP) {
+		printk("[appmgr] match: linear_memory_kb=%u > heap cap %u KB\n",
+		       n->linear_memory_kb, CONFIG_TS_APP_WAMR_HEAP / 1024);
+		return TS_E_RANGE;
+	}
+	/* ② 资源清单须 fs 能力（物理存在性 = 运行期 fs 挂载面，非安装期） */
+#ifndef CONFIG_TS_HAL_FS
+	if (n->resources > 0) {
+		printk("[appmgr] match: resources=%u but TS_HAL_FS=n\n", n->resources);
+		return TS_E_RANGE;
+	}
+#endif
+	/* ③ 档位支持：设备 large 能力 = 装载缓冲 ≥ large 门（派生，无独立开关） */
+	if (n->tier == 1 && CONFIG_TS_APP_LOAD_MAX < CONFIG_TS_APP_SIZE_GATE_LARGE) {
+		printk("[appmgr] match: tier=large unsupported (LOAD_MAX=%d < gate=%d)\n",
+		       CONFIG_TS_APP_LOAD_MAX, CONFIG_TS_APP_SIZE_GATE_LARGE);
+		return TS_E_RANGE;
+	}
+	return TS_OK;
+}
+
+#endif /* CONFIG_TS_APP_WAMR */
 
 /* ---- 分步安装 staging 状态（内存；begin 可重入重置）---------------------- */
 
@@ -128,6 +251,29 @@ ts_res_t ts_appmgr_stage_verify(const uint8_t root_pubkey[32],
 	if (v.manifest_len < 8 || v.manifest_len > 512) {
 		return TS_E_PARAM;
 	}
+#ifdef CONFIG_TS_APP_WAMR
+	/* 4b. 档位扫描 + 安装期匹配矩阵（CG4 · Q-39⑤ · LLD §5a：验签后、激活前
+	 * ——安装期拒装替代运行期 OOM。分步安装语义：包已入非激活槽，拒绝 =
+	 * 不激活——等价"槽写入前拒"的净效果且免二次传输）。 */
+	{
+		static uint8_t man[512];
+		ts_app_needs_t needs;
+
+		if (ts_store_slot_read(stage.slot, TSAP_CONTENT_OFF, man,
+				       v.manifest_len) != TS_OK) {
+			return TS_E_IO;
+		}
+		ts_res_t sr = ts_appmgr_scan_needs(man, v.manifest_len, &needs);
+
+		if (sr != TS_OK) {
+			return sr; /* tier/needs schema 违例 fail-closed */
+		}
+		sr = ts_appmgr_needs_match(&needs);
+		if (sr != TS_OK) {
+			return sr; /* 匹配矩阵拒装（TS_E_RANGE + printk 缺口归因） */
+		}
+	}
+#endif
 	stage.verified = true;
 	if (manifest_len != NULL) {
 		*manifest_len = v.manifest_len;

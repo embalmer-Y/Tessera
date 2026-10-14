@@ -265,6 +265,28 @@ config TS_APP_LOAD_MAX
 	help
 	  Structural cap for wasm bytes loaded from slot at boot (must stay
 	  <= TS_STORE_SLOT_SIZE; board porting revisits per APP size class).
+	  CG4 (Q-39⑤/Q-42 · DEC-59): a board opts into the "large" APP tier by
+	  raising this to >= TS_APP_SIZE_GATE_LARGE (slot size likewise —
+	  device capability is derived from this value, no separate switch).
+
+config TS_APP_SIZE_GATE_SMALL
+	int "wasm size gate, small tier (bytes)"
+	depends on TS_APP_WAMR
+	default 16384
+	help
+	  Source: DEC-27 #6 / Q-39⑤ / Q-42 (DEC-59): 16KB kept for tier=small
+	  (v1 packages default to small — zero behavior change).
+
+config TS_APP_SIZE_GATE_LARGE
+	int "wasm size gate, large tier (bytes)"
+	depends on TS_APP_WAMR
+	default 262144
+	help
+	  Source: Q-39⑤/Q-42 (DEC-59; AG7 measurements: resource-type wasm =
+	  payload + ~147B overhead, linear 8-512KB spectrum; 256KB covers
+	  font-grade UI resources + complex logic). Boards may tighten; the
+	  install-time match rejects tier=large when TS_APP_LOAD_MAX falls
+	  short of this value (small-only device).
 
 config TS_APP_WAMR_HEAP
 	int "WAMR global heap pool size (bytes)"

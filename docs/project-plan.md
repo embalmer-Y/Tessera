@@ -208,6 +208,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.74 · 2026-10-14：**CG4 交付（资源档位——AG7 数值消费）**——固件 scan/match/双门/槽池断言 + Agent tier/needs 镜像（门+链接钉死 flags+三方一致同步）；夹具生成脚本入仓；twister 16/16（102）/agent 177+2s。下一单元：CG5 能力发现+资源打包。
 - v1.73 · 2026-10-14：**CG3 交付（控制源仲裁机制——合同 11 落地）**——席位 ts_arb_owner + set_arb 零输出/TS_EVT_ARB_CHANGED + ts_src_t 来源标记与压制门控（commit_src 入口，APP 路径不经闸）+ 审计 src 维度 + 租约本地席位视词语义（held_by/acquire + local_active 装饰）+ 顺带修 ts_safety_test_reset 审计环归零（用例序敏感缺陷）。用例 +2。下一单元：CG4 资源档位。
 - v1.72 · 2026-10-14：**V0.7.0 合同泛化批开工推进（CG0 ✅ DEC-58 / CG1 ✅ Q-42→DEC-59 / CG2 ✅）**——CG1 四 LLD 修订 + 合同 v2 正典落节 + Q-42 呈递（门③）；DEC-59 三项按建议值（prov v2/manifest v2 档位字段/门值 256KB）；CG2 部署模式实现（prov 双形态解码 + linkmon 模式守卫 + standalone boot 声明〔ACTIVE 驱动者缺口定案〕+ estop-clear 守卫 + flash_prov.py 分区头缺陷顺带修复）。回归：twister 16/16（99 用例，+4）。下一单元：CG3 控制源仲裁。
 - v1.71 · 2026-10-14：**V0.6.0 Agent 批收口（AG1-AG8 全 ✅，tag fw-v0.6.0）**——创作循环全栈（工作区/ws_* 循环/域验证器/终端门面/快照/双路径 app_develop/参数规则/run 子命令）+ D-AG7 真机 PASS（真 LLM 4 轮多文件工程收敛 + 无线部署 + 判据命中）+ large 档数值（CG4 输入）。回归定格：twister 16/16（95）/repo 2/agent 170+2s/ruff/sync。下一批：CG0 已裁（DEC-58）→ CG1 LLD 修订批开工。

@@ -42,3 +42,4 @@
 ## 6. 未决依赖
 
 - 固件 M2a：TSAP v1 容器与 manifest 字段定稿（§2 镜像同步）；Q-19 提案 1（钉版）。
+- 2026-10-14 CG4（DEC-59/Q-39②）：TsapManifest 增 `tier`（small 缺省/large）+ large 附 `needs{linear_memory_kb, stack_kb, resources[]}`（TsapNeeds——成组纪律与固件 scan_needs 同语义：needs 仅 large/large 须 needs/resources fs_paths 文法）；编译链（compile_app_c/compile_project_c）增 tier/needs 形参——large 门 256KB（SIZE_GATE_LARGE，IR2-03 钳制平移：调用方大值不可越档、缺省 max_bytes = 档位门）+ needs 链接钉死 flags（-Wl,--initial-memory/--max-memory 向上取整到 64KiB 页同值钉死 + -z stack-size——三方一致：manifest/工程清单/固件走查；PydanticLoopRunner 落盘时 manifest tier/needs 同步 project.json 同名字段）。v1 包零变化（档位键仅 large 携带）。

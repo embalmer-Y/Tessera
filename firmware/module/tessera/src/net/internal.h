@@ -59,6 +59,7 @@ bool ts_cbor_bstr_ref(ts_cbor_rd_t *r, const uint8_t **out, uint32_t *len);
 bool ts_cbor_uint(ts_cbor_rd_t *r, uint64_t *out);
 bool ts_cbor_int(ts_cbor_rd_t *r, int64_t *out);
 bool ts_cbor_bool(ts_cbor_rd_t *r, bool *out);
+bool ts_cbor_skip(ts_cbor_rd_t *r, int depth); /* CG4：scan 类走查跳过非目标键 */
 
 /* 编码器：buf 追加写（*pos 前进）；溢出由调用方检查（resp 定容） */
 bool ts_cbor_put_map(uint8_t *buf, size_t cap, size_t *pos, uint32_t pairs);

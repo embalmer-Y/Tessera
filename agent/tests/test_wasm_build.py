@@ -199,3 +199,51 @@ class TestCompileAppC:
         with pytest.raises(TaError, match="超上限 16384"):
             compile_app_c(src, str(tmp_path / "o"), [str(tmp_path)],
                           max_bytes=10**9)
+
+
+# ---- CG4（Q-39②⑤/Q-42 · DEC-59）：档位门 + needs 链接钉死 ------------------
+
+BIG_C = GOOD_C.replace(
+    "__attribute__((export_name(\"app_evt\"))) int app_evt(int v) { (void)v; return 0; }",
+    "static const unsigned char pad[24576] = {[3] = 7};\n"
+    "__attribute__((export_name(\"app_evt\"))) int app_evt(int v)"
+    " { return pad[v & 3]; }")
+
+NEEDS = {"linear_memory_kb": 128, "stack_kb": 32}
+
+
+class TestTierGates:
+    def test_small_gate_rejects_big_wasm(self, tmp_path):
+        """24KB 表 > small 门 16KB → 拒（门不撤只分档——small 维持）。"""
+        with pytest.raises(TaError, match="尺寸.*超上限"):
+            compile_app_c(BIG_C, str(tmp_path / "o"), [str(tmp_path)])
+
+    def test_large_gate_and_link_flags(self, tmp_path):
+        """tier=large + needs：门放行（≤256KB）+ initial/max-memory 钉死
+        （128KB → 2 页恰整——链接无取整余量）+ 双编译一致维持。"""
+        r = compile_app_c(BIG_C, str(tmp_path / "o"), [str(tmp_path)],
+                          tier="large", needs=NEEDS)
+        assert r["size"] > 24576
+        assert r["deterministic"] is True
+
+    def test_needs_page_rounding(self, tmp_path):
+        """非整页 needs（100KB → 2 页 128KB）链接接受（向上取整钉死）。"""
+        r = compile_app_c(GOOD_C, str(tmp_path / "o"), [str(tmp_path)],
+                          tier="large",
+                          needs={"linear_memory_kb": 100, "stack_kb": 8})
+        assert r["size"] <= 262144
+
+    def test_group_discipline(self, tmp_path):
+        """large 无 needs / needs 配 small = 成组违例拒（与 TsapManifest 同语义）。"""
+        with pytest.raises(TaError, match="须附 needs"):
+            compile_app_c(GOOD_C, str(tmp_path / "o"), [str(tmp_path)],
+                          tier="large")
+        with pytest.raises(TaError, match="仅 tier=large"):
+            compile_app_c(GOOD_C, str(tmp_path / "o"), [str(tmp_path)],
+                          needs=NEEDS)
+
+    def test_large_gate_still_clamps(self, tmp_path):
+        """large 档钳制维持：调用方 max_bytes 不可越 256KB（IR2-03 语义平移）。"""
+        with pytest.raises(TaError, match="超上限"):
+            compile_app_c(GOOD_C, str(tmp_path / "o"), [str(tmp_path)],
+                          max_bytes=8, tier="large", needs=NEEDS)

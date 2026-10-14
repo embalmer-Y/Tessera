@@ -226,6 +226,10 @@ ts_res_t ts_appmgr_health_fail_id(uint16_t app_id)
 #include "../net/internal.h" /* ts_cbor_* 读助手（tessera 模块内复用） */
 
 static uint8_t boot_wasm_buf[CONFIG_TS_APP_LOAD_MAX];
+/* 槽池结构装配检查（CG4 · LLD-ts-store §4 注：统一大槽 + 档位逻辑上限——
+ * 装载缓冲不得超槽容量；large 档板 = LOAD_MAX/SLOT_SIZE 同步抬升） */
+BUILD_ASSERT(CONFIG_TS_APP_LOAD_MAX <= CONFIG_TS_STORE_SLOT_SIZE,
+	     "TS_APP_LOAD_MAX must stay <= TS_STORE_SLOT_SIZE");
 static char boot_caps[160];
 #ifdef CONFIG_TS_HAL_FS
 static char boot_fs_paths[CONFIG_TS_HAL_FS_PATHS_MAX]; /* DEC-47⑤ */
@@ -458,12 +462,35 @@ static ts_res_t boot_load_entry(uint8_t entry, const ts_appmgr_meta_t *meta)
 					return TS_E_PARAM;
 				}
 			}
+		} else if (strcmp(key, "tier") == 0 || strcmp(key, "needs") == 0) {
+			/* CG4（Q-39②/Q-42）：manifest v2 档位键——walk 接受并跳过；
+			 * 语义解析统一走 ts_appmgr_scan_needs（单一事实源，walk 后
+			 * 调用取档位门——与安装期 verify 同解析器） */
+			if (!ts_cbor_skip(&r, 0)) {
+				return TS_E_PARAM;
+			}
 		} else {
 			return TS_E_PARAM; /* 未知键 = schema v1 之外（fail-closed） */
 		}
 	}
 	if (ts_store_slot_read(slot, TSAP_CONTENT_OFF + ml, boot_wasm_buf, wl) != TS_OK) {
 		return TS_E_IO;
+	}
+	/* 档位尺寸门（CG4 · LLD §5a 双门：small=16KB/large=256KB——按包 tier
+	 * 取门；装载缓冲上限门维持在前）。schema 违例（small+needs 等）经
+	 * scan_needs fail-closed。 */
+	{
+		ts_app_needs_t needs;
+
+		if (ts_appmgr_scan_needs(man, ml, &needs) != TS_OK) {
+			return TS_E_PARAM;
+		}
+		if (wl > ts_app_tier_gate(needs.tier)) {
+			printk("[appmgr] boot[%u]: wasm %uB 超档位门 %uB (tier=%s)\n",
+			       entry, wl, ts_app_tier_gate(needs.tier),
+			       needs.tier == 1 ? "large" : "small");
+			return TS_E_PARAM;
+		}
 	}
 	/* 数值 app_id = entry+1（M6 单实例装载 entry 0 → 1，与 V1 审计归因
 	 * 兼容；M7 多实例 = 各 entry 各 id）。串身份随载注入（M9：kv 哈希源）。 */

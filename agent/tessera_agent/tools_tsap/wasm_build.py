@@ -63,9 +63,61 @@ CLANG_FLAGS_THREADS = [
 # 尺寸上限默认 = CONFIG_TS_APP_LOAD_MAX 默认 16384（固件装载缓冲结构性
 # 上限；板级裁剪按板声明——工具按调用方参数收紧）
 DEFAULT_MAX_BYTES = 16384
+# large 档门（CG4 · Q-39⑤/Q-42〔DEC-59〕）= TS_APP_SIZE_GATE_LARGE 默认
+# 262144（256KB——AG7 数值：资源型 wasm = 载荷 + ~147B 开销，线性 8-512KB
+# 全谱；256KB 覆盖字体级 UI 资源 + 复杂逻辑）。固件安装期匹配矩阵同值
+#（LLD-ts-appmgr §5a 双门——Agent 编译门 + 固件安装/装载门）。
+SIZE_GATE_LARGE = 262144
+_WASM_PAGE = 65536  # wasm 线性内存页（needs 链接钉死取整单位）
 # 编译时限（秒）：R4 沙箱纪律——所有子进程有时限，超时杀进程如实报错
 DEFAULT_TIMEOUT_S = 60.0
 CLANG = "clang"
+
+
+def _tier_flags(tier: str, needs: dict | None) -> list[str]:
+    """档位门与链接钉死 flags（CG4 · Q-39②⑤）。
+
+    tier=large + needs{linear_memory_kb, stack_kb} → -Wl,--initial-memory/
+    --max-memory（向上取整到 64KiB 页，二者同值 = 钉死）+ -z stack-size。
+    成组纪律与 TsapManifest 同（needs 仅 large；large 须 needs）。
+    """
+    if tier not in ("small", "large"):
+        raise TaError(TA_E_ARGS, f"tier 须为 small/large: {tier!r}", domain="app_compile")
+    if needs is None:
+        if tier == "large":
+            raise TaError(
+                TA_E_ARGS, "tier=large 须附 needs{linear_memory_kb, stack_kb}",
+                domain="app_compile")
+        return []
+    if tier != "large":
+        raise TaError(TA_E_ARGS, "needs 仅 tier=large 可携", domain="app_compile")
+    try:
+        lin_kb = int(needs["linear_memory_kb"])
+        stack_kb = int(needs.get("stack_kb", 1))
+    except (KeyError, TypeError, ValueError) as exc:
+        raise TaError(
+            TA_E_ARGS, f"needs 缺域/域值非法: {exc}", domain="app_compile") from exc
+    if lin_kb < 1 or stack_kb < 1:
+        raise TaError(TA_E_ARGS, "needs 域值须 ≥1（KB 口径）", domain="app_compile")
+    pages = -(-lin_kb * 1024 // _WASM_PAGE)  # 向上取整到页
+    mem = pages * _WASM_PAGE
+    # -z 与值分立两参（CLANG_FLAGS_THREADS 同形——合并单参 clang driver 拒）
+    return [
+        f"-Wl,--initial-memory={mem}", f"-Wl,--max-memory={mem}",
+        "-z", f"stack-size={stack_kb * 1024}",
+    ]
+
+
+def _tier_gate_bytes(tier: str, max_bytes: int) -> int:
+    """档位取门（服务端钳制语义维持——调用方大值不可越档位门）。
+
+    max_bytes 缺省值（DEFAULT_MAX_BYTES）/0 = 未显式收紧 → 取档位门；
+    显式更小值 = 调用方收紧（不可越档位上限——IR2-03 平移）。
+    """
+    ceiling = SIZE_GATE_LARGE if tier == "large" else DEFAULT_MAX_BYTES
+    if int(max_bytes) in (0, DEFAULT_MAX_BYTES):
+        return ceiling
+    return min(int(max_bytes), ceiling)
 
 
 # ---- wasm 二进制面解析（零依赖；llvm-objdump-18 解析不了 strip 后 wasm——
@@ -290,6 +342,8 @@ def compile_app_c(
     max_bytes: int = DEFAULT_MAX_BYTES,
     timeout_s: float = DEFAULT_TIMEOUT_S,
     threads: int = 1,
+    tier: str = "small",
+    needs: dict | None = None,
 ) -> dict[str, Any]:
     """C 源 → wasm 自由固件 + 面检查（DEC-45；全部 fail-closed）。
 
@@ -298,12 +352,15 @@ def compile_app_c(
     尺寸超限；双编译字节不一致。
     threads>1（M19/DEC-55）：线程档——共享内存 + 原子 + aux stack flags
     （CLANG_FLAGS_THREADS）。
+    tier/needs（CG4 · Q-39②⑤）：large 档门 256KB + needs 链接钉死
+    （initial/max-memory 取整到 64KiB 页 + stack-size——_tier_flags）。
     """
     if not source_c or not source_c.strip():
         raise TaError(TA_E_ARGS, "source_c 为空", domain="app_compile")
     _gate_source(source_c)
-    # IR2-03 服务端钳制：调用方（含 LLM）传大值不可放宽固件装载上限
-    max_bytes = min(int(max_bytes), DEFAULT_MAX_BYTES)
+    tier_flags = _tier_flags(tier, needs)
+    # IR2-03 服务端钳制：调用方（含 LLM）传大值不可放宽档位门
+    max_bytes = _tier_gate_bytes(tier, max_bytes)
     real = _resolve_within(out_dir, allowed_roots)
     real.mkdir(parents=True, exist_ok=True)
     c_path = real / "app.c"
@@ -312,9 +369,9 @@ def compile_app_c(
     thr_flags = CLANG_FLAGS_THREADS if int(threads) > 1 else []
     with _dir_lock(real):  # IR2-10：同 out_dir 串行（防交叉污染）
         c_path.write_text(source_c, encoding="utf-8")
-        _run_clang(c_path, wasm_path, timeout_s, thr_flags)
+        _run_clang(c_path, wasm_path, timeout_s, thr_flags + tier_flags)
         # 确定性自证：同源重编译逐字节比对（R5；不一致 = 环境泄漏）
-        _run_clang(c_path, wasm2_path, timeout_s, thr_flags)
+        _run_clang(c_path, wasm2_path, timeout_s, thr_flags + tier_flags)
         deterministic = wasm_path.read_bytes() == wasm2_path.read_bytes()
         wasm2_path.unlink()
     if not deterministic:
@@ -359,6 +416,8 @@ def compile_project_c(
     max_bytes: int = DEFAULT_MAX_BYTES,
     timeout_s: float = DEFAULT_TIMEOUT_S,
     threads: int = 1,
+    tier: str = "small",
+    needs: dict | None = None,
 ) -> dict[str, Any]:
     """多文件工程 → 单 wasm（AG3 · LLD-A08 §2.2/§4——工程清单驱动，Q-39①）。
 
@@ -366,12 +425,15 @@ def compile_project_c(
     exports = 工程清单导出表 → 逐符号 `-Wl,--export=`（缺符号 = 链接错，
     fail-closed）。门与单文件链一致：工程包含门（_gate_project_sources）、
     双编译字节一致、尺寸、导入白名单、必需导出。
+    tier/needs（CG4 · Q-39②⑤）：large 档门 + needs 链接钉死
+   （project.json 同名字段——三方一致：manifest/工程清单/固件走查）。
     返回 {wasm_path, size, imports, exports, files_sha256, deterministic}。
     """
     if not files or not any(n.endswith(".c") for n in files):
         raise TaError(TA_E_ARGS, "工程须含至少一个 .c 文件", domain="app_compile")
     _gate_project_sources(files)
-    max_bytes = min(int(max_bytes), DEFAULT_MAX_BYTES)
+    tier_flags = _tier_flags(tier, needs)
+    max_bytes = _tier_gate_bytes(tier, max_bytes)
     real = _resolve_within(out_dir, allowed_roots)
     src_dir = real / "src"
     src_dir.mkdir(parents=True, exist_ok=True)
@@ -386,9 +448,10 @@ def compile_project_c(
     wasm_path = real / "app.wasm"
     wasm2_path = real / "app.wasm.check"
     thr_flags = CLANG_FLAGS_THREADS if int(threads) > 1 else []
+    link_flags = thr_flags + tier_flags
     with _dir_lock(real):  # IR2-10：同 out_dir 串行
-        _run_clang_files(c_paths, wasm_path, timeout_s, thr_flags, need)
-        _run_clang_files(c_paths, wasm2_path, timeout_s, thr_flags, need)
+        _run_clang_files(c_paths, wasm_path, timeout_s, link_flags, need)
+        _run_clang_files(c_paths, wasm2_path, timeout_s, link_flags, need)
         deterministic = wasm_path.read_bytes() == wasm2_path.read_bytes()
         wasm2_path.unlink()
     if not deterministic:

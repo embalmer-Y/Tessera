@@ -64,6 +64,56 @@ bool ts_cbor_map_open(ts_cbor_rd_t *r, uint32_t *pairs)
 	return true;
 }
 
+/* 通用值跳过（CG4 · Q-39②：scan 类走查跳过非目标键——不复制内容）。
+ * definite-length 专用（不定长/浮点/断点 = false，与解码器族同纪律）；
+ * 递归深度硬上界 4（manifest 嵌套面 needs 一层，余量防御）。 */
+bool ts_cbor_skip(ts_cbor_rd_t *r, int depth)
+{
+	uint8_t maj;
+	uint64_t v;
+
+	if (depth > 4 || !rd_head(r, &maj, &v)) {
+		return false;
+	}
+	switch (maj) {
+	case 0: /* uint */
+	case 1: /* nint */
+		return true;
+	case 2: /* bstr */
+	case 3: /* tstr */
+		if (v > 4096 || r->rem < (size_t)v) {
+			return false;
+		}
+		r->p += (size_t)v;
+		r->rem -= (size_t)v;
+		return true;
+	case 4: /* array */
+		if (v > 64) {
+			return false;
+		}
+		for (uint64_t i = 0; i < v; i++) {
+			if (!ts_cbor_skip(r, depth + 1)) {
+				return false;
+			}
+		}
+		return true;
+	case 5: /* map */
+		if (v > 16) {
+			return false;
+		}
+		for (uint64_t i = 0; i < 2 * v; i++) { /* 键 + 值 */
+			if (!ts_cbor_skip(r, depth + 1)) {
+				return false;
+			}
+		}
+		return true;
+	case 7: /* simple/bool/null/float——头部形态完备即可跳（rd_head 已消费定长载荷） */
+		return true;
+	default:
+		return false; /* 6 tag：manifest 域不出现，fail-closed */
+	}
+}
+
 bool ts_cbor_array_open(ts_cbor_rd_t *r, uint32_t *items)
 {
 	uint8_t maj;

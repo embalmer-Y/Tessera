@@ -362,3 +362,39 @@ def test_manifest_pcm16_group():
     ]:
         with pytest.raises(ValidationError):
             TsapManifest(**bad)
+
+
+# ---- CG4（Q-39②/Q-42 · DEC-59）：manifest 档位扩展 -------------------------
+
+def test_manifest_tier_roundtrip():
+    """large + needs 三域往返；v1 无档位键 = small/None 且 CBOR 不携档位键。"""
+    m = TsapManifest(**VALID_MANIFEST, tier="large",
+                     needs={"linear_memory_kb": 64, "stack_kb": 16,
+                            "resources": ["/SD:/res"]})
+    c = m.to_cbor()
+    assert b"tier" in c and b"needs" in c
+    back = TsapManifest.from_cbor(c)
+    assert back.tier == "large"
+    assert back.needs is not None
+    assert back.needs.linear_memory_kb == 64
+    assert back.needs.stack_kb == 16
+    assert back.needs.resources == ["/SD:/res"]
+
+    v1 = TsapManifest(**VALID_MANIFEST)
+    c1 = v1.to_cbor()
+    assert b"tier" not in c1 and b"needs" not in c1
+    assert TsapManifest.from_cbor(c1).tier == "small"
+    assert TsapManifest.from_cbor(c1).needs is None
+
+
+def test_manifest_tier_group_discipline():
+    """成组纪律（与固件 scan_needs 同语义）：needs 仅 large / large 须 needs
+    / resources 路径文法。"""
+    with pytest.raises(ValidationError, match="needs 仅"):
+        TsapManifest(**VALID_MANIFEST, tier="small",
+                     needs={"linear_memory_kb": 64})
+    with pytest.raises(ValidationError, match="须附 needs"):
+        TsapManifest(**VALID_MANIFEST, tier="large")
+    with pytest.raises(ValidationError, match="绝对路径"):
+        TsapManifest(**VALID_MANIFEST, tier="large",
+                     needs={"linear_memory_kb": 64, "resources": ["rel/x"]})

@@ -1,6 +1,6 @@
 # LLD · ts-appmgr v0.4（M2b.2 完成）
 
-> **状态**：v0.3（2026-09-26 DEC-43 接线批：§4/§5 运行时宿主 + natives 落地——framework.app 端到端全绿；两项 V1 已知偏差与 WAMR 平台怪癖规避登记于 §7）。上位：HLD §3.4；公共约定 `LLD-00-common.md`。
+> **状态**：v0.6.1（2026-10-14 CG4 · DEC-59/Q-39②⑤：**§5a 档位实现**——tier/needs 扫描单一解析源 + 安装期匹配矩阵〔验签后〕+ 尺寸门分档双门 + 槽池装配断言；Agent 侧 manifest/编译链同批镜像〔TsapNeeds/tier 门/-Wl 钉死 flags〕；get-info caps 随 CG5）。上位：HLD §3.4 + HLD-contract-v2 §5；公共约定 `LLD-00-common.md`。
 > **职责**：APP 包接收/验签/双 slot 存储/版本与回滚；WAMR 宿主（实例化 + 按能力装配导入面）；APP 线程与健康探针。
 > **合同关联**：合同 10（权限硬边界 = 符号过滤装配）；DEC-04/05/17。
 > **外部依赖**：WAMR（wasm_runtime_* 家族，具体签名以钉住版本为准，M0 核验）。
@@ -68,7 +68,8 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 - **尺寸门分档（Q-39⑤：门不撤只分档）**：`TS_APP_SIZE_GATE_SMALL`（=16384 维持）与 `TS_APP_SIZE_GATE_LARGE`（建议 262144 = 256KB——AG7 数值：资源型 wasm = 资源 + 147B 线性 8-512KB 全谱；终值 CG4 呈 Q-42 裁）——装载校验按包 tier 取门。
 - **安装期匹配矩阵（验签后、槽写入前新增步骤）**：tier 设备支持否 / linear_memory 预算 ≤ 设备档位上限否 / 资源清单 fs_paths 前缀可满足否——任一不满足 = 拒装（TS_E_RANGE + detail 指明缺口，回执结构化）——**安装期拒装替代运行期 OOM**（Android getMemoryClass 同型）。
 - **装载缓冲与槽池**：`TS_APP_LOAD_MAX` 板级配置联动（large 档板 = 门值 ≥ gate_large）；槽池维持统一大槽 + 档位逻辑上限（不碎片化存储——LLD-ts-store §4 注）。
-- **设备能力自报**：`sys/get-info` 增 caps 块 `{tiers, max_linear_memory_kb, slot_pool_kb}`（异构设备生态基础；Agent deploy_discover 消费）。
+- **设备能力自报**：`sys/get-info` 增 caps 块 `{tiers, max_linear_memory_kb, slot_pool_kb}`（异构设备生态基础；Agent deploy_discover 消费——**随 CG5**）。
+- **实现注记（CG4）**：① 扫描单一解析源 = `ts_appmgr_scan_needs`（pkg.c——键分发 + `ts_cbor_skip`〔cbor_min 新增通用值跳过，深度 ≤4〕跳过非档位键；schema 纪律：tier ∈ {small,large}、needs 仅 large、resources 条目 fs_paths 同文法）——安装期 verify 与 boot 走查共用（walk 对 tier/needs 键跳过、walk 后调 scan 取档位门）。② 匹配矩阵 = `ts_appmgr_needs_match`（行序：线性内存 ≤ WAMR_HEAP 帽 → resources 须 TS_HAL_FS → tier=large 须 LOAD_MAX ≥ GATE_LARGE〔设备能力派生，无独立开关〕）；落点 = stage_verify 验签后（分步安装语义：包已入非激活槽、拒 = 不激活）。③ 尺寸门双门：Kconfig `TS_APP_SIZE_GATE_SMALL=16384`/`LARGE=262144`；boot 装载按包 tier 取门（装载缓冲上限门维持在前）；Agent 侧 `SIZE_GATE_LARGE` 同值镜像（调用方大值不可越档——IR2-03 钳制平移，缺省 max_bytes = 档位门）。④ 槽池装配断言：`BUILD_ASSERT(LOAD_MAX ≤ SLOT_SIZE)`（统一大槽 + 档位逻辑上限——不碎片化存储）。⑤ needs.stack_kb 记录不消费（V1 运行时常量已知限制维持）；非 WAMR 桩构建无安装匹配（不跑 APP 面）。用例 framework.app test_10（扫描矩阵/匹配行/安装拒/boot 直装走查〔差异化 wasm——模块缓存怪癖绕开〕）+ agent test_tsap_sim/test_wasm_build 档位族。夹具 = firmware/tests/app/gen_tier_pkgs.py（仓内机械生成 + 测试根签名 + pad 差异化）。
 
 ## 6. 测试要点
 
@@ -88,6 +89,7 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
   - **收尾单元落地（v0.4）**：ts_appmgr_boot_start（active slot TSAP → manifest canonical 走查〔未知键 fail-closed；caps ';' 组合——ts_perm_parse 位图或合并；app_id/app_ver 提取；stack_kb/heap_kb 读取但 V1 消耗运行时常量〕→ wasm 装载〔CONFIG_TS_APP_LOAD_MAX 结构性上限〕→ app_start → STAGED→ACTIVE）；boot 步骤 8 app_load 尾部追加（APP 故障不阻塞启动 = 合同 6 显式例外〔HLD §4.4-8〕）；CONFIG_TS_APP_WAMR 默认 y；Agent E2E 使用固件同源夹具 wasm。
 
 ## 修订记录
+- v0.6.1 · 2026-10-14：**CG4（DEC-59/Q-39②⑤ · §5a 实现）**——scan_needs/needs_match/双门 Kconfig/槽池断言/Agent 镜像（见 §5a 实现注记）；get-info caps 随 CG5。
 - v0.6 · 2026-10-14：CG1（Q-39 · HLD-contract-v2 §7）——§5a 资源档位与安装期匹配（manifest tier/needs + 尺寸门分档双门 + 匹配矩阵 + get-info caps——实现随 CG4 消费 AG7 数值；字段呈 Q-42 门③）。
 
 - v0.5.2 · 2026-10-02：板级十第二修复——boot 装载成功路径补 initialized=true + active_slot=meta.active_slot（此前首次 get_info 惰性初始化盲写 state=STAGED 把 ACTIVE 打回〔装载结果被观测面抹掉〕，且 active_slot 不回填 = activate/get-app 槽位对拍必败；真机 DB6/get-app 对拍首证，docs/board-deploy-01.md）。

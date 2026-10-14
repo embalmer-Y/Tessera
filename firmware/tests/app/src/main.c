@@ -18,6 +18,10 @@
 #include "../../../module/tessera/src/net/internal.h"
 #include "app_wasm.h"
 #include "boot_pkg.h"
+#include "boot_pkg_large.h"
+/* CG4：档位扫描/匹配内部面 + cbor 构造助手（模块内复用先例 = net 测试） */
+#include "../../../module/tessera/src/appmgr/internal.h"
+#include "../../../module/tessera/src/net/internal.h"
 
 static const ts_out_ch_t ag_ch = {
 	.uid = "ag0", .kind = TS_CH_GPIO,
@@ -350,6 +354,120 @@ ZTEST(framework_app, test_09_multi_instance_parallel)
 	zassert_true(ts_appmgr_app_running_id(2), "单停不影响实例2");
 	zassert_equal(ts_appmgr_app_stop_id(2), TS_OK);
 	zassert_false(ts_appmgr_app_running_id(2));
+}
+
+
+/* ---- CG4（Q-39②⑤/Q-42 · DEC-59）：资源档位——扫描矩阵/安装期匹配/boot 门 - */
+ZTEST(framework_app, test_10_tier_matching)
+{
+	suite_setup_channel();
+	ts_store_test_reset();
+	ts_appmgr_test_reset();
+
+	/* 扫描矩阵（ts_appmgr_scan_needs——verify/boot 单一解析源） */
+	uint8_t m[256];
+	size_t p;
+	ts_app_needs_t n;
+
+	/* v1 无档位键 → 缺省 small / 无 needs；匹配通过 */
+	p = 0;
+	zassert_true(ts_cbor_put_map(m, sizeof(m), &p, 1));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "app_id"));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "x"));
+	zassert_equal(ts_appmgr_scan_needs(m, p, &n), TS_OK);
+	zassert_equal(n.tier, 0);
+	zassert_false(n.has_needs);
+	zassert_equal(ts_appmgr_needs_match(&n), TS_OK, "缺省 small 匹配通过");
+
+	/* large + needs{linear_memory_kb=64, stack_kb=16, resources=["/SD:/res"]}
+	 * ——扫描字段全取到；匹配在 small-only 设备拒（档位行：LOAD_MAX 16K
+	 * < GATE_LARGE 256K；本套件 FS=y 且 lin 64 < heap 帽 384K → 恰为③行） */
+	p = 0;
+	zassert_true(ts_cbor_put_map(m, sizeof(m), &p, 2));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "tier"));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "large"));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "needs"));
+	zassert_true(ts_cbor_put_map(m, sizeof(m), &p, 3));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "linear_memory_kb"));
+	zassert_true(ts_cbor_put_uint(m, sizeof(m), &p, 64));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "stack_kb"));
+	zassert_true(ts_cbor_put_uint(m, sizeof(m), &p, 16));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "resources"));
+	zassert_true(ts_cbor_put_array(m, sizeof(m), &p, 1));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "/SD:/res"));
+	zassert_equal(ts_appmgr_scan_needs(m, p, &n), TS_OK);
+	zassert_equal(n.tier, 1);
+	zassert_true(n.has_needs);
+	zassert_equal(n.linear_memory_kb, 64);
+	zassert_equal(n.stack_kb, 16);
+	zassert_equal(n.resources, 1);
+	zassert_equal(ts_appmgr_needs_match(&n), TS_E_RANGE,
+		      "large 档在 small-only 设备拒装（匹配矩阵③）");
+
+	/* 线性内存帽行（①）：lin=500 > heap 帽 384KB（本套件 WAMR_HEAP=393216）
+	 * ——先于档位行拒（行序可区分） */
+	p = 0;
+	zassert_true(ts_cbor_put_map(m, sizeof(m), &p, 2));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "tier"));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "large"));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "needs"));
+	zassert_true(ts_cbor_put_map(m, sizeof(m), &p, 1));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "linear_memory_kb"));
+	zassert_true(ts_cbor_put_uint(m, sizeof(m), &p, 500));
+	zassert_equal(ts_appmgr_scan_needs(m, p, &n), TS_OK);
+	zassert_equal(ts_appmgr_needs_match(&n), TS_E_RANGE, "线性内存超帽（匹配①）");
+
+	/* schema 违例矩阵（fail-closed）：small+needs / 域外 tier / needs 未知键
+	 * / resources 带 .. / linear=0 */
+	p = 0;
+	zassert_true(ts_cbor_put_map(m, sizeof(m), &p, 2));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "tier"));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "small"));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "needs"));
+	zassert_true(ts_cbor_put_map(m, sizeof(m), &p, 1));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "linear_memory_kb"));
+	zassert_true(ts_cbor_put_uint(m, sizeof(m), &p, 64));
+	zassert_equal(ts_appmgr_scan_needs(m, p, &n), TS_E_PARAM, "small+needs 拒");
+
+	p = 0;
+	zassert_true(ts_cbor_put_map(m, sizeof(m), &p, 1));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "tier"));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "huge"));
+	zassert_equal(ts_appmgr_scan_needs(m, p, &n), TS_E_PARAM, "域外 tier 拒");
+
+	p = 0;
+	zassert_true(ts_cbor_put_map(m, sizeof(m), &p, 2));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "tier"));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "large"));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "needs"));
+	zassert_true(ts_cbor_put_map(m, sizeof(m), &p, 1));
+	zassert_true(ts_cbor_put_tstr(m, sizeof(m), &p, "gpu"));
+	zassert_true(ts_cbor_put_uint(m, sizeof(m), &p, 1));
+	zassert_equal(ts_appmgr_scan_needs(m, p, &n), TS_E_PARAM, "needs 未知键拒");
+
+	/* 安装期拒装（全链）：tier=large 预签包（真 ed25519 测试根签名）在
+	 * small-only 设备 → verify 后匹配矩阵拒（TS_E_RANGE——安装期拒装替代
+	 * 运行期 OOM；分步安装语义：包已入非激活槽、拒绝 = 不激活） */
+	const uint8_t root_key[32] = {0};
+	ts_app_info_t info;
+
+	zassert_equal(ts_appmgr_install(boot_pkg_large, sizeof(boot_pkg_large),
+					root_key, &info),
+		      TS_E_RANGE, "large 档包安装期拒装");
+
+	/* boot 走查接受档位键（直接槽写入 + meta 激活——绕过安装匹配的持久化
+	 * 面复现；large 门放行小 wasm = tier 声明与实际 wasm 解耦的门语义） */
+	ts_store_test_reset();
+	suite_setup_channel();
+	zassert_equal(ts_store_slot_write(0, 0, boot_pkg_large,
+					  sizeof(boot_pkg_large)), TS_OK);
+	ts_appmgr_meta_t mm;
+
+	ts_appmgr_meta_default(&mm); /* count=1/entry0 slot0 */
+	zassert_equal(ts_appmgr_meta_write(&mm), TS_OK);
+	zassert_equal(ts_appmgr_boot_start(), TS_OK, "boot 装载 tier=large 包");
+	zassert_true(wait_gpio(true), "档位键走查接受 + wasm 运行（walk/scan 单一解析源）");
+	zassert_equal(ts_appmgr_app_stop(), TS_OK);
 }
 
 ZTEST_SUITE(framework_app, NULL, NULL, NULL, NULL, NULL);

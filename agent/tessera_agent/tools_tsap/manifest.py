@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""TSAP manifest 镜像 schema v1（LLD-A05 §2；与固件 LLD-ts-appmgr §2 同源）。
+"""TSAP manifest 镜像 schema v1 + 档位扩展（LLD-A05 §2；与固件 LLD-ts-appmgr §2/§5a 同源）。
 
 CBOR 键序定稿（canonical，与固件侧消费对齐）：
   map{ app_id(tstr), app_ver(tstr), min_fw_ver(tstr), caps(array tstr),
        stack_kb(uint), heap_kb(uint), exports(array tstr) }
 exports 约定：必含 "health_ping"；init/tick/evt 可选（LLD-ts-appmgr §2）。
+档位扩展（CG4 · Q-39②/Q-42〔DEC-59〕）：tier("small" 缺省/"large") + large
+附 needs{linear_memory_kb, stack_kb, resources[]}——v1 包零变化（缺省 small）。
 """
 
 from __future__ import annotations
@@ -22,6 +24,34 @@ _EXPORTS_REQUIRED = "health_ping"
 # app_tick/app_evt + health_ping；板级十修复——早前 init/tick/evt 为
 # LLD §2 笔误漂移，与 runtime.c/夹具 wasm 均不符）
 _EXPORTS_ALLOWED = {"health_ping", "app_init", "app_tick", "app_evt"}
+_FS_PATH_RE = re.compile(r"^/[A-Za-z0-9._:/-]{0,62}/?$")
+
+
+class TsapNeeds(BaseModel):
+    """large 档资源申报（CG4 · Q-39②；固件安装期匹配矩阵消费——LLD-ts-appmgr §5a）。
+
+    linear_memory/stack 在编译期经 -Wl,--initial-memory/--max-memory/
+    -z stack-size 链接钉死（compile_project_c 消费同名字段——三方一致纪律）。
+    """
+
+    linear_memory_kb: int = Field(ge=1, le=65535)
+    stack_kb: int = Field(default=1, ge=1, le=256)
+    resources: list[str] = Field(default_factory=list)  # fs 前缀需求面（fs_paths 同文法）
+
+    @field_validator("resources")
+    @classmethod
+    def _resources(cls, v: list[str]) -> list[str]:
+        for p in v:
+            if not _FS_PATH_RE.match(p) or ".." in p:
+                msg = f"非法 needs.resources 条目: {p!r}（须绝对路径，禁 ..）"
+                raise ValueError(msg)
+        return sorted(set(v))
+
+    def to_cbor_map(self) -> dict:
+        m: dict = {"linear_memory_kb": self.linear_memory_kb, "stack_kb": self.stack_kb}
+        if self.resources:
+            m["resources"] = self.resources
+        return m
 
 
 class TsapManifest(BaseModel):
@@ -43,6 +73,23 @@ class TsapManifest(BaseModel):
     # Q-33/DEC-53（V0.4.0 M8）：wasm 线程申报制（1-4，缺省 1；V0.4.0
     # 运行时恒单线程执行——申报值入库，启用留 V0.5+ 线程批）
     threads: int = Field(default=1, ge=1, le=4)
+    # CG4（Q-39②/Q-42 · DEC-59）：资源档位——small 缺省（v1 兼容）/large 附
+    # needs；needs 仅 large 可携（固件 walk/scan 同纪律 fail-closed）
+    tier: Literal["small", "large"] = "small"
+    needs: TsapNeeds | None = None
+
+    @model_validator(mode="after")
+    def _tier_group(self) -> TsapManifest:
+        """档位成组纪律（CG4 · 与固件 scan_needs 同语义）：needs 仅 large
+        可携（small 档资源面 = fs_paths 既有语义）；large 无 needs 亦拒
+       （申报不完整 = 安装期匹配无从评估）。"""
+        if self.needs is not None and self.tier != "large":
+            msg = "needs 仅 tier=large 可携（small 档资源面 = fs_paths）"
+            raise ValueError(msg)
+        if self.tier == "large" and self.needs is None:
+            msg = "tier=large 须附 needs{linear_memory_kb, stack_kb}"
+            raise ValueError(msg)
+        return self
 
     @model_validator(mode="after")
     def _av_group(self) -> TsapManifest:
@@ -74,7 +121,7 @@ class TsapManifest(BaseModel):
         if not v:
             return None  # 空数组归一为缺省
         for p in v:
-            if not re.match(r"^/[A-Za-z0-9._:/-]{0,62}/?$", p) or ".." in p:
+            if not _FS_PATH_RE.match(p) or ".." in p:
                 msg = f"非法 fs_paths 条目: {p!r}（须绝对路径，禁 ..）"
                 raise ValueError(msg)
         out = sorted(set(v))
@@ -132,6 +179,10 @@ class TsapManifest(BaseModel):
                 m["av_h"] = self.av_h  # pcm16 无 h（Q-36）
         if self.threads != 1:
             m["threads"] = self.threads  # Q-33：仅申报 ≠1 时携带（兼容面最小）
+        if self.tier != "small":
+            m["tier"] = self.tier  # CG4：仅 large 时携带（v1 兼容面最小）
+        if self.needs is not None:
+            m["needs"] = self.needs.to_cbor_map()
         return cbor2.dumps(m, canonical=True)
 
     @classmethod
@@ -153,4 +204,6 @@ class TsapManifest(BaseModel):
             av_w=int(m["av_w"]) if "av_w" in m else None,
             av_h=int(m["av_h"]) if "av_h" in m else None,
             threads=int(m.get("threads", 1)),
+            tier=m.get("tier", "small"),
+            needs=(TsapNeeds(**dict(m["needs"])) if m.get("needs") is not None else None),
         )

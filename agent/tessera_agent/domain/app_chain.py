@@ -132,6 +132,11 @@ _CONVENTIONS = [
     "save 全量覆盖、load 返回最新长度（≥0）或错误码（<0；-6 = 未存过）；"
     "仅当 caps 含 kv:write:0 / kv:read:0 时可用——静态状态优先存全局变量，"
     "仅**跨重启/升级需要保留**的才用 kv。）"
+    "（资源档位 CG4：manifest 可选字段 tier=\"small\"（缺省，wasm ≤16KB）/"
+    "\"large\"（≤256KB，须附 needs={linear_memory_kb, stack_kb, resources[]}——"
+    "线性内存/栈在编译期钉死；resources = 需要的 fs 路径前缀清单）。"
+    "大型资源表（字体/位图等 >16KB）用 tier=large 声明，"
+    "常规 APP 一律缺省 small 不携带该字段。）"
     "（ts_av_capture 阻塞取一帧到 buf，返回帧长；仅当 caps 含 av:read:0 且 "
     "manifest 声明 av_fmt/av_w（图像另需 av_h；pcm16 音频 = av_w 恒 16、"
     "无 av_h，帧 640B 定长）时可用。ts_net_publish 发布一分片：把帧"
@@ -324,6 +329,12 @@ class PydanticLoopRunner:
             project["threads"] = int(out.threads)
         project["manifest"] = manifest
         project["exports"] = list(manifest.get("exports", ["health_ping"]))
+        # CG4（Q-39②）：档位三方一致——manifest tier/needs 同步工程清单
+        #（compile 消费 project.json 同名字段；manifest 与编译门不允许漂移）
+        if "tier" in manifest:
+            project["tier"] = manifest["tier"]
+        if manifest.get("needs") is not None:
+            project["needs"] = manifest["needs"]
         self._ws.save_project(project)
         self._log(f"manifest 落盘：app_id={manifest.get('app_id')} "
                   f"exports={project['exports']}")
@@ -559,7 +570,9 @@ async def _app_develop_single_shot(
                 compiled = compile_app_c(
                     outcome.source_c, out_dir, ctx.roots(),
                     required_exports=need,
-                    threads=int(outcome.manifest.get("threads") or 1))
+                    threads=int(outcome.manifest.get("threads") or 1),
+                    tier=str(outcome.manifest.get("tier") or "small"),
+                    needs=outcome.manifest.get("needs"))
             break
         except Exception as exc:  # noqa: BLE001
             feedback = str(exc)

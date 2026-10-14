@@ -71,6 +71,8 @@ class FirmwareCreationVerifier:
                 allowed_roots=workspace_roots(ws),
                 exports=list(project.get("exports", [])),
                 threads=int(project.get("threads", 1)),
+                tier=str(project.get("tier") or "small"),
+                needs=project.get("needs"),
             )
             return VerifyOutcome(ok=True, detail="编译通过（双编译一致）",
                                  facts=result)
