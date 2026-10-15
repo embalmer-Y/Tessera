@@ -1,4 +1,4 @@
-# LLD · ts-store v0.4
+# LLD · ts-store v0.5.1
 
 > **状态**：v0.5.1（2026-10-15 EC2 · **信任表实现**——ts_trust.c 落地：trust_walk 确定性走查/乒乓写+回读校验/惰性装载/撕裂回退；分区 8KB〔2×4KB 擦除块对齐——sim-flash 实证 2KB 步距范围抹除被拒〕）；v0.5（2026-10-15 EC1 · Q-43/DEC-60：**信任根表分区**——ts_trust.c 8KB 双副本乒乓〔2×4KB 擦除块对齐〕+ TUF root 同型全量替换表 schema + TS_STORE_TRUST 可选分区〔默认 n = V0.7 等价〕）；v0.4.1（2026-10-14 CG2 · Q-42：**prov schema v2 实现**——v1/v2 双形态确定性解码〔9/11 对，键序 = v1 前缀 + 尾部追加〕+ v1 缺字段缺省〔orchestrated + estop 远程清除开放〕+ 域外值 fail-closed + 未装载兜底 enabled）。上位：HLD v0.2 §3（模块表）/§4.6；公共约定 `LLD-00-common.md`。
 > **职责**：统一存储抽象——分区布局、掉电安全 meta（kv）、只读 provisioning（prov）、noinit 留痕区、APP slot 读写。此前散落各模块的"烧录配置/安全参数分区"引用全部收敛到本模块。

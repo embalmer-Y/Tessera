@@ -1,4 +1,4 @@
-# LLD-A02 · 会话编排与 agent 核心 · v0.1 草案
+# LLD-A02 · 会话编排与 agent 核心 · v0.2.2 草案
 
 > **上游**：HLD-agent §2/A02、§5（无豁免链）；决策 DEC-33/37（PydanticAI 基座）、DEC-35（ACP 预留）。事实基线 R5 §1。
 

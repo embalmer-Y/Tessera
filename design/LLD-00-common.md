@@ -1,6 +1,6 @@
-# LLD-00 · 公共约定（跨模块）v0.1 草案
+# LLD-00 · 公共约定（跨模块）v0.2.1 草案
 
-> **状态**：v0.1 草案，随 LLD 批次待 owner review。上位文档：`design/HLD-firmware-framework.md`（下称 HLD）。
+> **状态**：v0.2.1 草案，随 LLD 批次待 owner review。上位文档：`design/HLD-firmware-framework.md`（下称 HLD）。
 > **用途**：所有 ts-* 模块 LLD 共享的错误码/时间/上下文/线程/命名/Kconfig 约定；本文是唯一出处，各模块 LLD 只引用不复写。
 > **出处规则（2026-09-21 裁决后）**：数值默认值出处统一为 **DEC-27**（原 Q-10 清单，已裁）；历史〔Q-xx〕标注已随裁决收敛为 DEC 编号。
 

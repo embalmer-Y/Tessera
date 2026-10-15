@@ -1,4 +1,4 @@
-# LLD-A00 · 公共基座（错误/任务/审计/配置/纪律）· v0.1 草案
+# LLD-A00 · 公共基座（错误/任务/审计/配置/纪律）· v0.1.1 草案
 
 > **上游**：`HLD-agent.md` §2/A00。未决默认值以〔Q-19 提案 n〕标注。
 > **实现语言**：Python 3.12（WSL venv），包结构 `agent/tessera_agent/`（子包 common/gateway/core/tools_fw/tools_sim/tools_tsap/tools_net/skills）。

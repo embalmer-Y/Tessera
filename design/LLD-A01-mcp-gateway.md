@@ -1,4 +1,4 @@
-# LLD-A01 · MCP 网关（FastMCP 门面）· v0.1 草案
+# LLD-A01 · MCP 网关（FastMCP 门面）· v0.2 草案
 
 > **上游**：HLD-agent §2/A01；决策 DEC-34（双层）/DEC-36①②（stateless 纪律/长任务句柄）。事实基线 R5 §2（FastMCP 4.0.5）。
 

@@ -1,4 +1,4 @@
-# LLD · ts-safety v0.3
+# LLD · ts-safety v0.3.3
 
 > **状态**：v0.3.3（2026-10-14 CG6 收口：**§9a 已知限制节补齐**——estop 清除实质面 CG1/CG2 已交付，ISO 13850 偏离与本地通道/仲裁信号源 deferred 如实入节）。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-00-common.md`。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-00-common.md`。
 > **职责**：输出保护层（限幅/slew/限流）、三安全态状态机、estop 直达路径、fail-safe 管线、**控制源仲裁状态（本版新增）**。

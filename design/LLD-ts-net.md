@@ -1,4 +1,4 @@
-# LLD · ts-net v0.3.9
+# LLD · ts-net v0.4.1
 
 > **状态**：v0.4.1（2026-10-15 EC2 · **信任命令实现**——sys/trust-update〔gated+租约；CMD_TABLE_MAX 22〕+ trust-get + TS_EVT_TRUST_UPDATED 订阅十类〔安全类 QoS，extra {"ver"}〕）；v0.4（2026-10-15 EC1 · Q-43/DEC-60：**信任表命令面设计**——sys/trust-update〔gated+租约+COSE 现有效集签名+严格 N+1〕+ sys/trust-get〔未门控〕+ TS_EVT_TRUST_UPDATED 订阅十类）；v0.3.11（2026-10-14 CG5-B：**宿主资源推送命令面**——sys/fs-begin/chunk/commit〔gated+租约+随包 needs.resources 前缀白名单+sha256 读回校验〕）；v0.3.10（2026-10-14 CG3 · Q-41②：**租约本地席位降级视图实现**——held_by/acquire 视词语义 + acquire 回执 local_active 装饰 + TS_EVT_ARB_CHANGED 订阅外发〔八类〕+ get-audit 审计 src 维度）。上位：HLD §3.5 + HLD-contract-v2 §2-§4；公共约定 `LLD-00-common.md`。
 > **职责**：zenoh-pico 会话管理、命名空间构造、命令-回执分发、遥测/事件发布、心跳监视（断链判定）、控制租约（DEC-41）。
@@ -145,6 +145,7 @@ int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>
 
 ## 修订记录
 
+- v0.4.1 · 2026-10-15：**EC2（信任命令实现）**——§4.3 两命令落地（trust-update gated+租约 + trust-get）+ §5 TRUST_UPDATED 事件外发（安全类 QoS，extra {"ver"}）+ 订阅十类；framework.net 增构建面裁剪断言（无 TS_STORE_TRUST = trust-* NOTFOUND）。Agent 侧 deploy.trust_get/trust_update（LLD-A06 v0.3.1 落地）+ agent 用例 ×2。
 - v0.4 · 2026-10-15：**EC1（Q-43/DEC-60 · 信任表命令面设计）**——§4.3 增 trust-update（gated+租约；COSE_Sign1 现有效集签名 + ver 严格 N+1 + TS_EVT_TRUST_UPDATED 安全类）/ trust-get（未门控读回）；§5 订阅十类；实现随 EC2（CMD_TABLE_MAX 20→22；args data 复用 chunk 面）。
 - v0.3.11 · 2026-10-14：**CG5-B（Q-39③ 方案 A · 资源推送命令面）**——sys/fs-begin/chunk/commit（gated+租约；随包 res registry 授权 + sha256 读回校验 fail-closed + TS_EVT_RESOURCE_WRITTEN）；args 增 path/sha256 键；订阅九类；CMD_TABLE_MAX 17→20；用例 framework.app test_12（registry 矩阵/命令分层——授权拒 vs 后端 E_IO）+ framework.net 构建面裁剪断言。Agent 侧 deploy.push_resources + keys.envelope path/sha256。真机 net+SD 组合面 = 板级批验证项（现无该组合 bench——如实登记）。
 - v0.3.10 · 2026-10-14：**CG3（Q-41② · 租约本地席位视图实现）**——§4.5 视词语义落地（held_by/acquire + cmd 层 local_active 装饰）；§5 订阅八类（+TS_EVT_ARB_CHANGED → …/sys/event，extra {arb, old}，安全类 QoS）；§4.3 kind 注册表事件面 = 32+TS_EVT_ID_COUNT（ARB 自动入位）；get-audit 内存环条目末位加 src（ts_src_t——加性）；§8 用例 test_16_arb_lease_view。

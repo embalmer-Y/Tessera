@@ -208,6 +208,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.84 · 2026-10-15：**全项目自检交付（owner 指令）**——SC-05…SC-19 十五项发现全部处置（文档一致性 25/25/README 滞后/names.md 登记册回填/本批一处静默 no-op 补落）；规范电池全过；回归定格全绿 + 间歇观察与既有缺口如实登记。报告 design/final-selfcheck-v0.8.0.md。**原定开发计划（§11e 三版本批 25/25 单元）全部完成。**
 - v1.83 · 2026-10-15：**V0.8.0 收口（EC5 + tag fw-v0.8.0）——生态批 EC1-5 全批完毕；§11e 三版本批 25/25 单元全部完成**（R 4 + AG 8 + CG 8 + EC 5）。回归定格：twister 16/16（107）/L5 7/7/repo 2/agent 183+2s/ruff/sync 显式退出码全绿。真机信任表面随板级批（存量板零重刷 = V0.7 逐字节等价）。
 - v1.82 · 2026-10-15：**EC4 收口（侧载通道）**——侧载纪律定稿（唯一写路径 = stage 链）+ L5 检查 7（slot 收口白名单机械实证 + 负样本自证；testing.md §3 补全 7 项——顺带修 M10 漏登漂移）；SD/USB 本体按设备形态按需。下一单元：EC5 收口 tag fw-v0.8.0。
 - v1.81 · 2026-10-15：**EC3 交付（安装期权限确认）**——无头路实现（manifest_summary + install_permission_brief 注入 deploy_push_app/app_deploy/ln_deploy 三点 strict 审批 reason；坏包审批前拦截）；本地确认路 LLD 定稿（同一数据面，接线随设备形态批）；agent 183+2s/ruff 全绿。下一单元：EC4 侧载通道。

@@ -36,6 +36,13 @@
 | Q-17 | Agent 交互栈确认（①MCP 维持+实现纪律 ②长任务机制细化 ③Skills 分发 ④A2A 预留） | R4（owner 质疑触发，2026-09-22） | 已裁 → DEC-36 |
 | Q-18 | Agent 实现语言（A：TS 维持 / B：Python 宿主+pi RPC / C：Python 自研 / D：Rust） | owner 问询（2026-09-22） | 已裁 → DEC-37 |
 | Q-19 | Agent design 批次默认值与配置清单（13 项，随 HLD/LLD 批次呈递） | design/HLD-agent v0.1 批次 | 已裁 → DEC-38（#6/#9 修订） |
+| Q-20 … Q-31 | 板级/验签/审计/资源/多 APP 各批呈递（Q-20 挂钟/Q-21 审计/Q-22 分区/Q-23 环境/Q-24 双核/Q-25 代码生成/Q-26 硬件形态/Q-27 传输与 fs/Q-28 看门狗/Q-29 验签/Q-30 升级/Q-31 审计持久化） | decisions.md | 已裁 → DEC-44…DEC-52（自检 SC-15 补索引——此前未入册） |
+| Q-32 … Q-37 | 多 APP 槽池（→DEC-53）/多开发者锁（→DEC-54 双批）/复杂 APP（→DEC-55）/真多线程（→DEC-55）/Agent 批（→DEC-57）/资源分级（→DEC-57） | decisions.md | 已裁（自检 SC-15 补索引） |
+| Q-38 … Q-41 | Agent 创作循环/资源分级/信任链方向/standalone 泛化（R 批四呈递） | decisions.md | 已裁 → DEC-57（全 A + 质量优先条款） |
+| Q-42 | prov v2/manifest v2 档位/门值（CG 门③） | decisions.md | 已裁 → DEC-59 |
+| Q-43 | 信任根表 schema/存储/命令面（EC 门③） | decisions.md | 已裁 → DEC-60 |
+| DEC-39 … DEC-56 | 统一计划/板级批/MD 批/V0.1-0.4 版本批/环境迁移/需求校准（通用域解放）各批裁决与交付登记 | decisions.md | 生效（自检 SC-15 补索引） |
+| DEC-57 / DEC-58 / DEC-59 / DEC-60 | Q-38…41 全 A + 质量优先条款 / CG0 门④措辞 + 双 HLD / Q-42 三项按建议值 / Q-43 五项按建议值 | decisions.md | 生效 |
 
 ## 2. 任务与里程碑
 
@@ -154,6 +161,14 @@
 | framework.core / framework.safety / framework.replay | M1 twister 用例（L1/L4 雏形；replay = 双通道确定性比对 + stdout JSONL 接口） | firmware/tests/{core,safety,replay} | 已实现（M1 全绿） |
 | check_l5.py | L5 安全合同机械检查脚本（五项，testing.md §3；CI 独立 job 一票否决） | firmware/tests/l5/ | 已实现（M1） |
 | IR-xx | M1 实现自检发现编号族（IR-01…04 全处置：estop 清除死锁修复/审计一致性修复/两项记录） | design/impl-review-m1.md | 存档 |
+| ts_trust_* API 族（ts_store_trust_load/validate/write/trust_test_reset/trust_corrupt_test + ts_trust_table_t + TS_TRUST_KEYS_MAX） | 信任根表持久化面（V0.8.0 EC2 · Q-43③/DEC-60；TUF root 同型全量替换） | firmware/module/tessera/include/ts/store.h + src/store/ts_trust.c | 已实现（EC2） |
+| ts_appmgr_trust_update / ts_appmgr_trust_effective | 信任更新编排（COSE 现有效集签名 + ver 严格 N+1）与有效集构建 | include/ts/appmgr.h + src/appmgr/verify.c | 已实现（EC2） |
+| sys/trust-update · sys/trust-get | 信任表网络命令面（gated+租约 / 未门控读回） | src/net/cmd.c + LLD-ts-net §4.3 | 已实现（EC2） |
+| TS_EVT_TRUST_UPDATED | 信任表更新事件（安全类 QoS，extra {"ver"}；订阅十类） | include/ts/core.h + src/net/pub.c | 已实现（EC2） |
+| deploy.trust_get / deploy.trust_update | Agent 信任工具（表 CBOR 手工构造 + cose.sign_diy + 租约闭环） | agent/tessera_agent/tools_net/deploy.py | 已实现（EC2） |
+| tsap_tools.manifest_summary / install_permission_brief | 安装期权限呈报数据源与审批 brief（EC3 · Q-40③） | agent tools_tsap/tools.py + domain/firmware.py | 已实现（EC3） |
+| gen_trust_fixtures.py / boot_pkg_devroot / trust_blob_* | EC2 测试夹具族（固定种子 + 测试根签名——机械生成纪律） | firmware/tests/app/ | 已实现（EC2） |
+| L5 检查 7（slot 收口） | ts_store_slot_write/erase 调用点白名单 = pkg.c（侧载纪律机械保证） | firmware/tests/l5/check_l5.py + testing.md §3 | 已实现（EC4） |
 | IR-xx（续） | 实现自检发现编号族续（IR-05…20：M2a/M2b/MA0-MA2 审查——修复 10 项含验签 fail-closed/tsap 回绕/keygen 审批闸，登记 6 项） | design/impl-review-m2a-ma2.md | 存档 |
 | ts-net 公共 API 族（ts_net_set_ids/ts_net_key_{cmd,tel,evt,hb,sys}/ts_net_state/ts_net_backoff_ms/ts_net_session_poll/ts_net_pubq_{push,dropped,flush}/ts_net_linkmon_{tick,hb_host}/ts_net_link_up） + ts_net_transport_t（传输缝） | ts-net 对外 API 与传输抽象（LLD-ts-net §1-6；M3a.1 实现——真实现=zenoh-pico 1.10.1，测试注入桩） | firmware/module/tessera/include/ts/net.h | 已实现（M3a.1） |
 | framework.net | ts-net L1/L2 用例（key/退避/pubq/会话/linkmon→safety 集成） | firmware/tests/net | 已实现（M3a.1 全绿） |
@@ -286,4 +301,8 @@
 
 - 2026-10-10 · **P4 PSRAM 批登记**：p4psram（firmware/tests/ 载体：P4 PSRAM 挂接——P4P* console 行；psrambench 源级复用）；SPIRAM_MODE_HEX（P4 专属 16 线 PSRAM 模式——QUAD/OCT Kconfig 不可选）；EXTEMEM 0x48000000（P4 外部 RAM 地址域——S3 为 0x3c000000，探针断言随板改）。消费：board-p4-01 §7 第二项（PSRAM 挂接）。
 
+- 2026-10-15 · **V0.8.0 生态批登记（EC1-5）**：ts_trust（信任根表模块文件名——避开与 ts-trust 模块名混称：存储子域文件，非新框架模块）；ts_trust_part / ts-trust（DT 分区 nodelabel/label——8KB 双副本乒乓）；TS_STORE_TRUST / TS_TRUST_TABLE_MAX（Kconfig）；TS_EVT_TRUST_UPDATED（core.h 事件）；sys/trust-update·trust-get（net 命令）；trust_get/trust_update（Agent deploy 工具）；manifest_summary/install_permission_brief（EC3 呈报面）；boot_pkg_devroot/trust_blob_*/trust_dev_pub（测试夹具）；gen_trust_fixtures.py（夹具生成器，仓内）。消费：Q-43/DEC-60。
+
 - 2026-10-10 · **P4 无线面批登记**：esp_hosted（Zephyr 4.5 驱动族：drivers/misc/esp_hosted_mcu〔RPC/SDIO 传输〕+ drivers/wifi/esp_hosted〔WiFi 管理栈对接〕）；esp-hosted-mcu v3.0.9（C6 协处理器固件仓库——owner Windows EIM 环境构建，工作副本 D:/Software/project/esp_hosted，仓外）；STREAM/PACKET/SW_AGGR（C6 SDIO datapath 三态——Zephyr host 语义 = STREAM，定值入 cp sdkconfig.defaults.esp32c6）；flash_c6.bat / build_c6.bat（C6 构建烧录脚本，仓外 esp_hosted 工作副本）；eh_cp_wifi_sta（cp 工程产物名）；CH340@COM9（owner 的 C6 烧录/console 串口工具）。消费：P4 无线面（半程——数据面缺陷定案登记 decisions）。
+
+- 2026-10-15 · **自检 SC-15**：§1 补登 DEC-39…60 / Q-20…43 索引（区间行——此前批次漏登）；§2 补 V0.8.0 生态批行；§5 补 EC 批 API 族行。

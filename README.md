@@ -34,9 +34,9 @@
 | 路径 | 内容 |
 |---|---|
 | `firmware/module/tessera/` | 固件框架源码（ts-* 七模块） |
-| `firmware/tests/` | twister 套件（15 套件 77+ 用例）+ 板级 bench（netbench/deploybench/otabench/…） |
+| `firmware/tests/` | twister 套件（16 套件 107 用例）+ 板级 bench（netbench/deploybench/otabench/…） |
 | `firmware/app/` | 生产 app（板级片段：S3 PSRAM/WiFi/分区） |
-| `agent/` | MCP server + 模拟器 + TSAP 工具链 + skills（pytest 100+ 用例） |
+| `agent/` | MCP server + 模拟器 + TSAP 工具链 + skills（pytest 183 用例） |
 | `design/` | HLD + 七模块 LLD（v0.2 已确认） |
 | `docs/` | dev-environment（环境事实源）/ project-plan / impl-review 族 |
 | `decisions.md` | Q/DEC 裁决登记册（全部决策可溯） |
@@ -60,9 +60,9 @@
 
 板级构建另需：esptool（固件 venv 内 `west packages pip`）与主机 gcc（native_sim，WSL `build-essential`）。
 
-## 快速上手（WSL2 Ubuntu 环境）
+## 快速上手（Linux 环境）
 
-环境事实源见 `docs/dev-environment.md`（目录规范 `~/project/{tessera,zephyrproject,logs}`；Zephyr v4.5.0-rc1 + Zephyr SDK 1.0.1 钉版）。
+环境事实源见 `docs/dev-environment.md`（目录规范 `~/project/{tessera,zephyrproject,logs}`；Zephyr v4.5.0-rc1 + Zephyr SDK 1.0.1 钉版）。当前主力环境 = 原生 x86 Linux（迁移指南 `docs/migration-x86.md`；WSL2 历史口径见 dev-environment §1-8）。
 
 ```bash
 # 固件构建（native_sim）
@@ -70,7 +70,7 @@ cd ~/project/zephyrproject
 west build -p auto -b native_sim ~/project/tessera/firmware/app \
   -- -DZEPHYR_EXTRA_MODULES=~/project/tessera/firmware/module/tessera
 
-# 固件回归（twister 15 套件；EXTRA_MODULES 必带）
+# 固件回归（twister 16 套件；EXTRA_MODULES 必带；WAMR 源码根经 TS_WAMR_DIR 注入）
 ~/project/zephyrproject/.venv/bin/python ~/project/zephyrproject/zephyr/scripts/twister \
   -p native_sim -T ~/project/tessera/firmware/tests \
   --extra-args=ZEPHYR_EXTRA_MODULES=~/project/tessera/firmware/module/tessera
@@ -88,9 +88,12 @@ cd ~/project/tessera/agent && python -m pytest tests/ -q && python -m ruff check
 | D-SD | SD 卡文件系统 APP（白名单拒绝物理证据 + 宿主独立复核） | 真机 PASS |
 | D8 | 三版本部署链（初装→升级 G4 即停→健康回滚→复活） | 真机 PASS |
 | D9 | 断链 fail-safe 时间线（合同 3 双证据：sim + 真机） | 真机 PASS |
-| D-AV | 摄像头帧采集发布 | ◐（上游 #121774 + zenoh-pico 发送缺陷阻塞） |
+| D-AV | 摄像头帧采集发布（采集自愈 + 发送层根治后全链） | 真机 PASS（V0.2.0） |
 | OTA | MCUboot 双槽 SMP 全链（上传→swap→confirm） | 真机 PASS |
 | NV1 | 修复闭环（LLM 生成→部署→判据 PASS 一枪全链） | 真机 PASS |
+| DP / DT | PDM 音频全链 / 真 wasm 多线程（原子共享 + join） | 真机 PASS |
+| MA / NVD / AG7 | 多 APP 并行 / 新机全链 NVD / 真 LLM 多文件工程收敛 | 真机 PASS |
+| CG7 | V0.7.0 合同泛化 spot check（caps 自报 + 预检消费 + 部署全链） | 真机 PASS |
 
 ## 安全与确定性合同（摘要，全文 `AGENTS.md` §6）
 

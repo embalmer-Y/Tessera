@@ -1,6 +1,6 @@
-# LLD · ts-hal v0.1 草案
+# LLD · ts-hal v0.2.3 草案
 
-> **状态**：v0.1 草案，随 LLD 批次待 owner review。上位：HLD §3.3；公共约定 `LLD-00-common.md`。
+> **状态**：v0.2.3（2026-10-14 CG5-B：宿主原语三件 + prefix_match 提取；实现长期在库——早期「草案待 review」标注滞后，本行更正）。上位：HLD §3.3；公共约定 `LLD-00-common.md`。
 > **职责**：面向 APP 的板无关外设 API（gpio/pwm/adc/power）、**权限执行点**（manifest 能力 → 每调用裁决）、外设实例寻址。
 > **合同关联**：合同 2（输出必经 ts-safety）、3（输入不受保护影响）、10（越权拒绝 + 留痕）。
 
