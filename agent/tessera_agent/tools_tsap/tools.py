@@ -178,3 +178,51 @@ def tsap_verify(package_path: str, pub_key_path: str,
         "checks": ["header", "cose.pycose", "cose.diy", "manifest"],
         "wasm_len": wlen,
     }
+
+
+def manifest_summary(package_path: str,
+                     allowed_roots: list[str] | None = None) -> dict:
+    """安装期权限呈报摘要（V0.8.0 EC3 · Q-40③/DEC-60——无头设备
+    「Agent 呈报 + strict 审批」路的数据源）。
+
+    解析容器头 + manifest（**不含验签**——摘要为审批显示面；真授权门 =
+    部署链 tsap_verify 复验 + 固件验签链）。返回权限面全集：
+    app_id/app_ver/caps/fs_paths/tier/needs{linear_memory_kb, stack_kb,
+    resources}/threads/heap_kb/sizes。包不可读/容器损坏 = 如实抛
+    （审批请求携带摘要——坏包在审批前拦截）。"""
+    pkg = Path(os.path.expanduser(package_path))
+    if allowed_roots is not None:
+        pkg = _read_within(package_path, allowed_roots, "包路径")
+    if not pkg.is_file():
+        msg = f"包不存在: {package_path}"
+        raise TaError(TA_E_ARGS, msg, domain="tsap")
+    data = pkg.read_bytes()
+    if len(data) < TSAP_HEADER.size:
+        msg = f"容器过短: {len(data)}B"
+        raise TaError(TA_E_TSAP, msg, domain="tsap")
+    magic, ver, mlen, wlen, flags = TSAP_HEADER.unpack_from(data, 0)
+    legacy = ver == 1
+    content_off = TSAP_HEADER.size if legacy else TSAP_CONTENT_OFF
+    if (magic != TSAP_MAGIC or ver not in (1, TSAP_FMT_VER) or
+            content_off + mlen > len(data)):
+        msg = "容器头校验失败（权限摘要不可得）"
+        raise TaError(TA_E_TSAP, msg, domain="tsap")
+    try:
+        m = TsapManifest.from_cbor(data[content_off:content_off + mlen])
+    except Exception as exc:  # noqa: BLE001
+        raise TaError(TA_E_TSAP, f"manifest 解码失败: {exc}", domain="tsap") from exc
+    needs = m.needs.model_dump() if m.needs is not None else {}
+    return {
+        "app_id": m.app_id,
+        "app_ver": m.app_ver,
+        "caps": m.caps,
+        "fs_paths": m.fs_paths,
+        "av": {"fmt": m.av_fmt, "w": m.av_w, "h": m.av_h}
+        if m.av_fmt is not None else None,
+        "tier": m.tier,
+        "threads": m.threads,
+        "heap_kb": m.heap_kb,
+        "needs": needs,
+        "wasm_bytes": wlen,
+        "package_bytes": len(data),
+    }

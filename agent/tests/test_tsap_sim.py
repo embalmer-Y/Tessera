@@ -398,3 +398,65 @@ def test_manifest_tier_group_discipline():
     with pytest.raises(ValidationError, match="绝对路径"):
         TsapManifest(**VALID_MANIFEST, tier="large",
                      needs={"linear_memory_kb": 64, "resources": ["rel/x"]})
+
+
+# ---- V0.8.0 EC3（Q-40③/DEC-60）：安装期权限呈报摘要 -------------------------
+
+def test_manifest_summary_fields_and_errors(
+    tmp_path: Path, keypair: tuple[Path, Path], wasm_blob: Path
+):
+    """权限摘要：manifest 全字段面（caps/fs_paths/tier/needs/av）+ 坏包拒。"""
+    from tessera_agent.tools_tsap.tools import manifest_summary
+
+    man = {
+        **VALID_MANIFEST,
+        "fs_paths": ["/SD:/apps/demo"],
+        "tier": "large",
+        "needs": {"linear_memory_kb": 64, "stack_kb": 8,
+                  "resources": ["/SD:/res"]},
+    }
+    r = tsap_package(str(wasm_blob), man, str(keypair[0]), str(tmp_path),
+                     [str(tmp_path)])
+    pkg = r["package_path"]
+
+    s = manifest_summary(pkg)
+    assert s["app_id"] == "com.example.demo"
+    assert s["caps"] == ["gpio:out:led1"]
+    assert s["fs_paths"] == ["/SD:/apps/demo"]
+    assert s["tier"] == "large"
+    assert s["needs"]["resources"] == ["/SD:/res"]
+    assert s["needs"]["linear_memory_kb"] == 64
+    assert s["wasm_bytes"] == wasm_blob.stat().st_size
+    assert s["package_bytes"] == Path(pkg).stat().st_size
+    assert s["av"] is None
+
+    # 坏包 = 摘要不可得（审批前拦截）
+    bad = tmp_path / "bad.tsap"
+    bad.write_bytes(b"\x00" * 8)
+    with pytest.raises(TaError) as ei:
+        manifest_summary(str(bad))
+    assert ei.value.code == TA_E_TSAP
+    with pytest.raises(TaError):
+        manifest_summary(str(tmp_path / "missing.tsap"))
+
+
+def test_install_permission_brief_format(
+    tmp_path: Path, keypair: tuple[Path, Path], wasm_blob: Path
+):
+    """审批 reason 携带串格式（deploy_push_app/app_deploy/ln_deploy 三点共用）。"""
+    from tessera_agent.domain.firmware import install_permission_brief
+
+    r = tsap_package(str(wasm_blob), VALID_MANIFEST, str(keypair[0]),
+                     str(tmp_path), [str(tmp_path)])
+    brief = install_permission_brief(r["package_path"])
+    assert "com.example.demo" in brief
+    assert "gpio:out:led1" in brief
+    assert "caps=[" in brief and "fs_paths=[∅]" in brief
+    assert "tier=small" in brief
+
+    man = {**VALID_MANIFEST, "tier": "large",
+           "needs": {"linear_memory_kb": 128, "resources": ["/SD:/r"]}}
+    r2 = tsap_package(str(wasm_blob), man, str(keypair[0]), str(tmp_path),
+                      [str(tmp_path)])
+    brief2 = install_permission_brief(r2["package_path"])
+    assert "tier=large" in brief2 and "/SD:/r" in brief2

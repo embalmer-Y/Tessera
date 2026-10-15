@@ -29,6 +29,12 @@
 - **只可收紧**（deny 恒优先于 allow）：参数规则不得使 strict 类降级为 auto/confirm；config `[policy.param_rules]` 载体、人工维护、运行时不自修改（合同 10 同构）。多值参数匹配 = 精确等值（无通配——可预测性优先，通配需求实证后另立 Q）。
 - 测试要点：求值序矩阵（deny>allow>类别）/allow 自动放行断言/多参数交叉（全命中才 allow）。
 
+### 3.2 安装期权限呈报（V0.8.0 EC3 · Q-40③/DEC-60③）
+
+- **无头设备路（已实现）**：安装类 strict 审批（deploy_push_app / app_deploy / ln_deploy）请求 reason **强制携带包声明权限面**——`install_permission_brief`（domain/firmware.py；数据源 = `tsap_tools.manifest_summary`〔容器头 + manifest 解析，不含验签——显示面；真授权门 = 部署链 tsap_verify 复验 + 固件验签链〕）产出一行摘要：APP id/ver、tier、caps、fs_paths、needs.resources、threads、wasm 尺寸。坏包（不可读/容器损）= 审批前拦截（TaError 如实）。brief 日志在审批请求前无条件入 task_log（可审计——含 allow 白名单放行场景）。
+- **有本地交互设备路（deferred——设备形态批）**：本地确认 UI 消费同一摘要数据面（manifest_summary 单一事实源——两路呈报内容一致）；本地确认事件经 arb 本地席位（CG3 机制）入固件——接线随本地交互外设（LLD-ts-safety §5b/§9a 既定）。
+- 安卓先例对照（R9 §4）：install-time 确认在嵌入式无成熟公开先例（先行者位置）——本设计以「审批数据面与设备能力自报（CG5-A caps）同源」自证一致性。
+
 ## 4. 结构化产物（需求→设计阶段的强制校验）
 
 - DTO（Pydantic 模型，版本化 `dto_version` 字段）：
@@ -64,6 +70,7 @@
 
 ## 修订记录
 
+- v0.2.2 · 2026-10-15：**EC3（安装期权限呈报）**——§3.2：安装类 strict 审批 reason 强制携带 manifest_summary 权限面（无头路实现）；本地确认路数据面同源、接线随设备形态批。用例 test_manifest_summary_fields_and_errors + test_install_permission_brief_format。
 - v0.2 · 2026-10-13：**AG1 修订（DEC-57）**——§3.1 审批参数规则（求值序唯一权威/只可收紧/精确等值）；§5 编辑工具规格作废注（ws_* 继承，LLD-A08 §3）；§5a 创作循环编排触点（app_develop 升级/轮事件流/repair_feedback 兼容）。
 - v0.1.1 · 2026-09-22：DEC-38 同步——§2 上下文管理重写（动态预算 + 70% 压缩 + 32k 最低窗口；替换原"固定 100k 超限失败"）；§7 增上下文测试要点。
 - v0.1 · 2026-09-22：初版。

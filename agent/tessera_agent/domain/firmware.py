@@ -47,6 +47,21 @@ class FirmwareDeployer:
                                        log_fn=log_fn)
 
 
+def install_permission_brief(package_path: str) -> str:
+    """安装期权限呈报（V0.8.0 EC3 · Q-40③/DEC-60③——无头设备路）。
+
+    strict 审批请求 reason 携带包声明权限面（manifest 摘要——工具内
+    强制，不可跳过；坏包在审批前拦截）。有本地交互设备的本地确认路
+    随设备形态批（LLD-A02 §3.2 注记——同型数据面）。"""
+    s = tsap_tools.manifest_summary(package_path)
+    caps = ",".join(s["caps"]) or "∅"
+    fs = ";".join(s["fs_paths"] or []) or "∅"
+    res = ";".join(s["needs"].get("resources", [])) or "∅"
+    return (f"APP {s['app_id']} v{s['app_ver']} tier={s['tier']} "
+            f"caps=[{caps}] fs_paths=[{fs}] needs.resources=[{res}] "
+            f"threads={s['threads']} wasm={s['wasm_bytes']}B")
+
+
 def validate_tsap_manifest(package_path: str) -> None:
     """产物校验器：TSAP 容器 manifest 段结构校验（TsapManifest v1）。"""
     p = Path(package_path)
@@ -322,9 +337,12 @@ class FirmwareDomainPack(DomainPackBase):
 
             async def body(task) -> dict:
                 log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
+                # EC3（Q-40③）：审批请求携带包权限面（坏包审批前拦截）
+                brief = install_permission_brief(package_path)
+                log(f"install permissions: {brief}")
                 approval = ctx.approvals.request(
                     "ln_deploy", args,
-                    reason="strict 类：组部署（N 成员远程安装 APP）",
+                    reason=f"strict 类：组部署（N 成员远程安装 APP）｜{brief}",
                 )
                 task.state = "input_required"
                 try:
@@ -410,9 +428,13 @@ class FirmwareDomainPack(DomainPackBase):
 
             async def body(task) -> dict:
                 log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
+                # EC3（Q-40③）：审批请求携带包权限面（坏包审批前拦截）
+                brief = install_permission_brief(package_path)
+                log(f"install permissions: {brief}")
                 approval = ctx.approvals.request(
                     "deploy_push_app", args,
-                    reason="strict 类：远程安装 APP（写 inactive slot + meta 切换）",
+                    reason=f"strict 类：远程安装 APP（写 inactive slot + meta 切换）"
+                           f"｜{brief}",
                 )
                 task.state = "input_required"
                 try:
@@ -480,9 +502,13 @@ class FirmwareDomainPack(DomainPackBase):
 
             async def body(task) -> dict:
                 log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
+                # EC3（Q-40③）：审批请求携带包权限面（坏包审批前拦截）
+                brief = install_permission_brief(package_path)
+                log(f"install permissions: {brief}")
                 approval = ctx.approvals.request(
                     "app_deploy", args,
-                    reason="strict 类：部署 APP 到设备（远程写 slot + meta 切换）",
+                    reason=f"strict 类：部署 APP 到设备（远程写 slot + meta 切换）"
+                           f"｜{brief}",
                 )
                 task.state = "input_required"
                 try:
