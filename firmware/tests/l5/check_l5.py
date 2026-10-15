@@ -167,6 +167,28 @@ def check_6_prov_no_write() -> list[str]:
     return bad
 
 
+def check_7_slot_choke_point() -> list[str]:
+    """V0.8.0 EC4（Q-40②/DEC-60 · LLD-ts-appmgr §5b 侧载纪律）：TSAP 装入
+    slot 的唯一写路径 = appmgr stage 链（pkg.c）。任何安装通道（zenoh 部署 /
+    回滚翻转 / 未来 SD/USB 侧载——OpenWrt 反面教训，R9 §6）必经
+    stage_begin/chunk → verify_slot 同一验签收口，无第二写路径。机械保证：
+    模块生产代码中 ts_store_slot_write/erase 调用点仅允许出现在
+    src/appmgr/pkg.c（定义处 store/slot.c 豁免；测试面不在扫描域）。"""
+    bad = []
+    for f in MODULE_SRC.rglob("*.c"):
+        rel = str(f.relative_to(REPO))
+        if rel.endswith(("store/slot.c", "appmgr/pkg.c")):
+            continue  # 定义域（公共 API 提供方）/ 唯一合法消费点（stage 链）
+        for i, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+            s = line.strip()
+            if s.startswith("*") or s.startswith("/*"):
+                continue
+            if re.search(r"\bts_store_slot_(write|erase)\s*\(", line):
+                bad.append(f"[7] slot 写路径越界（唯一收口 = pkg.c stage 链）: "
+                           f"{rel}:{i}:{s}")
+    return bad
+
+
 def main() -> int:
     violations: list[str] = []
     all_c = c_files([FW / "module", FW / "app", FW / "tests"])
@@ -176,13 +198,14 @@ def main() -> int:
     violations += check_4_constant_provenance()
     violations += check_5_estop_path()
     violations += check_6_prov_no_write()
+    violations += check_7_slot_choke_point()
 
     if violations:
         print("L5 FAILED（安全合同机械检查，testing.md §3）:")
         for v in violations:
             print("  " + v)
         return 1
-    print("L5 OK: 6/6 机械检查通过（唯一写路径/三态完备/禁用模式/常量出处/estop 路径/prov 零写）")
+    print("L5 OK: 7/7 机械检查通过（唯一写路径/三态完备/禁用模式/常量出处/estop 路径/prov 零写/slot 收口）")
     return 0
 
 

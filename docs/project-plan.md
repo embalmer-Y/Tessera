@@ -193,7 +193,7 @@
 | EC1 ✅ | 信任链 LLD | 信任根表/注册撤销/单调版本号 设计定稿 | 门③ ✅ Q-43→DEC-60 |
 | EC2 ✅ | 信任根表实现 | prov 扩展 + 验签链多根 + 防回滚 | — ✅（ts_trust 8KB 分区/有效集迭代/trust-update 命令/Agent 工具；生产回滚 NULL 恒拒缺陷顺带根治）|
 | EC3 ✅ | 安装期权限确认 | 本地确认路（有交互设备）+ Agent 呈报 strict 路（无头）| — ✅（无头路实现：三点 strict 审批强制携 manifest 权限面；本地路 LLD 定稿随设备形态批——LLD-A02 §3.2）|
-| EC4 | 侧载通道 | 按设备形态按需（同验签链无例外）| — |
+| EC4 ✅ | 侧载通道 | 按设备形态按需（同验签链无例外）| — ✅（侧载纪律定稿 + L5 检查 7 机械实证 slot 收口白名单；SD/USB 本体按形态按需——Q-40②）|
 | EC5 | 收口 | 回归 + tag fw-v0.8.0 | review |
 
 **跨批依赖**：CG4 ← AG7（large 数值）；CG0 可与 Agent 批并行（措辞已呈递待批）；EC1 ← CG2（prov schema v2 基座）。**未决观察项**（不占批）：上游 v4.5.0 正式版平移、SYWORK wdt 间歇、CI native-build 间歇、多真机 LN 拓扑（第二块 cube 到位重启）。
@@ -208,6 +208,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.82 · 2026-10-15：**EC4 收口（侧载通道）**——侧载纪律定稿（唯一写路径 = stage 链）+ L5 检查 7（slot 收口白名单机械实证 + 负样本自证；testing.md §3 补全 7 项——顺带修 M10 漏登漂移）；SD/USB 本体按设备形态按需。下一单元：EC5 收口 tag fw-v0.8.0。
 - v1.81 · 2026-10-15：**EC3 交付（安装期权限确认）**——无头路实现（manifest_summary + install_permission_brief 注入 deploy_push_app/app_deploy/ln_deploy 三点 strict 审批 reason；坏包审批前拦截）；本地确认路 LLD 定稿（同一数据面，接线随设备形态批）；agent 183+2s/ruff 全绿。下一单元：EC4 侧载通道。
 - v1.80 · 2026-10-15：**EC2 交付（信任根表实现）**——ts_trust.c 持久化（8KB 双副本乒乓〔4KB→8KB 擦除块对齐实施修正〕）+ verify_slot NULL=有效集迭代（pk1 转正；生产回滚 NULL 恒拒存量缺陷根治）+ sys/trust-update·trust-get + TS_EVT_TRUST_UPDATED + Agent trust_get/trust_update；夹具 gen_trust_fixtures.py 入仓；twister 16/16（107，+3）/agent 181+2s/L5/ruff 全绿。下一单元：EC3 安装期权限确认。
 - v1.79 · 2026-10-15：**V0.8.0 生态批开工 + EC1 交付（信任链 LLD 设计定稿）**——owner 指令「按开发计划继续直至完成全部原定计划 + 完成后自检」；Q-43 五子项呈递（门③）→ DEC-60 按建议值登记（owner 泛指令先例 DEC-59 同型）：信任表 TUF root 同型全量替换（无 revoked 列表）/有效集 = 工厂根〔pk0+pk1，pk1 转正〕∪ 信任表/ts_trust 4KB 双副本乒乓分区（TS_STORE_TRUST 默认 n）/sys/trust-update·trust-get + TS_EVT_TRUST_UPDATED/verify_slot NULL = 有效集迭代（生产回滚 NULL 恒拒存量缺陷定案）。LLD-ts-store v0.5/LLD-ts-appmgr v0.7/LLD-ts-net v0.4/LLD-A06 v0.3。下一单元：EC2 实现。

@@ -77,7 +77,7 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 - **有效信任集（单一事实源 = ts-appmgr 内部）**：`有效集 = 工厂根 ∪ ts_store_trust()->keys`。工厂根 = TEST 构建 `{test_root}`（Q-29④ 固定测试根维持）/ 生产 `{prov->root_pubkeys[0], [1]}`（**pk1 自本批消费**——schema v1 既存双钥轮换预留字段，此前死字段）。工厂根不受信任表管辖（吊销/轮换 = sys/prov-write 维护通道职权——owner 凭证层）；开发者键 = 信任表管辖（密码学层：现信任键签 COSE 即可推动 ver+1——安卓「平台根 + 开发者自签」同型分层）。有效集恒非空（工厂根常在）——无自锁死面。
 - **verify_slot 根钥参数语义（Q-43⑤）**：显式传键 = 单键验签（ts_appmgr_install 本地装包/测试路径——签名与行为不变）；**NULL = 迭代有效集**（任一键过即过；≤1+2+8 键序贯尝试——ed25519 验签失败可重试〔sm 源缓冲不被 crypto_sign_open 改写〕）。TEST 构建 NULL 同样走迭代（{test_root} ∪ 表——测试可注册开发者键实证多根面）。**顺带根治存量生产缺陷**：rollback_n 此前 NULL 且生产 NULL = 拒 → IR2-07 以来生产回滚路径恒拒（TEST 不可见——测试根覆盖 NULL）；修复 = NULL 语义转有效集。
 - **trust-update 命令链（ts-appmgr 侧编排，LLD-ts-net §4 命令面）**：① args.data（COSE_Sign1 与 TSAP 同构：tag18/phdr{1:-8}/uhdr∅/payload/sig64）RAM 解析（verify.c 增 `ts_appmgr_verify_cose_ram`——Sig_structure 前缀构造与 slot 路径同源）→ ② payload 表 schema 走查（ts_store_trust_validate）→ ③ `ver == 当前 ver + 1`（严格 N+1：重放/跳版均拒——TUF）→ ④ 签名对**当前有效集**任一键过 → ⑤ ts_store_trust_write（乒乓持久化 + 重载）+ `TS_EVT_TRUST_UPDATED{ver}` + printk 留痕。空表合法（全撤开发者键回工厂根单源）。
-- **侧载纪律（EC4 设计面——同验签链无例外）**：TSAP 装入槽的**唯一写路径** = stage_begin/chunk（ts_store_slot_write 消费点唯一）；一切安装通道（zenoh 部署 / 回滚翻转 / 未来 SD/USB 侧载）必经 stage_verify/verify_slot 同一收口——本地物理通道（设备形态批）复用该链，无第二验签路径（OpenWrt 反面教训——R9 §6）。
+- **侧载纪律（EC4 定稿——同验签链无例外）**：TSAP 装入槽的**唯一写路径** = stage_begin/chunk（ts_store_slot_write 消费点唯一）；一切安装通道（zenoh 部署 / 回滚翻转 / 未来 SD/USB 侧载）必经 stage_verify/verify_slot 同一收口——本地物理通道（设备形态批）复用该链，无第二验签路径（OpenWrt 反面教训——R9 §6）。**EC4 落地 = L5 检查 7**（testing.md §3：slot write/erase 调用点白名单 = pkg.c——未来侧载实现的结构性约束，越界 = CI 失败）；SD/USB 侧载通道本体按设备形态按需（Q-40②——形态到位前无消费者，不预建）。
 
 ## 6. 测试要点
 
@@ -97,6 +97,7 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
   - **收尾单元落地（v0.4）**：ts_appmgr_boot_start（active slot TSAP → manifest canonical 走查〔未知键 fail-closed；caps ';' 组合——ts_perm_parse 位图或合并；app_id/app_ver 提取；stack_kb/heap_kb 读取但 V1 消耗运行时常量〕→ wasm 装载〔CONFIG_TS_APP_LOAD_MAX 结构性上限〕→ app_start → STAGED→ACTIVE）；boot 步骤 8 app_load 尾部追加（APP 故障不阻塞启动 = 合同 6 显式例外〔HLD §4.4-8〕）；CONFIG_TS_APP_WAMR 默认 y；Agent E2E 使用固件同源夹具 wasm。
 
 ## 修订记录
+- v0.7.2 · 2026-10-15：**EC4（侧载纪律定稿）**——§5b 增 L5 检查 7 引用（slot 收口白名单 = pkg.c）；SD/USB 侧载本体按设备形态按需（Q-40②）。
 - v0.7.1 · 2026-10-15：**EC2（多根验签/trust-update 实现）**——§5b 落地：有效集构建（TEST={测试根}∪表——多根 sim 可测）/COSE RAM 验签/更新编排五步；install NULL 放开；rollback NULL 生产恒拒缺陷修复。用例 framework.app test_13_trust_chain（11 断言组：基线拒/租约门/陌生键拒/跳版拒/注册/多根安装/重放拒/互荐/全撤回复拒/工厂根全程可用）+ 夹具 gen_trust_fixtures.py 入仓（固定种子+测试根签名——教训 27）。
 - v0.7 · 2026-10-15：**EC1（Q-43/DEC-60 · 验签链多根设计）**——新增 §5b：有效集分层（工厂根 ∪ 信任表）+ verify_slot NULL 语义 + trust-update 编排（COSE RAM 验签/严格 N+1/有效集签名门）+ 侧载纪律（EC4 设计面）；生产回滚 NULL 恒拒存量缺陷定案（EC2 修复 + 用例）。
 - v0.6.3 · 2026-10-14：**CG5-B（Q-39③ 方案 A · 资源白名单 registry）**——scan res_csv + activate/boot 绑定 + res_allows 裁决；sys/fs-* 命令面授权源。
