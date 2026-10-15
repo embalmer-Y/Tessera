@@ -1,0 +1,175 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x18 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fc95050,len:0x5854
+load:0x40374000,len:0x11038
+load:0x50000000,len:0x24
+SHA-256 comparison failed:
+Calculated: 66a787d3b5aaf44d35659529e554f03ac7c60a901d297ade0c9692e8fe97a6e7
+Expected: 0000000000970000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4037c4a4
+I (soc_init): ESP Simple boot
+I (soc_init): compile time Oct 16 2026 00:26:42
+W (soc_init): Unicore bootloader
+I (soc_init): chip revision: v0.2
+I (flash_init): Boot SPI Speed : 80MHz
+I (flash_init): SPI Mode       : DIO
+I (flash_init): SPI Flash Size : 16MB
+I (boot): DRAM	: lma=00000020h vma=3fc95050h size=05854h ( 22612)
+I (boot): IRAM	: lma=0000587ch vma=40374000h size=11038h ( 69688)
+I (boot): RTC_DATA	: lma=000168bch vma=50000000h size=00024h (    36)
+I (boot): IROM	: lma=00020000h vma=42000000h size=8da10h (580112)
+I (boot): DROM	: lma=000b0000h vma=3c090000h size=10644h ( 67140)
+I (boot): libc heap size 2 kB.
+I (cache): Instruction cache: size 16KB, 8Ways, cache line size 32Byte
+I (spi_flash): detected chip: boya
+I (spi_flash): flash io: dio
+I (octal_psram): vendor id    : 0x0d (AP)
+I (octal_psram): dev id       : 0x02 (generation 3)
+I (octal_psram): density      : 0x03 (64 Mbit)
+I (octal_psram): good-die     : 0x01 (Pass)
+I (octal_psram): Latency      : 0x01 (Fixed)
+I (octal_psram): VCC          : 0x01 (3V)
+I (octal_psram): SRF          : 0x01 (Fast Refresh)
+I (octal_psram): BurstType    : 0x01 (Hybrid Wrap)
+I (octal_psram): BurstLen     : 0x01 (32 Byte)
+I (octal_psram): Readlatency  : 0x02 (10 cycles@Fixed)
+I (octal_psram): DriveStrength: 0x00 (1/1)
+I (esp_psram): Found 8MB PSRAM device
+I (esp_psram): Speed: 40MHz
+I (esp_psram): SPI SRAM memory test OK
+*** Booting Zephyr OS build v4.5.0-rc1 ***
+AK0 atkbench start
+AK1 wifi_connect rc=0
+[es8311] init: fs=16000 bclk=1024000 slot=32bit ring=4x1280B addr=0x18
+AKa0 es8311 init rc=0
+AKa1 capture 8 frames peak=4095（>32 = ADC 链活）
+AKa2 playback skipped（默认静音——ATKBENCH_AUDIO_PLAY=1 启用）
+AK AUDIO PASS（record-only，peak=4095）
+AKw associated t=8362
+AK2 prov load=0 burn=0（0=OK/-8=空）
+[ts-net] init prov_load=0 node=akn cube=akc
+[appmgr] wamr pool heap: buf=0x3c0b0060 size=262144 (psram/smh)
+[ts-net] zenoh_open: CONNECTED loc=tcp/192.168.2.91:9955
+AK6 app running app_id=com.tessera.ak3dev slot=1 t=8648
+AK PASS
+AK alive t=10649 net=1
+AK alive t=20650 net=1
+AK alive t=30651 net=1
+AK alive t=40651 net=1
+AK alive t=50652 net=1
+AK alive t=60653 net=1
+AK alive t=70654 net=1
+AK alive t=80655 net=1
+[q] sys/get-info rlen=54 resp_len=147
+[q] sys/get-info rlen=54 resp_len=147
+[q] sys/trust-get rlen=55 resp_len=49
+[q] sys/get-info rlen=57 resp_len=150
+[q] sys/lease-acquire rlen=105 resp_len=70
+[q] sys/app-begin rlen=98 resp_len=58
+[q] sys/app-chunk rlen=1062 resp_len=65
+[vrf] reject L334
+[q] sys/app-verify rlen=87 resp_len=44
+[q] sys/lease-release rlen=105 resp_len=51
+[q] sys/lease-acquire rlen=85 resp_len=66
+[trust] table ver=1 keys=1
+[q] sys/trust-update rlen=212 resp_len=48
+[q] sys/lease-release rlen=85 resp_len=47
+[q] sys/get-info rlen=57 resp_len=150
+[q] sys/lease-acquire rlen=105 resp_len=70
+[q] sys/app-begin rlen=98 resp_len=58
+[q] sys/app-chunk rlen=1062 resp_len=65
+[q] sys/app-verify rlen=87 resp_len=83
+[q] sys/app-activate rlen=98 resp_len=82
+[q] sys/get-app rlen=70 resp_len=194
+[q] sys/lease-release rlen=105 resp_len=51
+AK4 activated slot=0（2s 后暖复位装载）
+AK5 warm reboot
+x�ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x18 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x403823ac
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fc95050,len:0x5854
+load:0x40374000,len:0x11038
+load:0x50000000,len:0x24
+SHA-256 comparison failed:
+Calculated: 66a787d3b5aaf44d35659529e554f03ac7c60a901d297ade0c9692e8fe97a6e7
+Expected: 0000000000970000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4037c4a4
+I (soc_init): ESP Simple boot
+I (soc_init): compile time Oct 16 2026 00:26:42
+W (soc_init): Unicore bootloader
+I (soc_init): chip revision: v0.2
+I (flash_init): Boot SPI Speed : 80MHz
+I (flash_init): SPI Mode       : DIO
+I (flash_init): SPI Flash Size : 16MB
+I (boot): DRAM	: lma=00000020h vma=3fc95050h size=05854h ( 22612)
+I (boot): IRAM	: lma=0000587ch vma=40374000h size=11038h ( 69688)
+I (boot): RTC_DATA	: lma=000168bch vma=50000000h size=00024h (    36)
+I (boot): IROM	: lma=00020000h vma=42000000h size=8da10h (580112)
+I (boot): DROM	: lma=000b0000h vma=3c090000h size=10644h ( 67140)
+I (boot): libc heap size 2 kB.
+I (cache): Instruction cache: size 16KB, 8Ways, cache line size 32Byte
+I (spi_flash): detected chip: boya
+I (spi_flash): flash io: dio
+I (octal_psram): vendor id    : 0x0d (AP)
+I (octal_psram): dev id       : 0x02 (generation 3)
+I (octal_psram): density      : 0x03 (64 Mbit)
+I (octal_psram): good-die     : 0x01 (Pass)
+I (octal_psram): Latency      : 0x01 (Fixed)
+I (octal_psram): VCC          : 0x01 (3V)
+I (octal_psram): SRF          : 0x01 (Fast Refresh)
+I (octal_psram): BurstType    : 0x01 (Hybrid Wrap)
+I (octal_psram): BurstLen     : 0x01 (32 Byte)
+I (octal_psram): Readlatency  : 0x02 (10 cycles@Fixed)
+I (octal_psram): DriveStrength: 0x00 (1/1)
+I (esp_psram): Found 8MB PSRAM device
+I (esp_psram): Speed: 40MHz
+I (esp_psram): SPI SRAM memory test OK
+*** Booting Zephyr OS build v4.5.0-rc1 ***
+AK0 atkbench start
+AK1 wifi_connect rc=0
+[es8311] init: fs=16000 bclk=1024000 slot=32bit ring=4x1280B addr=0x18
+AKa0 es8311 init rc=0
+AKa1 capture 8 frames peak=4095（>32 = ADC 链活）
+AKa2 playback skipped（默认静音——ATKBENCH_AUDIO_PLAY=1 启用）
+AK AUDIO PASS（record-only，peak=4095）
+AKw associated t=9866
+AK2 prov load=0 burn=0（0=OK/-8=空）
+[ts-net] init prov_load=0 node=akn cube=akc
+[appmgr] wamr pool heap: buf=0x3c0b0060 size=262144 (psram/smh)
+[ts-net] zenoh_open: CONNECTED loc=tcp/192.168.2.91:9955
+AK6 app running app_id=com.tessera.ak3dev slot=0 t=11004
+AK PASS
+[q] sys/get-info rlen=53 resp_len=146
+AK alive t=13004 net=1
+[q] sys/get-info rlen=53 resp_len=146
+[q] sys/get-info rlen=62 resp_len=155
+[q] sys/get-link rlen=62 resp_len=84
+[q] sys/get-safety rlen=65 resp_len=91
+[q] sys/get-app rlen=60 resp_len=231
+[q] sys/lease-acquire rlen=86 resp_len=65
+[trust] reject ver 1 (current 1)
+[q] sys/trust-update rlen=216 resp_len=41
+[q] sys/lease-release rlen=86 resp_len=48
+[q] sys/lease-acquire rlen=85 resp_len=64
+[trust] table ver=2 keys=0
+[q] sys/trust-update rlen=177 resp_len=48
+[q] sys/lease-release rlen=85 resp_len=47
+[q] sys/get-info rlen=57 resp_len=150
+[q] sys/lease-acquire rlen=105 resp_len=68
+[q] sys/app-begin rlen=98 resp_len=58
+[q] sys/app-chunk rlen=1062 resp_len=65
+[vrf] reject L334
+[q] sys/app-verify rlen=87 resp_len=44
+[q] sys/lease-release rlen=105 resp_len=51
+[q] sys/trust-get rlen=55 resp_len=49
+AK alive t=23005 net=1
+AK alive t=33012 net=1
+AK alive t=43013 net=1

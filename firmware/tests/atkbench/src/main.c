@@ -352,8 +352,23 @@ int main(void)
 
 	printk("AK1 wifi_connect rc=%d\n", rc);
 	if (k_sem_take(&ip_ready, K_SECONDS(40)) != 0) {
-		printk("AK FAIL dhcp timeout\n");
-		return 1;
+		/* F4（K3 夜间登记）：本 AP 对本板 DHCP 间歇不响应（5 启 4 败，
+		 * tcpdump 证实 DISCOVER 后无 OFFER）。bench 级回退 = 静态地址
+		 * （租约惯常值 .67），产品面 DHCP 语义不变。 */
+		net_dhcpv4_stop(iface);
+		static struct in_addr addr, netmask, gw;
+
+		if (net_addr_pton(AF_INET, "192.168.2.67", &addr) == 0 &&
+		    net_addr_pton(AF_INET, "255.255.255.0", &netmask) == 0 &&
+		    net_addr_pton(AF_INET, "192.168.2.1", &gw) == 0 &&
+		    net_if_ipv4_addr_add(iface, &addr, NET_ADDR_MANUAL, 0) != NULL &&
+		    net_if_ipv4_set_netmask_by_addr(iface, &addr, &netmask)) {
+			net_if_ipv4_set_gw(iface, &gw);
+			printk("AK1s static fallback 192.168.2.67\n");
+		} else {
+			printk("AK FAIL dhcp timeout + static fallback error\n");
+			return 1;
+		}
 	}
 
 	/* prov：flash 后端首启烧入，此后复位直读（板级五语义）；netbench 是

@@ -1,6 +1,6 @@
-# LLD · ts-safety v0.3.3
+# LLD · ts-safety v0.3.4
 
-> **状态**：v0.3.3（2026-10-14 CG6 收口：**§9a 已知限制节补齐**——estop 清除实质面 CG1/CG2 已交付，ISO 13850 偏离与本地通道/仲裁信号源 deferred 如实入节）。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-00-common.md`。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-00-common.md`。
+> **状态**：v0.3.4（2026-10-16 K3 真机定案：**F1 审计下沉双修正**——① 异常审计 flash 下沉移出 write_lock〔pend 槽携带、解锁后同调用持久化〕② 持久化 1Hz 节流〔失败提交循环风暴防护——真机擦 APP 对照实证：断链后 APP 每 tick E_STATE 下沉风暴反噬 net_wq 喂狗 → NET WDT 循环复位 noinit 0x20000〕；DEC-52① 意图保留〔首条恒在盘〕+ 丢弃计数可观测）；v0.3.3（2026-10-14 CG6 收口：**§9a 已知限制节补齐**——estop 清除实质面 CG1/CG2 已交付，ISO 13850 偏离与本地通道/仲裁信号源 deferred 如实入节）。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-00-common.md`。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-00-common.md`。
 > **职责**：输出保护层（限幅/slew/限流）、三安全态状态机、estop 直达路径、fail-safe 管线、**控制源仲裁状态（本版新增）**。
 > **合同关联**：合同 1（三安全态）、2（唯一写路径）、3（断链 fail-safe——**部署模式化**，见 §3a）、5（estop 不经队列 + 清除按设备能力）、7（供电同轨）、8（本地独立生效）、**11（控制源仲裁——本版新增）**。
 

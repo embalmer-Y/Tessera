@@ -41,7 +41,17 @@ void ts_safety_estop_announce_reset(void);
  * （k_mutex 非递归）。锁序：write_lock → pubq 锁（事件发布路径），单向。 */
 void ts_safety_write_lock(void);
 void ts_safety_write_unlock(void);
-ts_res_t ts_safety_commit_locked(const char *uid, ts_out_value_t v);
+
+/* F1 修正（K3 夜间根因）：异常审计的 flash 下沉移出 write_lock——pend 槽
+ * 由 commit 族公开入口在解锁后持久化（锁内零 flash 上界）。 */
+typedef struct {
+	bool has;
+	ts_audit_entry_t e;
+} ts_audit_pend_t;
+
+void ts_safety_audit_persist(const ts_audit_pend_t *pend);
+uint32_t ts_safety_audit_persist_throttled(void);
+ts_res_t ts_safety_commit_locked(const char *uid, ts_out_value_t v, ts_audit_pend_t *pend);
 
 /* ts_value_encode 已提升为公共 API（safety.h）——审计/遥测统一口径 */
 

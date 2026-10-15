@@ -1,0 +1,23 @@
+AK3 dev keypair: f169a00eccdd597e…
+AK3 dev-signed package: /tmp/ak3/com.tessera.ak3dev-1.0.0.tsap (968B)
+AK3 board online（x2 稳判）
+AK3 T0 trust-get: ver=0 keys=0
+AK3 T1 未注册 dev 键部署拒 ✓（CmdError）
+AK3 trust-update ver=1 keys=1
+AK3 T2 trust-update ver=1 [dev]: {'ver': 1, 'keys': 1}
+AK3 tsap_verify PASS: /tmp/ak3/com.tessera.ak3dev-1.0.0.tsap（968B，分块 2048B）
+AK3 lease acquired: id=3 holder=tessera-agent
+AK3 upload → slot 0（total=968B）
+AK3 upload complete: 968/968B
+AK3 verify PASS: facts={'manifest_len': 136, 'wasm_len': 286, 'cose_off': 470}
+AK3 activate confirmed: slot=0
+AK3 lease released
+AK3 T3 dev 键部署 PASS: slot={'package': '/tmp/ak3/com.tessera.ak3dev-1.0.0.tsap', 'size': 968, 'chunks': 1, 'holder': 'tessera-agent', 'device_caps': {'tiers': ['small'], 'max_linear_memory_kb': 256, 'slot_pool_kb': 128}, 'lease_id': 3, 'slot': 0, 'uploaded': 968, 'verify': {'manifest_len': 136, 'wasm_len': 286, 'cose_off': 470}, 'active_slot': 0, 'app_id_target': 1, 'app': {'state': 2, 'active_slot': 0, 'rollback_count': 0, 'app_id': '', 'apps': [{'app': 1, 'state': 2, 'active_slot': 0, 'rollback_count': 0, 'app_id': ''}, {'app': 2, 'state': 0, 'active_slot': 0, 'rollback_count': 0, 'app_id': ''}]}, 'confirmed': True, 'released': True}
+AK3 T3 get-app: app_id=com.tessera.ak3dev
+AK3 T4 重放 ver=1 拒 ✓（status=-12）
+AK3 trust-update ver=2 keys=0
+AK3 T5 全撤回 ver=2: {'ver': 2, 'keys': 0}
+AK3 T6 撤回后复拒 ✓（CmdError）
+AK3 T7 终态: ver=2 keys=0
+AK3 driver-side 判定完成（console 由板侧持留——/tmp/ak3_console_live.txt）
+AK3 TRUST PASS

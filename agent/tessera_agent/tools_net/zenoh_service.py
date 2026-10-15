@@ -47,6 +47,12 @@ class ZenohService:
             conf.insert_json5(
                 "connect", json.dumps({"endpoints": [locator]})
             )
+            # K3 夜间实证（F1/F2 处置）：显式 locator 连接时关断 scouting/gossip
+            # ——默认开时会额外挂上 LAN 内任意 zenoh 端点（本机 galatea 服务
+            # 的 7447 路由器/IPv6 peer 面均被组播发现并建链），拓扑不确定
+            # 且查询路由受第三方影响。测试面拓扑 = 唯一显式端点。
+            conf.insert_json5("scouting/multicast/enabled", "false")
+            conf.insert_json5("scouting/gossip/enabled", "false")
             session = zenoh.open(conf)
         except BaseException as exc:  # noqa: BLE001
             # 启动失败须可达调用方

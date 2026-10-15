@@ -143,10 +143,17 @@ static void on_query(z_loaned_query_t *query, void *ctx)
 
 	(void)ts_net_cmd_dispatch(suffix, req, (uint32_t)rlen, resp, sizeof(resp),
 				  &resp_len);
-	/* 回执（reply key = 查询 key 原样回显；编码失败 = 空回执可观测） */
+	/* F5 诊断插桩（K3 夜间）：确定性空回执定位——保留至根因定案 */
+	printk("[q] %s rlen=%u resp_len=%u\n", suffix, (unsigned)rlen,
+	       (unsigned)resp_len);
+	/* 回执（reply key = 查询 key 原样回显）。
+	 * F5 修正（K3 夜间）：z_bytes_copy_from_buf 拷贝构造——zenoh-pico 的
+	 * 网络消息组件为别名（_z_send_reply 源码实证），非拥有视图在
+	 * Z_CONGESTION_CONTROL_BLOCK 排队期间可被下一查询的静态 resp 覆写
+	 * （真机确定性空回执/损坏回执实证）；拥有拷贝消除竞态窗口。 */
 	z_owned_bytes_t out;
 
-	if (z_bytes_from_static_buf(&out, resp, resp_len) == Z_OK) {
+	if (z_bytes_copy_from_buf(&out, resp, resp_len) == Z_OK) {
 		z_query_reply_options_t ro;
 
 		z_query_reply_options_default(&ro);

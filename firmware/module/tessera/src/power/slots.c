@@ -107,9 +107,11 @@ ts_res_t ts_power_request(ts_ctx_t c, uint8_t slot, bool on, uint32_t ma)
 	}
 	/* 唯一写路径（合同 2/7）；限流（current_limit）在保护层兜底 */
 	ts_out_value_t v = {.pwr = {.en = on, .ma = on ? ma : 0}};
+	ts_audit_pend_t pend = {0};
 
-	r = ts_safety_commit_locked(s->uid, v);
+	r = ts_safety_commit_locked(s->uid, v, &pend);
 	ts_safety_write_unlock();
+	ts_safety_audit_persist(&pend); /* F1 修正：flash 下沉在锁外 */
 	return r;
 }
 

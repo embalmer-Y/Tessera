@@ -580,9 +580,13 @@ static ts_res_t cmd_trust_get(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap
 	const ts_trust_table_t *t = ts_store_trust();
 	size_t p = 0;
 
+	/* F5 定案（K3 夜间）：初版漏发 "keys" 键名（map(2) 仅一对照裸数组 =
+	 * 畸形 CBOR）——严格消费方（agent cbor2）在第二对键处 EOF；真机
+	 * driver 首次真实 parse 即拦下。 */
 	if (!ts_cbor_put_map(r, cap, &p, 2) ||
 	    !ts_cbor_put_tstr(r, cap, &p, "ver") ||
 	    !ts_cbor_put_uint(r, cap, &p, t->ver) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "keys") ||
 	    !ts_cbor_put_array(r, cap, &p, t->n_keys)) {
 		return TS_E_IO;
 	}
@@ -1244,8 +1248,17 @@ static ts_res_t wrap_reply(uint8_t *resp, size_t cap, size_t *resp_len, const st
 	    data_len > cap - p) {
 		return TS_E_IO;
 	}
-	memcpy(resp + p, data, data_len);
-	p += data_len;
+	if (data_len == 0) {
+		/* F5 同族（K3 真机定案）：data 空值必须编码为空 map（a0）——
+		 * handler 内部失败（如验签拒）不带 data 时，键后零字节 =
+		 * 畸形 CBOR，严格消费方（agent cbor2）在键值处 EOF。 */
+		if (!ts_cbor_put_map(resp, cap, &p, 0)) {
+			return TS_E_IO;
+		}
+	} else {
+		memcpy(resp + p, data, data_len);
+		p += data_len;
+	}
 	*resp_len = p;
 	return status;
 }
