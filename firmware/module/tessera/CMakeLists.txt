@@ -51,6 +51,10 @@ zephyr_library_sources_ifdef(CONFIG_TS_DRV_PDM
   src/hal/pdm.c
 )
 
+zephyr_library_sources_ifdef(CONFIG_TS_DRV_ES8311
+  src/hal/es8311.c
+)
+
 zephyr_library_sources_ifdef(CONFIG_TS_STORE
   src/store/prov_maint.c
 )

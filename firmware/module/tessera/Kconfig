@@ -625,6 +625,18 @@ config TS_HAL_INPUT_DEBOUNCE_MS
 	help
 	  Delay between edge interrupt and the immediate re-poll (contact debounce bound).
 
+config TS_DRV_ES8311
+	bool "ts-hal: ES8311 full-codec audio in/out backend (V0.9.0 K2, Q-44/DEC-61)"
+	depends on TS_HAL
+	default n
+	help
+	  ES8311 codec over I2C (i2c0 @0x18) + I2S0 standard-Philips master
+	  (32-bit slots -> BCLK 1.024MHz; codec derives MCLK from SCLK per
+	  board constraint "SCLK must be >1MHz"). Provides BOTH capture
+	  (pcm16 640B frames, av pcm16 semantics) and playback (ts_av_write
+	  new output face, av:write perm). Requires zephyr,user pins
+	  es8311-{bck,ws,sdout,sdin}-gpios. Board: ATK DNESP32-S3B V1.1.
+
 config TS_DRV_PDM
 	bool "ts-hal: PDM microphone input backend (V0.4.x M17b, Q-36/DEC-54②)"
 	depends on TS_HAL && SOC_ESP32S3

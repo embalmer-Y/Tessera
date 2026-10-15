@@ -1,6 +1,6 @@
-# LLD · ts-hal v0.2.3 草案
+# LLD · ts-hal v0.2.4 草案
 
-> **状态**：v0.2.3（2026-10-14 CG5-B：宿主原语三件 + prefix_match 提取；实现长期在库——早期「草案待 review」标注滞后，本行更正）。上位：HLD §3.3；公共约定 `LLD-00-common.md`。
+> **状态**：v0.2.4（2026-10-16 K2：ES8311 全 codec 输入输出 + ts_av_write 输出新面）；v0.2.3（2026-10-14 CG5-B：宿主原语三件 + prefix_match 提取；实现长期在库——早期「草案待 review」标注滞后，本行更正）。上位：HLD §3.3；公共约定 `LLD-00-common.md`。
 > **职责**：面向 APP 的板无关外设 API（gpio/pwm/adc/power）、**权限执行点**（manifest 能力 → 每调用裁决）、外设实例寻址。
 > **合同关联**：合同 2（输出必经 ts-safety）、3（输入不受保护影响）、10（越权拒绝 + 留痕）。
 
@@ -101,7 +101,8 @@ ts_res_t ts_hal_register_class(const ts_periph_desc_t *desc);  /* ts-periph 调�
 
 ## 修订记录
 
-- v0.2.3 · 2026-10-14：CG5-B（Q-39③ 方案 A）——宿主原语三件 + prefix_match 公共助手提取（§3 fs 节注）。
+- v0.2.4 · 2026-10-16：**K2（Q-44②/DEC-61② · ES8311 音频输入输出）**——新增 ES8311 全 codec 后端（hal/es8311.c：I2C 控制 + I2S0 标准 Philips 32-bit 槽——BCLK 1.024MHz 满足原理图「SLCK>1MHz」无 MCLK 约束；RX 环 EOF 轮询 + TX 静音环打补丁）；**ts_av_write 音频输出新面**（av:write 权限位图加性 + pcm16 绑定门——manifest 零变化〔av_srk 字段实施简化：V1 输出固定 16k pcm16 与输入同语义〕）；bring-up 六坑真机定案入册。真机 AK AUDIO PASS（证据 docs/evidence/ak_audio_console.txt）。用例 framework.hal test_13_av_write_adjudication + agent 白名单同步。
+- v0.2.3- v0.2.3 · 2026-10-14：CG5-B（Q-39③ 方案 A）——宿主原语三件 + prefix_match 公共助手提取（§3 fs 节注）。
 
 - v0.2.3 · 2026-10-07：MD1.2g（单元 A）——§2 文法补 fs/av 类（DEC-47⑤，fs 补记 MD1.2e）；§3 增 ts-av 面（ts_av_capture/ts_av_publish，读类 + av:read:0 门 + manifest av_fmt/av_w/av_h 绑定）；fs 四函数补记（MD1.2e 已实现未入册）。回归：twister 15/15（68 用例）/L5 6/6。
 - v0.1 · 2026-09-20：首版草案。

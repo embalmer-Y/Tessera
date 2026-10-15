@@ -127,6 +127,11 @@ ts_res_t ts_av_config_bind_ctx(ts_ctx_t c, ts_av_fmt_t fmt, uint16_t w, uint16_t
 /** 阻塞取一帧到 buf（≤cap；*len = 实际帧长；帧 > cap = TS_E_RANGE）。 */
 ts_res_t ts_av_capture(ts_ctx_t c, uint8_t *buf, uint32_t cap, uint32_t *len);
 
+/** 阻塞写一放音帧（V0.9.0 K2 · Q-44/DEC-61②：音频输出新面——pcm16 mono
+ * 16k 定长 640B，实时限流；权限 = av:write〔位图加性——旧 caps 零变化〕；
+ * 后端缺 = TS_E_IO 如实。无句柄（防泄漏面——ts-fs 同型）。 */
+ts_res_t ts_av_write(ts_ctx_t c, const uint8_t *buf, uint32_t len);
+
 /** 发布一分片（len ≤ CONFIG_TS_NET_PUBLISH_MAX_BYTES；入队即返回，
  * 满队 TS_E_BUSY 由 APP 稍后重发本分片）。 */
 ts_res_t ts_av_publish(ts_ctx_t c, uint32_t frame_id, uint32_t chunk_id,
@@ -207,6 +212,20 @@ int32_t ts_kv_load(ts_ctx_t c, uint32_t key_hash, uint8_t *out, uint16_t max);
  * 返回 640 = 帧长；负值 = 未就绪/无帧（500ms 上界）。 */
 int ts_drv_pdm_init(void);
 int ts_drv_pdm_capture(uint8_t *buf, uint32_t len);
+#endif
+
+#ifdef CONFIG_TS_DRV_ES8311
+/** [boot/board] ES8311 全 codec 后端（V0.9.0 K2 · Q-44/DEC-61；es8311.c）：
+ * I2C 控制（i2c0 @0x18）+ I2S0 标准模式（32-bit 槽——BCLK 1.024M > 1MHz
+ * 原理图约束；codec 从 SCLK 取源）。init 返回 0 = OK（无芯片如实负值）；
+ * capture/write = pcm16 mono 16k 定长帧（640B）阻塞语义（500ms 上界）。 */
+int ts_drv_es8311_init(void);
+int ts_drv_es8311_capture(uint8_t *buf, uint32_t len);
+int ts_drv_es8311_write(const uint8_t *buf, uint32_t len);
+/** 功放使能（NS4168 SPK_EN 经 XL9555 port1 bit3——bench/启动面）。 */
+int ts_drv_es8311_spk(bool on);
+/** 静默/无帧诊断（引脚电平 + 寄存器回读——bench 失败路径）。 */
+void ts_drv_es8311_diag(void);
 #endif
 
 /** [boot/board] 真机 ADC 输入后端初始化（板级九；api.c）。

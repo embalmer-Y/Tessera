@@ -164,6 +164,17 @@ ts_res_t ts_av_capture(ts_ctx_t c, uint8_t *buf, uint32_t cap, uint32_t *len)
 			return TS_E_IO;
 		}
 		return ts_drv_pdm_capture(buf, PCM16_FRAME_BYTES); /* M17b 板级后端 */
+#elif defined(CONFIG_TS_DRV_ES8311)
+		/* K2（Q-44①）：ES8311 ADC 主源（全 codec 板——BCK/WS 常开即
+		 * codec 就绪，无需 PDM 型惰性时钟链）。 */
+		if (ts_drv_es8311_init() != 0) {
+			return TS_E_IO;
+		}
+		{
+			int r = ts_drv_es8311_capture(buf, PCM16_FRAME_BYTES);
+
+			return (r > 0) ? TS_OK : TS_E_IO;
+		}
 #elif defined(CONFIG_TS_TEST)
 		/* TEST 确定性桩：递增样本模式（sim/对拍零依赖；真机路径 = PDM） */
 		static uint16_t pcm_seed;
@@ -222,6 +233,37 @@ ts_res_t ts_av_capture(ts_ctx_t c, uint8_t *buf, uint32_t cap, uint32_t *len)
 #else
 	printk("[av] no camera chosen (stub path)\n");
 	return TS_E_IO; /* 无摄像头（native_sim/测试板）：如实失败 */
+#endif
+}
+
+ts_res_t ts_av_write(ts_ctx_t c, const uint8_t *buf, uint32_t len)
+{
+	/* K2（Q-44②/DEC-61②）：音频输出面——权限 = av:write（位图加性，
+	 * manifest av_fmt=pcm16 声明绑定同输入面）。 */
+	if (buf == NULL || len != 640U) {
+		return TS_E_PARAM; /* pcm16 mono 16k 定长帧（Q-36 语义对称） */
+	}
+	ts_res_t pr = ts_perm_check(c, TS_PERM_CLASS_AV, TS_PERM_OP_WRITE, 0);
+
+	if (pr != TS_OK) {
+		return pr;
+	}
+	if (!av_cfg.valid || c.app_id != av_cfg.app ||
+	    av_cfg.fmt != TS_AV_FMT_PCM16) {
+		return TS_E_STATE; /* 未声明 pcm16 = 输出面 fail-closed */
+	}
+#if defined(CONFIG_TS_DRV_ES8311)
+	if (ts_drv_es8311_init() != 0) {
+		return TS_E_IO;
+	}
+	int r = ts_drv_es8311_write(buf, len);
+
+	return (r > 0) ? TS_OK : TS_E_IO;
+#else
+	ARG_UNUSED(buf);
+	ARG_UNUSED(len);
+	printk("[av] no output backend (stub path)\n");
+	return TS_E_IO; /* 无输出后端（PDM = 纯输入；native_sim）：如实失败 */
 #endif
 }
 

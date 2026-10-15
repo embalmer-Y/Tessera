@@ -339,3 +339,38 @@ ZTEST(framework_hal, test_12_kv_adjudication)
 }
 
 ZTEST_SUITE(framework_hal, NULL, NULL, NULL, NULL, NULL);
+
+/* K2（Q-44②/DEC-61②）：音频输出面裁决——av:write 位图加性 + pcm16 绑定门 */
+ZTEST(framework_hal, test_13_av_write_adjudication)
+{
+	ts_perm_table_t t;
+	ts_ctx_t ctx;
+	static uint8_t frame[640];
+
+	/* 未授权 = fail-closed（输出新面与既有读面同纪律） */
+	ts_perm_table_init(&t);
+	zassert_equal(ts_hal_bind_context(&ctx, 9, &t), TS_OK);
+	zassert_equal(ts_av_write(ctx, frame, sizeof(frame)), TS_E_PERM);
+	ts_hal_unbind_context(&ctx);
+	/* av:read 不覆盖 av:write（位图加性——旧 caps 零变化实证） */
+	ts_perm_table_init(&t);
+	zassert_equal(ts_perm_parse("av:read:0", &t), TS_OK);
+	zassert_equal(ts_hal_bind_context(&ctx, 9, &t), TS_OK);
+	zassert_equal(ts_av_write(ctx, frame, sizeof(frame)), TS_E_PERM);
+	ts_hal_unbind_context(&ctx);
+	/* av:write + 未绑定 av_fmt = E_STATE（配置面 fail-closed） */
+	ts_perm_table_init(&t);
+	zassert_equal(ts_perm_parse("av:write:0", &t), TS_OK);
+	zassert_equal(ts_hal_bind_context(&ctx, 9, &t), TS_OK);
+	zassert_equal(ts_av_write(ctx, frame, sizeof(frame)), TS_E_STATE);
+	/* 绑定非 pcm16（JPEG）= E_STATE（输出面仅 pcm16——Q-36 语义对称） */
+	zassert_equal(ts_av_config_bind(9, TS_AV_FMT_JPEG, 320, 240), TS_OK);
+	zassert_equal(ts_av_write(ctx, frame, sizeof(frame)), TS_E_STATE);
+	/* 绑定 pcm16 + av:write → 无输出后端（native_sim）= E_IO 如实 */
+	zassert_equal(ts_av_config_bind(9, TS_AV_FMT_PCM16, 16, 0), TS_OK);
+	zassert_equal(ts_av_write(ctx, frame, sizeof(frame)), TS_E_IO);
+	/* 参数门：非 640B 定长 / NULL */
+	zassert_equal(ts_av_write(ctx, frame, 639), TS_E_PARAM);
+	zassert_equal(ts_av_write(ctx, NULL, 640), TS_E_PARAM);
+	ts_hal_unbind_context(&ctx);
+}

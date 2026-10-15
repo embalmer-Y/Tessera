@@ -254,6 +254,23 @@ static int32_t native_av_capture(wasm_exec_env_t env, uint32_t ctx_opaque,
 	return (r == TS_OK) ? (int32_t)len : (int32_t)r;
 }
 
+/* K2（Q-44②/DEC-61②）：音频输出面——pcm16 定长帧（640B）阻塞写；
+ * 权限 av:write + pcm16 绑定在 hal/av.c 裁决。 */
+static int32_t native_av_write(wasm_exec_env_t env, uint32_t ctx_opaque,
+			       uint32_t buf_off, uint32_t len)
+{
+	ARG_UNUSED(ctx_opaque);
+	wasm_module_inst_t inst = wasm_runtime_get_module_inst(env);
+
+	if (len == 0 || !wasm_runtime_validate_app_addr(inst, buf_off, len)) {
+		return TS_E_PARAM;
+	}
+	const uint8_t *src =
+		(const uint8_t *)wasm_runtime_addr_app_to_native(inst, buf_off);
+
+	return (int32_t)ts_av_write(ctx_of(env), src, len);
+}
+
 #ifdef CONFIG_TS_NET
 static int32_t native_net_publish(wasm_exec_env_t env, uint32_t ctx_opaque,
 				  uint32_t fid, uint32_t cid, uint32_t n,
@@ -337,6 +354,7 @@ static NativeSymbol ts_native_syms[] = {
 #endif
 #ifdef CONFIG_TS_HAL_AV
 	{"ts_av_capture", native_av_capture, "(iii)i", NULL},
+	{"ts_av_write", native_av_write, "(iii)i", NULL}, /* K2：av:write 输出面 */
 #ifdef CONFIG_TS_NET
 	{"ts_net_publish", native_net_publish, "(iiiiii)i", NULL},
 #endif

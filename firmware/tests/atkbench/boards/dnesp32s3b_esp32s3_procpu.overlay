@@ -96,10 +96,21 @@
 	};
 };
 
+/* K2：ES8311 音频四引脚（owner V1.1 引脚表：BCK=21/WS=13/SDOUT=14/SDIN=47）
+ * + XL9555 禁用（SPK_EN 裸 I2C 驱动——pca9555 驱动缓存互踩规避） */
+&io_expander {
+	status = "disabled";
+};
+
 / {
 	zephyr,user {
 		/* PWM 后端绑定（板级九模式）：uid 匹配通道逻辑名 */
 		pwm-uid = "akpwm";
 		pwms = <&ledc0 0 1000000 0>;
+		/* ES8311 I2S 面（es8311.c 消费——pdm.c 同族 DT 纪律） */
+		es8311-bck-gpios = <&gpio0 21 0>;
+		es8311-ws-gpios = <&gpio0 13 0>;
+		es8311-sdout-gpios = <&gpio0 14 0>;
+		es8311-sdin-gpios = <&gpio0 47 0>;
 	};
 };

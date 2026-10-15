@@ -35,6 +35,7 @@ NATIVE_WHITELIST = frozenset({
     "ts_time_ms", "ts_log_write",
     "ts_fs_read", "ts_fs_write", "ts_fs_list", "ts_fs_delete",  # DEC-47④（MD1.2e）
     "ts_av_capture", "ts_net_publish",  # DEC-47③⑥（MD1.2g）
+    "ts_av_write",  # K2（Q-44②/DEC-61②）：音频输出面（av:write）
     "ts_kv_save", "ts_kv_load",  # V0.4.0 M9（DR-15）：业务状态持久化
     # V2 纵深 M19（DEC-55/Q-37 A）：宿主侧线程编排——固件 TS_APP_THREADS
     # 门控注册（默认构建不存在 = 装载期未解析导入即拒，fail-closed 仍闭环）

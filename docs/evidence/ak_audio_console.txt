@@ -1,0 +1,33 @@
+ATK DNESP32-S3B V1.1 ES8311 音频输入输出证据（K2 · Q-44/DEC-61，2026-10-16）
+================================================================================
+
+真机 console（atkbench 上电自检——部署观测线程前置音频测试）：
+--------------------------------------------------------------------------------
+AK0 atkbench start
+AK1 wifi_connect rc=0
+[es8311] init: fs=16000 bclk=1024000 slot=32bit ring=4x1280B addr=0x18
+AKa0 es8311 init rc=0
+AKa1 capture 8 frames peak=8191（>32 = ADC 链活）
+AKa2 playback 4 sine frames + SPK_EN toggle OK
+AK AUDIO PASS
+
+链路事实：
+- I2C0 @0x18（CE=0）：寄存器全序列写入 + 回读一致（r01=bf r02=10 r17=00）
+- I2S0 标准 Philips 主机：BCK=IO21/WS=IO13 引脚电平采样 ~50%/100%（翻转实证）
+  32-bit 槽 → BCLK=1.024MHz > 1MHz（原理图「SLCK 必须>1Mhz」约束——codec
+  从 SCLK 内部取源，无独立 MCLK）
+- 录音：GDMA ch0 环 4×1280B EOF 轮询，8 帧连续（160ms×8）非静默 peak=8191
+- 放音：GDMA ch1 静音环常开 + 前方槽打补丁（4 正弦帧 ~1kHz @ -18dB 实时
+  限流写入）+ SPK_EN（XL9555 port1 bit3 裸 I2C）开合
+
+bring-up 六坑（逐坑真机实证定案——过程全留痕）：
+1. TX 描述符 dw0.length 必填（只设 size → FIFO 永不填 → BCK/WS 引脚全平）
+2. 全双工共享总线须 sig_loopback/share_bck_ws（树内 i2s_esp32 驱动同款）
+3. GPIO 输出态读引脚须 pad_input_enable（假读恒 0——诊断自证陷阱）
+4. 时钟域配置序对齐 hal（enable→bind→src→mclk→bck；RX 先 TX 后）
+5. 影子寄存器 update 锁存前置
+6. REG00 bit7 上电位恒保持（真根因：清掉 = codec 不上电、ASDOUT 静默；
+   esp-bsp 2026 现代复位序 0x1F→20ms→0x00→0x80）
+
+判据口径：录音 = 8 帧峰值 > 32（ADC 链活）；放音 = 驱动链 + 功放使能
+（声学侧听感由 owner 确认——4 帧正弦 80ms 短音，重跑 atkbench 可复听）。

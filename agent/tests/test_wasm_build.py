@@ -247,3 +247,12 @@ class TestTierGates:
         with pytest.raises(TaError, match="超上限"):
             compile_app_c(GOOD_C, str(tmp_path / "o"), [str(tmp_path)],
                           max_bytes=8, tier="large", needs=NEEDS)
+
+
+# ---- K2（Q-44②/DEC-61②）：ts_av_write 白名单同步 ------------------------------
+
+class TestAvWriteWhitelist:
+    def test_ts_av_write_whitelisted(self):
+        """ts_av_write 在 NATIVE_WHITELIST（av:write 输出面——固件 natives 同步）。"""
+        from tessera_agent.tools_tsap.wasm_build import NATIVE_WHITELIST
+        assert "ts_av_write" in NATIVE_WHITELIST

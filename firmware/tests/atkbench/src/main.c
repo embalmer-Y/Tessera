@@ -154,11 +154,91 @@ static const ts_hal_dev_desc_t ak_pwm_dev = {
 
 /* ---- 部署观测线程：激活检测 → 暖复位 → APP 运行宣告 --------------------- */
 
+/* K2（Q-44/DEC-61）：ES8311 音频输入输出真机自检（AKa* console 行）。
+ * 录音判据 = 连续 8 帧非全零且峰值超阈（ADC 链活）；放音判据 = SPK_EN
+ * 开 + 正弦帧写链 OK（声学侧由人耳/示波器确认——console 判据 = 驱动链）。*/
+static void audio_selftest(void)
+{
+	int rc = ts_drv_es8311_init();
+
+	printk("AKa0 es8311 init rc=%d\n", rc);
+	if (rc != 0) {
+		printk("AK AUDIO FAIL（无芯片/初始化拒——i2c/i2s 链见上）\n");
+		return;
+	}
+	/* 录音：8 帧（160ms×8）——峰值统计 */
+	static int16_t smp[320];
+	uint32_t peak_all = 0;
+
+	for (int f = 0; f < 8; f++) {
+		int n = ts_drv_es8311_capture((uint8_t *)smp, 640);
+
+		if (n != 640) {
+			printk("AKa1 capture f=%d rc=%d\n", f, n);
+			printk("AK AUDIO FAIL（录音链）\n");
+			return;
+		}
+		uint32_t peak = 0;
+
+		for (int i = 0; i < 320; i++) {
+			uint32_t a = (smp[i] < 0) ? (uint32_t)(-smp[i]) : (uint32_t)smp[i];
+
+			if (a > peak) {
+				peak = a;
+			}
+		}
+		if (peak > peak_all) {
+			peak_all = peak;
+		}
+	}
+	printk("AKa1 capture 8 frames peak=%u（>32 = ADC 链活）\n",
+	       (unsigned)peak_all);
+	if (peak_all <= 32) {
+		printk("AKa1 frame head:");
+		for (int i = 0; i < 16; i++) {
+			printk(" %02x", ((uint8_t *)smp)[i]);
+		}
+		printk("\n");
+		ts_drv_es8311_diag();
+		/* 静默不早退——继续放音判据（二分：codec 整体死 vs ADC 特定静默）*/
+	}
+	/* 放音：SPK_EN 开 + 4 帧正弦（~1kHz：16 采样/周期 @16k）+ 关 */
+	(void)ts_drv_es8311_spk(true);
+	for (int f = 0; f < 4; f++) {
+		for (int i = 0; i < 320; i++) {
+			static const int16_t sin16[16] = {
+				0, 12539, 23170, 30273, 32767, 30273, 23170, 12539,
+				0, -12539, -23170, -30273, -32767, -30273, -23170, -12539,
+			};
+
+			smp[i] = sin16[i % 16] / 4; /* 幅度 -18dB（安全听感档）*/
+		}
+		int n = ts_drv_es8311_write((const uint8_t *)smp, 640);
+
+		if (n != 640) {
+			printk("AKa2 write f=%d rc=%d\n", f, n);
+			printk("AK AUDIO FAIL（放音链）\n");
+			return;
+		}
+	}
+	k_msleep(150); /* 尾帧播完 */
+	(void)ts_drv_es8311_spk(false);
+	printk("AKa2 playback 4 sine frames + SPK_EN toggle OK\n");
+	if (peak_all <= 32) {
+		printk("AK AUDIO FAIL（录音静默但放音链 OK——ADC 侧配置域）\n");
+		return;
+	}
+	printk("AK AUDIO PASS\n");
+}
+
 static void deploy_watch(void *p1, void *p2, void *p3)
 {
 	ARG_UNUSED(p1);
 	ARG_UNUSED(p2);
 	ARG_UNUSED(p3);
+#ifdef CONFIG_TS_DRV_ES8311
+	audio_selftest(); /* K2：上电即测（音频链独立于 zenoh）*/
+#endif
 	/* 等 zenoh 会话（WiFi+DHCP+zenoh 全链；上电首启 ~8s 量级） */
 	for (int i = 0; i < 600 && ts_net_state() != TS_NET_CONNECTED; i++) {
 		k_msleep(100);
