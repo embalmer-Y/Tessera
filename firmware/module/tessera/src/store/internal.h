@@ -66,4 +66,95 @@ static inline uint32_t ts_get_le32(const uint8_t *p)
 	return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
 }
 
+/* ---- 定长 schema 确定性读取助手（prov.c/trust.c 共用——prov.c 首版提炼；
+ * definite-length 专用，任何超集/不定长 = false——不引入通用 CBOR 依赖） */
+
+typedef struct {
+	const uint8_t *p;
+	uint32_t rem;
+} ts_rd_t;
+
+static inline bool ts_rd_u8(ts_rd_t *r, uint8_t *out)
+{
+	if (r->rem < 1) {
+		return false;
+	}
+	*out = *r->p++;
+	r->rem--;
+	return true;
+}
+
+static inline bool ts_rd_len(ts_rd_t *r, uint8_t info, uint32_t *out)
+{
+	if (info < 0x18) {
+		*out = info;
+		return true;
+	}
+	uint32_t n = 0;
+	int bytes = (info == 0x18) ? 1 : (info == 0x19) ? 2 : (info == 0x1A) ? 4 : -1;
+
+	if (bytes < 0 || r->rem < (uint32_t)bytes) {
+		return false;
+	}
+	for (int i = 0; i < bytes; i++) {
+		n = (n << 8) | *r->p++;
+	}
+	r->rem -= bytes;
+	*out = n;
+	return true;
+}
+
+static inline bool ts_rd_tstr(ts_rd_t *r, char *out, size_t cap)
+{
+	uint8_t ib;
+
+	if (!ts_rd_u8(r, &ib) || (uint8_t)(ib & 0xE0) != 0x60) {
+		return false;
+	}
+	uint32_t len;
+
+	if (!ts_rd_len(r, ib & 0x1F, &len) || len >= cap || r->rem < len) {
+		return false;
+	}
+	memcpy(out, r->p, len);
+	out[len] = '\0';
+	r->p += len;
+	r->rem -= len;
+	return true;
+}
+
+static inline bool ts_rd_bstr(ts_rd_t *r, uint8_t *out, size_t cap)
+{
+	uint8_t ib;
+
+	if (!ts_rd_u8(r, &ib) || (uint8_t)(ib & 0xE0) != 0x40) {
+		return false;
+	}
+	uint32_t len;
+
+	if (!ts_rd_len(r, ib & 0x1F, &len) || len != cap || r->rem < len) {
+		return false;
+	}
+	memcpy(out, r->p, len);
+	r->p += len;
+	r->rem -= len;
+	return true;
+}
+
+static inline bool ts_rd_uint(ts_rd_t *r, uint32_t *out)
+{
+	uint8_t ib;
+
+	if (!ts_rd_u8(r, &ib) || (ib & 0xE0) != 0x00) {
+		return false;
+	}
+	uint32_t v;
+
+	if (!ts_rd_len(r, ib & 0x1F, &v)) {
+		return false;
+	}
+	*out = v;
+	return true;
+}
+
 #endif /* TS_STORE_INTERNAL_H__ */

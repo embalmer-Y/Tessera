@@ -19,6 +19,15 @@
 #include "app_wasm.h"
 #include "boot_pkg.h"
 #include "boot_pkg_large.h"
+/* EC2 信任链夹具（gen_trust_fixtures.py 机械生成——重跑复现） */
+#include "boot_pkg_devroot.h"
+#include "trust_blob_add.h"
+#include "trust_blob_clear.h"
+#include "trust_blob_dev_signed.h"
+#include "trust_blob_replay.h"
+#include "trust_blob_skip.h"
+#include "trust_blob_unauth.h"
+#include "trust_dev_pub.h"
 /* CG4：档位扫描/匹配内部面 + cbor 构造助手（模块内复用先例 = net 测试） */
 #include "../../../module/tessera/src/appmgr/internal.h"
 #include "../../../module/tessera/src/net/internal.h"
@@ -679,6 +688,127 @@ ZTEST(framework_app, test_12_resource_push_channel)
 					  sizeof(resp), &rl2), TS_E_STATE,
 		      "未收满不得验（fail-closed）");
 	/* 无会话 commit 拒（begin 缺失——新 cmd 实例态） */
+}
+
+/* ---- V0.8.0 EC2（Q-43/DEC-60）：信任链——多根验签 + trust-update 命令链 -- */
+ZTEST(framework_app, test_13_trust_chain)
+{
+	uint8_t req[512];
+	uint8_t resp[192];
+	size_t rlen;
+	size_t rl2 = 0;
+	ts_app_info_t info;
+
+	ts_store_test_reset();
+	ts_appmgr_test_reset();
+	ts_net_test_reset();
+	ts_net_cmd_test_reset();
+	ts_net_lease_test_reset();
+	zassert_equal(ts_net_cmd_sys_init(), TS_OK);
+
+	/* ① 工厂根单源基线：开发者键签名包 NULL（有效集）安装 = 拒
+	 * （TEST 有效集 = {测试根}——多根注册前 dev 键不在集） */
+	zassert_equal(ts_appmgr_install(boot_pkg_devroot,
+					sizeof(boot_pkg_devroot), NULL, &info),
+		      TS_E_INVALID_SIG, "未注册开发者键 = 拒（fail-closed）");
+	/* 工厂根包（测试根签名）照常可装——分层不回归 */
+	zassert_equal(ts_appmgr_install(boot_pkg, sizeof(boot_pkg), NULL, &info),
+		      TS_OK, "工厂根包 = 有效集命中（测试根）");
+
+	/* ② trust-get 初始态（ver=0 空表——公钥读回未门控） */
+	rlen = build_fs_req(req, sizeof(req), "trust-get", "rid-tg0",
+			    NULL, NULL, 0, NULL, 0, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/trust-get", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_OK);
+	zassert_equal(ts_store_trust()->ver, 0);
+	zassert_equal(ts_store_trust()->n_keys, 0);
+
+	/* ③ gated：无租约 trust-update = E_STATE（分发层——签名前） */
+	rlen = build_fs_req(req, sizeof(req), "trust-update", "rid-tu0", NULL,
+			    NULL, 0, NULL, 0, trust_blob_add,
+			    sizeof(trust_blob_add));
+	zassert_equal(ts_net_cmd_dispatch("sys/trust-update", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_STATE,
+		      "gated 写类 = 租约前置");
+
+	/* ④ 签名门：陌生键签名次版（ver=1 合法序）= E_INVALID_SIG */
+	rlen = build_fs_req(req, sizeof(req), "trust-update", "rid-tu1", NULL,
+			    NULL, 0, NULL, 0, trust_blob_unauth,
+			    sizeof(trust_blob_unauth));
+	zassert_equal(ts_net_cmd_dispatch("sys/trust-update", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_STATE,
+		      "仍无租约");
+	rlen = build_fs_req(req, sizeof(req), "lease-acquire", "rid-tl0",
+			    "t-agent", NULL, 0, NULL, 0, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/lease-acquire", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_OK);
+	/* req 缓冲被租约请求复用——重建 trust-update 请求后重发 */
+	rlen = build_fs_req(req, sizeof(req), "trust-update", "rid-tu1", NULL,
+			    NULL, 0, NULL, 0, trust_blob_unauth,
+			    sizeof(trust_blob_unauth));
+	zassert_equal(ts_net_cmd_dispatch("sys/trust-update", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_INVALID_SIG,
+		      "陌生键签名 = 拒（有效集外）");
+
+	/* ⑤ ver 门：跳版（ver=9）= E_RANGE（严格 N+1） */
+	rlen = build_fs_req(req, sizeof(req), "trust-update", "rid-tu2", NULL,
+			    NULL, 0, NULL, 0, trust_blob_skip,
+			    sizeof(trust_blob_skip));
+	zassert_equal(ts_net_cmd_dispatch("sys/trust-update", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_RANGE,
+		      "跳版拒");
+
+	/* ⑥ 首次注册（工厂根签名 ver=1 + dev 键）→ OK + trust-get 回读 */
+	rlen = build_fs_req(req, sizeof(req), "trust-update", "rid-tu3", NULL,
+			    NULL, 0, NULL, 0, trust_blob_add,
+			    sizeof(trust_blob_add));
+	zassert_equal(ts_net_cmd_dispatch("sys/trust-update", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_OK);
+	zassert_equal(ts_store_trust()->ver, 1);
+	zassert_equal(ts_store_trust()->n_keys, 1);
+	zassert_equal(memcmp(ts_store_trust()->keys[0], trust_dev_pub, 32), 0);
+	rlen = build_fs_req(req, sizeof(req), "trust-get", "rid-tg1",
+			    NULL, NULL, 0, NULL, 0, NULL, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/trust-get", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_OK);
+
+	/* ⑦ 多根实证：开发者键签名包 NULL（有效集）安装 = OK */
+	zassert_equal(ts_appmgr_install(boot_pkg_devroot,
+					sizeof(boot_pkg_devroot), NULL, &info),
+		      TS_OK, "注册后开发者键命中有效集");
+
+	/* ⑧ 重放（ver=1 已应用）= E_RANGE */
+	rlen = build_fs_req(req, sizeof(req), "trust-update", "rid-tu4", NULL,
+			    NULL, 0, NULL, 0, trust_blob_replay,
+			    sizeof(trust_blob_replay));
+	zassert_equal(ts_net_cmd_dispatch("sys/trust-update", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_RANGE,
+		      "重放拒（单调防回滚）");
+
+	/* ⑨ 有效集内互荐：开发者键签名次版（ver=2）= OK */
+	rlen = build_fs_req(req, sizeof(req), "trust-update", "rid-tu5", NULL,
+			    NULL, 0, NULL, 0, trust_blob_dev_signed,
+			    sizeof(trust_blob_dev_signed));
+	zassert_equal(ts_net_cmd_dispatch("sys/trust-update", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_OK,
+		      "现信任键（开发者）可推动次版");
+	zassert_equal(ts_store_trust()->ver, 2);
+
+	/* ⑩ 全撤回（ver=3 空表，工厂根签名）→ 开发者键复拒（回工厂根单源） */
+	rlen = build_fs_req(req, sizeof(req), "trust-update", "rid-tu6", NULL,
+			    NULL, 0, NULL, 0, trust_blob_clear,
+			    sizeof(trust_blob_clear));
+	zassert_equal(ts_net_cmd_dispatch("sys/trust-update", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_OK);
+	zassert_equal(ts_store_trust()->ver, 3);
+	zassert_equal(ts_store_trust()->n_keys, 0, "空表合法（全撤回）");
+	zassert_equal(ts_appmgr_install(boot_pkg_devroot,
+					sizeof(boot_pkg_devroot), NULL, &info),
+		      TS_E_INVALID_SIG, "撤回后开发者键复拒");
+
+	/* ⑪ 工厂根包在信任表变迁全程可用（分层：工厂根不受表管辖） */
+	zassert_equal(ts_appmgr_install(boot_pkg, sizeof(boot_pkg), NULL, &info),
+		      TS_OK);
 }
 
 ZTEST_SUITE(framework_app, NULL, NULL, NULL, NULL, NULL);

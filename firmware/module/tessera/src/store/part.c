@@ -30,6 +30,9 @@
 #ifdef CONFIG_TS_STORE_KV
 #define KV_BACKEND_SIZE 8192U /* V0.4.0 M9（DR-15）：两页 × 15 槽 × 264B */
 #endif
+#ifdef CONFIG_TS_STORE_TRUST
+#define TRUST_BACKEND_SIZE 8192U /* V0.8.0 EC2（Q-43③）：双副本 2×4KB 乒乓（擦除块对齐——meta/audit/kv 同型约束） */
+#endif
 
 static uint8_t ram_prov[PROV_SIZE];
 static uint8_t ram_meta[META_SIZE];
@@ -47,6 +50,9 @@ static uint8_t ram_audit[AUDIT_SIZE];
 #endif
 #ifdef CONFIG_TS_STORE_KV
 static uint8_t ram_kv[KV_BACKEND_SIZE]; /* V0.4.0 M9（DR-15）：8KB 两页 */
+#endif
+#ifdef CONFIG_TS_STORE_TRUST
+static uint8_t ram_trust[TRUST_BACKEND_SIZE]; /* EC2（Q-43③）：8KB 双副本 */
 #endif
 
 static uint8_t *part_ram(ts_store_part_t part, uint32_t *size)
@@ -86,6 +92,11 @@ static uint8_t *part_ram(ts_store_part_t part, uint32_t *size)
 	case TS_PART_KV:
 		*size = KV_BACKEND_SIZE;
 		return ram_kv;
+#endif
+#ifdef CONFIG_TS_STORE_TRUST
+	case TS_PART_TRUST:
+		*size = TRUST_BACKEND_SIZE;
+		return ram_trust;
 #endif
 	default:
 		*size = 0;
@@ -180,6 +191,9 @@ const ts_store_ops_t ts_store_backend = {
 #ifdef CONFIG_TS_STORE_KV
 #define NODE_KV      DT_NODELABEL(ts_kv_part)
 #endif
+#ifdef CONFIG_TS_STORE_TRUST
+#define NODE_TRUST   DT_NODELABEL(ts_trust_part)
+#endif
 
 #if !DT_NODE_EXISTS(NODE_PROV) || !DT_NODE_EXISTS(NODE_META) || \
 	!DT_NODE_EXISTS(NODE_SLOT_A) || !DT_NODE_EXISTS(NODE_SLOT_B) || \
@@ -205,6 +219,13 @@ BUILD_ASSERT(PARTITION_SIZE(ts_audit_part) == 8192,
 #endif
 BUILD_ASSERT(PARTITION_SIZE(ts_kv_part) == 8192,
 	     "ts_kv_part must be 8192 (two 4KB ping-pong pages, V0.4.0 M9)");
+#endif
+#ifdef CONFIG_TS_STORE_TRUST
+#if !DT_NODE_EXISTS(NODE_TRUST)
+#error "TS_STORE_TRUST=y：DT 缺少 ts_trust_part 分区（板 overlay 须定义 4KB ts-trust，V0.8.0 EC2/Q-43③）"
+#endif
+BUILD_ASSERT(PARTITION_SIZE(ts_trust_part) == 8192,
+	     "ts_trust_part must be 8192 (two 4KB ping-pong copies, V0.8.0 EC2)");
 #endif
 
 /* 分区尺寸与 Kconfig 的硬耦合（fail-closed：错配 = 构建期失败而非运行期越界）。
@@ -267,6 +288,11 @@ static const struct flash_area *flash_fa(ts_store_part_t part)
 		id = PARTITION_ID(ts_kv_part);
 		break;
 #endif
+#ifdef CONFIG_TS_STORE_TRUST
+	case TS_PART_TRUST:
+		id = PARTITION_ID(ts_trust_part);
+		break;
+#endif
 	default:
 		id = PARTITION_ID(ts_noinit_part);
 		break;
@@ -310,6 +336,10 @@ static uint32_t flash_size(ts_store_part_t part)
 #ifdef CONFIG_TS_STORE_KV
 	case TS_PART_KV:
 		return PARTITION_SIZE(ts_kv_part);
+#endif
+#ifdef CONFIG_TS_STORE_TRUST
+	case TS_PART_TRUST:
+		return PARTITION_SIZE(ts_trust_part);
 #endif
 	default:
 		return PARTITION_SIZE(ts_noinit_part);

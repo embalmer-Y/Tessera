@@ -1,6 +1,6 @@
 # LLD · ts-appmgr v0.4（M2b.2 完成）
 
-> **状态**：v0.7（2026-10-15 EC1 · Q-43/DEC-60：**验签链多根设计**——有效集 = 工厂根〔prov pk0+pk1，pk1 转正消费〕∪ 信任表.keys；verify_slot NULL = 有效集迭代〔含生产回滚 NULL 恒拒存量缺陷根治〕；trust-update 命令链编排 + 侧载纪律）；v0.6.3（2026-10-14 CG5-B：**资源白名单 registry**——needs.resources → res_csv〔scan 单一解析源〕→ activate 绑定 + boot 恢复；sys/fs-* 授权源）；v0.6.2（2026-10-14 CG5-A · Q-39④：**get-info caps 块实现**——{tiers, max_linear_memory_kb, slot_pool_kb} 设备自报 + Agent push_app 装前预检〔caps 缺失 = 旧固件跳过〕；CG5-B 资源推送随下单元）。上位：HLD §3.4 + HLD-contract-v2 §5；公共约定 `LLD-00-common.md`。上位：HLD §3.4 + HLD-contract-v2 §5；公共约定 `LLD-00-common.md`。
+> **状态**：v0.7.1（2026-10-15 EC2 · **多根验签与 trust-update 实现**——verify_slot NULL=有效集迭代〔显式键语义不变：TEST 固定测试根覆盖维持〕+ ts_appmgr_trust_effective + cose_ram_parse/check〔COSE_Sign1 RAM 解析〕+ ts_appmgr_trust_update 编排〔schema→严格 N+1→现有效集签名→乒乓持久化+事件〕；ts_appmgr_install NULL 根键放开；生产回滚 NULL 恒拒缺陷根治）；v0.7（2026-10-15 EC1 · Q-43/DEC-60：**验签链多根设计**——有效集 = 工厂根〔prov pk0+pk1，pk1 转正消费〕∪ 信任表.keys；verify_slot NULL = 有效集迭代〔含生产回滚 NULL 恒拒存量缺陷根治〕；trust-update 命令链编排 + 侧载纪律）；v0.6.3（2026-10-14 CG5-B：**资源白名单 registry**——needs.resources → res_csv〔scan 单一解析源〕→ activate 绑定 + boot 恢复；sys/fs-* 授权源）；v0.6.2（2026-10-14 CG5-A · Q-39④：**get-info caps 块实现**——{tiers, max_linear_memory_kb, slot_pool_kb} 设备自报 + Agent push_app 装前预检〔caps 缺失 = 旧固件跳过〕；CG5-B 资源推送随下单元）。上位：HLD §3.4 + HLD-contract-v2 §5；公共约定 `LLD-00-common.md`。上位：HLD §3.4 + HLD-contract-v2 §5；公共约定 `LLD-00-common.md`。
 > **职责**：APP 包接收/验签/双 slot 存储/版本与回滚；WAMR 宿主（实例化 + 按能力装配导入面）；APP 线程与健康探针。
 > **合同关联**：合同 10（权限硬边界 = 符号过滤装配）；DEC-04/05/17。
 > **外部依赖**：WAMR（wasm_runtime_* 家族，具体签名以钉住版本为准，M0 核验）。
@@ -97,6 +97,7 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
   - **收尾单元落地（v0.4）**：ts_appmgr_boot_start（active slot TSAP → manifest canonical 走查〔未知键 fail-closed；caps ';' 组合——ts_perm_parse 位图或合并；app_id/app_ver 提取；stack_kb/heap_kb 读取但 V1 消耗运行时常量〕→ wasm 装载〔CONFIG_TS_APP_LOAD_MAX 结构性上限〕→ app_start → STAGED→ACTIVE）；boot 步骤 8 app_load 尾部追加（APP 故障不阻塞启动 = 合同 6 显式例外〔HLD §4.4-8〕）；CONFIG_TS_APP_WAMR 默认 y；Agent E2E 使用固件同源夹具 wasm。
 
 ## 修订记录
+- v0.7.1 · 2026-10-15：**EC2（多根验签/trust-update 实现）**——§5b 落地：有效集构建（TEST={测试根}∪表——多根 sim 可测）/COSE RAM 验签/更新编排五步；install NULL 放开；rollback NULL 生产恒拒缺陷修复。用例 framework.app test_13_trust_chain（11 断言组：基线拒/租约门/陌生键拒/跳版拒/注册/多根安装/重放拒/互荐/全撤回复拒/工厂根全程可用）+ 夹具 gen_trust_fixtures.py 入仓（固定种子+测试根签名——教训 27）。
 - v0.7 · 2026-10-15：**EC1（Q-43/DEC-60 · 验签链多根设计）**——新增 §5b：有效集分层（工厂根 ∪ 信任表）+ verify_slot NULL 语义 + trust-update 编排（COSE RAM 验签/严格 N+1/有效集签名门）+ 侧载纪律（EC4 设计面）；生产回滚 NULL 恒拒存量缺陷定案（EC2 修复 + 用例）。
 - v0.6.3 · 2026-10-14：**CG5-B（Q-39③ 方案 A · 资源白名单 registry）**——scan res_csv + activate/boot 绑定 + res_allows 裁决；sys/fs-* 命令面授权源。
 - v0.6.2 · 2026-10-14：**CG5-A（Q-39④ · 能力发现）**——get-info caps 块（WAMR 构建六键形态）+ Agent push_app 装前预检（TA_E_POLICY 结构化拒——设备档位不支持/线性内存超帽，零上传零租约）。

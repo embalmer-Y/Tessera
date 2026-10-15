@@ -399,7 +399,9 @@ ts_res_t ts_appmgr_stage_activate(ts_app_info_t *out)
 ts_res_t ts_appmgr_install(const uint8_t *pkg_data, size_t pkg_len,
 			    const uint8_t root_pubkey[32], ts_app_info_t *out)
 {
-	if (pkg_data == NULL || root_pubkey == NULL || out == NULL) {
+	/* EC2（Q-43⑤）：root_pubkey 可为 NULL = 有效信任集（verify_slot 语义；
+	 * 显式键 = 单键验签维持）。 */
+	if (pkg_data == NULL || out == NULL) {
 		return TS_E_PARAM;
 	}
 	if (ts_appmgr_stage_begin((uint32_t)pkg_len, NULL) != TS_OK) {

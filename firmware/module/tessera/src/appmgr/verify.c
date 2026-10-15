@@ -42,6 +42,43 @@ const uint8_t *ts_appmgr_root_key(const uint8_t root_pubkey[32])
 	return root_pubkey; /* 生产：调用方传 prov pk0（NULL = 拒绝） */
 }
 
+/* ---- 有效信任集（EC2 · Q-43②/DEC-60②）------------------------------------
+ * 有效集 = 工厂根 ∪ 信任表 keys。工厂根：TEST = 固定测试根（Q-29④）/
+ * 生产 = prov pk0+pk1（pk1 自 EC2 转正消费——schema v1 既存双钥预留）。
+ * 工厂根不受信任表管辖（吊销 = prov 维护通道职权）；有效集恒非空。 */
+
+uint8_t ts_appmgr_trust_effective(const uint8_t *keys_out[TS_APPMGR_TRUST_SET_MAX])
+{
+	uint8_t n = 0;
+
+	if (IS_ENABLED(CONFIG_TS_TEST)) {
+		keys_out[n++] = test_root_pub;
+	} else {
+		const ts_prov_t *prov = ts_store_prov();
+
+		keys_out[n++] = prov->root_pubkeys[0];
+		keys_out[n++] = prov->root_pubkeys[1];
+	}
+#ifdef CONFIG_TS_STORE_TRUST
+	const ts_trust_table_t *t = ts_store_trust();
+
+	for (uint8_t i = 0; i < t->n_keys && n < TS_APPMGR_TRUST_SET_MAX; i++) {
+		bool dup = false;
+
+		for (uint8_t j = 0; j < n; j++) {
+			if (memcmp(t->keys[i], keys_out[j], 32) == 0) {
+				dup = true;
+				break;
+			}
+		}
+		if (!dup) {
+			keys_out[n++] = t->keys[i];
+		}
+	}
+#endif
+	return n;
+}
+
 static ts_res_t read_all(uint8_t slot, uint32_t off, uint8_t *buf, uint32_t len)
 {
 	return ts_store_slot_read(slot, off, buf, len);
@@ -173,10 +210,20 @@ ts_res_t ts_appmgr_verify_slot(uint8_t slot, const uint8_t root_pubkey[32],
 	if (r != TS_OK) {
 		return r; /* 头 v2/摘要/内容完整性（含 view 填充）——上方已留痕 */
 	}
-	const uint8_t *root = ts_appmgr_root_key(root_pubkey);
+	/* EC2（Q-43⑤）：NULL = 迭代有效信任集（工厂根 ∪ 信任表——任一键过
+	 * 即过；rollback/boot 装载链走此路）；显式键 = 单键验签（TEST 构建
+	 * 维持固定测试根覆盖——Q-29④ 现行为）。 */
+	const uint8_t *set_buf[TS_APPMGR_TRUST_SET_MAX];
+	uint8_t n_roots;
 
-	if (root == NULL) {
-		VS_REJECT(TS_E_INVALID_SIG); /* 生产构建无根公钥 = 拒绝 */
+	if (root_pubkey == NULL) {
+		n_roots = ts_appmgr_trust_effective(set_buf);
+	} else {
+		set_buf[0] = ts_appmgr_root_key(root_pubkey);
+		n_roots = 1;
+	}
+	if (n_roots == 0) {
+		VS_REJECT(TS_E_INVALID_SIG); /* 防御：有效集空（结构不可达） */
 	}
 	if (digest_out != NULL &&
 	    read_all(slot, TSAP_DIGEST_OFF, digest_out, TSAP_DIGEST_SIZE) != TS_OK) {
@@ -271,11 +318,164 @@ ts_res_t ts_appmgr_verify_slot(uint8_t slot, const uint8_t root_pubkey[32],
 
 	/* tweetnacl 验签：m 出参为**独立缓冲**（不可与 sm 别名——
 	 * crypto_sign_open 在验证前即以 m[32..64)=pk 作暂存，别名会破坏
-	 * sm 内签名 S 段〔真机调试实证〕）。 */
+	 * sm 内签名 S 段〔真机调试实证〕）。多根（EC2）：失败键重试——
+	 * crypto_sign_open 只读 sm（出参写 mbuf），重试安全。 */
 	unsigned long long mlen = 0;
+	bool verified = false;
 
-	if (crypto_sign_open(mbuf, &mlen, sm, (unsigned long long)smlen, root) != 0) {
+	for (uint8_t i = 0; i < n_roots; i++) {
+		if (crypto_sign_open(mbuf, &mlen, sm, (unsigned long long)smlen,
+				     set_buf[i]) == 0) {
+			verified = true;
+			break;
+		}
+	}
+	if (!verified) {
 		VS_REJECT(TS_E_INVALID_SIG);
 	}
 	return TS_OK;
 }
+
+/* ---- 信任表更新链（EC2 · Q-43④/DEC-60④；CONFIG_TS_STORE_TRUST）----------- */
+
+#ifdef CONFIG_TS_STORE_TRUST
+
+/* COSE_Sign1 RAM 解析（与 TSAP 容器同构：tag18 + array4 精确子集——
+ * phdr bstr(3){1:-8} / uhdr map(0) / payload bstr / sig bstr(64)）。
+ * payload/sig 指向入参内部（零拷贝——生存期 = 调用域）。 */
+static ts_res_t cose_ram_parse(const uint8_t *cose, uint32_t len,
+			       const uint8_t **payload, uint32_t *plen,
+			       const uint8_t **sig)
+{
+	if (cose == NULL || len < 2 + 2 + 3 + 1 + 2 + 2 + 64) {
+		return TS_E_INVALID_SIG;
+	}
+	uint32_t pos = 0;
+
+	if (cose[pos] != 0xd2 || cose[pos + 1] != 0x84) {
+		return TS_E_INVALID_SIG;
+	}
+	pos += 2;
+	/* ① protected bstr(3) {0xa1,0x01,0x27}（DR-21 单键纪律——与 TSAP 同源） */
+	if (cose[pos] != 0x43) {
+		return TS_E_INVALID_SIG;
+	}
+	static const uint8_t want_phdr[3] = {0xa1, 0x01, 0x27};
+
+	if (memcmp(cose + pos + 1, want_phdr, 3) != 0) {
+		return TS_E_INVALID_SIG;
+	}
+	pos += 4;
+	/* ② unprotected map(0) */
+	if (cose[pos] != 0xa0) {
+		return TS_E_INVALID_SIG;
+	}
+	pos += 1;
+	/* ③ payload bstr：短/1B/2B 头（表 ≤512B 域） */
+	uint8_t ib = cose[pos++];
+	uint32_t n;
+
+	if ((ib & 0xE0) != 0x40) {
+		return TS_E_INVALID_SIG;
+	}
+	if ((ib & 0x1F) < 24) {
+		n = ib & 0x1F;
+	} else if ((ib & 0x1F) == 24) {
+		n = cose[pos++];
+	} else if ((ib & 0x1F) == 25) {
+		n = ((uint32_t)cose[pos] << 8) | cose[pos + 1];
+		pos += 2;
+	} else {
+		return TS_E_INVALID_SIG;
+	}
+	if (n == 0 || pos + n + 2 + 64 > len) {
+		return TS_E_INVALID_SIG;
+	}
+	*payload = cose + pos;
+	*plen = n;
+	pos += n;
+	/* ④ signature bstr(64) */
+	if (cose[pos] != 0x58 || cose[pos + 1] != 64) {
+		return TS_E_INVALID_SIG;
+	}
+	*sig = cose + pos + 2;
+	return TS_OK;
+}
+
+/* 单键校验：sm = sig ‖ Sig_structure 定前缀 ‖ payload（slot 路径同构——
+ * sig_structure_prefix 共用）。scratch 双区（sm/m 不别名——同上约束）。 */
+static bool cose_ram_check(const uint8_t *payload, uint32_t plen,
+			   const uint8_t *sig, const uint8_t pubkey[32])
+{
+	static uint8_t tsm[64 + 20 + CONFIG_TS_TRUST_TABLE_MAX];
+	static uint8_t tmbuf[64 + 20 + CONFIG_TS_TRUST_TABLE_MAX];
+	const size_t need = 2 * (64 + 20 + (size_t)plen);
+
+	if (need > sizeof(tsm)) {
+		return false; /* 表超出验签缓冲（结构性不可达——TABLE_MAX 域内） */
+	}
+	memcpy(tsm, sig, 64);
+	size_t tail = 64 + sig_structure_prefix(tsm + 64, plen);
+
+	memcpy(tsm + tail, payload, plen);
+	unsigned long long mlen = 0;
+
+	return crypto_sign_open(tmbuf, &mlen, tsm,
+				(unsigned long long)(tail + plen), pubkey) == 0;
+}
+
+ts_res_t ts_appmgr_trust_update(const uint8_t *cose, uint32_t cose_len)
+{
+	/* ① 结构解析 + payload 表 schema 走查（最廉拒先——无密码学开销） */
+	const uint8_t *pl;
+	uint32_t plen;
+	const uint8_t *sig;
+
+	if (cose_ram_parse(cose, cose_len, &pl, &plen, &sig) != TS_OK) {
+		return TS_E_INVALID_SIG;
+	}
+	ts_trust_table_t cand;
+
+	if (ts_store_trust_validate(pl, plen, &cand) != TS_OK) {
+		return TS_E_PARAM; /* 表 schema 违例（生成侧错误） */
+	}
+	/* ② 单调 ver 严格 N+1（TUF：重放与跳版均拒） */
+	const ts_trust_table_t *cur = ts_store_trust();
+
+	if (cand.ver != cur->ver + 1U) {
+		printk("[trust] reject ver %u (current %u)\n", cand.ver, cur->ver);
+		return TS_E_RANGE;
+	}
+	/* ③ 签名对当前有效集任一键（现信任键方可推动次版——被撤键无力回天） */
+	const uint8_t *set[TS_APPMGR_TRUST_SET_MAX];
+	uint8_t n = ts_appmgr_trust_effective(set);
+	bool ok = false;
+
+	for (uint8_t i = 0; i < n; i++) {
+		if (cose_ram_check(pl, plen, sig, set[i])) {
+			ok = true;
+			break;
+		}
+	}
+	if (!ok) {
+		printk("[trust] reject L%d\n", __LINE__);
+		return TS_E_INVALID_SIG;
+	}
+	/* ④ 持久化（乒乓写 + 回读校验 + RAM 重载）+ 留痕 */
+	ts_res_t r = ts_store_trust_write(pl, plen);
+
+	if (r != TS_OK) {
+		return r;
+	}
+	printk("[trust] table ver=%u keys=%u\n", cand.ver, cand.n_keys);
+	const ts_trust_evt_t tevt = {.ver = cand.ver, .n_keys = cand.n_keys};
+	const ts_evt_t evt = {
+		.id = TS_EVT_TRUST_UPDATED, .t_ms = ts_time_ms(),
+		.data = &tevt, .len = sizeof(tevt),
+	};
+
+	ts_evt_publish(&evt);
+	return TS_OK;
+}
+
+#endif /* CONFIG_TS_STORE_TRUST */

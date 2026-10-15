@@ -1,4 +1,4 @@
-# LLD-A06 · 部署与数据面（deploy_*）· v0.3
+# LLD-A06 · 部署与数据面（deploy_*）· v0.3.1
 
 > **上游**：HLD-agent §2/A06；决策 DEC-18/20（zenoh，client→router 拓扑）、DEC-23（MCUmgr 底线）、DEC-30①（sys 命令面 host-only）；库基线 R5 §5（eclipse-zenoh 1.10.1）。v0.2 = 参考项目借鉴批次（NeuroLink 分块传输/分步升级实证档位）。
 
@@ -62,6 +62,7 @@
 
 ## 修订记录
 
+- v0.3.1 · 2026-10-15：**EC2（信任工具实现）**——§3 trust_get/trust_update 落地（表 CBOR 手工构造与固件 trust_walk 字节同构 + cose.sign_diy + 租约闭环 + 回执 ver 断言）；FakeCube 信任语义 + agent 用例 ×2（TUF 全链/参数矩阵）。
 - v0.3 · 2026-10-15：**EC1（Q-43/DEC-60 · 信任链工具设计）**——§3 增 deploy_trust_get/trust_update（TUF root 同型全量替换 + COSE_Sign1 现有效集签名 + ver 严格 N+1；strict 审批 + 信任链变更审计）；实现随 EC2。
 - v0.1 · 2026-09-22：首版草案（Agent design 批次）。
 - v0.2 · 2026-09-23：参考项目借鉴批次（NeuroLink 分块/分步升级实证）——§3 push_app 传输定稿方向（query 分块 2-4KB + upload/verify/activate 分步对齐固件安装链 + 断点续传）；push_prov 补固件定稿键序生成纪律；§2 增租约/信封镜像；§5 测试面扩充。

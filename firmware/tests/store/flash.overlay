@@ -40,5 +40,10 @@
 			label = "ts-kv";
 			reg = <0x00086000 0x2000>;
 		};
+		/* V0.8.0 EC2（Q-43③）：信任根表 8KB（双副本 2×4KB 乒乓——擦除块对齐） */
+		ts_trust_part: partition@88000 {
+			label = "ts-trust";
+			reg = <0x00088000 0x2000>;
+		};
 	};
 };

@@ -25,7 +25,7 @@
 #include "internal.h"
 #include "../store/internal.h" /* ts_sha256 流式（CG5-B fs-commit 读回校验——verify.c 同型跨子系统引用） */
 
-#define CMD_TABLE_MAX  20 /* 7 基础 sys + 3 租约（DEC-41）+ 5 部署面（MA3.1）+ prov-write（M10）+ 3 资源推送（CG5-B）+ 余量 */
+#define CMD_TABLE_MAX  22 /* 7 基础 sys + 3 租约（DEC-41）+ 5 部署面（MA3.1）+ prov-write（M10）+ 3 资源推送（CG5-B）+ 2 信任表（EC2）+ 余量 */
 #define RESP_DATA_MAX  384 /* data 暂存上限（回执总预算 512 内扣除头） */
 #define REQ_TO_MAX_MS  5000 /* 带内超时上界（DEC-40：断链窗口 6000 − 余量） */
 #define RID_MAX        16
@@ -539,6 +539,63 @@ static ts_res_t cmd_fs_commit(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap
 }
 #endif /* CONFIG_TS_APP_WAMR && CONFIG_TS_HAL_FS */
 
+/* ---- 信任根表命令面（V0.8.0 EC2 · Q-43④/DEC-60④）--------------------------
+ * trust-update：args data = COSE_Sign1（payload = 表 CBOR）；gated（v2 信封
+ * + 租约——密码学签名为主门，租约为会话层纵深）；编排链在 ts-appmgr
+ * （verify.c：schema → ver 严格 N+1 → 现有效集签名 → 乒乓持久化 + 事件）。
+ * trust-get：ver + keys 读回（未门控——公钥为公开材料，安卓哲学）。 */
+#ifdef CONFIG_TS_STORE_TRUST
+static ts_res_t cmd_trust_update(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
+{
+	size_t p = 0;
+
+	if (a->chunk == NULL || a->chunk_len == 0) {
+		if (ts_cbor_put_map(r, cap, &p, 1) && ts_cbor_put_tstr(r, cap, &p, "need") &&
+		    ts_cbor_put_tstr(r, cap, &p, "data")) {
+			*n = p;
+		}
+		return TS_E_PARAM;
+	}
+	ts_res_t res = ts_appmgr_trust_update(a->chunk, a->chunk_len);
+
+	if (res != TS_OK) {
+		return res;
+	}
+	const ts_trust_table_t *t = ts_store_trust();
+
+	if (!ts_cbor_put_map(r, cap, &p, 2) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "ver") ||
+	    !ts_cbor_put_uint(r, cap, &p, t->ver) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "keys") ||
+	    !ts_cbor_put_uint(r, cap, &p, t->n_keys)) {
+		return TS_E_IO;
+	}
+	*n = p;
+	return TS_OK;
+}
+
+static ts_res_t cmd_trust_get(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
+{
+	ARG_UNUSED(a);
+	const ts_trust_table_t *t = ts_store_trust();
+	size_t p = 0;
+
+	if (!ts_cbor_put_map(r, cap, &p, 2) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "ver") ||
+	    !ts_cbor_put_uint(r, cap, &p, t->ver) ||
+	    !ts_cbor_put_array(r, cap, &p, t->n_keys)) {
+		return TS_E_IO;
+	}
+	for (uint8_t i = 0; i < t->n_keys; i++) {
+		if (!ts_cbor_put_bstr(r, cap, &p, t->keys[i], 32)) {
+			return TS_E_IO;
+		}
+	}
+	*n = p;
+	return TS_OK;
+}
+#endif /* CONFIG_TS_STORE_TRUST */
+
 static ts_res_t cmd_lease_acquire(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
 {
 	size_t p = 0;
@@ -722,10 +779,10 @@ static ts_res_t cmd_app_chunk(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap
 static ts_res_t cmd_app_verify(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
 {
 	ARG_UNUSED(a);
-	/* 根公钥自 prov（合同 10 只读面；pk0 = 首根钥） */
-	const ts_prov_t *prov = ts_store_prov();
+	/* EC2（Q-43⑤）：验签根 = 有效信任集（工厂根 pk0/pk1 ∪ 信任表 keys
+	 * ——verify_slot NULL 路径；此前单取 pk0）。 */
 	uint32_t ml = 0, wl = 0, co = 0;
-	ts_res_t res = ts_appmgr_stage_verify(prov->root_pubkeys[0], &ml, &wl, &co);
+	ts_res_t res = ts_appmgr_stage_verify(NULL, &ml, &wl, &co);
 
 	if (res != TS_OK) {
 		return res;
@@ -1312,6 +1369,10 @@ ts_res_t ts_net_cmd_sys_init(void)
 		{"sys/fs-begin", cmd_fs_begin, true},   /* CG5-B：资源推送（gated+租约） */
 		{"sys/fs-chunk", cmd_fs_chunk, true},
 		{"sys/fs-commit", cmd_fs_commit, true},
+#endif
+#ifdef CONFIG_TS_STORE_TRUST
+		{"sys/trust-update", cmd_trust_update, true}, /* EC2（Q-43④）：gated = v2+租约（签名为主门） */
+		{"sys/trust-get", cmd_trust_get, false},      /* 公钥读回（未门控） */
 #endif
 		{"sys/get-app", cmd_get_app, false},
 	};

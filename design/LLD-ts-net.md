@@ -1,6 +1,6 @@
 # LLD · ts-net v0.3.9
 
-> **状态**：v0.4（2026-10-15 EC1 · Q-43/DEC-60：**信任表命令面设计**——sys/trust-update〔gated+租约+COSE 现有效集签名+严格 N+1〕+ sys/trust-get〔未门控〕+ TS_EVT_TRUST_UPDATED 订阅十类）；v0.3.11（2026-10-14 CG5-B：**宿主资源推送命令面**——sys/fs-begin/chunk/commit〔gated+租约+随包 needs.resources 前缀白名单+sha256 读回校验〕）；v0.3.10（2026-10-14 CG3 · Q-41②：**租约本地席位降级视图实现**——held_by/acquire 视词语义 + acquire 回执 local_active 装饰 + TS_EVT_ARB_CHANGED 订阅外发〔八类〕+ get-audit 审计 src 维度）。上位：HLD §3.5 + HLD-contract-v2 §2-§4；公共约定 `LLD-00-common.md`。
+> **状态**：v0.4.1（2026-10-15 EC2 · **信任命令实现**——sys/trust-update〔gated+租约；CMD_TABLE_MAX 22〕+ trust-get + TS_EVT_TRUST_UPDATED 订阅十类〔安全类 QoS，extra {"ver"}〕）；v0.4（2026-10-15 EC1 · Q-43/DEC-60：**信任表命令面设计**——sys/trust-update〔gated+租约+COSE 现有效集签名+严格 N+1〕+ sys/trust-get〔未门控〕+ TS_EVT_TRUST_UPDATED 订阅十类）；v0.3.11（2026-10-14 CG5-B：**宿主资源推送命令面**——sys/fs-begin/chunk/commit〔gated+租约+随包 needs.resources 前缀白名单+sha256 读回校验〕）；v0.3.10（2026-10-14 CG3 · Q-41②：**租约本地席位降级视图实现**——held_by/acquire 视词语义 + acquire 回执 local_active 装饰 + TS_EVT_ARB_CHANGED 订阅外发〔八类〕+ get-audit 审计 src 维度）。上位：HLD §3.5 + HLD-contract-v2 §2-§4；公共约定 `LLD-00-common.md`。
 > **职责**：zenoh-pico 会话管理、命名空间构造、命令-回执分发、遥测/事件发布、心跳监视（断链判定）、控制租约（DEC-41）。
 > **合同关联**：合同 3（断链 fail-safe 判定源）、8（本地独立生效——判定不依赖外部确认）、9（rx 串行化）、10（命令准入/留痕）。
 > **外部依赖**：zenoh-pico 1.10.1（钉版，DR-22；上游零源码补丁，接线要点见 docs/dev-environment.md §7/§8）。

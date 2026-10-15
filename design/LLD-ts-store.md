@@ -1,6 +1,6 @@
 # LLD · ts-store v0.4
 
-> **状态**：v0.5（2026-10-15 EC1 · Q-43/DEC-60：**信任根表分区**——ts_trust.c 4KB 双副本乒乓 + TUF root 同型全量替换表 schema + TS_STORE_TRUST 可选分区〔默认 n = V0.7 等价〕）；v0.4.1（2026-10-14 CG2 · Q-42：**prov schema v2 实现**——v1/v2 双形态确定性解码〔9/11 对，键序 = v1 前缀 + 尾部追加〕+ v1 缺字段缺省〔orchestrated + estop 远程清除开放〕+ 域外值 fail-closed + 未装载兜底 enabled）。上位：HLD v0.2 §3（模块表）/§4.6；公共约定 `LLD-00-common.md`。
+> **状态**：v0.5.1（2026-10-15 EC2 · **信任表实现**——ts_trust.c 落地：trust_walk 确定性走查/乒乓写+回读校验/惰性装载/撕裂回退；分区 8KB〔2×4KB 擦除块对齐——sim-flash 实证 2KB 步距范围抹除被拒〕）；v0.5（2026-10-15 EC1 · Q-43/DEC-60：**信任根表分区**——ts_trust.c 8KB 双副本乒乓〔2×4KB 擦除块对齐〕+ TUF root 同型全量替换表 schema + TS_STORE_TRUST 可选分区〔默认 n = V0.7 等价〕）；v0.4.1（2026-10-14 CG2 · Q-42：**prov schema v2 实现**——v1/v2 双形态确定性解码〔9/11 对，键序 = v1 前缀 + 尾部追加〕+ v1 缺字段缺省〔orchestrated + estop 远程清除开放〕+ 域外值 fail-closed + 未装载兜底 enabled）。上位：HLD v0.2 §3（模块表）/§4.6；公共约定 `LLD-00-common.md`。
 > **职责**：统一存储抽象——分区布局、掉电安全 meta（kv）、只读 provisioning（prov）、noinit 留痕区、APP slot 读写。此前散落各模块的"烧录配置/安全参数分区"引用全部收敛到本模块。
 > **合同关联**：合同 10（安全参数不经运行时修改——prov 运行时只读是强制点）；DEC-05（slot/版本/回滚）、DEC-07（MCUmgr 底线）。
 
@@ -84,7 +84,7 @@ ts_res_t ts_store_trust_write(const uint8_t *cbor, uint32_t len);
 ```
 
 - **表 CBOR schema（2 对定序键，无 revoked 列表）**：`map{"ver":uint32, "keys":[bstr(32)×0..8]}`——撤销 = 次版剔除（TUF root.json 全量替换；revoked 列表定长溢出 = 旧键复活面，全量替换根除——Q-43① 理由在册）。域外值/不定长/键内重复/超上限 = TS_E_IO fail-closed。
-- **分区布局**：TS_PART_TRUST 4KB = 2×2KB 乒乓副本；记录 = `seq u32 | len u16 | crc16 u16 | CBOR`（§3 meta 同型 REC_HDR 8B + 撕裂安全：擦-写间掉电 → 旧副本完整）。表 CBOR ≤ CONFIG_TS_TRUST_TABLE_MAX（默认 512B；实际上限 270B 留余量）。Kconfig `TS_STORE_TRUST`（默认 n）+ flash 后端 DT `ts_trust_part`（BUILD_ASSERT 4096；缺节点 = 构建期失败——AUDIT/KV 同型）。**缺分区/未使能 = 工厂根单源 = V0.7 行为逐字节等价**（存量板零重刷）。
+- **分区布局**：TS_PART_TRUST 8KB = 2×4KB 乒乓副本（flash 擦除块对齐——EC2 实施期 sim-flash 实证 2KB 步距范围抹除被拒）；记录 = `seq u32 | len u16 | crc16 u16 | CBOR`（§3 meta 同型 REC_HDR 8B + 撕裂安全：擦-写间掉电 → 旧副本完整）。表 CBOR ≤ CONFIG_TS_TRUST_TABLE_MAX（默认 512B；实际上限 270B 留余量）。Kconfig `TS_STORE_TRUST`（默认 n）+ flash 后端 DT `ts_trust_part`（BUILD_ASSERT 8192；缺节点 = 构建期失败——AUDIT/KV 同型）。**缺分区/未使能 = 工厂根单源 = V0.7 行为逐字节等价**（存量板零重刷）。
 - **单调防回滚**：持久锚 = 活动副本 seq + 表内 ver（双记录；ver 严格 N+1 由 ts-appmgr trust-update 门控执行——重放/跳版均拒）。物理改写分区（脱机烧录）超威胁模型（同 MCUboot 无 TPM 假设——R9 §3）。
 
 ## 5. noinit（noinit.c）
@@ -126,7 +126,8 @@ ts_res_t ts_store_slot_erase(uint8_t slot);  /* 全槽抹除：安装序前置�
 - DEC-20（locator/宿主）、DEC-21（根公钥体系）、DEC-23（分区布局）、DEC-27（META_MAX）、DEC-30⑤（CBOR schema v1）已裁；无未决。
 
 ## 修订记录
-- v0.5 · 2026-10-15：**EC1（Q-43/DEC-60 · 信任根表设计）**——新增 §4a：ts_trust.c（表 CBOR 2 对定序键全量替换语义/4KB 双副本乒乓/TS_STORE_TRUST 可选分区默认 n/单调 ver 防 TUF 同型）；用例面 = schema 矩阵 + 撕裂恢复（EC2 实施）。
+- v0.5.1 · 2026-10-15：**EC2（信任表实现）**——ts_trust.c + part.c 两后端 + TS_STORE_TRUST/TS_TRUST_TABLE_MAX Kconfig + prov.c rd_* 助手提炼 internal.h 共享（prov/trust 单一纪律）；用例 framework.store test_trust_table（schema 矩阵/roundtrip/乒乓/撕裂回退/双损哨兵——RAM+flash 双变体）。分区 4KB→8KB 实施修正（擦除块对齐——DEC-60 登记值随修）。
+- v0.5 · 2026-10-15：**EC1（Q-43/DEC-60 · 信任根表设计）**——新增 §4a：ts_trust.c（表 CBOR 2 对定序键全量替换语义/8KB 双副本乒乓（2×4KB——EC2 实施期擦除块对齐定案）TS_STORE_TRUST 可选分区默认 n/单调 ver 防 TUF 同型）；用例面 = schema 矩阵 + 撕裂恢复（EC2 实施）。
 - v0.4.1 · 2026-10-14：**CG2（Q-42 · prov schema v2 实现）**——§4 双形态解码 + 缺省/域外值/兜底语义（见 §4 实现细节条）；用例 framework.store test_prov_v2_fields（v2 字段/域外拒/v-pairs 错配拒）+ test_prov_ok 增 v1 缺省断言。
 - v0.4 · 2026-10-14：CG1（Q-41/Q-39 · HLD-contract-v2 §7）——prov schema v2 增 `deploy_mode`（0=orchestrated 缺省/1=standalone——linkmon 模式守卫消费）与 `estop_remote_clear`（v1 缺字段 = enabled 现网兼容；有交互设备出厂 disabled）；槽池档位结构注（统一大槽 + 档位逻辑上限——实现随 CG4）。
 

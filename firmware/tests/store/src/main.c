@@ -88,6 +88,95 @@ static void build_prov_cbor(struct cb *c, const char *node, const char *cube,
 	build_prov_cbor_full(c, node, cube, router, pwr, 1, 0, 0);
 }
 
+/* ---- V0.8.0 EC2（Q-43③）：信任表持久化——schema 矩阵/乒乓/撕裂 ---------- */
+
+static void build_trust_cbor(struct cb *c, uint32_t ver, int nkeys, int dup_at)
+{
+	memset(c, 0, sizeof(*c));
+	cb_hdr(c, 0xA0, 2);
+	cb_tstr(c, "ver");
+	cb_hdr(c, 0x00, ver);
+	cb_tstr(c, "keys");
+	cb_hdr(c, 0x80, (uint32_t)nkeys);
+	for (int i = 0; i < nkeys; i++) {
+		/* dup_at ≥0 = 该索引键与索引 0 相同（重复样例）；否则 fill 差异 */
+		cb_bstr32(c, (dup_at == i) ? 0x10 : (uint8_t)(0x10 + 4 * i));
+	}
+}
+
+ZTEST(framework_store, test_trust_table)
+{
+	zassert_equal(ts_store_test_reset(), TS_OK);
+	ts_store_trust_test_reset();
+	struct cb c;
+	ts_trust_table_t t;
+
+	/* 初始态：空分区 → {ver=0, n=0}（工厂根单源哨兵） */
+	zassert_equal(ts_store_trust()->ver, 0);
+	zassert_equal(ts_store_trust()->n_keys, 0);
+
+	/* schema 走查矩阵（validate——单一事实源，load 同路径） */
+	build_trust_cbor(&c, 1, 2, -1);
+	zassert_equal(ts_store_trust_validate(c.b, c.n, &t), TS_OK);
+	zassert_equal(t.ver, 1);
+	zassert_equal(t.n_keys, 2);
+	build_trust_cbor(&c, 0, 1, -1);
+	zassert_equal(ts_store_trust_validate(c.b, c.n, &t), TS_E_IO,
+		      "ver=0 = 哨兵非合法值");
+	build_trust_cbor(&c, 1, 9, -1);
+	zassert_equal(ts_store_trust_validate(c.b, c.n, &t), TS_E_IO,
+		      "超 8 键上限拒");
+	build_trust_cbor(&c, 1, 2, 1);
+	zassert_equal(ts_store_trust_validate(c.b, c.n, &t), TS_E_IO,
+		      "键内重复拒");
+	build_trust_cbor(&c, 1, 2, -1);
+	c.b[c.n++] = 0x00; /* 尾部多余字节 */
+	zassert_equal(ts_store_trust_validate(c.b, c.n, &t), TS_E_IO,
+		      "尾部余量拒");
+	/* 键序错（keys 在前）= 结构损坏 */
+	memset(&c, 0, sizeof(c));
+	cb_hdr(&c, 0xA0, 2);
+	cb_tstr(&c, "keys");
+	cb_hdr(&c, 0x80, 0);
+	cb_tstr(&c, "ver");
+	cb_hdr(&c, 0x00, 1);
+	zassert_equal(ts_store_trust_validate(c.b, c.n, &t), TS_E_IO,
+		      "键序错拒");
+
+	/* 写入 + 回读 roundtrip（ver 1 两键） */
+	build_trust_cbor(&c, 1, 2, -1);
+	zassert_equal(ts_store_trust_write(c.b, c.n), TS_OK);
+	zassert_equal(ts_store_trust()->ver, 1);
+	zassert_equal(ts_store_trust()->n_keys, 2);
+	zassert_equal(ts_store_trust()->keys[0][0], 0x10);
+	zassert_equal(ts_store_trust()->keys[1][0], 0x14);
+
+	/* 非法表写入 = 零状态变化（fail-closed） */
+	build_trust_cbor(&c, 1, 9, -1);
+	zassert_equal(ts_store_trust_write(c.b, c.n), TS_E_IO);
+	zassert_equal(ts_store_trust()->n_keys, 2, "坏表零写入");
+
+	/* 次版（ver 2 一键）→ 乒乓写另一副本 + 活动切换 */
+	build_trust_cbor(&c, 2, 1, -1);
+	zassert_equal(ts_store_trust_write(c.b, c.n), TS_OK);
+	zassert_equal(ts_store_trust()->ver, 2);
+	zassert_equal(ts_store_trust()->n_keys, 1);
+
+	/* 撕裂恢复：破坏活动副本（copy1 = ver2）→ 重装载回退旧副本（ver1） */
+	ts_store_trust_test_reset();
+	zassert_equal(ts_store_trust_corrupt_test(1), TS_OK);
+	zassert_equal(ts_store_trust_load(), TS_OK);
+	zassert_equal(ts_store_trust()->ver, 1, "回退旧副本（copy1 损——ver1 存活）");
+	zassert_equal(ts_store_trust()->n_keys, 2);
+
+	/* 双损 → 工厂根单源哨兵（fail-safe 侧） */
+	zassert_equal(ts_store_trust_corrupt_test(0), TS_OK);
+	ts_store_trust_test_reset();
+	zassert_equal(ts_store_trust_load(), TS_OK);
+	zassert_equal(ts_store_trust()->ver, 0);
+	zassert_equal(ts_store_trust()->n_keys, 0);
+}
+
 static void *store_setup(void)
 {
 	zassert_equal(ts_store_test_reset(), TS_OK, "backend reset");
@@ -104,6 +193,7 @@ ZTEST(framework_store, test_prov_maint_channel)
 	/* 执行序自足 */
 	zassert_equal(ts_store_test_reset(), TS_OK);
 	ts_store_prov_maint_test_reset();
+	ts_store_trust_test_reset(); /* EC2：信任表内存态复位（后端已抹除） */
 	struct cb c;
 
 	/* 非法 blob = 零写入（schema 走查失败 → E_IO；分区保持擦除态） */

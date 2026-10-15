@@ -34,6 +34,9 @@ typedef enum {
 	TS_PART_KV,    /* V0.4.0 M9（DR-15）：APP 业务状态 kv（8KB 两页乒乓；
 			* 每 APP 有界 blob ≤250B，app_id 哈希归属——跨升级/回滚
 			* 保留；CONFIG_TS_STORE_KV 门控） */
+	TS_PART_TRUST, /* V0.8.0 EC2（Q-43③）：信任根表（8KB 双副本乒乓〔2×4KB 擦除块对齐〕——
+			* 开发者公钥集 + 单调 ver；CONFIG_TS_STORE_TRUST 门控，
+			* 缺分区 = 工厂根单源 = V0.7 行为逐字节等价） */
 	TS_PART_COUNT,
 } ts_store_part_t;
 
@@ -78,6 +81,34 @@ const ts_prov_t *ts_store_prov(void);   /* [any] 只读指针；无运行时写�
  * 必须经一次复位循环——可观测且限速；prov.c 本体零写不变，L5 纪律）。 */
 ts_res_t ts_store_prov_validate(const uint8_t *cbor, uint32_t len);
 ts_res_t ts_store_prov_write_maint(const uint8_t *cbor, uint32_t len);
+
+/* ---- 信任根表（§4a；V0.8.0 EC2 · Q-43③/DEC-60；CONFIG_TS_STORE_TRUST 门控） */
+
+#ifdef CONFIG_TS_STORE_TRUST
+#define TS_TRUST_KEYS_MAX 8 /* 开发者键上限（Q-43① 常量门值） */
+
+/* TUF root 同型全量替换表：撤销 = 次版剔除该键（无独立 revoked 列表——
+ * 定长撤销表溢出 = 旧键复活面，全量替换根除；Q-43① 理由在册）。 */
+typedef struct {
+	uint32_t ver;                         /* 单调版本（严格 N+1 链） */
+	uint8_t n_keys;                       /* 0..TS_TRUST_KEYS_MAX（0 = 全撤回工厂根单源） */
+	uint8_t keys[TS_TRUST_KEYS_MAX][32];  /* ed25519 开发者公钥 */
+} ts_trust_table_t;
+
+/* 惰性装载（首访触发——只读无写回面；活动副本 = seq 大且 CRC 过者）。
+ * 无记录/撕裂双损 = {ver=0, n_keys=0}（工厂根单源——fail-safe 侧）。 */
+ts_res_t ts_store_trust_load(void);
+const ts_trust_table_t *ts_store_trust(void); /* [any] 只读指针 */
+/* 确定性 schema 走查（与 load 同一解析路径——单一事实源；prov.c 同型纪律）：
+ * map{"ver":uint, "keys":[bstr(32)×0..8]}，2 对定序键；域外/不定长/
+ * 键内重复/超上限 = TS_E_IO。 */
+ts_res_t ts_store_trust_validate(const uint8_t *cbor, uint32_t len,
+				 ts_trust_table_t *out);
+/* 校验 → 乒乓写（写非活动副本 → 回读校验 → 成为新活动）→ RAM 表重载。
+ * **唯一调用方 = ts-appmgr trust_update 编排链**（签名/ver 门控在上层）；
+ * 本层只管持久化（prov_maint 同型职责分层）。 */
+ts_res_t ts_store_trust_write(const uint8_t *cbor, uint32_t len);
+#endif
 
 /* ---- noinit 留痕（§5）：复位原因 / WDT 报告 ------------------------------ */
 
@@ -148,6 +179,12 @@ void ts_store_kv_test_reset(void);
 #ifdef CONFIG_TS_STORE
 /* prov 维护窗 RAM 旗复位（V0.4.0 M10 测试隔离） */
 void ts_store_prov_maint_test_reset(void);
+#endif
+#ifdef CONFIG_TS_STORE_TRUST
+/* 信任表内存态复位（后端抹除后重装载；测试隔离） */
+void ts_store_trust_test_reset(void);
+/* 主动破坏一份信任表副本（撕裂注入——meta_corrupt 同型） */
+ts_res_t ts_store_trust_corrupt_test(uint8_t copy_idx);
 #endif
 #endif
 

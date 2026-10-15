@@ -26,7 +26,8 @@ class FakeCube:
     """deploy 依赖面（query/query_one）的最小固件语义实现。"""
 
     GATED = {"app-begin", "app-chunk", "app-verify", "app-activate",
-             "prov-write", "fs-begin", "fs-chunk", "fs-commit"}  # CG5-B
+             "prov-write", "fs-begin", "fs-chunk", "fs-commit",
+             "trust-update"}  # EC2
 
     def __init__(self, node: str = "fn", cube: str = "fc") -> None:
         self.node, self.cube = node, cube
@@ -48,6 +49,10 @@ class FakeCube:
         self.activate_calls = 0
         self.prov_blob: bytes | None = None
         self.prov_written = False
+        # EC2 信任表语义：factory_pub = None → 旧固件（trust-* NOTFOUND）
+        self.factory_pub: bytes | None = None
+        self.trust_ver = 0
+        self.trust_keys: list[bytes] = []
 
     # -- 传输面 --
     def query(self, key: str, payload: bytes, timeout_s: float = 10.0):
@@ -104,6 +109,28 @@ class FakeCube:
             self.prov_blob = bytes(data)
             self.prov_written = True
             return self._enc(rid, 0, {"written": True, "applies": "next-reboot"})
+        if op == "trust-get":
+            if self.factory_pub is None:
+                return self._enc(rid, -7, {})  # 旧固件 = op 未知
+            return self._enc(rid, 0, {"ver": self.trust_ver,
+                                      "keys": self.trust_keys})
+        if op == "trust-update":
+            if self.factory_pub is None:
+                return self._enc(rid, -7, {})
+            blob = bytes(args["data"])
+            tag = cbor2.loads(blob)
+            _, _, payload, _ = tag.value
+            table = cbor2.loads(payload)
+            if table["ver"] != self.trust_ver + 1:
+                return self._enc(rid, -12, {})  # TS_E_RANGE（严格 N+1）
+            from tessera_agent.tools_tsap.cose import verify_diy
+            effective = [self.factory_pub, *self.trust_keys]
+            if not any(verify_diy(blob, k) for k in effective):
+                return self._enc(rid, -9, {})  # TS_E_INVALID_SIG
+            self.trust_ver = table["ver"]
+            self.trust_keys = [bytes(k) for k in table["keys"]]
+            return self._enc(rid, 0, {"ver": self.trust_ver,
+                                      "keys": len(self.trust_keys)})
         if op == "fs-begin":
             path, total = args["path"], int(args["total"])
             sha = bytes(args["sha256"])
@@ -414,3 +441,81 @@ def test_push_prov_happy_path_and_window():
     # per-boot 窗：同 boot 二次 = 固件 E_STATE（-5 → CmdError）
     with pytest.raises(deploy.CmdError):
         deploy.push_prov(fc, "fn", "fc", b"\xa1cother", log_fn=lambda s: None)
+
+
+# ---- V0.8.0 EC2（Q-43⑤/DEC-60）：信任根表工具 -------------------------------
+
+def test_trust_get_update_and_gates(tmp_path):
+    """trust_get/trust_update：TUF 全量替换 + 严格 N+1 + 有效集签名门。"""
+    from tessera_agent.tools_tsap.cose import generate_keypair
+
+    factory_priv, factory_pub = generate_keypair()
+    dev_priv, dev_pub = generate_keypair()
+    fc = FakeCube()
+    fc.factory_pub = factory_pub
+
+    key_file = tmp_path / "signer.key"
+    key_file.write_bytes(factory_priv)
+
+    # 旧固件（无信任表面）：trust-get = NOTFOUND 如实上抛
+    fc_old = FakeCube()
+    with pytest.raises(deploy.CmdError) as ei:
+        deploy.trust_get(fc_old, "fn", "fc")
+    assert ei.value.status == -7
+
+    # 初始态
+    t = deploy.trust_get(fc, "fn", "fc")
+    assert t == {"ver": 0, "keys": []}
+
+    # 首次注册（工厂根签名 ver=1 + dev 键）→ 回读一致
+    r = deploy.trust_update(fc, "fn", "fc", [dev_pub], str(key_file),
+                            log_fn=lambda s: None)
+    assert r == {"ver": 1, "keys": 1, "prev_ver": 0}
+    assert deploy.trust_get(fc, "fn", "fc") == {"ver": 1, "keys": [dev_pub]}
+    assert fc.lease_holder is None, "租约已释放"
+
+    # 互荐：dev 键（现有效集内）签名次版 ver=2（替换为自键集）
+    dev_key_file = tmp_path / "dev.key"
+    dev_key_file.write_bytes(dev_priv)
+    r = deploy.trust_update(fc, "fn", "fc", [dev_pub], str(dev_key_file),
+                            log_fn=lambda s: None)
+    assert r["ver"] == 2
+
+    # 陌生键签名 = E_INVALID_SIG（-9）
+    stranger_priv, _ = generate_keypair()
+    stranger_file = tmp_path / "stranger.key"
+    stranger_file.write_bytes(stranger_priv)
+    with pytest.raises(deploy.CmdError) as ei:
+        deploy.trust_update(fc, "fn", "fc", [], str(stranger_file),
+                            log_fn=lambda s: None)
+    assert ei.value.status == -9
+    assert fc.trust_ver == 2, "失败零状态变化"
+
+    # 全撤回（工厂根签名空表 ver=3）
+    r = deploy.trust_update(fc, "fn", "fc", [], str(key_file),
+                            log_fn=lambda s: None)
+    assert r == {"ver": 3, "keys": 0, "prev_ver": 2}
+    assert deploy.trust_get(fc, "fn", "fc") == {"ver": 3, "keys": []}
+
+
+def test_trust_update_arg_matrix(tmp_path):
+    """表参数矩阵：键长度/重复/超上限/私钥格式。"""
+    from tessera_agent.tools_tsap.cose import generate_keypair
+
+    _, factory_pub = generate_keypair()
+    dev_priv, dev_pub = generate_keypair()
+    fc = FakeCube()
+    fc.factory_pub = factory_pub
+    key_file = tmp_path / "signer.key"
+    key_file.write_bytes(dev_priv)
+
+    with pytest.raises(TaError, match="32B"):
+        deploy.trust_update(fc, "fn", "fc", [b"\x01" * 31], str(key_file))
+    with pytest.raises(TaError, match="重复"):
+        deploy.trust_update(fc, "fn", "fc", [dev_pub, dev_pub], str(key_file))
+    with pytest.raises(TaError, match="越界"):
+        deploy.trust_update(fc, "fn", "fc", [dev_pub] * 9, str(key_file))
+    bad_key = tmp_path / "bad.key"
+    bad_key.write_bytes(b"\x00" * 16)
+    with pytest.raises(TaError, match="32B"):
+        deploy.trust_update(fc, "fn", "fc", [], str(bad_key))

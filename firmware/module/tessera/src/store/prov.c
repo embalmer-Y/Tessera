@@ -30,96 +30,6 @@ static ts_prov_t prov = {
 /* V0.4.0 M10（Q-34）：schema 走查（validate 与 load 共用——定义在 load 后） */
 static ts_res_t prov_walk(const uint8_t *cbor, uint32_t cbor_len, ts_prov_t *out);
 
-/* ---- 定长 schema 解码（buf 内指针推进） --------------------------------- */
-
-typedef struct {
-	const uint8_t *p;
-	uint32_t rem;
-} rd_t;
-
-static bool rd_u8(rd_t *r, uint8_t *out)
-{
-	if (r->rem < 1) {
-		return false;
-	}
-	*out = *r->p++;
-	r->rem--;
-	return true;
-}
-
-static bool rd_len(rd_t *r, uint8_t info, uint32_t *out)
-{
-	if (info < 0x18) {
-		*out = info;
-		return true;
-	}
-	uint32_t n = 0;
-	int bytes = (info == 0x18) ? 1 : (info == 0x19) ? 2 : (info == 0x1A) ? 4 : -1;
-
-	if (bytes < 0 || r->rem < (uint32_t)bytes) {
-		return false;
-	}
-	for (int i = 0; i < bytes; i++) {
-		n = (n << 8) | *r->p++;
-	}
-	r->rem -= bytes;
-	*out = n;
-	return true;
-}
-
-static bool rd_tstr(rd_t *r, char *out, size_t cap)
-{
-	uint8_t ib;
-
-	if (!rd_u8(r, &ib) || (uint8_t)(ib & 0xE0) != 0x60) {
-		return false;
-	}
-	uint32_t len;
-
-	if (!rd_len(r, ib & 0x1F, &len) || len >= cap || r->rem < len) {
-		return false;
-	}
-	memcpy(out, r->p, len);
-	out[len] = '\0';
-	r->p += len;
-	r->rem -= len;
-	return true;
-}
-
-static bool rd_bstr(rd_t *r, uint8_t *out, size_t cap)
-{
-	uint8_t ib;
-
-	if (!rd_u8(r, &ib) || (uint8_t)(ib & 0xE0) != 0x40) {
-		return false;
-	}
-	uint32_t len;
-
-	if (!rd_len(r, ib & 0x1F, &len) || len != cap || r->rem < len) {
-		return false;
-	}
-	memcpy(out, r->p, len);
-	r->p += len;
-	r->rem -= len;
-	return true;
-}
-
-static bool rd_uint(rd_t *r, uint32_t *out)
-{
-	uint8_t ib;
-
-	if (!rd_u8(r, &ib) || (ib & 0xE0) != 0x00) {
-		return false;
-	}
-	uint32_t v;
-
-	if (!rd_len(r, ib & 0x1F, &v)) {
-		return false;
-	}
-	*out = v;
-	return true;
-}
-
 /* ---- 分区读取 + 校验 ------------------------------------------------------ */
 
 ts_res_t ts_store_prov_load(void)
@@ -151,16 +61,16 @@ ts_res_t ts_store_prov_load(void)
  * 与 load 共用同一条确定性解析路径（单一事实源）。 */
 static ts_res_t prov_walk(const uint8_t *cbor, uint32_t cbor_len, ts_prov_t *out)
 {
-	rd_t r = {.p = cbor, .rem = cbor_len};
+	ts_rd_t r = {.p = cbor, .rem = cbor_len};
 	uint8_t ib;
 
-	if (!rd_u8(&r, &ib) || (uint8_t)(ib & 0xE0) != 0xA0) {
+	if (!ts_rd_u8(&r, &ib) || (uint8_t)(ib & 0xE0) != 0xA0) {
 		return TS_E_IO;
 	}
 	uint32_t pairs;
 
 	/* v1 = 9 对；v2 = 11 对（键序 = v1 前缀 + 尾部追加，Q-42） */
-	if (!rd_len(&r, ib & 0x1F, &pairs) ||
+	if (!ts_rd_len(&r, ib & 0x1F, &pairs) ||
 	    (pairs != 9 && pairs != 11)) {
 		return TS_E_IO;
 	}
@@ -179,38 +89,38 @@ static ts_res_t prov_walk(const uint8_t *cbor, uint32_t cbor_len, ts_prov_t *out
 	};
 
 	for (uint32_t k = 0; k < pairs; k++) {
-		if (!rd_tstr(&r, key, sizeof(key)) || strcmp(key, keys[k]) != 0) {
+		if (!ts_rd_tstr(&r, key, sizeof(key)) || strcmp(key, keys[k]) != 0) {
 			return TS_E_IO;
 		}
 		switch (k) {
 		case 0: /* v：9 对 ⇔ v1、11 对 ⇔ v2（错配 = 结构损坏） */
-			if (!rd_uint(&r, &u) || u != (uint32_t)(pairs == 9 ? 1 : 2)) {
+			if (!ts_rd_uint(&r, &u) || u != (uint32_t)(pairs == 9 ? 1 : 2)) {
 				return TS_E_IO;
 			}
 			break;
 		case 1:
-			if (!rd_tstr(&r, out->node_id, sizeof(out->node_id))) {
+			if (!ts_rd_tstr(&r, out->node_id, sizeof(out->node_id))) {
 				return TS_E_IO;
 			}
 			break;
 		case 2:
-			if (!rd_tstr(&r, out->cube_id, sizeof(out->cube_id))) {
+			if (!ts_rd_tstr(&r, out->cube_id, sizeof(out->cube_id))) {
 				return TS_E_IO;
 			}
 			break;
 		case 3: { /* routers: definite array of tstr ≤4 */
 			uint8_t ab;
 
-			if (!rd_u8(&r, &ab) || (uint8_t)(ab & 0xE0) != 0x80) {
+			if (!ts_rd_u8(&r, &ab) || (uint8_t)(ab & 0xE0) != 0x80) {
 				return TS_E_IO;
 			}
 			uint32_t n;
 
-			if (!rd_len(&r, ab & 0x1F, &n) || n > 4) {
+			if (!ts_rd_len(&r, ab & 0x1F, &n) || n > 4) {
 				return TS_E_IO;
 			}
 			for (uint32_t i = 0; i < n; i++) {
-				if (!rd_tstr(&r, out->router_locators[i],
+				if (!ts_rd_tstr(&r, out->router_locators[i],
 					     sizeof(out->router_locators[i]))) {
 					return TS_E_IO;
 				}
@@ -221,39 +131,39 @@ static ts_res_t prov_walk(const uint8_t *cbor, uint32_t cbor_len, ts_prov_t *out
 			break;
 		}
 		case 4:
-			if (!rd_bstr(&r, out->root_pubkeys[0], 32)) {
+			if (!ts_rd_bstr(&r, out->root_pubkeys[0], 32)) {
 				return TS_E_IO;
 			}
 			break;
 		case 5:
-			if (!rd_bstr(&r, out->root_pubkeys[1], 32)) {
+			if (!ts_rd_bstr(&r, out->root_pubkeys[1], 32)) {
 				return TS_E_IO;
 			}
 			break;
 		case 6:
-			if (!rd_tstr(&r, out->zenoh_cred, sizeof(out->zenoh_cred))) {
+			if (!ts_rd_tstr(&r, out->zenoh_cred, sizeof(out->zenoh_cred))) {
 				return TS_E_IO;
 			}
 			break;
 		case 7:
-			if (!rd_uint(&r, &out->power_budget_ma)) {
+			if (!ts_rd_uint(&r, &out->power_budget_ma)) {
 				return TS_E_IO;
 			}
 			break;
 		case 8:
-			if (!rd_uint(&r, &u) || u > 0xFFU) {
+			if (!ts_rd_uint(&r, &u) || u > 0xFFU) {
 				return TS_E_IO; /* estop 标志域 u8（防静默截断，IR-10） */
 			}
 			out->estop_trigger_flags = (uint8_t)u;
 			break;
 		case 9: /* deploy_mode：域外值 fail-closed（未知模式不静默归并） */
-			if (!rd_uint(&r, &u) || u > (uint32_t)TS_DEPLOY_STANDALONE) {
+			if (!ts_rd_uint(&r, &u) || u > (uint32_t)TS_DEPLOY_STANDALONE) {
 				return TS_E_IO;
 			}
 			out->deploy_mode = (uint8_t)u;
 			break;
 		default: /* estop_remote_clear：0|1 之外 fail-closed */
-			if (!rd_uint(&r, &u) || u > 1U) {
+			if (!ts_rd_uint(&r, &u) || u > 1U) {
 				return TS_E_IO;
 			}
 			out->estop_remote_clear = (uint8_t)u;

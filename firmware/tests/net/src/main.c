@@ -1416,6 +1416,19 @@ ZTEST(framework_net, test_16_arb_lease_view)
 	zassert_equal(ts_net_cmd_dispatch("sys/fs-begin", req, rlen, resp,
 					  sizeof(resp), &rl2), TS_E_NOTFOUND,
 		      "无 fs 能力构建 = 命令面不存在");
+
+	/* EC2 构建面裁剪：本套件无 TS_STORE_TRUST → trust-* 命令不在面
+	 * （Agent 探测面：旧固件/未使能设备 = NOTFOUND 如实） */
+	rlen = build_req_v2(req, sizeof(req), "trust-get", "rid-arb7", NULL, NULL,
+			    0, NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/trust-get", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_NOTFOUND,
+		      "无信任表构建 = 命令面不存在");
+	rlen = build_req_v2(req, sizeof(req), "trust-update", "rid-arb8", NULL,
+			    NULL, 0, NULL, false, 0);
+	zassert_equal(ts_net_cmd_dispatch("sys/trust-update", req, rlen, resp,
+					  sizeof(resp), &rl2), TS_E_NOTFOUND,
+		      "同上（gated 命令亦不在面）");
 }
 
 ZTEST_SUITE(framework_net, NULL, NULL, NULL, NULL, NULL);

@@ -43,6 +43,10 @@ zephyr_library_sources_ifdef(CONFIG_TS_STORE_KV
   src/store/kv.c
 )
 
+zephyr_library_sources_ifdef(CONFIG_TS_STORE_TRUST
+  src/store/ts_trust.c
+)
+
 zephyr_library_sources_ifdef(CONFIG_TS_DRV_PDM
   src/hal/pdm.c
 )

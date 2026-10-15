@@ -55,6 +55,15 @@ ts_res_t ts_appmgr_stage_activate(ts_app_info_t *out);
 /** 获取当前 active APP 信息。 */
 ts_res_t ts_appmgr_get_info(ts_app_info_t *out);
 
+/* ---- 信任表更新编排（V0.8.0 EC2 · Q-43④/DEC-60④；CONFIG_TS_STORE_TRUST）--
+ * 消费方 = ts-net sys/trust-update 命令。cose = COSE_Sign1（TSAP 同构），
+ * payload = 表 CBOR map{"ver","keys[]}。校验链：schema 走查 → ver 严格
+ * N+1（重放/跳版拒）→ 签名对当前有效集任一键过 → 乒乓持久化 + 重载 +
+ * TS_EVT_TRUST_UPDATED。空表合法（全撤回工厂根单源）。 */
+#ifdef CONFIG_TS_STORE_TRUST
+ts_res_t ts_appmgr_trust_update(const uint8_t *cose, uint32_t cose_len);
+#endif
+
 /** 健康探针超时回调（health.c 周期检查发现超时时调用）→ 触发回滚或隔离。 */
 ts_res_t ts_appmgr_health_fail(void);
 

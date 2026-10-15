@@ -18,6 +18,11 @@ ts_res_t ts_appmgr_verify_slot(uint8_t slot, const uint8_t root_pubkey[32],
 ts_res_t ts_appmgr_check_digest(uint8_t slot, tsap_view_t *v);
 const uint8_t *ts_appmgr_root_key(const uint8_t root_pubkey[32]);
 
+/* 有效信任集（EC2 · Q-43②）：工厂根（TEST=测试根/生产=pk0+pk1）∪ 信任表
+ * keys（去重）；keys_out 容量 ≥ 2+TS_TRUST_KEYS_MAX。返回键数（恒 ≥1）。 */
+#define TS_APPMGR_TRUST_SET_MAX (2 + 8)
+uint8_t ts_appmgr_trust_effective(const uint8_t *keys_out[TS_APPMGR_TRUST_SET_MAX]);
+
 /* ---- 资源档位（CG4 · Q-39②/Q-42 · LLD-ts-appmgr §5a）--------------------- */
 #ifdef CONFIG_TS_APP_WAMR
 

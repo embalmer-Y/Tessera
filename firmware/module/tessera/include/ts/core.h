@@ -62,6 +62,7 @@ typedef enum {
 	TS_EVT_PERM_DENIED, /* 合同10 越权留痕 */
 	TS_EVT_ARB_CHANGED, /* 控制源仲裁席变更（CG3 · 合同 11：old/owner/t——切换零输出） */
 	TS_EVT_RESOURCE_WRITTEN, /* 宿主资源推送完成（CG5-B · 方案 A：sha256 验证通过留痕） */
+	TS_EVT_TRUST_UPDATED, /* 信任根表更新（EC2 · Q-43④：ver 严格 N+1 链——安全类留痕） */
 	TS_EVT_ID_COUNT,
 } ts_evt_id_t;
 
@@ -80,6 +81,12 @@ typedef struct {
 	int32_t result;
 	const char *name;
 } ts_boot_step_evt_t; /* TS_EVT_BOOT_STEP */
+
+/* TS_EVT_TRUST_UPDATED payload（EC2 · Q-43④：新版本号——留痕/订阅外发） */
+typedef struct {
+	uint32_t ver;
+	uint8_t n_keys; /* 更新后开发者键数 */
+} ts_trust_evt_t;
 
 /** [thread] 仅 init 期注册；容量 CONFIG_TS_CORE_MAX_SUBS（DEC-27: 4），满 = TS_E_NOMEM。 */
 ts_res_t ts_evt_subscribe(ts_evt_id_t id, ts_evt_cb_t fn, void *user);

@@ -648,4 +648,26 @@ config TS_STORE_KV
 	  dropped). Flash builds require the ts_kv_part DT node (build-time
 	  fail-closed); natives ts_kv_save/ts_kv_load gated by the kv perm class.
 
+config TS_STORE_TRUST
+	bool "ts-store: developer trust-root table (V0.8.0 EC2, Q-43/DEC-60)"
+	depends on TS_STORE
+	default n
+	help
+	  TUF-root-style full-replacement trust table (map{"ver","keys[]"}),
+	  8KB two-copy (2x4KB) ping-pong partition (ts_trust_part, BUILD_ASSERT on
+	  flash builds). Effective verification set = factory roots (prov
+	  pk0+pk1 / fixed test root in TEST builds) UNION table keys; updates
+	  via sys/trust-update (COSE_Sign1 signed by any current effective
+	  key, strictly ver N+1 - offline revocation, monotonic anti-rollback).
+	  Disabled or absent partition = factory-roots-only = byte-identical
+	  V0.7 behavior (existing boards need no re-flash).
+
+config TS_TRUST_TABLE_MAX
+	int "Max trust-table CBOR bytes (schema walk ceiling)"
+	depends on TS_STORE_TRUST
+	default 512
+	help
+	  Source: Q-43 structural ceiling. Actual worst case is 270B (2 pairs
+	  + ver + 8x32B keys); 512 leaves headroom for future additive keys.
+
 endmenu

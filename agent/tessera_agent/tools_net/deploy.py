@@ -344,6 +344,101 @@ def push_resources(
                 log(f"WARN lease release 失败（TTL 兜底失权）: {exc.message}")
 
 
+def trust_get(svc: ZenohService, node: str, cube: str) -> dict[str, Any]:
+    """信任根表读取（V0.8.0 EC2 · Q-43⑤/DEC-60④；LLD-A06 §3）。
+
+    返回 {ver, keys: [bytes×n]}（公钥 = 公开材料——未门控命令）。
+    旧固件/未使能 TS_STORE_TRUST 设备 = op 未知拒 → CmdError 如实上抛
+    （调用方可据此判定设备信任表能力）。"""
+    r = _cmd_ok(svc, node, cube, "trust-get", "trust-get")
+    ver = r.get("ver")
+    ks = r.get("keys")
+    if not isinstance(ver, int) or not isinstance(ks, list):
+        msg = f"trust-get 回执形态非法: {r}"
+        raise TaError(TA_E_POLICY, msg, domain="deploy", detail={"reply": r})
+    return {"ver": ver, "keys": [bytes(k) for k in ks]}
+
+
+def _trust_table_cbor(ver: int, dev_keys: list[bytes]) -> bytes:
+    """表 CBOR（固件定稿键序 map{"ver":uint,"keys":[bstr(32)]}——与
+    ts_trust.c trust_walk 字节级同构；手工构造非 canonical 排序）。"""
+    if not 1 <= ver <= 23 or len(dev_keys) > 8:
+        msg = f"信任表参数越界（ver∈[1,23]，键≤8）: ver={ver} n={len(dev_keys)}"
+        raise TaError(TA_E_ARGS, msg, domain="deploy")
+    seen: set[bytes] = set()
+    for k in dev_keys:
+        if not isinstance(k, (bytes, bytearray)) or len(k) != 32:
+            msg = f"开发者公钥须 raw 32B: {type(k).__name__}/{len(k)}"
+            raise TaError(TA_E_ARGS, msg, domain="deploy")
+        if bytes(k) in seen:
+            msg = "开发者键重复（全量替换语义下生成侧错误）"
+            raise TaError(TA_E_ARGS, msg, domain="deploy")
+        seen.add(bytes(k))
+    out = bytes([0xA2]) + b"\x63ver" + bytes([ver]) + b"\x64keys"
+    out += bytes([0x80 | len(dev_keys)])
+    for k in dev_keys:
+        out += b"\x58\x20" + bytes(k)
+    return out
+
+
+def trust_update(
+    svc: ZenohService,
+    node: str,
+    cube: str,
+    dev_keys: list[bytes],
+    signer_key_path: str,
+    *,
+    holder: str = keys.DEFAULT_SRC,
+    log_fn: Callable[[str], None] | None = None,
+) -> dict[str, Any]:
+    """信任根表更新（V0.8.0 EC2；TUF root 同型全量替换——撤销 = 次版剔除）。
+
+    dev_keys = 更新后的**完整**开发者公钥集（≤8；空表合法 = 全撤回工厂根
+    单源）。signer_key_path = **现有效集内任一私钥**（首次注册 = 工厂根
+    pk0 对应方；互荐 = 既有开发者键）。流程：trust-get 读现表 → 组次版
+    （ver+1）→ COSE_Sign1 签名（cose.sign_diy——与 TSAP 同构）→ 租约 +
+    sys/trust-update 单发（表 ≤270B + COSE ≈350B < 单块上限——免分块）。
+    失败如实上抛：TS_E_RANGE（ver 非当前+1——并发更新，重读重试）、
+    TS_E_INVALID_SIG（签名键不在有效集）。私钥仓外纪律（DR-22 同源）。"""
+    log = log_fn or (lambda m: None)
+    sk = Path(signer_key_path).expanduser().read_bytes()
+    if len(sk) != 32:
+        msg = f"签名私钥格式非法（须 ed25519 raw 32B）: {signer_key_path}"
+        raise TaError(TA_E_ARGS, msg, domain="deploy")
+
+    cur = trust_get(svc, node, cube)
+    payload = _trust_table_cbor(cur["ver"] + 1, dev_keys)
+
+    from tessera_agent.tools_tsap.cose import sign_diy
+
+    blob = sign_diy(payload, sk)
+    log(f"trust table v{cur['ver']}→{cur['ver'] + 1} keys={len(dev_keys)} "
+        f"blob={len(blob)}B")
+
+    d = secrets.token_hex(3)
+    lease_acquired = False
+    try:
+        _cmd_ok(svc, node, cube, "lease-acquire", f"{d}-ta"[:keys.RID_MAX],
+                holder=holder)
+        lease_acquired = True
+        r = _cmd_ok(svc, node, cube, "trust-update", f"{d}-tu"[:keys.RID_MAX],
+                    data=blob, holder=holder)
+        if r.get("ver") != cur["ver"] + 1:
+            msg = f"trust-update 回执版本异常: {r}"
+            raise TaError(TA_E_TSAP, msg, domain="deploy", detail={"reply": r})
+        result = {"ver": r["ver"], "keys": len(dev_keys),
+                  "prev_ver": cur["ver"]}
+        log(f"trust table updated: v{result['ver']} keys={len(dev_keys)}")
+        return result
+    finally:
+        if lease_acquired:
+            try:
+                _cmd_ok(svc, node, cube, "lease-release",
+                        f"{d}-tx"[:keys.RID_MAX], holder=holder)
+            except TaError as exc:
+                log(f"WARN lease release 失败（TTL 兜底失权）: {exc.message}")
+
+
 def push_prov(
     svc: ZenohService,
     node: str,
