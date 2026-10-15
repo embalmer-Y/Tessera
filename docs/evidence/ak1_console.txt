@@ -1,0 +1,40 @@
+ATK DNESP32-S3B V1.1（dnesp32s3b）bring-up + 第二 cube 部署链证据（K1，2026-10-15）
+================================================================================
+
+板侧 console（烧录首启 → WiFi → prov flash 持久化 → zenoh 上线）：
+--------------------------------------------------------------------------------
+AK0 atkbench start
+AK1 wifi_connect rc=0
+AKw associated t=9835
+AK2 prov load=0 burn=0（0=OK/-8=空）
+[ts-net] init prov_load=0 node=akn cube=akc
+[appmgr] boot: meta unreadable — no app loaded
+[boot] step8 app load: 无 APP 或装载跳过（r=-4，不阻塞启动）
+[ts-net] zenoh_open: CONNECTED loc=tcp/192.168.2.91:9955
+AK3 deploy target ready slot=0 t=10637（等待 Agent 部署）
+
+部署链（Agent 侧驱动 ~/project/logs/ak1_deploy_check.py，测试根签名——
+cg7_deploy_check 同型克隆，判据末行 AK1 DEPLOY PASS）：
+--------------------------------------------------------------------------------
+发现 fw=dev board=dnesp32s3b          ← 新板自报身份
+caps 块（CG5-A 实机自报）: {'tiers': ['small'], 'max_linear_memory_kb': 256, 'slot_pool_kb': 128}
+TSAP 打包（测试根签名）: com.tessera.ak1-1.0.0.tsap 962B
+tsap_verify PASS（962B，分块 256B）
+lease acquired: id=1 holder=tessera-agent
+upload → slot 1（total=962B）→ complete: 962/962B（4 分块）
+verify PASS: facts={'manifest_len': 133, 'wasm_len': 286, 'cose_off': 467}   ← 真 ed25519 验签过（有效集 = 测试根）
+activate confirmed: slot=1
+部署后 get-app: {"state": 3, "active_slot": 1, ..., "app_id": "com.tessera.ak1"}
+AK1 DEPLOY PASS
+
+板侧 console（复位后自 flash 装载——持久化部署语义）：
+--------------------------------------------------------------------------------
+AK0 atkbench start
+AK1 wifi_connect rc=0
+AKw associated t=12887
+AK2 prov load=0 burn=0（首启已烧入——此后复位全出自 flash）
+AK6 app running app_id=com.tessera.ak1 slot=1 t=13295
+AK PASS
+
+结论：K1 全链 PASS——第二块 cube（akn/akc）上线；ts 五分区/trust 分区/KV
+在 16M AMP 布局 carve（0x5F0000 起）工作正常；WAMR@PSRAM（XTENSA 同映射）。

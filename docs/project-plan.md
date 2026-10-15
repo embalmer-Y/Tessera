@@ -198,6 +198,29 @@
 
 **跨批依赖**：CG4 ← AG7（large 数值）；CG0 可与 Agent 批并行（措辞已呈递待批）；EC1 ← CG2（prov schema v2 基座）。**未决观察项**（不占批）：上游 v4.5.0 正式版平移、SYWORK wdt 间歇、CI native-build 间歇、多真机 LN 拓扑（第二块 cube 到位重启）。
 
+## 11f. 剩余开发项目批（2026-10-15 owner 接入第二块板卡 dnesp32s3b——正点原子 ATK DNESP32-S3B V1.1 解锁）
+
+> **硬件事实**（owner 提供原理图/引脚表 + Zephyr 树内板文件核实）：ESP32-S3 N16R8、16MB flash（与 xiao 同 16M AMP 布局）、**ES8311 codec**（I2C0 @0x18 与触摸/XL9555 共线；I2S BCK=IO21/WS=IO13/播放=IO14/录音=IO47，无独立 MCLK）+ NS4168 功放（SPK_EN 在扩展器）+ 并行 PDM 麦克风（MSM261S4030，共享 21/13/47）；**SD = SPI2**（SCK=7/MISO=15/MOSI=16/CS=17）；**LCD 320×240 DBI + 触摸**（引脚与树内 DTS 一致）；**按键 BOOT + 扩展器 KEY1/KEY2**（本地交互硬件齐）。解锁：多真机 LN（第二 cube）、设备形态批（本地交互面）、音频输入输出（ES8311——Zephyr 无 in-tree 驱动，域内自研）、net+SD 组合 bench（板自带 SD+WiFi）。
+
+| 序 | 单元 | 内容 | 门 |
+|---|------|------|----|
+| K1 | atkbench bring-up | dnesp32s3b 目标 + 五分区/trust 分区 + WiFi/zenoh + WAMR XTENSA 映射 + 部署链 PASS（第二 cube 就位） | — |
+| K2 | ES8311 音频 | 域内驱动（I2C 控制 + I2S 数据）：输入对齐 av pcm16 + **音频输出新面**（ts_av_write native + av:write 权限类 + manifest av_srk 采样率声明） | 门③ Q-44→DEC-61 |
+| K3 | 信任链真机 E2E | ts_trust 分区上板 + 无线注册/撤销/防回滚时间线 + 多根实机安装 | — |
+| K4 | net+SD 资源推送 E2E | atkbench 直兼（板自带 SD SPI2 + WiFi）——fs 分区挂载 + push_resources 真机 | — |
+| K5 | large 档板级配置 | LOAD_MAX/SLOT_SIZE 抬升 + 内存账重平 + large 全链 | — |
+| K6 | 多真机 LN | deploybench + atkbench 双 cube：LN 组部署/断链策略/跨板判据 | — |
+| F1 | 本地交互源 | 按键（BOOT/扩展器 KEY）→ arb LOCAL 席位 + 压制 + 事件（CG3 机制接线） | — |
+| F2 | 本地 estop 清除 | KEY → clear_fault + prov estop_remote_clear 出厂缺省翻 disabled（ISO 13850 偏离撤销） | — |
+| F3 | 本地确认路 | LCD 呈现 manifest_summary + 按键确认 → 安装闸（EC3 本地路接线——嵌入式先行者面） | 门③（安装闸接入点设计）|
+| F4 | peripherals 自报 | get-info peripherals 块（hal 注册表自报 + Agent 装前消费） | — |
+| G1 | Agent 任务链持久化 | LN 注册表落盘 + 跨重启 resume（D1） | — |
+| G2 | 诊断自动回喂 | 部署后自动抓串口 → diag_classify → repair 再入队（D3） | — |
+| G3 | 测试债 | 覆盖率工具启用（gcov 基线）+ L5 工具单测 | — |
+| G4 | 终局 | 全量回归 + 文档同步 + tag + 自检 | review |
+
+**事实修正登记**：树内板文档称 NS4168 codec——实为 ES8311 codec + NS4168 功放（owner 原理图核实）；两音频输入源（ES8311 ADC / PDM 麦克风）共享数据引脚 IO47（分时互斥——K2 设计输入选型依据）。
+
 ## 12. 执行纪律（v1.70 增补质量优先条款）
 
 - **质量优先（DEC-57，owner 2026-10-13 指令原文精神）**：**不允许最简实现**——各交付单元的设计与实现须考虑整体架构、后续可维护性与架构可扩展性；现方案不能很好满足目标时，**停批与 owner 确认讨论重新选择方案或技术**，不得静默绕行或降级实现。

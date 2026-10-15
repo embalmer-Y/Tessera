@@ -982,3 +982,21 @@
 - 2026-10-15 · **全项目自检交付（owner 指令：文档完整/代码规范/测试充分——报告 design/final-selfcheck-v0.8.0.md）**：① **文档完整性**：15 项发现（SC-05…SC-19）全部当场处置——含本批一处 EC2 文档编辑静默 no-op（ts-net v0.4.1 修订行漏落，补）、六份 LLD 标题版本归一、periph 版本序勘误（CG7 v0.4.1→v0.5.1）、hal 状态行「草案待 review」滞后更正、README 四项滞后（用例计数/环境口径/demo 表停在 NV1 时代——补 DA/DP/DT/MA/NVD/AG7/CG7 七行）、**names.md 登记册跨批漂移回填**（DEC-39…60/Q-20…43 索引 + V0.8.0 标识符全量——军规 6）；机械复核 = design/ 25 份文档版本三方一致。② **代码规范**：ruff/军规 4/L5 7/7/twister -Werror/SPDX/出处纪律全过；无 TODO/调试残留。③ **测试充分性**：twister 16/16（107）/agent 183+2s/L5 7/7/repo 2/ruff/sync 显式退出码全绿定格；**间歇观察登记**（自检期一次 1 failed 未复现——5 连绿，按 flaky 纪律在档）；既有缺口如实（覆盖率工具未启用/L5 工具无单测——负样本 ad-hoc 自证/真机三缺口按批归属）。**终态：§11e 三版本批 25/25 单元完成（V0.6.0/V0.7.0/V0.8.0 三 tag 已推送）；库处于可交付 owner review 状态。后续候选（plan 外登记）：板级批/设备形态批/上游 v4.5.0 正式版平移——随 owner 点向**
 
 - 2026-10-15 · **CI 间歇观察第三条 + 处置升级（owner 报 3d99517 run 红；同型 2ac589e/bc6b9e8——三数据点定案处置）**：① **签名核实**（公开 API 免鉴权通路）：native-build job·twister 步骤·exit 2·**无 twister-error 注解**——三次完全同型；**HEAD（541efd3，固件内容与 3d99517 逐字节相同——仅文档差异）同 CI 全绿** = 内容无关间歇。② **根因域收窄（源码级）**：twister exit 2 = **启动期基础设施错误域**（工具链验证失败 environment.py:1282「E: …」/ 参数错 argparse / size_calc——sys.exit(2) 位点核实），非测试失败（exit 1 = 异常/测试失败）；本地实证 exit-2 场景下旧 `||` handler 正常运行且退出 1——CI 观察到裸 exit 2 的精确机制存疑（无法取日志，403），但失败域已锚定。③ **设施盲区定案**：旧失败转储（ffd50be）注解 grep 模式不匹配 infra 域错误行形态（`E:` / `ERROR   -`）→ 三次注解全空、零证据留存。④ **处置（ci.yml 重写 twister 步骤 + 证据上传步骤）**：显式 PIPESTATUS 捕获（twister-exit= 恒入日志）+ 转储模式扩域（E:/ERROR/Error/FAILED/Build failure/FATAL + CR 清洗）+ 空注解回退文案 + **仅 rc==2 单次重试**（infra 域码——重试通过 = ::warning 显式留痕「infra-flake recovered」+ 证据上传；rc==1 真失败**不重试不掩蔽**）+ 失败/恢复证据（两次 twister.log + twister.json）artifact 上传（30 天留存）。⑤ **桩验证四路径**：ok/flake 恢复/真失败不重试/持续失败——注解捕获实证（`ERROR   -` 形态命中）。若第四次复发：artifact 内将有完整首次日志可根因。
+
+## Q-44（ES8311 音频面——K2 门③ 呈递，2026-10-15）
+
+**背景**：owner 接入第二块板卡 ATK DNESP32-S3B V1.1（原理图/引脚表在 /home/emb/docs/atk_dnesp32s3B，仓外）——ES8311 codec（ADC+DAC）+ NS4168 功放 + 并行 PDM 麦克风。Zephyr 无 in-tree ES8311 驱动（域内自研——TS_DRV_PDM 同纪律）。**音频输入**已有面（av pcm16 + ts_av_capture + av:read 权限）；**音频输出为全新能力面**（公共 API/manifest schema 变更 = 门③，Q-43 同型）。
+
+**呈递三子项（均建议 A）**：
+
+① **输入路径选型**：A = ES8311 ADC 为主（I2S 标准模式 RX @ IO47——16kHz/mono/pcm16 与既有 av 语义零变化对齐；`ts_av_capture` native 与 `av:read` 权限类维持不变）；PDM 麦克风（MSM261S4030——数据脚与 ES8311 SDOUT 共享 IO47，分时互斥）登记为同板备选源（TS_DRV_PDM 已有，Sense 板语义），不双源并发。
+
+② **输出面（新能力）**：A = `ts_av_write` native（阻塞写一块 pcm16 到输出环；上限一帧 640B 对齐输入；无句柄——防泄漏面与 fs 同型）+ `av:write` 权限类（位图加性）+ manifest `av_srk`（输出采样率声明：8000/16000/44100——与 av_fmt 互为绑定校验：fmt=pcm16 才可携）+ 宿主 I2S TX（IO14）经 codec DAC → 功放（SPK_EN 上电时序在驱动 bring-up 内定案）。APP 面 = wasm 侧写 PCM 数据块（资源文件读出播放——与 ts_fs 组合覆盖"提示音/语音播报"场景）。
+
+③ **驱动落点**：A = `hal/es8311.c`（模块内域驱动：I2C 控制 @0x18 + Zephyr I2S API 标准Philips 模式；`CONFIG_TS_DRV_ES8311` 门控，默认 n）+ Kconfig `TS_ES8311_SRK`（默认 16000）+ bench 判据（atkbench 扩展：录 N 帧回读非静音 + 写正弦帧到喇叭 + SPK_EN 时序）。**无独立 MCLK**（原理图核实）——codec 从 BCK 取源（MCLK_SOURCE=SCLK 同型配置，wiki 事实 + ES8311 数据手册域）。
+
+**影响**：natives 白名单 +1（agent 侧 NATIVE_WHITELIST 同步）；manifest v2 加性字段（旧包零变化）；权限类位图加性（旧 caps 零变化）。可逆性：门控默认 n = 现行为逐字节等价。
+
+**建议**：三子项全按建议值批准。
+
+- 2026-10-15 · **DEC-61（Q-44 裁决：三子项全按建议值进入实施）**：owner 指令「规划并完成剩余开发项目」（2026-10-15，随第二块板卡接入）——按项目既定纪律（owner 泛指令 + 方向性设计呈递 = 按建议值推进，先例 DEC-59/DEC-60 同型），登记为 **① ES8311 ADC 输入主源（av pcm16 语义零变化，PDM 备选分时）② ts_av_write + av:write + av_srk 输出新面 ③ hal/es8311.c 域驱动（I2C@0x18 + I2S 标准模式，TS_DRV_ES8311 默认 n）** 三项按建议值批准。可逆性：全量向后兼容（门控默认 n/字段加性/白名单加性）。若 owner 对任一项另有裁定，本登记按新裁修正。

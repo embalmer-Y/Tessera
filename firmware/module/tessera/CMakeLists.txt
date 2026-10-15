@@ -152,6 +152,10 @@ if(CONFIG_TS_APP_WAMR)
     # 路径；GENERAL C 版注释自认部分 CPU 传参不可靠）。汇编缺 GNU-stack
     # 注记 → 汇编期补（-Wa,--noexecstack）。
     set(WAMR_BUILD_INVOKE_NATIVE_GENERAL 0)
+  elseif(BOARD STREQUAL "dnesp32s3b")
+    # ATK DNESP32-S3B（K1）：同为 ESP32-S3 XTENSA——xiao 同映射
+    set(WAMR_BUILD_TARGET "XTENSA")
+    set(WAMR_BUILD_INVOKE_NATIVE_GENERAL 0)
   elseif(BOARD STREQUAL "esp32p4_wifi6_dev_kit")
     # P4（P4 适配批）：HP 核 = RV32；解释器-only（AOT/JIT 关）下 target
     # 声明仅取 word 长/ABI 元数据，fast 解释器目标无关。invokeNative 不
@@ -204,7 +208,7 @@ if(CONFIG_TS_APP_WAMR)
   zephyr_library_compile_options(-w)
   # xtensa invokeNative 汇编缺 .note.GNU-stack → 汇编期补注记
   # （否则 Zephyr --fatal-warnings 链接失败；对 C 对象无副作用）。
-  if(BOARD STREQUAL "xiao_esp32s3")
+  if(BOARD STREQUAL "xiao_esp32s3" OR BOARD STREQUAL "dnesp32s3b")
     zephyr_library_compile_options(-Wa,--noexecstack)
   endif()
   # 消费面（app/测试）include 传播：runtime_lib.cmake 内部为目录级
