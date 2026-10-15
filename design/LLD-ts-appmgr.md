@@ -1,6 +1,6 @@
 # LLD · ts-appmgr v0.4（M2b.2 完成）
 
-> **状态**：v0.6.3（2026-10-14 CG5-B：**资源白名单 registry**——needs.resources → res_csv〔scan 单一解析源〕→ activate 绑定 + boot 恢复；sys/fs-* 授权源）；v0.6.2（2026-10-14 CG5-A · Q-39④：**get-info caps 块实现**——{tiers, max_linear_memory_kb, slot_pool_kb} 设备自报 + Agent push_app 装前预检〔caps 缺失 = 旧固件跳过〕；CG5-B 资源推送随下单元）。上位：HLD §3.4 + HLD-contract-v2 §5；公共约定 `LLD-00-common.md`。上位：HLD §3.4 + HLD-contract-v2 §5；公共约定 `LLD-00-common.md`。
+> **状态**：v0.7（2026-10-15 EC1 · Q-43/DEC-60：**验签链多根设计**——有效集 = 工厂根〔prov pk0+pk1，pk1 转正消费〕∪ 信任表.keys；verify_slot NULL = 有效集迭代〔含生产回滚 NULL 恒拒存量缺陷根治〕；trust-update 命令链编排 + 侧载纪律）；v0.6.3（2026-10-14 CG5-B：**资源白名单 registry**——needs.resources → res_csv〔scan 单一解析源〕→ activate 绑定 + boot 恢复；sys/fs-* 授权源）；v0.6.2（2026-10-14 CG5-A · Q-39④：**get-info caps 块实现**——{tiers, max_linear_memory_kb, slot_pool_kb} 设备自报 + Agent push_app 装前预检〔caps 缺失 = 旧固件跳过〕；CG5-B 资源推送随下单元）。上位：HLD §3.4 + HLD-contract-v2 §5；公共约定 `LLD-00-common.md`。上位：HLD §3.4 + HLD-contract-v2 §5；公共约定 `LLD-00-common.md`。
 > **职责**：APP 包接收/验签/双 slot 存储/版本与回滚；WAMR 宿主（实例化 + 按能力装配导入面）；APP 线程与健康探针。
 > **合同关联**：合同 10（权限硬边界 = 符号过滤装配）；DEC-04/05/17。
 > **外部依赖**：WAMR（wasm_runtime_* 家族，具体签名以钉住版本为准，M0 核验）。
@@ -72,6 +72,13 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 - **设备能力自报（CG5-A 已实现）**：`sys/get-info` 增 caps 块 `{tiers, max_linear_memory_kb, slot_pool_kb}`（异构设备生态基础）——tiers 派生（large ⇔ LOAD_MAX ≥ GATE_LARGE，与安装期矩阵同源）；max_linear = WAMR_HEAP/1024；slot_pool = SLOT_SIZE×COUNT/1024；非 WAMR 桩构建维持 v1 五键形态（无 APP 能力面）。消费 = Agent push_app 装前预检（tier/linear 双检，装前拒免整包上传；caps 缺失 = 旧固件 → 跳过〔新固件安装期矩阵兜底〕）。用例 framework.app test_11 + agent test_push_app_device_caps_precheck。peripherals 块（hal 注册表自报）随生态批。
 - **实现注记（CG4）**：① 扫描单一解析源 = `ts_appmgr_scan_needs`（pkg.c——键分发 + `ts_cbor_skip`〔cbor_min 新增通用值跳过，深度 ≤4〕跳过非档位键；schema 纪律：tier ∈ {small,large}、needs 仅 large、resources 条目 fs_paths 同文法）——安装期 verify 与 boot 走查共用（walk 对 tier/needs 键跳过、walk 后调 scan 取档位门）。② 匹配矩阵 = `ts_appmgr_needs_match`（行序：线性内存 ≤ WAMR_HEAP 帽 → resources 须 TS_HAL_FS → tier=large 须 LOAD_MAX ≥ GATE_LARGE〔设备能力派生，无独立开关〕）；落点 = stage_verify 验签后（分步安装语义：包已入非激活槽、拒 = 不激活）。③ 尺寸门双门：Kconfig `TS_APP_SIZE_GATE_SMALL=16384`/`LARGE=262144`；boot 装载按包 tier 取门（装载缓冲上限门维持在前）；Agent 侧 `SIZE_GATE_LARGE` 同值镜像（调用方大值不可越档——IR2-03 钳制平移，缺省 max_bytes = 档位门）。④ 槽池装配断言：`BUILD_ASSERT(LOAD_MAX ≤ SLOT_SIZE)`（统一大槽 + 档位逻辑上限——不碎片化存储）。⑤ needs.stack_kb 记录不消费（V1 运行时常量已知限制维持）；非 WAMR 桩构建无安装匹配（不跑 APP 面）。用例 framework.app test_10（扫描矩阵/匹配行/安装拒/boot 直装走查〔差异化 wasm——模块缓存怪癖绕开〕）+ agent test_tsap_sim/test_wasm_build 档位族。夹具 = firmware/tests/app/gen_tier_pkgs.py（仓内机械生成 + 测试根签名 + pad 差异化）。
 
+## 5b. 验签链多根与信任表更新（EC1 · Q-43/DEC-60②④⑤——实现随 EC2）
+
+- **有效信任集（单一事实源 = ts-appmgr 内部）**：`有效集 = 工厂根 ∪ ts_store_trust()->keys`。工厂根 = TEST 构建 `{test_root}`（Q-29④ 固定测试根维持）/ 生产 `{prov->root_pubkeys[0], [1]}`（**pk1 自本批消费**——schema v1 既存双钥轮换预留字段，此前死字段）。工厂根不受信任表管辖（吊销/轮换 = sys/prov-write 维护通道职权——owner 凭证层）；开发者键 = 信任表管辖（密码学层：现信任键签 COSE 即可推动 ver+1——安卓「平台根 + 开发者自签」同型分层）。有效集恒非空（工厂根常在）——无自锁死面。
+- **verify_slot 根钥参数语义（Q-43⑤）**：显式传键 = 单键验签（ts_appmgr_install 本地装包/测试路径——签名与行为不变）；**NULL = 迭代有效集**（任一键过即过；≤1+2+8 键序贯尝试——ed25519 验签失败可重试〔sm 源缓冲不被 crypto_sign_open 改写〕）。TEST 构建 NULL 同样走迭代（{test_root} ∪ 表——测试可注册开发者键实证多根面）。**顺带根治存量生产缺陷**：rollback_n 此前 NULL 且生产 NULL = 拒 → IR2-07 以来生产回滚路径恒拒（TEST 不可见——测试根覆盖 NULL）；修复 = NULL 语义转有效集。
+- **trust-update 命令链（ts-appmgr 侧编排，LLD-ts-net §4 命令面）**：① args.data（COSE_Sign1 与 TSAP 同构：tag18/phdr{1:-8}/uhdr∅/payload/sig64）RAM 解析（verify.c 增 `ts_appmgr_verify_cose_ram`——Sig_structure 前缀构造与 slot 路径同源）→ ② payload 表 schema 走查（ts_store_trust_validate）→ ③ `ver == 当前 ver + 1`（严格 N+1：重放/跳版均拒——TUF）→ ④ 签名对**当前有效集**任一键过 → ⑤ ts_store_trust_write（乒乓持久化 + 重载）+ `TS_EVT_TRUST_UPDATED{ver}` + printk 留痕。空表合法（全撤开发者键回工厂根单源）。
+- **侧载纪律（EC4 设计面——同验签链无例外）**：TSAP 装入槽的**唯一写路径** = stage_begin/chunk（ts_store_slot_write 消费点唯一）；一切安装通道（zenoh 部署 / 回滚翻转 / 未来 SD/USB 侧载）必经 stage_verify/verify_slot 同一收口——本地物理通道（设备形态批）复用该链，无第二验签路径（OpenWrt 反面教训——R9 §6）。
+
 ## 6. 测试要点
 
 - L1：包解析/验签（坏签名/截断/字段缺失矩阵）；slot 切换掉电注入（meta 撕裂恢复）。
@@ -90,6 +97,7 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
   - **收尾单元落地（v0.4）**：ts_appmgr_boot_start（active slot TSAP → manifest canonical 走查〔未知键 fail-closed；caps ';' 组合——ts_perm_parse 位图或合并；app_id/app_ver 提取；stack_kb/heap_kb 读取但 V1 消耗运行时常量〕→ wasm 装载〔CONFIG_TS_APP_LOAD_MAX 结构性上限〕→ app_start → STAGED→ACTIVE）；boot 步骤 8 app_load 尾部追加（APP 故障不阻塞启动 = 合同 6 显式例外〔HLD §4.4-8〕）；CONFIG_TS_APP_WAMR 默认 y；Agent E2E 使用固件同源夹具 wasm。
 
 ## 修订记录
+- v0.7 · 2026-10-15：**EC1（Q-43/DEC-60 · 验签链多根设计）**——新增 §5b：有效集分层（工厂根 ∪ 信任表）+ verify_slot NULL 语义 + trust-update 编排（COSE RAM 验签/严格 N+1/有效集签名门）+ 侧载纪律（EC4 设计面）；生产回滚 NULL 恒拒存量缺陷定案（EC2 修复 + 用例）。
 - v0.6.3 · 2026-10-14：**CG5-B（Q-39③ 方案 A · 资源白名单 registry）**——scan res_csv + activate/boot 绑定 + res_allows 裁决；sys/fs-* 命令面授权源。
 - v0.6.2 · 2026-10-14：**CG5-A（Q-39④ · 能力发现）**——get-info caps 块（WAMR 构建六键形态）+ Agent push_app 装前预检（TA_E_POLICY 结构化拒——设备档位不支持/线性内存超帽，零上传零租约）。
 - v0.6.1 · 2026-10-14：**CG4（DEC-59/Q-39②⑤ · §5a 实现）**——scan_needs/needs_match/双门 Kconfig/槽池断言/Agent 镜像（见 §5a 实现注记）；get-info caps 随 CG5。

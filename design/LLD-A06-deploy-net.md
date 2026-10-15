@@ -1,4 +1,4 @@
-# LLD-A06 · 部署与数据面（deploy_*）· v0.2.2
+# LLD-A06 · 部署与数据面（deploy_*）· v0.3
 
 > **上游**：HLD-agent §2/A06；决策 DEC-18/20（zenoh，client→router 拓扑）、DEC-23（MCUmgr 底线）、DEC-30①（sys 命令面 host-only）；库基线 R5 §5（eclipse-zenoh 1.10.1）。v0.2 = 参考项目借鉴批次（NeuroLink 分块传输/分步升级实证档位）。
 
@@ -30,8 +30,13 @@
 - 完成语义：固件确认（版本回读一致）才置 completed；中间态如实（uploading/verifying/activating/confirmed）；结束（成功或失败）**release 租约**。
 
 ### deploy_push_prov（strict，句柄）
-- prov CBOR（schema v1，DEC-30⑤，**固件定稿键序**——生成侧按 LLD-ts-store §4 键序手工构造，非 cbor2 canonical 排序；M3a-L3 实证）下发，分块同上；**仅允许对处于维护模式的 cube**（固件侧烧录通道纪律，合同 10）；维护模式判定经 sys_get-info 状态位。
+- prov CBOR（schema v1/v2，DEC-30⑤ + Q-42，**固件定稿键序**——生成侧按 LLD-ts-store §4 键序手工构造，非 cbor2 canonical 排序；M3a-L3 实证）下发，分块同上；**仅允许对处于维护模式的 cube**（固件侧烧录通道纪律，合同 10）；维护模式判定经 sys_get-info 状态位。
 - 审批：strict（默认策略表）+ 审计记录完整 prov 摘要。
+
+### deploy_trust_get / deploy_trust_update（EC2 · Q-43⑤/DEC-60，V0.8.0 生态批）
+- **trust_get（auto）**：`sys/trust-get` → `{ver, keys[]}`——信任表读取（未门控）。旧固件 = op 未知拒 → TA_E_NOT_FOUND 如实上抛（探测面：Agent 可据此判定设备信任表能力）。
+- **trust_update（strict，句柄）**：`keys: list[bytes32]`（全量替换——TUF root 同型；撤销 = 新表剔除该键）+ `signer_key_path`（**现有效集内任一私钥**——首次注册 = 工厂根 pk0 对应方）。流程：trust_get 读现表 → 组次版表 CBOR（2 对定序键，固件确定性解码同构——键序 ver→keys，bstr 恰 32B，≤8 键，键内去重）→ COSE_Sign1 签名（cose.py 复用——与 TSAP 签名同构）→ `sys/trust-update`（租约 acquire → data 单发〔表 ≤270B + COSE ≈350B < 单块上限——免分块〕→ release）。失败矩阵如实上抛：TS_E_RANGE（ver 非当前+1——并发更新后重读重试）、TS_E_INVALID_SIG（签名键不在有效集）。
+- 审计：记录 {旧 ver, 新 ver, 键数变化, 签名者公钥摘要}——信任链变更留痕（strict 审批面）。
 
 ## 4. MCUmgr/SMP 通道说明
 
@@ -57,6 +62,7 @@
 
 ## 修订记录
 
+- v0.3 · 2026-10-15：**EC1（Q-43/DEC-60 · 信任链工具设计）**——§3 增 deploy_trust_get/trust_update（TUF root 同型全量替换 + COSE_Sign1 现有效集签名 + ver 严格 N+1；strict 审批 + 信任链变更审计）；实现随 EC2。
 - v0.1 · 2026-09-22：首版草案（Agent design 批次）。
 - v0.2 · 2026-09-23：参考项目借鉴批次（NeuroLink 分块/分步升级实证）——§3 push_app 传输定稿方向（query 分块 2-4KB + upload/verify/activate 分步对齐固件安装链 + 断点续传）；push_prov 补固件定稿键序生成纪律；§2 增租约/信封镜像；§5 测试面扩充。
 - v0.2.1 · 2026-09-23：裁决同步（DEC-40/41/42）——提案标记转 DEC 出处；实现批次定为 MA3 开工前。

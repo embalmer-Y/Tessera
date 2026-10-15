@@ -1,6 +1,6 @@
 # LLD · ts-net v0.3.9
 
-> **状态**：v0.3.11（2026-10-14 CG5-B：**宿主资源推送命令面**——sys/fs-begin/chunk/commit〔gated+租约+随包 needs.resources 前缀白名单+sha256 读回校验〕）；v0.3.10（2026-10-14 CG3 · Q-41②：**租约本地席位降级视图实现**——held_by/acquire 视词语义 + acquire 回执 local_active 装饰 + TS_EVT_ARB_CHANGED 订阅外发〔八类〕+ get-audit 审计 src 维度）。上位：HLD §3.5 + HLD-contract-v2 §2-§4；公共约定 `LLD-00-common.md`。
+> **状态**：v0.4（2026-10-15 EC1 · Q-43/DEC-60：**信任表命令面设计**——sys/trust-update〔gated+租约+COSE 现有效集签名+严格 N+1〕+ sys/trust-get〔未门控〕+ TS_EVT_TRUST_UPDATED 订阅十类）；v0.3.11（2026-10-14 CG5-B：**宿主资源推送命令面**——sys/fs-begin/chunk/commit〔gated+租约+随包 needs.resources 前缀白名单+sha256 读回校验〕）；v0.3.10（2026-10-14 CG3 · Q-41②：**租约本地席位降级视图实现**——held_by/acquire 视词语义 + acquire 回执 local_active 装饰 + TS_EVT_ARB_CHANGED 订阅外发〔八类〕+ get-audit 审计 src 维度）。上位：HLD §3.5 + HLD-contract-v2 §2-§4；公共约定 `LLD-00-common.md`。
 > **职责**：zenoh-pico 会话管理、命名空间构造、命令-回执分发、遥测/事件发布、心跳监视（断链判定）、控制租约（DEC-41）。
 > **合同关联**：合同 3（断链 fail-safe 判定源）、8（本地独立生效——判定不依赖外部确认）、9（rx 串行化）、10（命令准入/留痕）。
 > **外部依赖**：zenoh-pico 1.10.1（钉版，DR-22；上游零源码补丁，接线要点见 docs/dev-environment.md §7/§8）。
@@ -80,6 +80,8 @@ int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>
 | app-begin / app-chunk / app-verify / app-activate | 远程部署面（MA3.1，LLD-A06 §3；**gated：仅 v2 信封 + 租约持有者 = src**——DEC-41 写类准入首个落点） |
 | get-app | 当前 APP 信息快照（active_slot 回读确认，只读豁免） |
 | fs-begin / fs-chunk / fs-commit | **宿主资源推送**（CG5-B · Q-39③ 方案 A，HLD-contract-v2 §6）：begin{app?, path, total≤256KB, sha256(32B)} → chunk{offset, data} → commit{}（全量读回流式 sha256 校验——失配/读回失败**删残片 + TS_E_IO**，通过 = TS_EVT_RESOURCE_WRITTEN 留痕）。**授权 = appmgr res registry**（随包 needs.resources 前缀——activate 绑定 + boot 恢复；越权 = TS_E_PERM + PERM_DENIED 事件）+ 租约门控（gated）；后端 = hal 宿主原语（未挂载 = TS_E_IO 如实——与授权层可区分）。订阅面九类（+RESOURCE_WRITTEN） |
+| trust-update | **信任根表更新**（EC2 · Q-43④/DEC-60④，V0.8.0 生态批）：args `data` = COSE_Sign1（TSAP 同构；payload = 表 CBOR `{"ver","keys[]"}`）。校验链（ts-appmgr 编排，LLD-ts-appmgr §5b）= schema 走查 → `ver == 当前+1`（严格 N+1——重放/跳版拒，TS_E_RANGE）→ 筽名对**当前有效集**任一键过（TS_E_INVALID_SIG）→ 乒乓持久化 + 重载 + `TS_EVT_TRUST_UPDATED{ver}`。**gated**（v2 信封+租约——密码学签名为主门，租约为会话层纵深）；空表合法（回工厂根单源）。无效分区的旧固件 = op 未知拒（Agent 探测面） |
+| trust-get | 信任根表读取（EC2）：`{ver, keys:[bstr(32)×n]}`——**未门控**（公钥 = 公开材料，安卓哲学；ver 为 Agent 组次版前置）。未使能 TS_STORE_TRUST 构建 = TS_E_NOTFOUND |
 
 - **gated 装配（impl-review-01 F-3）**：`ts_net_cmd_sys_init`（返回 `ts_res_t`，表满/撞名上抛 → init fail-safe，合同 6）按 **suffix 回查**回填 gated 位——公共注册面占首个空位，若 sys 表非首个注册方则下标与表位错开，按名回填使门控恒指向本命令（按下标回填错位 = 写命令未门控，不可接受）。
 
@@ -105,7 +107,7 @@ int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>
 
 - **av 分片通道 avq（DEC-47①②，MD1.2g，§5 增补）**：APP 大块数据（视频帧）发布面——`ts_net_avq_push`（hal 层 `ts_av_publish` 经权限门后调用）入队，net_wq 周期 `ts_net_avq_flush` 单线程冲刷；信封 = canonical CBOR 5 对 map `{fid, cid, n, crc(IEEE crc32), d(bstr)}`；chunk ≤ `TS_NET_PUBLISH_MAX_BYTES`（1024——永不进 zenoh-pico 碎片路径）；打拍 `TS_NET_PUBLISH_MIN_GAP_MS`（4ms）+ 分片重试 `≤5×20ms`（全部 DEC-47② avbench 实测值）；队深 `TS_NET_AVQ_DEPTH`（4）满 = TS_E_BUSY 背压；DOWN 期自弃 + 计数（pubq 同语义；消费端按 crc/帧序丢弃残帧）。key = `…/av/<app_id>/frame`（§3）。
 - 遥测：实例值变化（commit 审计缓冲消费）与周期快照〔DEC-27：200ms〕合流；缓冲深度〔DEC-27：8〕满则丢最旧并计数；**DOWN 期发布直接丢弃并计数**（不排队重放——防上电风暴与不确定时序）。pubq 单条 payload 上限 **128B**（impl-review-01 F-1 定容：DEC-42 信封头最坏 ~45B + 预算事件 3 对 extra ~51B——原 64B 系"单 extra 对"口径；内存影响 +512B 静态，计入 DEC-29 板级 RAM 预算复核）。
-- 事件：TS_EVT_* 选择性外发，**订阅七类**——estop 后补发 / 安全态迁移 / 越权留痕 / 输入变化 / periph 插拔 / periph 附着 / 功率预算拒绝（后三类 = impl-review-01 F-1 兑现，其中插拔归因为 LLD-ts-periph §3"key 下线通告"承诺；早前"容量四类全占"系对订阅表分桶语义的误读——`subs[id][CONFIG_TS_CORE_MAX_SUBS]` 按事件类型各 4 位）。合同 5/10 对外可见面。
+- 事件：TS_EVT_* 选择性外发，**订阅十类**——estop 后补发 / 安全态迁移 / 越权留痕 / 输入变化 / periph 插拔 / periph 附着 / 功率预算拒绝 / 仲裁席变更（CG3 +ARB_CHANGED，extra {"arb","old"}）/ 资源写入完成（CG5-B +RESOURCE_WRITTEN）/ **信任表更新（EC2 +TRUST_UPDATED，extra {"ver"}——安全类 QoS）**。合同 5/10 对外可见面。
 - **信封 v1（DEC-42，已实现）**：事件 payload = `{"ver":1, "kind":32+evt_id, "t_ms", "wall_ms", <extra 扁平键值对 0…3 个>}`——extra：安全态迁移 = `{"state"}`（按 uid 路由 `…/<uid>/event`）；periph 插拔 = `{"uid", "pkind"}`（按 uid 路由）；功率预算拒绝 = `{"requested_ma", "used_ma", "budget_ma"}`（路由 `…/sys/event`）；遥测 payload = `{"ver":1, "kind":96, "dev", "value_u", "wall_ms"}`（原 M3a.2 的设备种类键 `"kind"` 让位信封 kind，改名 `"dev"`——破坏性变更随本批与消费端同步切换）。消费端（host/Agent）对未知 kind **透传存储不解析**（§0 前向兼容落点）；固件产生端只产注册表内 kind。
 - 优先级映射（DEC-42，已实现，经 `ts_net_qos_t` 穿透 pubq→transport）：安全事件（estop/安全态迁移/越权）= zenoh congestion **BLOCK** + priority **REAL_TIME**；遥测/心跳/**periph 插拔与预算事件**（DEC-42 安全类集合之外的观测类，类属缺省）= 缺省（DROP + DATA）——参考 MatrixMechanic priority 位思想，用 zenoh 原生 QoS 承接（不自造位域）。
 
@@ -143,6 +145,7 @@ int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>
 
 ## 修订记录
 
+- v0.4 · 2026-10-15：**EC1（Q-43/DEC-60 · 信任表命令面设计）**——§4.3 增 trust-update（gated+租约；COSE_Sign1 现有效集签名 + ver 严格 N+1 + TS_EVT_TRUST_UPDATED 安全类）/ trust-get（未门控读回）；§5 订阅十类；实现随 EC2（CMD_TABLE_MAX 20→22；args data 复用 chunk 面）。
 - v0.3.11 · 2026-10-14：**CG5-B（Q-39③ 方案 A · 资源推送命令面）**——sys/fs-begin/chunk/commit（gated+租约；随包 res registry 授权 + sha256 读回校验 fail-closed + TS_EVT_RESOURCE_WRITTEN）；args 增 path/sha256 键；订阅九类；CMD_TABLE_MAX 17→20；用例 framework.app test_12（registry 矩阵/命令分层——授权拒 vs 后端 E_IO）+ framework.net 构建面裁剪断言。Agent 侧 deploy.push_resources + keys.envelope path/sha256。真机 net+SD 组合面 = 板级批验证项（现无该组合 bench——如实登记）。
 - v0.3.10 · 2026-10-14：**CG3（Q-41② · 租约本地席位视图实现）**——§4.5 视词语义落地（held_by/acquire + cmd 层 local_active 装饰）；§5 订阅八类（+TS_EVT_ARB_CHANGED → …/sys/event，extra {arb, old}，安全类 QoS）；§4.3 kind 注册表事件面 = 32+TS_EVT_ID_COUNT（ARB 自动入位）；get-audit 内存环条目末位加 src（ts_src_t——加性）；§8 用例 test_16_arb_lease_view。
 - v0.3.9 · 2026-10-14：**CG2（Q-41①③/Q-42 · 部署模式实现）**——§6 linkmon 模式守卫落地（`link_migrates_safety()`：仅 orchestrated 调 set_link，断链/恢复对称）+ **standalone boot 链路声明**（ts_net_init 期 set_link(true) 一次——镜像 TS_NET=n glue 模式；CG1 文本未覆盖的 ACTIVE 驱动者缺口，本批定案）+ §4 estop-clear prov 守卫（`estop_remote_clear=0` → TS_E_STATE + need=local-clear；v1 缺字段 = enabled）；用例 framework.net test_14/15（零迁移断言 + 守卫矩阵）。同批：agent/tools/flash_prov.py 修复分区头缺失（u32 len + u16 crc16-ccitt——此前直写裸 CBOR 装载器必拒，生产烧录路径既有缺陷）+ v2 字段输出。
