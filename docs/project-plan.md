@@ -194,7 +194,7 @@
 | EC2 ✅ | 信任根表实现 | prov 扩展 + 验签链多根 + 防回滚 | — ✅（ts_trust 8KB 分区/有效集迭代/trust-update 命令/Agent 工具；生产回滚 NULL 恒拒缺陷顺带根治）|
 | EC3 ✅ | 安装期权限确认 | 本地确认路（有交互设备）+ Agent 呈报 strict 路（无头）| — ✅（无头路实现：三点 strict 审批强制携 manifest 权限面；本地路 LLD 定稿随设备形态批——LLD-A02 §3.2）|
 | EC4 ✅ | 侧载通道 | 按设备形态按需（同验签链无例外）| — ✅（侧载纪律定稿 + L5 检查 7 机械实证 slot 收口白名单；SD/USB 本体按形态按需——Q-40②）|
-| EC5 | 收口 | 回归 + tag fw-v0.8.0 | review |
+| EC5 ✅ | 收口 | 回归 + tag fw-v0.8.0 | review ✅（twister 16/16〔107〕/L5 7/7/repo 2/agent 183+2s/ruff/sync 全绿）|
 
 **跨批依赖**：CG4 ← AG7（large 数值）；CG0 可与 Agent 批并行（措辞已呈递待批）；EC1 ← CG2（prov schema v2 基座）。**未决观察项**（不占批）：上游 v4.5.0 正式版平移、SYWORK wdt 间歇、CI native-build 间歇、多真机 LN 拓扑（第二块 cube 到位重启）。
 
@@ -208,6 +208,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.83 · 2026-10-15：**V0.8.0 收口（EC5 + tag fw-v0.8.0）——生态批 EC1-5 全批完毕；§11e 三版本批 25/25 单元全部完成**（R 4 + AG 8 + CG 8 + EC 5）。回归定格：twister 16/16（107）/L5 7/7/repo 2/agent 183+2s/ruff/sync 显式退出码全绿。真机信任表面随板级批（存量板零重刷 = V0.7 逐字节等价）。
 - v1.82 · 2026-10-15：**EC4 收口（侧载通道）**——侧载纪律定稿（唯一写路径 = stage 链）+ L5 检查 7（slot 收口白名单机械实证 + 负样本自证；testing.md §3 补全 7 项——顺带修 M10 漏登漂移）；SD/USB 本体按设备形态按需。下一单元：EC5 收口 tag fw-v0.8.0。
 - v1.81 · 2026-10-15：**EC3 交付（安装期权限确认）**——无头路实现（manifest_summary + install_permission_brief 注入 deploy_push_app/app_deploy/ln_deploy 三点 strict 审批 reason；坏包审批前拦截）；本地确认路 LLD 定稿（同一数据面，接线随设备形态批）；agent 183+2s/ruff 全绿。下一单元：EC4 侧载通道。
 - v1.80 · 2026-10-15：**EC2 交付（信任根表实现）**——ts_trust.c 持久化（8KB 双副本乒乓〔4KB→8KB 擦除块对齐实施修正〕）+ verify_slot NULL=有效集迭代（pk1 转正；生产回滚 NULL 恒拒存量缺陷根治）+ sys/trust-update·trust-get + TS_EVT_TRUST_UPDATED + Agent trust_get/trust_update；夹具 gen_trust_fixtures.py 入仓；twister 16/16（107，+3）/agent 181+2s/L5/ruff 全绿。下一单元：EC3 安装期权限确认。
