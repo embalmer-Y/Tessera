@@ -129,7 +129,10 @@ static int es8311_spk_en(bool on)
 		return -1;
 	}
 	cfg &= (uint8_t)~BIT(3); /* bit3 输出 */
-	out = on ? (uint8_t)(out | BIT(3)) : (uint8_t)(out & ~BIT(3));
+	/* 极性：原理图网络名 NLSPK0EN——N 前缀 = **低有效**（bit3=0 = 功放开、
+	 * 1 = 关断）。初版极性反了：spk(false) 落 0 = 功放常开放大 DAC 静态
+	 * 噪声（真机可听——owner 反馈，K2 实证第七坑）。 */
+	out = on ? (uint8_t)(out & ~BIT(3)) : (uint8_t)(out | BIT(3));
 	if (es8311_wr(XL9555_P1_CFG, cfg) != 0 ||
 	    es8311_wr(XL9555_P1_OUT, out) != 0) {
 		return -1;

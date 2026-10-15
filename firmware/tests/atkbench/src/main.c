@@ -166,6 +166,10 @@ static void audio_selftest(void)
 		printk("AK AUDIO FAIL（无芯片/初始化拒——i2c/i2s 链见上）\n");
 		return;
 	}
+	/* 静音保底：功放关断（NL 低有效——常静音态）。放音自检改
+	 * ATKBENCH_AUDIO_PLAY 门控（默认关——板卡常驻安静；判据重跑 =
+	 * cmake -DATKBENCH_AUDIO_PLAY=1）。 */
+	ts_drv_es8311_spk(false);
 	/* 录音：8 帧（160ms×8）——峰值统计 */
 	static int16_t smp[320];
 	uint32_t peak_all = 0;
@@ -202,7 +206,13 @@ static void audio_selftest(void)
 		ts_drv_es8311_diag();
 		/* 静默不早退——继续放音判据（二分：codec 整体死 vs ADC 特定静默）*/
 	}
-	/* 放音：SPK_EN 开 + 4 帧正弦（~1kHz：16 采样/周期 @16k）+ 关 */
+	/* 放音：SPK_EN 开 + 4 帧正弦（~1kHz：16 采样/周期 @16k）+ 关
+	 * （ATKBENCH_AUDIO_PLAY 门控——默认关） */
+#ifndef ATKBENCH_AUDIO_PLAY
+	printk("AKa2 playback skipped（默认静音——ATKBENCH_AUDIO_PLAY=1 启用）\n");
+	printk("AK AUDIO PASS（record-only，peak=%u）\n", (unsigned)peak_all);
+	return;
+#endif
 	(void)ts_drv_es8311_spk(true);
 	for (int f = 0; f < 4; f++) {
 		for (int i = 0; i < 320; i++) {
