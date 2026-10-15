@@ -109,15 +109,69 @@ jobs:
           west build -b native_sim "$GITHUB_WORKSPACE/firmware/app" -d build-app --pristine=always -- \
             -DZEPHYR_EXTRA_MODULES="$GITHUB_WORKSPACE/firmware/module/tessera" 2>&1 | tee /tmp/build.log \
             || { echo "::error title=build-error::$(grep -B1 -A12 -m1 'CMake Error\|FATAL ERROR\|ERROR:' /tmp/build.log | tr '\n' '|')"; exit 1; }
-      - name: twister 全量（L1/L2/L4，15 套件 @ native_sim）
+      # 观察项（decisions 三条累计：2ac589e / bc6b9e8 / 3d99517——同型签名
+      # native-build·twister·exit 2·无注解）：twister exit 2 = **启动期
+      # 基础设施错误域**（工具链验证 E:/argparse/size_calc 的 sys.exit(2)——
+      # 源码级核实），非测试失败（exit 1 = 异常/测试失败）。本步骤：
+      # ① 显式 PIPESTATUS 捕获（twister-exit=行恒入日志）；
+      # ② 失败转储模式扩域（E: / ERROR<空格>- / Build failure 等）+ \r 清洗
+      #    + 空注解回退（三次间歇注解均空 = 设施盲区，本修根除）；
+      # ③ 仅 rc==2 单次重试（infra 域码——rc==1 真失败**不重试不掩蔽**）；
+      #    重试通过 = ::warning 显式留痕（infra-flake recovered）+ 证据上传；
+      # ④ 任何失败/恢复证据（twister.log + twister.json）上传 artifact。
+      - name: twister 全量（L1/L2/L4，16 套件 @ native_sim）
+        id: twister
+        env:
+          TW_EXTRA: ZEPHYR_EXTRA_MODULES=${{ github.workspace }}/firmware/module/tessera
         run: |
           source ~/ws/zephyr/zephyr-env.sh
           set -o pipefail
+          set +e
           west twister -p native_sim -T "$GITHUB_WORKSPACE/firmware/tests" \
             --outdir /tmp/twister-out \
-            --extra-args=ZEPHYR_EXTRA_MODULES="$GITHUB_WORKSPACE/firmware/module/tessera" 2>&1 | tee /tmp/twister.log \
-            || { echo "=== 失败诊断（twister 尾部 40 行）==="; tail -40 /tmp/twister.log; \
-                 echo "=== 套件 build.log 错误块 ==="; \
-                 grep -l -m1 -r 'Error' /tmp/twister-out/*/host_gnu/*/build.log 2>/dev/null | head -4 | while read -r f; do echo "--- $f"; grep -B2 -A8 -m2 'Error' "$f"; done; \
-                 echo "=== 环境上下文 ==="; nproc; free -m | head -2; \
-                 echo "::error title=twister-error::$(grep -B1 -A8 -m1 'CMake Error\|FATAL ERROR\|Build failure\|ERROR:' /tmp/twister.log | tr '\n' '|' | head -c 900)"; exit 1; }
+            --extra-args="$TW_EXTRA" 2>&1 | tee /tmp/twister.log
+          rc=${PIPESTATUS[0]}
+          echo "twister-exit=$rc"
+          if [ "$rc" -eq 0 ]; then exit 0; fi
+
+          if [ "$rc" -eq 2 ]; then
+            echo "=== rc==2（twister 启动期 infra 域：工具链验证/参数/size——非测试失败）。单次重试（仅此域码；rc==1 不重试）==="
+            mv /tmp/twister.log /tmp/twister-attempt1.log
+            west twister -p native_sim -T "$GITHUB_WORKSPACE/firmware/tests" \
+              --outdir /tmp/twister-out2 \
+              --extra-args="$TW_EXTRA" 2>&1 | tee /tmp/twister.log
+            rc2=${PIPESTATUS[0]}
+            echo "twister-retry-exit=$rc2"
+            if [ "$rc2" -eq 0 ]; then
+              echo "evidence=1" >> "$GITHUB_OUTPUT"
+              echo "::warning title=twister-infra-flake::首次尝试 exit=2（twister 启动期 infra 域——非测试失败；观察项第 4 数据点），重试通过；两次日志已上传 artifact 供根因追踪"
+              exit 0
+            fi
+            rc=$rc2
+          fi
+
+          echo "=== 失败诊断（twister 尾部 60 行）==="
+          tail -60 /tmp/twister.log
+          echo "=== 错误块（扩域匹配 + CR 清洗）==="
+          grep -n -B2 -A10 -m3 -E 'E: |ERROR|Error|FAILED|Build failure|FATAL' /tmp/twister.log | tr -d '\r' || true
+          echo "=== 环境上下文 ==="
+          nproc; free -m | head -2
+          msg="$(grep -B1 -A8 -m1 -E 'E: |CMake Error|FATAL ERROR|Build failure|ERROR' /tmp/twister.log | tr -d '\r' | tr '\n' '|' | head -c 900)"
+          [ -n "$msg" ] || msg="twister exit=$rc（日志无匹配错误行——完整日志见 artifact）"
+          echo "evidence=1" >> "$GITHUB_OUTPUT"
+          echo "::error title=twister-error::$msg"
+          exit "$rc"
+
+      - name: 失败/恢复证据上传（twister 日志与报告）
+        if: always() && steps.twister.outputs.evidence == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: twister-evidence
+          path: |
+            /tmp/twister.log
+            /tmp/twister-attempt1.log
+            /tmp/twister-out/twister.json
+            /tmp/twister-out2/twister.json
+          if-no-files-found: ignore
+          retention-days: 30
+
