@@ -231,6 +231,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.86 · 2026-10-16：**K2 补丁 + K3 夜间收兵**——SPK_EN 极性修正（NL 低有效）+ 板默认静音（ATKBENCH_AUDIO_PLAY 门控）；K3 驱动被 F1（zenoh-pico 查询高压死锁→WDT——K6 风险项）/F2（工具链空回执竞态）阻塞，三发现登记；deploy._cmd 空载荷重试加固入册。
 - v1.85 · 2026-10-16：**K1+K2 交付（新板 bring-up + ES8311 音频）**——K1 atkbench（16M AMP 布局分区 carve + WAMR XTENSA 映射 + 部署链 AK PASS——第二 cube 就位）；K2 ES8311 全 codec（输入输出双面 + ts_av_write 新 native + 六坑定案 + 真机 AK AUDIO PASS）；§11f 批计划 + Q-44/DEC-61 登记。回归 twister 16/16（108）/agent 184+2s/L5 7/7 全绿。下一单元：K3 信任链真机 E2E。
 - v1.84 · 2026-10-15：**全项目自检交付（owner 指令）**——SC-05…SC-19 十五项发现全部处置（文档一致性 25/25/README 滞后/names.md 登记册回填/本批一处静默 no-op 补落）；规范电池全过；回归定格全绿 + 间歇观察与既有缺口如实登记。报告 design/final-selfcheck-v0.8.0.md。**原定开发计划（§11e 三版本批 25/25 单元）全部完成。**
 - v1.83 · 2026-10-15：**V0.8.0 收口（EC5 + tag fw-v0.8.0）——生态批 EC1-5 全批完毕；§11e 三版本批 25/25 单元全部完成**（R 4 + AG 8 + CG 8 + EC 5）。回归定格：twister 16/16（107）/L5 7/7/repo 2/agent 183+2s/ruff/sync 显式退出码全绿。真机信任表面随板级批（存量板零重刷 = V0.7 逐字节等价）。

@@ -51,8 +51,16 @@ class CmdError(TaError):
 
 def _cmd(svc: ZenohService, node: str, cube: str, op: str, rid: str,
          **env: Any) -> keys.Reply:
-    _, payload = svc.query_one(keys.key_sys(node, cube, op),
-                               keys.envelope(op, rid, **env))
+    # 偶发空回执重试（K3 真机实证：同进程内 status 通/trust-get 空的组合
+    # 竞态、隔离复测同 query 恒 44B 正常回执——PC 侧会话竞态域，重试即过；
+    # 超时类 TaError 不在此吞〔上层语义各自处理〕，仅空载荷重试 3 次）
+    payload = b""
+    for _ in range(3):
+        _, payload = svc.query_one(keys.key_sys(node, cube, op),
+                                   keys.envelope(op, rid, **env))
+        if payload:
+            break
+        time.sleep(0.5)
     return keys.parse_reply(payload)
 
 
