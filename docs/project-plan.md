@@ -249,7 +249,6 @@
 |---|---------|
 | 上游 Zephyr v4.5.0 正式版平移 | 正式版未发布（rc1 在用；owner 明确本项除外）——发布后 1-2 会话平移 + workaround 回收 |
 | P4 板无线面 | Zephyr esp_hosted 上游数据面缺陷（issue #121767 在案）——上游回复后复测 |
-| P4 摄像头帧证据 | 待 owner 物理检查排线（xiao sense 板） |
 
 ### D. Agent 侧候选（CLI 调研批九候选余项——随 owner 点向，建议序 = 调研排序）
 
@@ -279,6 +278,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.92 · 2026-10-16：**§11g C 表陈旧项清理**——「P4 摄像头帧证据」行删除：该行派生自 board-p4-01.md §7（2026-10-10 时点），次日 V2-1 即 DA PASS 收口（owner 排线修复已生效 + #121774 workaround + 发送层根治），v1.90 派生时误带入，如实更正。
 - v1.91 · 2026-10-16：**F1/F2 物理判据收口（owner 到家按键）**——BOOT 手势三动作真机判据全命中：短按 ×2 = `AKL →LOCAL`/`→REMOTE` rc=0（CG3 席位切换真机闭环）+ 长按 ≥2s = `AKF1`→`AKF2 force rc=0`→`AKC 本地清除 rc=0`（estop 本地路闭环——远程门 need=local-clear 先期已实证）；全程 net=1 板存活；证据 docs/evidence/af12_boot_console.txt。§11f F1/F2 ◐→✅（全批仅 F3 呈递/G3 gcov 顺延两项非 ✅）；§11g B 表删「F1/F2 物理判据」行。
 - v1.90 · 2026-10-16：**文档对齐实现批（owner 指令：更新文档/检查代码/列后续计划）**——HLD-firmware v0.3（§3.3/§3.4/§3.5/§7 现状注记 + **§9 设计-实现对照表**〔设计项逐项 ✅/◐/❌ + 登记出处〕）；HLD-agent v0.2.1（AG1-8 完成态 + D1/D3 + S8 半步注记）；README demo 表补 §11f 六项真机判据；names.md 补 Q-44/Q-46/DEC-61 索引 + 本批标识符登记（TS_APP_PSRAM_LOAD_BUF/VERIFY_BUF、post_deploy_check、capture_window、TESSERA_LNO_REGISTRY、D-AK4、AK7-AK9/AKF/AKC/AKL）；**§11g 后续开发计划定稿**（A 清欠批 P1-1…P1-5 / B 待 owner 四项 / C 环境挂起三项 / D Agent 候选五项随点向 / E 长期方向）。代码核查：twister 16/16（108）/agent 195+2s/repo 5/L5 7/7/ruff/sync 全绿 + 模块零 TODO + [q] 观测面注释按 F5 定案收口。
 - v1.89 · 2026-10-16：**K6 交付（多真机 LN E2E AK6 LN PASS）**——双 cube（dbn/dbc @ xiao + akn/akc @ atk）LN 组全链：ln_create → ln_deploy 扇出（同包双板 confirmed）→ ln_status 聚合（双 ACTIVE + degraded_members 空）；xiao deploybench 以当前模块重刷（F1/F5 修复平移 + 凭据 cmake 重注入——prov 随重刷重建教训）；atk 侧 ESP_SPIRAM_HEAP_SIZE 1MB→4MB（SMH 外部区三笔分配 512K+256K+420K 超 1MB 实证）。
