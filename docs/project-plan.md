@@ -213,9 +213,9 @@
 | F1 ◐ | 本地交互源 | 按键（BOOT/扩展器 KEY）→ arb LOCAL 席位 + 压制 + 事件（CG3 机制接线）——**接线交付**（AK8 就绪行 + AKL 判据线；手势判据待 owner 物理按键） | — |
 | F2 ◐ | 本地 estop 清除 | KEY → clear_fault + prov estop_remote_clear 出厂缺省翻 disabled（ISO 13850 偏离撤销）——**远程门真机实证**（need=local-clear）+ 本地路接线（长按 AKC 判据线待 owner 按键） | — |
 | F3 →顺延 | 本地确认路 | LCD 呈现 manifest_summary + 按键确认 → 安装闸（EC3 本地路接线——嵌入式先行者面）；**独立单元顺延**：显示栈 bring-up（ST7789V）+ 安装闸接入点门③设计——非压缩可并项 | 门③（安装闸接入点设计）|
-| F4 | peripherals 自报 | get-info peripherals 块（hal 注册表自报 + Agent 装前消费） | — |
-| G1 | Agent 任务链持久化 | LN 注册表落盘 + 跨重启 resume（D1） | — |
-| G2 | 诊断自动回喂 | 部署后自动抓串口 → diag_classify → repair 再入队（D3） | — |
+| F4 ✅ | peripherals 自报 | get-info peripherals 块（hal 注册表自报 + Agent 装前消费）——真机实证 akled:gpio/akpwm:pwm/akcodec:adc + periph 责任链单源注册 | — |
+| G1 ✅ | Agent 任务链持久化 | LN 注册表落盘 + 跨重启 resume（D1）——LnRegistry(persist_path) 原子写/损坏条目降级跳过/IO 失败告警不抛 + env 重定向（TESSERA_LNO_REGISTRY）+ conftest memory 模式防 CI 副作用；测试 +6 | — |
+| G2 ✅ | 诊断自动回喂 | 部署后自动抓串口 → diag_classify → repair 再入队（D3）——post_deploy_check（健康短路/被动抓取+分类/抓取失败不掩蔽）+ capture_window（被动窗——失败路径专用，开埠脉动 F3 在案）+ deploy_push_app post_check_s/serial_port 直参；测试 +5 | — |
 | G3 | 测试债 | 覆盖率工具启用（gcov 基线）+ L5 工具单测 | — |
 | G4 | 终局 | 全量回归 + 文档同步 + tag + 自检 | review |
 

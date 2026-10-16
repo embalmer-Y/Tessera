@@ -415,12 +415,18 @@ class FirmwareDomainPack(DomainPackBase):
         @audited("deploy_push_app")
         async def deploy_push_app(node: str, cube: str, package_path: str,
                                   pub_key_path: str, holder: str = "tessera-agent",
-                                  chunk_size: int = net_deploy.CHUNK_DEFAULT) -> dict:
+                                  chunk_size: int = net_deploy.CHUNK_DEFAULT,
+                                  post_check_s: float = 0.0,
+                                  serial_port: str | None = None) -> dict:
             """TSAP 包分块部署到 cube（strict：挂起宿主审批；长任务句柄）。
 
             硬点（工具内强制，不可跳过）：tsap_verify 复验 → 租约闭环（acquire/
             续期/release）→ 2KB 分块（idem 重试安全）→ upload/verify/activate 分步
-            → get-app 确认回读。失败留于当前步（重试从断点续传）。"""
+            → get-app 确认回读。失败留于当前步（重试从断点续传）。
+
+            G 批 D3（诊断自动回喂）：post_check_s > 0 时部署后延时健康检查
+            （get-app ACTIVE）——不健康且给出 serial_port 则自动抓取+分类，
+            结果入 post_check 键（category/repair_hint/evidence）直接回喂。"""
             args = {
                 "node": node, "cube": cube, "package_path": package_path,
                 "pub_key_path": pub_key_path, "holder": holder, "chunk_size": chunk_size,
@@ -444,10 +450,18 @@ class FirmwareDomainPack(DomainPackBase):
 
                 def work() -> dict:
                     with ZenohService(ctx.cfg.router_locator) as svc:
-                        return net_deploy.push_app(
+                        out = net_deploy.push_app(
                             svc, node, cube, package_path, pub_key_path,
                             holder=holder, chunk_size=chunk_size, log_fn=log,
                         )
+                        if post_check_s > 0:
+                            import time as _t
+
+                            _t.sleep(post_check_s)
+                            out["post_check"] = net_deploy.post_deploy_check(
+                                svc, node, cube,
+                                serial_port=serial_port)
+                        return out
 
                 return await asyncio.to_thread(work)
 

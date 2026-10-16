@@ -281,6 +281,44 @@ def push_app(
                 log(f"WARN lease release 失败（TTL 兜底失权）: {exc.message}")
 
 
+def post_deploy_check(
+    svc: ZenohService,
+    node: str,
+    cube: str,
+    *,
+    serial_port: str | None = None,
+    window_s: float = 8.0,
+    app_id_expect: str | None = None,
+) -> dict[str, Any]:
+    """部署后健康检查 + 失败自动诊断（G 批 D3 · CLI 调研批候选③）。
+
+    健康判定 = get-app state==ACTIVE（可选 app_id 精确比对）。健康 →
+    {healthy: true, get-app:…}；非健康 → 若给出 serial_port 则被动窗口
+    抓取（capture_window——不复位；开埠脉动仅失败路径可接受）+
+    classify_run 自动分类，回执携带 category/repair_hint/evidence——
+    调用方（MCP 部署面/创作循环）直接回喂 LLM，免人工逐工具诊断。
+    无串口配置 → 仅结构化不健康快照（分类留调用方）。
+    """
+    g = _cmd_ok(svc, node, cube, "get-app", f"pc-{cube}")
+    healthy = int(g.get("state", -1)) == 3 and (
+        app_id_expect is None or g.get("app_id", "") == app_id_expect)
+    out: dict[str, Any] = {"healthy": healthy, "get-app": g}
+    if healthy or serial_port is None:
+        return out
+    from tessera_agent.tools_diag import capture as diag_capture
+    from tessera_agent.tools_diag import classify as diag_cls
+
+    try:
+        text = diag_capture.capture_window(serial_port, window_s)
+    except Exception as exc:  # noqa: BLE001 —— 抓取失败不掩蔽主判定
+        out["diag_error"] = f"{type(exc).__name__}: {exc}"
+        return out
+    r = diag_cls.classify_run(text, pass_patterns=[])
+    out["diag"] = {"category": r.category, "summary": r.summary,
+                   "repair_hint": r.repair_hint, "evidence": r.evidence}
+    return out
+
+
 def push_resources(
     svc: ZenohService,
     node: str,

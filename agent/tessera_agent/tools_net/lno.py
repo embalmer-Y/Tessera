@@ -13,16 +13,28 @@ LN（Logical Node）= Agent 层编排对象：多 cube 并联为一个业务单�
     幂等安全）。
 已知限制（Q-35 如实登记）：Agent 单点（编排可用性依赖 PC 侧）；组操作
 非原子（顺序执行，失败成员部分应用）。
+
+G 批 D1（CLI 调研批九候选之首）：注册表持久化——JSON 落盘（原子写）+
+启动恢复；路径 = env TESSERA_LNO_REGISTRY 缺省 ~/.tessera/lno_registry.json。
+IO 失败 = 降级为内存态 + stderr 告警（LN 注册表为编排便利面非安全面，
+如实降级不抛崩调用链）。
 """
 from __future__ import annotations
 
+import json
+import os
 import secrets
+import sys
+import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from tessera_agent.common.errors import TA_E_ARGS, TaError
 from tessera_agent.tools_net import deploy, keys
+
+DEFAULT_REGISTRY_PATH = Path.home() / ".tessera" / "lno_registry.json"
 
 
 @dataclass
@@ -42,10 +54,56 @@ class LogicalNode:
 
 
 class LnRegistry:
-    """内存态注册表（MCP server 生存期；持久化随真实多 cube 部署批再议）。"""
+    """注册表（G 批 D1：可选持久化——JSON 落盘 + 启动恢复）。
 
-    def __init__(self) -> None:
+    persist_path = None → 纯内存态（既有语义）；给出路径 → create/remove
+    变更即原子落盘，构造时自动恢复既有内容。恢复失败（损坏/不可读）=
+    告警 + 空表启动（编排面如实降级——不抛崩）。"""
+
+    def __init__(self, persist_path: Path | None = None) -> None:
         self._nodes: dict[str, LogicalNode] = {}
+        self._persist_path = persist_path
+        if persist_path is not None:
+            self._load()
+
+    # ---- 持久化（D1）----------------------------------------------------
+
+    def _load(self) -> None:
+        assert self._persist_path is not None
+        try:
+            raw = json.loads(self._persist_path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return
+        except (OSError, ValueError) as exc:
+            print(f"[lno] 注册表恢复失败（空表启动）：{exc}", file=sys.stderr)
+            return
+        for n in raw.get("nodes", []):
+            try:
+                members = [LnMember(node=m["node"], cube=m["cube"])
+                           for m in n["members"]]
+                ln = LogicalNode(ln_id=n["ln_id"], members=members,
+                                 linkloss_policy=n.get("linkloss_policy",
+                                                       "continue"))
+            except (KeyError, TypeError) as exc:
+                print(f"[lno] 注册表条目损坏跳过 {n!r}: {exc}", file=sys.stderr)
+                continue
+            self._nodes[ln.ln_id] = ln
+
+    def _persist(self) -> None:
+        if self._persist_path is None:
+            return
+        payload = {"nodes": self.list()}
+        try:
+            self._persist_path.parent.mkdir(parents=True, exist_ok=True)
+            fd, tmp = tempfile.mkstemp(dir=self._persist_path.parent,
+                                       suffix=".tmp")
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(payload, f, ensure_ascii=False, indent=1)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, self._persist_path)
+        except OSError as exc:
+            print(f"[lno] 注册表落盘失败（内存态继续）：{exc}", file=sys.stderr)
 
     def create(self, ln_id: str, members: list[tuple[str, str]],
                linkloss_policy: str = "continue") -> LogicalNode:
@@ -74,6 +132,7 @@ class LnRegistry:
         ln = LogicalNode(ln_id=ln_id, members=mlist,
                          linkloss_policy=linkloss_policy)
         self._nodes[ln_id] = ln
+        self._persist()
         return ln
 
     def remove(self, ln_id: str) -> None:
@@ -81,6 +140,7 @@ class LnRegistry:
             msg = f"ln_id 不存在: {ln_id!r}"
             raise TaError(TA_E_ARGS, msg, domain="lno")
         del self._nodes[ln_id]
+        self._persist()
 
     def get(self, ln_id: str) -> LogicalNode:
         if ln_id not in self._nodes:
@@ -95,8 +155,12 @@ class LnRegistry:
                 for ln in self._nodes.values()]
 
 
-# MCP server 生存期单例（内存态注册表；组合根经 build_app 装配时引用）
-REGISTRY = LnRegistry()
+# MCP server 生存期单例（G 批 D1：默认路径持久化——env 可重定向；
+# 测试用 TESSERA_LNO_REGISTRY= 指临时文件）
+REGISTRY = LnRegistry(Path(os.environ.get("TESSERA_LNO_REGISTRY",
+                                          str(DEFAULT_REGISTRY_PATH)))
+                      if os.environ.get("TESSERA_LNO_REGISTRY", "") != "memory"
+                      else None)
 
 
 # ---- 编排操作（svc = ZenohService；逐成员诚实扇出）--------------------------

@@ -37,3 +37,26 @@ def reset_and_capture(
         while time.monotonic() - t0 < seconds:
             buf += s.read(4096)
     return buf.decode("utf-8", "replace")
+
+
+def capture_window(
+    port: str,
+    seconds: float,
+    *,
+    baud: int = 115200,
+) -> str:
+    """被动窗口抓取（G 批 D3：部署后诊断自动回喂——不复位）。
+
+    开埠本身在部分适配器（CH340 一键下载电路）产生复位脉动——失败路径
+    诊断场景可接受（正在诊断的板子复位后恰好提供启动窗分类证据；F3
+    登记在案）。健康路径不应调用本函数（调用方门控：post-check 仅在
+    get-app 非 ACTIVE 时触发）。
+    """
+    import serial  # 懒导入：CI 无串口环境不触发
+
+    with serial.Serial(port, baud, timeout=1) as s:
+        buf = b""
+        t0 = time.monotonic()
+        while time.monotonic() - t0 < seconds:
+            buf += s.read(4096)
+    return buf.decode("utf-8", "replace")
