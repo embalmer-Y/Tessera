@@ -41,8 +41,11 @@
 | Q-38 … Q-41 | Agent 创作循环/资源分级/信任链方向/standalone 泛化（R 批四呈递） | decisions.md | 已裁 → DEC-57（全 A + 质量优先条款） |
 | Q-42 | prov v2/manifest v2 档位/门值（CG 门③） | decisions.md | 已裁 → DEC-59 |
 | Q-43 | 信任根表 schema/存储/命令面（EC 门③） | decisions.md | 已裁 → DEC-60 |
+| Q-44 | ES8311 音频面（K2 门③——第二板卡接入批） | decisions.md | 已裁 → DEC-61（owner 泛指令先例） |
+| Q-46 | 本地确认路安装闸（F3 门③——五子项呈递停门） | decisions.md | **待裁**（2026-10-16 呈递） |
 | DEC-39 … DEC-56 | 统一计划/板级批/MD 批/V0.1-0.4 版本批/环境迁移/需求校准（通用域解放）各批裁决与交付登记 | decisions.md | 生效（自检 SC-15 补索引） |
 | DEC-57 / DEC-58 / DEC-59 / DEC-60 | Q-38…41 全 A + 质量优先条款 / CG0 门④措辞 + 双 HLD / Q-42 三项按建议值 / Q-43 五项按建议值 | decisions.md | 生效 |
+| DEC-61 | Q-44 ES8311 三子项按建议值（owner 泛指令先例） | decisions.md | 生效 |
 
 ## 2. 任务与里程碑
 
@@ -306,3 +309,5 @@
 - 2026-10-10 · **P4 无线面批登记**：esp_hosted（Zephyr 4.5 驱动族：drivers/misc/esp_hosted_mcu〔RPC/SDIO 传输〕+ drivers/wifi/esp_hosted〔WiFi 管理栈对接〕）；esp-hosted-mcu v3.0.9（C6 协处理器固件仓库——owner Windows EIM 环境构建，工作副本 D:/Software/project/esp_hosted，仓外）；STREAM/PACKET/SW_AGGR（C6 SDIO datapath 三态——Zephyr host 语义 = STREAM，定值入 cp sdkconfig.defaults.esp32c6）；flash_c6.bat / build_c6.bat（C6 构建烧录脚本，仓外 esp_hosted 工作副本）；eh_cp_wifi_sta（cp 工程产物名）；CH340@COM9（owner 的 C6 烧录/console 串口工具）。消费：P4 无线面（半程——数据面缺陷定案登记 decisions）。
 
 - 2026-10-15 · **自检 SC-15**：§1 补登 DEC-39…60 / Q-20…43 索引（区间行——此前批次漏登）；§2 补 V0.8.0 生态批行；§5 补 EC 批 API 族行。
+
+- 2026-10-16 · **§11f 板级/形态/Agent 批登记**：TS_APP_PSRAM_LOAD_BUF / TS_APP_PSRAM_VERIFY_BUF（Kconfig——大档装载/验签缓冲 PSRAM 化，K5）；ESP_SPIRAM_HEAP_SIZE 板级抬升（atk 4MB）；ts_periph 自报面（caps peripherals 数组，F4）；akcodec（atk 外设 uid）；AK7-AK9/AKF1-AKF2/AKC/AKL（atkbench console 判据行族：SD 挂载/peripherals 注册/合成 force/本地 estop 清除/arb 席位）；deploy.post_deploy_check + diag.capture_window（G2/D3 部署后诊断自动回喂）；LnRegistry(persist_path) + TESSERA_LNO_REGISTRY（G1/D1 注册表持久化 + env 重定向）；D-AK4（demo——资源推送消费端）；akbench（第二板载体——dnesp32s3b）。消费：Q-44/DEC-61、plan §11f。

@@ -1,4 +1,4 @@
-# HLD · Tessera 固件框架 v0.2.2（草案，待 owner 确认）
+# HLD · Tessera 固件框架 v0.3
 
 > **状态**：v0.2.2（修订至 2026-09-21 §3.4 APP 线程模型；本行由滞后 v0.2 更正——自检 SC-10）。（2026-09-20 经 design review-01 深化：新增 ts-store 模块、输入遥测、sys 命令面、断链恢复语义、关键场景时序、内存预算、V1 裁剪清单——DR-01…17 处置见 `design-review-01.md`）。依流程 §2.4 须 owner 确认后方可进入 impl；配套待裁批次 **Q-03…Q-11**（见 `decisions.md`），本文所有标注〔Q-xx〕处均为未裁默认值/选型，**不得先于裁决进入代码**（军规 2）。
 > **输入**：DEC-01…18（`decisions.md`）、安全与确定性合同（`AGENTS.md` §6）、R1/R2 调研 v0.2（`docs/research/`）。
@@ -68,6 +68,7 @@
 ### 3.3 ts-hal
 
 - 外设类 API（V1）：`gpio`（读/写）、`pwm`、`adc`（输入）、`counter`、`power`（经 ts-power）。接口为板无关抽象（DEC-04：APP 不见具体硬件）。
+  - **v0.3 现状注记**：已实现 natives = gpio/pwm/adc/time/log/fs×4/av 采集+发布+音频输出/kv×2/net_publish/thread×2（17 面，LLD-ts-hal §3）；`counter` / `power_set` / `ts_msg_send` 未实现（登记待追加——§9 对照表）。
 - **权限执行点**：每个 ts-hal 调用携带调用者 APP 上下文；对照 manifest 能力裁决，越权 → 拒绝 + 留痕（合同 10）。
 - 外设描述符（ts-periph 配合）：可插拔外设 = 描述符（类/实例/能力/安全参数）注册进框架；未注册外设不可寻址。
 - **输入采集（input monitor，DR-02）**：sysworkq 周期轮询输入实例（gpio-in / adc），值变化 → 发 `TS_EVT_INPUT_CHANGED` 并经 ts-net 发布遥测（周期〔DEC-27 #14〕；V1 无硬件中断驱动）。
@@ -77,6 +78,7 @@
 - 包格式〔DEC-21〕：`wasm 模块 + manifest(CBOR) + COSE-Sign1(ed25519) 签名`单文件容器；manifest 含版本、最低框架版本、能力清单。
 - 验签：根公钥在安全参数分区（烧录期写入，运行时只读）；验签失败 → 拒装 + 留痕。
 - 存储〔DEC-23〕：双 APP slot（a/b）+ meta 区（当前版本指针、回滚计数）；A/B 切换保证回滚原子性。
+  - **v0.3 现状注记**：已演进为槽池 N×（板级 4×512KB）+ meta v2 多 entry + 槽池寻址（Q-32/DEC-53）；tier 分档（small 16K/large 256K，Q-39）与 threads 门控真多线程（DEC-55）已实现。
 - 加载：WAMR 实例化时按 manifest 能力**子集注册** `ts_*` 导入函数（白名单式绑定 = 权限硬边界，DEC-04/合同 10）；WASI 全集默认关〔DEC-25：fast 解释器，AOT 留作构建选项〕。
 - APP 线程模型〔DEC-31〕：每 APP 单线程、**禁止自建线程**（WAMR 线程特性编译期禁用，ts_api_v1 无创建导入）；并发 = 事件模型 + APP 间并行（多核 SMP）；预留 manifest v2 `threads` 字段扩展（V1 不实现）。
 - 健康探针：框架周期 ping APP 导出的 `app_health_ping`；超时 → 卸载 + 回滚 + 计数；计数超限 → 拒载该版本并留痕（防回滚循环）。
@@ -101,6 +103,7 @@ tessera/<node>/<cube>/<class>/<instance>/<action>
 - **心跳监视（断链判定）**〔DEC-22：参数**部署期可配（prov）**；出厂默认间隔 1000ms、阈值 6、检测上界 ≈6s（考虑超长物理链路），WDT 独立 10s；M3 长链路场景标定〕：逾期 → 通知 ts-safety → 全输出进断链态（本地决策，不发网络确认）；输入流继续。
 - **断链恢复语义（DR-04）**：恢复仅解除写入封锁，输出不自动回写——防恢复瞬间意外动作（详见 §4.2）。
 - **sys 命令面（v1，DR-03；授权模型〔DEC-30①〕）**：`get-info / get-link / get-safety / get-budget / get-audit / set-time / estop-clear`——**host-only**（APP 能力文法不可达），estop-clear 需确认令牌；细见 LLD-ts-net §4。
+  - **v0.3 现状注记**：已扩至 22 条（+租约族/分块安装链 fs-族/trust-族/get-app 全景/幂等回放——LLD-ts-net §4 表）；租约准入（DEC-41）与 v2 信封（DEC-42）在案。
 - 密钥/证书：烧录期安全参数区；运行时不改（合同 10）。
 
 ### 3.6 ts-power / ts-periph
@@ -207,6 +210,8 @@ Flash（按板可配，DEC-23）：bootloader 64KB ｜ 固件 slot ×2 ｜ APP s
 
 ## 7. 里程碑分解（退出均须 owner review）
 
+> **v0.3 注记**：M0-M3 已全部完成并远超退出条件（native_sim 全链 → 两块真机板：无线部署/双 APP/OTA/SD/摄像头/双 codec 音频/信任链 E2E/资源推送/large 全链/双板 LN 均真机点亮）；此后历经 V0.1.0-V0.8.0 六个版本批（编程链完整性→视频链→语义扩展〔多 APP〕→通用域解放〔Agent 创作循环/合同泛化/多开发者信任链〕）与 §11f 板级/形态批——逐批登记见 decisions.md 与 plan §9-§11f。
+
 | 里程碑 | 内容 | 退出条件（DoD） |
 |---|---|---|
 | M0 | west 工作区 + native_sim 空模块 + CI 骨架（twister+pytest） | CI 绿；机械检查脚本骨架上线 |
@@ -220,3 +225,33 @@ Flash（按板可配，DEC-23）：bootloader 64KB ｜ 固件 slot ×2 ｜ APP s
 - v0.2 · 2026-09-20：design review-01 深化——新增 ts-store 模块行、§4.5 关键场景时序、§4.6 内存预算、sys 命令面、输入采集、断链恢复语义、V1 裁剪清单（DR-01…17 处置）。
 - v0.2.1 · 2026-09-21：裁决同步（DEC-19…30）——出处标注收敛、WDT 旧值 5s 修正为 DEC-22 的 10s（SC-02/SC-04）。
 - v0.2.2 · 2026-09-21：owner 问询——§3.4 补 APP 线程模型（Q-13 提案：单线程/禁自建/三层限制）。
+- v0.3 · 2026-10-16：**实现现状对照批**（owner 指令「按目前实现更新文档」）——§3.3/§3.4/§3.5/§7 增现状注记；新增 §9 设计-实现对照表（含未实现项清单与后续计划指针 plan §11g）。
+
+## 9. 设计-实现对照表（v0.3 · 2026-10-16）
+
+> 逐项对照本文设计与已交付实现；「未实现」项全部有登记出处，后续计划见 plan §11g。
+
+| 设计项 | 出处 | 实现状态 |
+|---|---|---|
+| ts-core 初始化编排/事件总线/单调时间 | §3.1 | ✅（+ 四层看门狗防线 DEC-48——超出本文） |
+| ts-safety 三态/唯一写路径/estop ISR/fail-safe | §3.2 | ✅（+ 部署模式/控制源仲裁〔合同 11 级，CG 批〕超出本文） |
+| ts-hal gpio/pwm/adc | §3.3 | ✅ 真机后端（LEDC/ADC 寄存器级验证） |
+| ts-hal counter 类 | §3.3 | ❌ 未实现（无消费者牵引——plan §11g 候选） |
+| ts-hal power → APP native（power_set） | §3.3 | ◐ ts-power 模块已交付（槽/限流/预算），native 未暴露 |
+| ts-msg_send APP 间消息 | §3.4 | ❌ 未实现（多 APP 现以事件广播 + 遥测订阅交互——plan §11g 清欠首选） |
+| 输入监视 input monitor | §3.3 | ✅ 且升级为中断驱动（M5/DR-02，超出本文轮询设计） |
+| ts-appmgr 包格式/验签/回滚/健康探针 | §3.4 | ✅（+ TSAP v2 sha256 摘要、多根信任链〔EC 批〕、隔离拒载——超出本文） |
+| ts-appmgr 双 slot | §3.4 | ✅ 演进为槽池 4×512KB + 多 APP 并行（Q-32/DEC-53，真机双 APP PASS） |
+| ts-appmgr 单线程禁自建 | §3.4 | ✅ 演进：threads 申报制 + 门控真多线程（DEC-55，真机 DT PASS） |
+| WASI 关 / AOT 预留 | §3.4 | ✅ 按裁（DEC-25/31） |
+| ts-net client→router 命名空间/命令/心跳/断链 | §3.5 | ✅ 真机（+ 租约准入 DEC-41/幂等回放 DEC-40/QoS 映射 DEC-42） |
+| ts-net TLS 显式开启 | §3.5 | ❌ 预留未启用（DEC-40 TCP 底线；plan §11g 候选） |
+| sys 命令面 7 条 | §3.5 | ✅ 扩至 22 条（安装链/资源推送/信任/租约/全景） |
+| ts-power 供电槽语义 | §3.6 | ✅（sim 桩 + 真机预算上报） |
+| ts-periph 描述符/插拔 | §3.6 | ✅（+ caps peripherals 自报——F4） |
+| ts-store 分区/meta/prov/noinit | §3.3 表 | ✅（+ kv 乒乓压实/审计 flash 环/信任表乒乓——超出本文） |
+| OTA（MCUmgr 底线） | Q-09 | ✅ 真机全链（v1→上传→swap→v2） |
+| APP 并行走多核 SMP | §3.4 | ◐ 单核 rt[N] 多实例交付；SMP 维持裁剪（语义已满足） |
+| native_sim 全模块可运行 + 重放框架 | §5 | ✅（16 套件 108 用例；simreal_diff 对拍） |
+| 机械检查 | §5 | ✅ 7 项（本文 5 项 + slot 收口 + prov 零写）CI 强制 |
+| 真机板（超出本文 DoD） | §7 | ✅ 双板在线（xiao + dnesp32s3b）——无线部署/音频/SD/信任/资源/large/LN 全真机判据 |

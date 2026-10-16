@@ -94,6 +94,11 @@ cd ~/project/tessera/agent && python -m pytest tests/ -q && python -m ruff check
 | DP / DT | PDM 音频全链 / 真 wasm 多线程（原子共享 + join） | 真机 PASS |
 | MA / NVD / AG7 | 多 APP 并行 / 新机全链 NVD / 真 LLM 多文件工程收敛 | 真机 PASS |
 | CG7 | V0.7.0 合同泛化 spot check（caps 自报 + 预检消费 + 部署全链） | 真机 PASS |
+| AK AUDIO | ES8311 全 codec 音频输入输出（第二板 dnesp32s3b） | 真机 PASS |
+| AK3 TRUST | 多开发者信任链 E2E（注册→多根部署→防回滚→撤回，无线） | 真机 PASS |
+| AK4 RES | net+SD 资源推送（sha256 读回校验 + APP 消费端字节命中） | 真机 PASS |
+| AK5 LARGE | 206KB wasm 大档全链（板上验签 412KB 包 + PSRAM 装载 + 运行） | 真机 PASS |
+| AK6 LN | 双板逻辑节点编排（扇出部署 + 聚合状态双 ACTIVE） | 真机 PASS |
 
 ## 安全与确定性合同（摘要，全文 `AGENTS.md` §6）
 

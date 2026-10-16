@@ -221,6 +221,55 @@
 
 **事实修正登记**：树内板文档称 NS4168 codec——实为 ES8311 codec + NS4168 功放（owner 原理图核实）；两音频输入源（ES8311 ADC / PDM 麦克风）共享数据引脚 IO47（分时互斥——K2 设计输入选型依据）。
 
+## 11g. 后续开发计划（2026-10-16 定稿——owner 指令「按目前实现更新文档/检查代码/明确列出后续计划」）
+
+> 基线：§11f 全批收口（K3-K6 + F1/F2/F4 + G1-G3 + F6 根治，回归全绿，c8a7ee8）。本节为**当前唯一有效的待办权威清单**——按优先级/依赖分组；凡涉设计取舍的门③项均标明。
+
+### A. 清欠批 P1（HLD 设计内未实现项——建议下一批，无门③依赖）
+
+| 序 | 单元 | 内容 | 规模 | 备注 |
+|---|------|------|------|------|
+| P1-1 | `ts_msg_send` APP 间消息 | 框架路由 + `app/<appid>/**` 键隔离 + msg 权限类 + 白名单/native + Agent 镜像 + 用例（多 APP 实例互发真机判据可复用 multiappbench） | ~1 单元 | HLD §3.4 原设计项；多 APP 业务的最后一环 |
+| P1-2 | zenoh TLS 链路 | `Z_FEATURE_LINK_TLS` 开启 + 证书入 prov 安全区 + 双端联调（zenohd TLS 监听）+ 命令面 locator 纪律（DEC-40 扩展） | ~1 单元 | 远程部署安全面（公网/跨网段场景前置）；环境依赖 = 证书流程设计（可批内呈递小 Q） |
+| P1-3 | `power_set`/`power_get` native | ts-power 槽暴露给 APP（power 权限类 + 预算联动语义：APP 自申请槽位） | ~0.5 单元 | 与 P1-4 可并 |
+| P1-4 | `counter` 外设类 | 评估实际需求后定：无消费者 → 维持裁剪登记（HLD 对照表 ❌ 项清账） | ~0.5 单元或裁剪 | 建议先评估（GPIO 中断计数已有 input monitor 覆盖近似语义） |
+| P1-5 | Agent S8 补全（部署失败自动再入修复轮） | 判据 miss → post_deploy_check 证据 → 自动作为修复轮回注 A08 循环（预算内）——把 repair_loop 接进创作循环的 FAILED→REPAIRING 转移 | ~0.5 单元 | 组件全在（repair_loop/diag/D3），只差状态机接线 |
+
+### B. 待 owner 裁决/动作项（非开发批）
+
+| 项 | 等什么 |
+|---|--------|
+| Q-46（F3 本地确认路安装闸） | 五子项裁决（呈递在 decisions.md——固件侧挂起态/呈现面/手势模态/60s fail-closed/工作量 2.5 单元） |
+| F1/F2 按键手势物理判据 | owner 按一下 BOOT 键（AKL/AKF/AKC 判据线已就位——本地路安全属性不设远程触发） |
+| 版本 tag | §11f 批的 tag 命名/review（板级+形态批不属版本批惯例——owner 定夺是否 tag 或并入下一版本） |
+| G3 余项 gcov 基线 | CI 基建决策（CONFIG_COVERAGE + native_sim 宿主构建联动——随 CI 强化单独评估） |
+
+### C. 环境挂起项（外部依赖，不占批）
+
+| 项 | 挂起原因 |
+|---|---------|
+| 上游 Zephyr v4.5.0 正式版平移 | 正式版未发布（rc1 在用；owner 明确本项除外）——发布后 1-2 会话平移 + workaround 回收 |
+| P4 板无线面 | Zephyr esp_hosted 上游数据面缺陷（issue #121767 在案）——上游回复后复测 |
+| P4 摄像头帧证据 | 待 owner 物理检查排线（xiao sense 板） |
+
+### D. Agent 侧候选（CLI 调研批九候选余项——随 owner 点向，建议序 = 调研排序）
+
+| 候选 | 内容 | 现状 |
+|------|------|------|
+| D2 计划/进度工具 | LN/任务计划外显（plan/todo 结构化——循环已有内部计划跟踪，此为 MCP 可观测化） | 未做（候选②） |
+| D4 hooks 拦截面 | MCP 工具调用前/后钩子（诊断自动注入等——2026 四家 CLI 收敛面） | 未做（候选④） |
+| D5 决策链回放器 | 审计流 → 时间线回放（决策溯源 UI） | 未做（候选⑥） |
+| D6 MCP 客户端 | Agent 作为 MCP client 消费外部工具服务器 | 未做（候选⑦——与 A2A 同等"真实消费者出现再启"） |
+| D7 问询双向化 | 终端门面问询 → MCP 客户端问询透传 | 未做（候选⑧） |
+| ~~多代理/通用文件工具面~~ | — | 调研建议不做（维持） |
+
+### E. 长期方向（既有登记维持）
+
+- 多域 DomainPack（PCB/结构件域 agent——CreationVerifier 第二实现；DEC-33 北极星）
+- A2A/ACP 协议接入（缝保留，真实消费者出现再启）
+- 生产化批（安全认证路径/量产烧录流水线——owner 点向后规划）
+- SMP 多核 APP 并行（维持裁剪：rt[N] 单核已满足语义——需求实据出现再评估）
+
 ## 12. 执行纪律（v1.70 增补质量优先条款）
 
 - **质量优先（DEC-57，owner 2026-10-13 指令原文精神）**：**不允许最简实现**——各交付单元的设计与实现须考虑整体架构、后续可维护性与架构可扩展性；现方案不能很好满足目标时，**停批与 owner 确认讨论重新选择方案或技术**，不得静默绕行或降级实现。
@@ -231,6 +280,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.90 · 2026-10-16：**文档对齐实现批（owner 指令：更新文档/检查代码/列后续计划）**——HLD-firmware v0.3（§3.3/§3.4/§3.5/§7 现状注记 + **§9 设计-实现对照表**〔设计项逐项 ✅/◐/❌ + 登记出处〕）；HLD-agent v0.2.1（AG1-8 完成态 + D1/D3 + S8 半步注记）；README demo 表补 §11f 六项真机判据；names.md 补 Q-44/Q-46/DEC-61 索引 + 本批标识符登记（TS_APP_PSRAM_LOAD_BUF/VERIFY_BUF、post_deploy_check、capture_window、TESSERA_LNO_REGISTRY、D-AK4、AK7-AK9/AKF/AKC/AKL）；**§11g 后续开发计划定稿**（A 清欠批 P1-1…P1-5 / B 待 owner 四项 / C 环境挂起三项 / D Agent 候选五项随点向 / E 长期方向）。代码核查：twister 16/16（108）/agent 195+2s/repo 5/L5 7/7/ruff/sync 全绿 + 模块零 TODO + [q] 观测面注释按 F5 定案收口。
 - v1.89 · 2026-10-16：**K6 交付（多真机 LN E2E AK6 LN PASS）**——双 cube（dbn/dbc @ xiao + akn/akc @ atk）LN 组全链：ln_create → ln_deploy 扇出（同包双板 confirmed）→ ln_status 聚合（双 ACTIVE + degraded_members 空）；xiao deploybench 以当前模块重刷（F1/F5 修复平移 + 凭据 cmake 重注入——prov 随重刷重建教训）；atk 侧 ESP_SPIRAM_HEAP_SIZE 1MB→4MB（SMH 外部区三笔分配 512K+256K+420K 超 1MB 实证）。
 - v1.88 · 2026-10-16：**K4+K5 交付（net+SD 资源推送 E2E + large 档板级全链）**——① SD 上板一次通（SPI2 引脚表权威 + sdhc-spi-slot + AK7 挂载行）；② K4 AK4 RES PASS（CG5-B 资源推送真机闭环：needs.resources 白名单 + fs-commit sha256 读回 + APP 消费端字节命中）；③ K5 large 全链（206KB wasm/412KB 包编译-验签-安装-激活-PSRAM 装载-512KB 池实例化-运行-消费；caps 自报 [small,large]/1024KB 槽池）；④ 三处大包边界缺陷根治（cbor put_bool 0xE1→0xF5 + read_head 4B 长度 + Sig_structure 0x5A 4B 头——F5 同族）；⑤ 新面 TS_APP_PSRAM_LOAD_BUF/VERIFY_BUF（HLD §4.6 沙箱域纪律）；⑥ **F6 根治**：200 分块流 APPMGR WDT 楔死（APP 线程卡 printk——日志面×flash 争用，F1 家族变体待专项）。D-AK4 demo 入仓。
 - v1.87 · 2026-10-16：**K3 交付（信任链真机 E2E AK3 TRUST PASS）+ 四发现定案**——F2 平反（无 zenoh-python 竞态：昨晚空回执 = 板掉线〔DHCP 间歇 F4 + F1 楔死〕+ 夜间探针 key 缺 tessera/ 前缀自坑）；F1 根因定案（失败提交循环 → 异常审计 flash 下沉风暴反噬 net_wq 喂狗 → NET WDT 循环——擦 APP 对照实证）双修正（锁外持久化 + 1Hz 节流）；F5 回执编码双缺陷（trust-get 漏 "keys" 键 + wrap_reply 空 data 零字节值）根治；F4 DHCP 间歇（atkbench 静态回退）；ZenohService scouting/gossip 关断加固 + zenohd 隔离模式（--no-multicast-scouting）环境纪律。回归 twister/agent/ruff 随批复验。

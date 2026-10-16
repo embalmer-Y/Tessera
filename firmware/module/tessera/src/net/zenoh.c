@@ -143,7 +143,8 @@ static void on_query(z_loaned_query_t *query, void *ctx)
 
 	(void)ts_net_cmd_dispatch(suffix, req, (uint32_t)rlen, resp, sizeof(resp),
 				  &resp_len);
-	/* F5 诊断插桩（K3 夜间）：确定性空回执定位——保留至根因定案 */
+	/* 常设观测面（F5 已定案后留任）：sys 命令为部署级低频面，
+	 * 每命令一行后缀/长度记录 = 排障第一落点（K3 空回执排查实证价值）。 */
 	printk("[q] %s rlen=%u resp_len=%u\n", suffix, (unsigned)rlen,
 	       (unsigned)resp_len);
 	/* 回执（reply key = 查询 key 原样回显）。

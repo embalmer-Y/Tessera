@@ -1,4 +1,4 @@
-# HLD · Tessera Agent（AI 开发 Agent）· v0.2
+# HLD · Tessera Agent（AI 开发 Agent）· v0.2.1
 
 > **状态**：v0.2 深度修订（2026-10-13，DEC-56/57 通用域解放批：双角色 + 智能内化 + 质量优先条款——本文按「不允许最简实现」标准重写架构层）。输入：DEC-11/12 v1.1、DEC-56/57、Q-38 全 A、R6（agent-cli-research-01 映射）+ R7（工程链事实）。
 > **输入（承继已裁）**：DEC-33（多域北极星）/DEC-34/35/36/37/38（原 v0.1 决策链全部维持）。
@@ -129,6 +129,8 @@ PolicyTable 条目可选 `allow`/`deny` 参数规则（如 `deploy_push_app: {cu
 
 ## 7. 里程碑（v0.2：Agent 批 AG 单元；MA0…3 已完成）
 
+> **v0.2.1 现状注记（2026-10-16）**：AG1-AG8 全部完成（fw-v0.6.0 已 tag；AG7 真 LLM 四轮收敛多文件工程真机点亮）。此后续批：CG（合同泛化消费）/EC（生态）按 HLD-contract-v2 落地；§11f Agent 批追加 **D1 任务链持久化**（LnRegistry JSON 落盘/恢复/降级 + env 重定向——本文 M16 内存态注册表的"持久化再议"兑现）与 **D3 诊断自动回喂**（post_deploy_check：部署后健康检查 → 被动抓取 + 分类 → category/repair_hint/evidence 入部署回执；deploy_push_app 增 post_check_s/serial_port 直参）。**S8（部署判据 miss → 自动作为修复轮回注循环）为半步状态**：repair_loop/diag_classify/D3 组件齐备，端到端自动再入未串联——plan §11g 候选。
+
 | # | 单元 | 内容 | 依赖 | 退出标准 |
 |---|---|---|---|---|
 | AG1 | LLD-A08/A09 定稿 + A01/A02 修订 | 循环引擎/工作区/快照/终端门面规格 + 审批参数规则规格 | 本 HLD（owner 确认） | LLD 批确认（门③） |
@@ -159,6 +161,7 @@ PolicyTable 条目可选 `allow`/`deny` 参数规则（如 `deploy_push_app: {cu
 
 ## 修订记录
 
+- v0.2.1 · 2026-10-16：实现现状对照批（owner 指令）——§7 增完成态注记（AG1-8 ✅ + D1/D3 交付 + S8 半步登记）。
 - v0.2 · 2026-10-13：**DEC-56/57 深度修订**——双角色定稿（A09 终端门面 = Frontend 第二实现）；新增 A08 创作工作区（域无关循环引擎 + CreationVerifier 域插件 + 工作区模型 + 会话快照）；§5.2 创作/交付边界（交付门清单一条不撤）；S2'/S6-S8 场景；AG1-8 里程碑（fw-v0.6.0）。质量优先条款（DEC-57）贯彻：循环引擎域无关/快照原子写/审批两门面同源。
 - v0.1.1 · 2026-09-22：Q-19 → DEC-38 同步（§9 裁剪清单）。
 - v0.1 · 2026-09-22：初版。
