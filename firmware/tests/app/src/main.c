@@ -12,6 +12,9 @@
 #include <ts/appmgr.h>
 #include <ts/core.h>
 #include <ts/hal.h>
+#ifdef CONFIG_TS_PERIPH
+#include <ts/periph.h> /* F4：peripherals 自报测试注册 */
+#endif
 #include <ts/safety.h>
 #include <ts/store.h>
 #include <ts/tsap.h>
@@ -495,6 +498,14 @@ ZTEST(framework_app, test_11_get_info_caps)
 
 	ts_net_cmd_test_reset();
 	zassert_equal(ts_net_cmd_sys_init(), TS_OK);
+#ifdef CONFIG_TS_PERIPH
+	/* F4：注册一枚测试外设（peripherals 自报面非空判定） */
+	const ts_periph_desc_t f4p = {
+		.uid = "f4adc", .kind = TS_PK_ADC, .dt_spec = NULL,
+	};
+
+	zassert_equal(ts_periph_register(&f4p), TS_OK);
+#endif
 	zassert_true(ts_cbor_put_map(req, sizeof(req), &p, 1));
 	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "op"));
 	zassert_true(ts_cbor_put_tstr(req, sizeof(req), &p, "get-info"));
@@ -554,6 +565,31 @@ ZTEST(framework_app, test_11_get_info_caps)
 				zassert_true(ts_cbor_uint(rr, &dummy));
 				zassert_equal(dummy, (uint64_t)CONFIG_TS_STORE_SLOT_SIZE *
 						       CONFIG_TS_STORE_SLOT_COUNT / 1024);
+			} else if (strcmp(tk, "peripherals") == 0) {
+				/* F4：自报外设数组——本套件 TS_PERIPH=y
+				 * （adc/gpio 注册 ≥1）；逐项 uid:kind 形态。 */
+				uint32_t nper;
+
+				zassert_true(ts_cbor_array_open(rr, &nper));
+				zassert_true(nper >= 1, "sim 外设注册 ≥1");
+				for (uint32_t k = 0; k < nper; k++) {
+					uint32_t pp2;
+					char uk[12], kk2[8];
+
+					zassert_true(ts_cbor_map_open(rr, &pp2));
+					zassert_equal(pp2, 2);
+					zassert_true(ts_cbor_tstr(rr, uk, sizeof(uk)));
+					zassert_true(strcmp(uk, "uid") == 0);
+					zassert_true(ts_cbor_tstr(rr, uk, sizeof(uk)));
+					zassert_true(uk[0] != '\0');
+					zassert_true(ts_cbor_tstr(rr, kk2, sizeof(kk2)));
+					zassert_true(strcmp(kk2, "kind") == 0);
+					zassert_true(ts_cbor_tstr(rr, kk2, sizeof(kk2)));
+					zassert_true(strcmp(kk2, "adc") == 0 ||
+						     strcmp(kk2, "gpio") == 0 ||
+						     strcmp(kk2, "pwm") == 0 ||
+						     strcmp(kk2, "power") == 0);
+				}
 			} else {
 				zassert_true(false, "caps 未知键");
 			}

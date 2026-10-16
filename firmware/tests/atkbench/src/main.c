@@ -25,6 +25,9 @@
 #include <ts/appmgr.h>
 #include <ts/core.h>
 #include <ts/hal.h>
+#ifdef CONFIG_TS_PERIPH
+#include <ts/periph.h> /* F4：peripherals 自报 */
+#endif
 #include <ts/net.h>
 #include <ts/safety.h>
 #include <ts/store.h>
@@ -461,10 +464,44 @@ int main(void)
 		printk("AK FAIL pwm init\n");
 		return 1;
 	}
+	/* F4：输出通道/设备经 periph 责任链单源注册（直连双注册与链注册
+	 * uid 撞表——链自含 safety 通道 + hal 寻址） */
+#ifndef CONFIG_TS_PERIPH
 	(void)ts_safety_register_channel(&ak_led);
 	(void)ts_hal_register_dev(&ak_dev);
 	(void)ts_safety_register_channel(&ak_pwm);
 	(void)ts_hal_register_dev(&ak_pwm_dev);
+#else
+	ARG_UNUSED(0);
+	/* F4：peripherals 自报注册（caps 块——板载外设清单） */
+	static const ts_periph_desc_t ak_periphs[] = {
+		{.uid = "akled", .kind = TS_PK_GPIO, .dt_spec = NULL,
+		 .safe = {.uid = "akled", .kind = TS_CH_GPIO,
+			  .poweron = {.b = false}, .linkloss = {.b = false},
+			  .fault = {.b = false}}},
+		{.uid = "akpwm", .kind = TS_PK_PWM, .dt_spec = NULL,
+		 .safe = {.uid = "akpwm", .kind = TS_CH_PWM,
+			  .poweron = {.u = PWM_PACK(1000, 0)},
+			  .linkloss = {.u = PWM_PACK(1000, 0)},
+			  .fault = {.u = PWM_PACK(1000, 0)},
+			  .limits = {.min = PWM_PACK(1000, 0),
+				     .max = PWM_PACK(1000, 700),
+				     .slew_per_ms = 0}}},
+#ifdef CONFIG_TS_DRV_ES8311
+		{.uid = "akcodec", .kind = TS_PK_ADC, .dt_spec = NULL},
+#endif
+	};
+
+	int prc = 0;
+
+	for (size_t pi = 0; pi < sizeof(ak_periphs) / sizeof(ak_periphs[0]); pi++) {
+		int r = ts_periph_register(&ak_periphs[pi]);
+		if (r != TS_OK) {
+			prc = r;
+		}
+	}
+	printk("AK9 peripherals 注册 rc=%d（caps 自报面）\n", prc);
+#endif
 	/* K4：SD 挂载（dsdbench 同型）——ts-fs 面（fs natives + fs_paths 门）
 	 * 与 CG5-B 资源推送（sys/fs-* 命令）的前提。资源根目录幂等创建。 */
 	static FATFS ak_fat;

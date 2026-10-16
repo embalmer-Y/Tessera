@@ -17,6 +17,9 @@
 #include <ts/core.h>
 #include <ts/hal.h>
 #include <ts/net.h>
+#ifdef CONFIG_TS_PERIPH
+#include <ts/periph.h> /* F4：peripherals 自报（caps 块） */
+#endif
 #include <ts/power.h>
 #include <ts/safety.h>
 #include <ts/store.h>
@@ -82,6 +85,13 @@ static ts_res_t cmd_get_info(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap,
 	const bool large_ok =
 		CONFIG_TS_APP_LOAD_MAX >= CONFIG_TS_APP_SIZE_GATE_LARGE;
 
+	/* F4（设备形态批）：peripherals 自报——注册表全量 uid:kind（Agent 侧
+	 * 透传消费；无条件出——无外设 = 空数组，形态确定）。 */
+	size_t pn = 0;
+
+#ifdef CONFIG_TS_PERIPH
+	pn = ts_periph_count();
+#endif
 	if (!ts_cbor_put_map(r, cap, &p, 6) ||
 	    !ts_cbor_put_tstr(r, cap, &p, "fw") ||
 	    !ts_cbor_put_tstr(r, cap, &p, CONFIG_TS_FW_VERSION) ||
@@ -94,7 +104,7 @@ static ts_res_t cmd_get_info(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap,
 	    !ts_cbor_put_tstr(r, cap, &p, "wall_ms") ||
 	    !ts_cbor_put_uint(r, cap, &p, ts_time_wall_ms()) ||
 	    !ts_cbor_put_tstr(r, cap, &p, "caps") ||
-	    !ts_cbor_put_map(r, cap, &p, 3) ||
+	    !ts_cbor_put_map(r, cap, &p, 4) ||
 	    !ts_cbor_put_tstr(r, cap, &p, "tiers") ||
 	    !ts_cbor_put_array(r, cap, &p, large_ok ? 2U : 1U) ||
 	    !ts_cbor_put_tstr(r, cap, &p, "small") ||
@@ -104,9 +114,27 @@ static ts_res_t cmd_get_info(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap,
 	    !ts_cbor_put_tstr(r, cap, &p, "slot_pool_kb") ||
 	    !ts_cbor_put_uint(r, cap, &p,
 			      (uint64_t)CONFIG_TS_STORE_SLOT_SIZE *
-				      CONFIG_TS_STORE_SLOT_COUNT / 1024)) {
+				      CONFIG_TS_STORE_SLOT_COUNT / 1024) ||
+	    !ts_cbor_put_tstr(r, cap, &p, "peripherals") ||
+	    !ts_cbor_put_array(r, cap, &p, pn)) {
 		return TS_E_IO;
 	}
+#ifdef CONFIG_TS_PERIPH
+	static const char *pk_names[] = {"gpio", "pwm", "power", "adc"};
+
+	for (size_t pi = 0; pi < pn; pi++) {
+		const ts_periph_desc_t *pd = ts_periph_get(pi);
+
+		if (pd == NULL || (unsigned)pd->kind > 3 ||
+		    !ts_cbor_put_map(r, cap, &p, 2) ||
+		    !ts_cbor_put_tstr(r, cap, &p, "uid") ||
+		    !ts_cbor_put_tstr(r, cap, &p, pd->uid) ||
+		    !ts_cbor_put_tstr(r, cap, &p, "kind") ||
+		    !ts_cbor_put_tstr(r, cap, &p, pk_names[pd->kind])) {
+			return TS_E_IO;
+		}
+	}
+#endif
 	*n = p;
 	return TS_OK;
 #else
