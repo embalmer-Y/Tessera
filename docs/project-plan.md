@@ -207,8 +207,8 @@
 | K1 | atkbench bring-up | dnesp32s3b 目标 + 五分区/trust 分区 + WiFi/zenoh + WAMR XTENSA 映射 + 部署链 PASS（第二 cube 就位） | — |
 | K2 ✅ | ES8311 音频 | 域内驱动（I2C 控制 + I2S 数据）：输入对齐 av pcm16 + **音频输出新面**（ts_av_write native + av:write 权限类 + manifest av_srk 采样率声明） | 门③ ✅ Q-44→DEC-61（av_srk 实施简化：V1 固定 16k——字段留需求实证后加；真机 AK AUDIO PASS）|
 | K3 ✅ | 信任链真机 E2E | ts_trust 分区上板 + 无线注册/撤销/防回滚时间线 + 多根实机安装（**AK3 TRUST PASS**：T0 基线/T1 未注册拒/T2 注册/T3 多根部署装载/T4 防回滚/T5 全撤回/T6 复拒/T7 终态全绿——证据 ak3_trust_driver/console.txt；F1 审计下沉双修正 + F5 回执编码双缺陷根治随批） | — |
-| K4 | net+SD 资源推送 E2E | atkbench 直兼（板自带 SD SPI2 + WiFi）——fs 分区挂载 + push_resources 真机 | — |
-| K5 | large 档板级配置 | LOAD_MAX/SLOT_SIZE 抬升 + 内存账重平 + large 全链 | — |
+| K4 ✅ | net+SD 资源推送 E2E | atkbench 直兼（板自带 SD SPI2 + WiFi）——fs 分区挂载 + push_resources 真机（**AK4 RES PASS**：large 包 needs.resources 白名单 + fs-commit sha256 verified + APP 消费端字节命中；证据 ak45_console.txt） | — |
+| K5 ✅ | large 档板级配置 | LOAD_MAX/SLOT_SIZE 抬升 + 内存账重平 + large 全链（**206KB wasm→412KB 包全链**：512KB 槽×4 + 装载/验签缓冲 PSRAM 化〔TS_APP_PSRAM_LOAD_BUF/VERIFY_BUF 新面〕+ 512KB WAMR 池 + COSE 4B 长度头族修复〔read_head/Sig_structure〕+ put_bool RFC 修正；F6 分块流楔死登记——日志面 printk×flash 争用） | — |
 | K6 | 多真机 LN | deploybench + atkbench 双 cube：LN 组部署/断链策略/跨板判据 | — |
 | F1 | 本地交互源 | 按键（BOOT/扩展器 KEY）→ arb LOCAL 席位 + 压制 + 事件（CG3 机制接线） | — |
 | F2 | 本地 estop 清除 | KEY → clear_fault + prov estop_remote_clear 出厂缺省翻 disabled（ISO 13850 偏离撤销） | — |
@@ -231,6 +231,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.88 · 2026-10-16：**K4+K5 交付（net+SD 资源推送 E2E + large 档板级全链）**——① SD 上板一次通（SPI2 引脚表权威 + sdhc-spi-slot + AK7 挂载行）；② K4 AK4 RES PASS（CG5-B 资源推送真机闭环：needs.resources 白名单 + fs-commit sha256 读回 + APP 消费端字节命中）；③ K5 large 全链（206KB wasm/412KB 包编译-验签-安装-激活-PSRAM 装载-512KB 池实例化-运行-消费；caps 自报 [small,large]/1024KB 槽池）；④ 三处大包边界缺陷根治（cbor put_bool 0xE1→0xF5 + read_head 4B 长度 + Sig_structure 0x5A 4B 头——F5 同族）；⑤ 新面 TS_APP_PSRAM_LOAD_BUF/VERIFY_BUF（HLD §4.6 沙箱域纪律）；⑥ **F6 登记**：200 分块流 APPMGR WDT 楔死（APP 线程卡 printk——日志面×flash 争用，F1 家族变体待专项）。D-AK4 demo 入仓。
 - v1.87 · 2026-10-16：**K3 交付（信任链真机 E2E AK3 TRUST PASS）+ 四发现定案**——F2 平反（无 zenoh-python 竞态：昨晚空回执 = 板掉线〔DHCP 间歇 F4 + F1 楔死〕+ 夜间探针 key 缺 tessera/ 前缀自坑）；F1 根因定案（失败提交循环 → 异常审计 flash 下沉风暴反噬 net_wq 喂狗 → NET WDT 循环——擦 APP 对照实证）双修正（锁外持久化 + 1Hz 节流）；F5 回执编码双缺陷（trust-get 漏 "keys" 键 + wrap_reply 空 data 零字节值）根治；F4 DHCP 间歇（atkbench 静态回退）；ZenohService scouting/gossip 关断加固 + zenohd 隔离模式（--no-multicast-scouting）环境纪律。回归 twister/agent/ruff 随批复验。
 - v1.86 · 2026-10-16：**K2 补丁 + K3 夜间收兵**——SPK_EN 极性修正（NL 低有效）+ 板默认静音（ATKBENCH_AUDIO_PLAY 门控）；K3 驱动被 F1（zenoh-pico 查询高压死锁→WDT——K6 风险项）/F2（工具链空回执竞态）阻塞，三发现登记；deploy._cmd 空载荷重试加固入册。
 - v1.85 · 2026-10-16：**K1+K2 交付（新板 bring-up + ES8311 音频）**——K1 atkbench（16M AMP 布局分区 carve + WAMR XTENSA 映射 + 部署链 AK PASS——第二 cube 就位）；K2 ES8311 全 codec（输入输出双面 + ts_av_write 新 native + 六坑定案 + 真机 AK AUDIO PASS）；§11f 批计划 + Q-44/DEC-61 登记。回归 twister 16/16（108）/agent 184+2s/L5 7/7 全绿。下一单元：K3 信任链真机 E2E。

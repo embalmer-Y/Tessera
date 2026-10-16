@@ -1,0 +1,355 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x18 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fc954b0,len:0x5b04
+load:0x40374000,len:0x11498
+load:0x50000000,len:0x24
+SHA-256 comparison failed:
+Calculated: 937fdd86e42e76dd05a3a2c3218a949be407d03b2c0e78ea2e3be70c9e527c20
+Expected: 00000000f08f0000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4037c904
+I (soc_init): ESP Simple boot
+I (soc_init): compile time Oct 16 2026 08:21:52
+W (soc_init): Unicore bootloader
+I (soc_init): chip revision: v0.2
+I (flash_init): Boot SPI Speed : 80MHz
+I (flash_init): SPI Mode       : DIO
+I (flash_init): SPI Flash Size : 16MB
+I (boot): DRAM	: lma=00000020h vma=3fc954b0h size=05b04h ( 23300)
+I (boot): IRAM	: lma=00005b2ch vma=40374000h size=11498h ( 70808)
+I (boot): RTC_DATA	: lma=00016fcch vma=50000000h size=00024h (    36)
+I (boot): IROM	: lma=00020000h vma=42000000h size=94660h (607840)
+I (boot): DROM	: lma=000c0000h vma=3c0a0000h size=11194h ( 70036)
+I (boot): libc heap size 11 kB.
+I (cache): Instruction cache: size 16KB, 8Ways, cache line size 32Byte
+I (spi_flash): detected chip: boya
+I (spi_flash): flash io: dio
+I (octal_psram): vendor id    : 0x0d (AP)
+I (octal_psram): dev id       : 0x02 (generation 3)
+I (octal_psram): density      : 0x03 (64 Mbit)
+I (octal_psram): good-die     : 0x01 (Pass)
+I (octal_psram): Latency      : 0x01 (Fixed)
+I (octal_psram): VCC          : 0x01 (3V)
+I (octal_psram): SRF          : 0x01 (Fast Refresh)
+I (octal_psram): BurstType    : 0x01 (Hybrid Wrap)
+I (octal_psram): BurstLen     : 0x01 (32 Byte)
+I (octal_psram): Readlatency  : 0x02 (10 cycles@Fixed)
+I (octal_psram): DriveStrength: 0x00 (1/1)
+I (esp_psram): Found 8MB PSRAM device
+I (esp_psram): Speed: 40MHz
+I (esp_psram): SPI SRAM memory test OK
+*** Booting Zephyr OS build v4.5.0-rc1 ***
+AK0 atkbench start
+AK1 wifi_connect rc=0
+[es8311] init: fs=16000 bclk=1024000 slot=32bit ring=4x1280B addr=0x18
+AKa0 es8311 init rc=0
+AKa1 capture 8 frames peak=4095（>32 = ADC 链活）
+AKa2 playback skipped（默认静音——ATKBENCH_AUDIO_PLAY=1 启用）
+AK AUDIO PASS（record-only，peak=4095）
+AKw associated t=8814
+AK2 prov load=0 burn=0（0=OK/-8=空）
+AK7 SD mounted（/SD:/res 就绪）
+[ts-net] init prov_load=0 node=akn cube=akc
+[appmgr] load buf: psram 262144B
+[appmgr] wamr pool heap: buf=0x3c100068 size=524288 (psram/smh)
+[app1/l0] ak4 init
+[app1/l0] ak4 match=1
+[app1/l0] AK4 DONE
+[ts-net] zenoh_open: CONNECTED loc=tcp/192.168.2.91:9955
+AK6 app running app_id=tessera.demo.ak4big slot=1 t=9200
+AK PASS
+AK alive t=11200 net=1
+AK alive t=21201 net=1
+AK alive t=31201 net=1
+AK alive t=41202 net=1
+AK alive t=51202 net=1
+AK alive t=61203 net=1
+AK alive t=71204 net=1
+AK alive t=81206 net=1
+AK alive t=91207 net=1
+AK alive t=101209 net=1
+AK alive t=111210 net=1
+[q] sys/get-info rlen=51 resp_len=151
+[q] sys/get-info rlen=51 resp_len=151
+[q] sys/get-info rlen=57 resp_len=157
+[q] sys/lease-acquire rlen=105 resp_len=70
+[q] sys/app-begin rlen=100 resp_len=60
+[q] sys/app-chunk rlen=2142 resp_len=65
+[q] sys/app-chunk rlen=2150 resp_len=68
+[q] sys/app-chunk rlen=2150 resp_len=68
+[q] sys/app-chunk rlen=2150 resp_len=68
+[q] sys/app-chunk rlen=2150 resp_len=68
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/lease-acquire rlen=105 resp_len=70
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=69
+[q] sys/app-chunk rlen=2152 resp_len=71
+AK alive t=121230 net=1
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/lease-acquire rlen=105 resp_len=70
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2154 resp_len=71
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/lease-acquire rlen=105 resp_len=70
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/lease-acquire rlen=105 resp_len=70
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+AK alive t=131247 net=1
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/lease-acquire rlen=105 resp_len=70
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/lease-acquire rlen=105 resp_len=70
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/lease-acquire rlen=105 resp_len=70
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+AK alive t=141248 net=1
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/app-chunk rlen=2156 resp_len=72
+[q] sys/lease-acquire rlen=105 resp_len=70
+[q] sys/app-chunk rlen=2156 resp_len=72
+[appmgr] WDT-WARN diag: app0 state=queued prio=10
+[appmgr] wf[00] +0040 4203d44c
+[appmgr] wf[01] +0054 4203d44c
+[appmgr] wf[02] +00e4 40378ccb
+[appmgr] wf[03] +00f0 400570e8
+[appmgr] wf[04] +00f4 400570f3
+[appmgr] wf[05] +011c 4216650f
+[appmgr] wf[06] +015c 40379078
+[appmgr] wf[07] +0164 42049ddf
+[appmgr] wf[08] +0170 400570e8
+[appmgr] wf[09] +01ec 40379078
+[appmgr] wf[10] +01f4 42045ef7
+[appmgr] wf[11] +0200 400570e8
+[appmgr] wf[12] +0204 400570f3
+[appmgr] wf[13] +02c8 4203df88
+[appmgr] wf[14] +0474 4209463c
+[appmgr] wf[15] +0480 400556d5
+[appmgr] wf[16] +0484 400556e5
+[appmgr] wf[17] +04e4 4203df88
+[appmgr] wf[18] +05c8 4037c564
+[appmgr] wf[19] +0814 42033770
+[appmgr] wf[20] +08bc 40379078
+[appmgr] wf[21] +08c4 4200a4f7
+[appmgr] wf[22] +08d0 40056f5c
+[appmgr] wf[23] +08d4 40056f72
+[appmgr] wf[24] +09c0 40505183
+[appmgr] wf[25] +0d24 40b4dcd9
+[appmgr] wf[26] +0fa0 40afa41c
+[appmgr] wf[27] +15b8 4043519c
+[appmgr] wf[28] +1744 429b9320
+[appmgr] wf[29] +17d4 40f110f0
+[appmgr] wf[30] +1d5c 42b1f0a4
+[appmgr] wf[31] +1dcc 4296931b
+[appmgr] wf[32] +1e9c 42459b4a
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x18 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4038280c
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fc954b0,len:0x5b04
+load:0x40374000,len:0x11498
+load:0x50000000,len:0x24
+SHA-256 comparison failed:
+Calculated: 937fdd86e42e76dd05a3a2c3218a949be407d03b2c0e78ea2e3be70c9e527c20
+Expected: 00000000f08f0000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4037c904
+I (soc_init): ESP Simple boot
+I (soc_init): compile time Oct 16 2026 08:21:52
+W (soc_init): Unicore bootloader
+I (soc_init): chip revision: v0.2
+I (flash_init): Boot SPI Speed : 80MHz
+I (flash_init): SPI Mode       : DIO
+I (flash_init): SPI Flash Size : 16MB
+I (boot): DRAM	: lma=00000020h vma=3fc954b0h size=05b04h ( 23300)
+I (boot): IRAM	: lma=00005b2ch vma=40374000h size=11498h ( 70808)
+I (boot): RTC_DATA	: lma=00016fcch vma=50000000h size=00024h (    36)
+I (boot): IROM	: lma=00020000h vma=42000000h size=94660h (607840)
+I (boot): DROM	: lma=000c0000h vma=3c0a0000h size=11194h ( 70036)
+I (boot): libc heap size 11 kB.
+I (cache): Instruction cache: size 16KB, 8Ways, cache line size 32Byte
+I (spi_flash): detected chip: boya
+I (spi_flash): flash io: dio
+I (octal_psram): vendor id    : 0x0d (AP)
+I (octal_psram): dev id       : 0x02 (generation 3)
+I (octal_psram): density      : 0x03 (64 Mbit)
+I (octal_psram): good-die     : 0x01 (Pass)
+I (octal_psram): Latency      : 0x01 (Fixed)
+I (octal_psram): VCC          : 0x01 (3V)
+I (octal_psram): SRF          : 0x01 (Fast Refresh)
+I (octal_psram): BurstType    : 0x01 (Hybrid Wrap)
+I (octal_psram): BurstLen     : 0x01 (32 Byte)
+I (octal_psram): Readlatency  : 0x02 (10 cycles@Fixed)
+I (octal_psram): DriveStrength: 0x00 (1/1)
+I (esp_psram): Found 8MB PSRAM device
+I (esp_psram): Speed: 40MHz
+I (esp_psram): SPI SRAM memory test OK
+*** Booting Zephyr OS build v4.5.0-rc1 ***
+AK0 atkbench start
+AK1 wifi_connect rc=0
+[es8311] init: fs=16000 bclk=1024000 slot=32bit ring=4x1280B addr=0x18
+AKa0 es8311 init rc=0
+AKa1 capture 8 frames peak=4095（>32 = ADC 链活）
+AKa2 playback skipped（默认静音——ATKBENCH_AUDIO_PLAY=1 启用）
+AK AUDIO PASS（record-only，peak=4095）
+AKw associated t=4806
+AK2 prov load=0 burn=0（0=OK/-8=空）
+AK7 SD mounted（/SD:/res 就绪）
+[wdt] 上次异常复位留痕 reason=0x00020001（noinit 归因）
+[ts-net] init prov_load=0 node=akn cube=akc
+[appmgr] load buf: psram 262144B
+[appmgr] wamr pool heap: buf=0x3c100068 size=524288 (psram/smh)
+[app1/l0] ak4 init
+[app1/l0] ak4 match=1
+[app1/l0] AK4 DONE
+[ts-net] zenoh_open: CONNECTED loc=tcp/192.168.2.91:9955
+AK6 app running app_id=tessera.demo.ak4big slot=1 t=5303
+AK PASS
+AK alive t=7303 net=1
+AK alive t=17304 net=1
+AK alive t=27304 net=1
+AK alive t=37305 net=1
+AK alive t=47306 net=1
+AK alive t=57306 net=1
+AK alive t=67307 net=1
+
+=== AK4/AK5 驱动判定摘录（两轮拼装证据链）============================
+K4（small 包全链）AK4 RES PASS：
+  AK4 compile/package/verify/upload/activate 全 PASS
+  AK4 fs-begin staged=True + fs-commit verified（sha256 读回）
+  AK4 板侧消费命中：ak4 match=1 + AK4 DONE
+K5（large 206KB wasm 全链）：
+  AK5 large compile PASS: 206003B（volatile 200KB 载荷防 DCE）
+  AK5 package PASS: 412588B（COSE 内嵌副本 ≈2×wasm）
+  AK5 upload complete: 412588/412588B（512KB 槽）
+  AK5 verify PASS: facts={'manifest_len': 228, 'wasm_len': 206003, 'cose_off': 206279}
+  AK5 activate confirmed: slot=1
+  板侧（512KB WAMR 池启动）：
+  [appmgr] load buf: psram 262144B
+  [appmgr] wamr pool heap: buf=0x3c100068 size=524288 (psram/smh)
+  [app1/l0] ak4 init
+  [app1/l0] ak4 match=1
+  [app1/l0] AK4 DONE
+  AK6 app running app_id=tessera.demo.ak4big slot=1
+  get-app 终态: state=3 ACTIVE app_id=tessera.demo.ak4big
+F6 登记（分块流楔死——驱动单轮全绿判据受阻）：
+  200 分块连续流中途 [appmgr] WDT-WARN（app0 queued）→ APPMGR WDT
+  （noinit 0x20001）；栈符号化 = APP 线程卡 native_log_write→printk
+  （日志面 115200 串口直写 × 分块流 flash cache 关断窗口争用）——
+  F1 家族变体，部署高压专项待根因（同族：审计风暴已根治，此为日志面）

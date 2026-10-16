@@ -194,11 +194,20 @@ bool ts_cbor_bool(ts_cbor_rd_t *r, bool *out)
 	uint8_t maj;
 	uint64_t v;
 
-	if (!rd_head(r, &maj, &v) || maj != 7 || v > 1) {
+	if (!rd_head(r, &maj, &v) || maj != 7) {
 		return false;
 	}
-	*out = (v == 1);
-	return true;
+	/* RFC 8949：true=21/false=20（写侧 K4 修正同源）；simple 1/0 为历史
+	 * 自家方言——读侧一并规范化拒收（fail-closed，未知 simple 值即拒）。 */
+	if (v == 21) {
+		*out = true;
+		return true;
+	}
+	if (v == 20) {
+		*out = false;
+		return true;
+	}
+	return false;
 }
 
 /* ---- 编码 --------------------------------------------------------------- */
@@ -271,6 +280,10 @@ bool ts_cbor_put_int(uint8_t *buf, size_t cap, size_t *pos, int64_t v)
 bool ts_cbor_put_bool(uint8_t *buf, size_t cap, size_t *pos, bool v)
 {
 	if (*pos + 1 > cap) return false;
-	buf[(*pos)++] = (uint8_t)((7 << 5) | (v ? 1 : 0));
+	/* RFC 8949：true = 0xF5 / false = 0xF4（major 7 simple 21/20）。
+	 * K4 真机定案：初版 (7<<5)|1 = 0xE1 = simple value 1 ≠ CBOR true——
+	 * 严格解码方（agent cbor2）得 CBORSimpleValue(1)，`is not True` 即拒；
+	 * FakeCube/sim 同错镜像从未暴露（F5 同族：编码面须严格消费方实检）。 */
+	buf[(*pos)++] = v ? 0xF5 : 0xF4;
 	return true;
 }

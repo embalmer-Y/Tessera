@@ -252,7 +252,34 @@ ts_res_t ts_appmgr_health_fail_id(uint16_t app_id)
 #ifdef CONFIG_TS_APP_WAMR
 #include "../net/internal.h" /* ts_cbor_* 读助手（tessera 模块内复用） */
 
+/* K5（plan §11f · 大档板级配置）：装载缓冲可选 PSRAM 化——large 档
+ * LOAD_MAX（≥256KB）在 DRAM 受限板不可行；镜像 TS_APP_PSRAM_HEAP 机制
+ * （HLD §4.6 分层纪律：APP 沙箱域可入外部 RAM；教训 35 = 缓冲须可写，
+ * PSRAM 满足）。懒分配一次常驻（boot 装载路径单线程）。 */
+#if defined(CONFIG_TS_APP_PSRAM_LOAD_BUF) && defined(CONFIG_SHARED_MULTI_HEAP)
+#include <zephyr/multi_heap/shared_multi_heap.h>
+static uint8_t *boot_wasm_buf; /* SMH_REG_ATTR_EXTERNAL 懒分配 */
+static uint8_t *boot_wasm_buf_get(void)
+{
+	if (boot_wasm_buf == NULL) {
+		boot_wasm_buf = shared_multi_heap_alloc(
+			SMH_REG_ATTR_EXTERNAL, CONFIG_TS_APP_LOAD_MAX);
+		if (boot_wasm_buf != NULL) {
+			printk("[appmgr] load buf: psram %uB\n",
+			       CONFIG_TS_APP_LOAD_MAX);
+		}
+	}
+	return boot_wasm_buf;
+}
+#define BOOT_WASM_BUF_SZ ((size_t)CONFIG_TS_APP_LOAD_MAX)
+#else
 static uint8_t boot_wasm_buf[CONFIG_TS_APP_LOAD_MAX];
+static uint8_t *boot_wasm_buf_get(void)
+{
+	return boot_wasm_buf;
+}
+#define BOOT_WASM_BUF_SZ (sizeof(boot_wasm_buf))
+#endif
 /* 槽池结构装配检查（CG4 · LLD-ts-store §4 注：统一大槽 + 档位逻辑上限——
  * 装载缓冲不得超槽容量；large 档板 = LOAD_MAX/SLOT_SIZE 同步抬升） */
 BUILD_ASSERT(CONFIG_TS_APP_LOAD_MAX <= CONFIG_TS_STORE_SLOT_SIZE,
@@ -298,7 +325,7 @@ static ts_res_t boot_load_entry(uint8_t entry, const ts_appmgr_meta_t *meta)
 	uint32_t ml = v.manifest_len;
 	uint32_t wl = v.wasm_len;
 
-	if (ml == 0 || ml > 512 || wl == 0 || wl > sizeof(boot_wasm_buf)) {
+	if (ml == 0 || ml > 512 || wl == 0 || wl > BOOT_WASM_BUF_SZ) {
 		return TS_E_PARAM; /* 容器头越界（装载上限 = CONFIG_TS_APP_LOAD_MAX） */
 	}
 	static uint8_t man[512];
@@ -500,7 +527,14 @@ static ts_res_t boot_load_entry(uint8_t entry, const ts_appmgr_meta_t *meta)
 			return TS_E_PARAM; /* 未知键 = schema v1 之外（fail-closed） */
 		}
 	}
-	if (ts_store_slot_read(slot, TSAP_CONTENT_OFF + ml, boot_wasm_buf, wl) != TS_OK) {
+	uint8_t *wbuf = boot_wasm_buf_get();
+
+	if (wbuf == NULL) {
+		printk("[appmgr] boot[%u]: load buf alloc failed — no app loaded\n",
+		       entry);
+		return TS_E_NOMEM;
+	}
+	if (ts_store_slot_read(slot, TSAP_CONTENT_OFF + ml, wbuf, wl) != TS_OK) {
 		return TS_E_IO;
 	}
 	/* 档位尺寸门（CG4 · LLD §5a 双门：small=16KB/large=256KB——按包 tier
@@ -527,7 +561,7 @@ static ts_res_t boot_load_entry(uint8_t entry, const ts_appmgr_meta_t *meta)
 	/* 数值 app_id = entry+1（M6 单实例装载 entry 0 → 1，与 V1 审计归因
 	 * 兼容；M7 多实例 = 各 entry 各 id）。串身份随载注入（M9：kv 哈希源）。 */
 	ts_appmgr_app_set_idstr(entry + 1, current_apps[entry].app_id);
-	ts_res_t sr = ts_appmgr_app_start(entry + 1, boot_wasm_buf, wl, boot_caps);
+	ts_res_t sr = ts_appmgr_app_start(entry + 1, wbuf, wl, boot_caps);
 
 #ifdef CONFIG_TS_HAL_FS
 	if (sr == TS_OK && boot_fs_paths[0] != '\0') {

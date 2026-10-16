@@ -22,6 +22,21 @@
 			output-enable;
 		};
 	};
+
+	/* K4（SD = 板载 TF 槽 @ SPI2——引脚分配表：SCK=IO7/MISO=IO15/
+	 * MOSI=IO16/CS=IO17；dsdbench 同型 sdhc-spi-slot） */
+	ak_spi2_sd: ak_spi2_sd {
+		group1 {
+			pinmux = <SPIM2_SCLK_GPIO7>,
+				 <SPIM2_MOSI_GPIO16>;
+			output-enable;
+		};
+		group2 {
+			pinmux = <SPIM2_MISO_GPIO15>;
+			input-enable;
+			bias-pull-up;
+		};
+	};
 };
 
 &ledc0 {
@@ -33,6 +48,29 @@
 	channel0@0 {
 		reg = <0x0>;
 		timer = <0>;
+	};
+};
+
+&spi2 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-0 = <&ak_spi2_sd>;
+	pinctrl-names = "default";
+	cs-gpios = <&gpio0 17 GPIO_ACTIVE_LOW>;
+
+	ak_sdcard: sdcard@0 {
+		compatible = "zephyr,sdhc-spi-slot";
+		reg = <0>;
+		status = "okay";
+
+		mmc {
+			compatible = "zephyr,sdmmc-disk";
+			disk-name = "SD";
+			status = "okay";
+		};
+
+		spi-max-frequency = <20000000>;
 	};
 };
 
@@ -50,48 +88,51 @@
 			label = "ts-meta";
 			reg = <0x5f1000 0x2000>;
 		};
+		/* K5（large 档）：槽统一 512KB（COSE 内嵌载荷副本 = 包 ≈2×wasm——256KB wasm 上限需 512KB 槽）（GATE_LARGE 同级——LOAD_MAX 同步
+		 * 262144 + PSRAM 装载缓冲；既有 32KB 槽池布局重排，prov/meta
+		 * 原位不动〔存量 trust/kv/noinit 内容随重刷重建〕） */
 		ts_slot_a_part: partition@5f3000 {
 			compatible = "zephyr,mapped-partition";
 			label = "ts-slot-a";
-			reg = <0x5f3000 0x8000>;
+			reg = <0x5f3000 0x80000>;
 		};
-		ts_slot_b_part: partition@5fb000 {
+		ts_slot_b_part: partition@673000 {
 			compatible = "zephyr,mapped-partition";
 			label = "ts-slot-b";
-			reg = <0x5fb000 0x8000>;
+			reg = <0x673000 0x80000>;
 		};
 		/* 双实例槽池（Q-32②）：entry1 双槽乒乓对 {2,3} */
-		ts_slot_c_part: partition@603000 {
+		ts_slot_c_part: partition@6f3000 {
 			compatible = "zephyr,mapped-partition";
 			label = "ts-slot-c";
-			reg = <0x603000 0x8000>;
+			reg = <0x6f3000 0x80000>;
 		};
-		ts_slot_d_part: partition@60b000 {
+		ts_slot_d_part: partition@773000 {
 			compatible = "zephyr,mapped-partition";
 			label = "ts-slot-d";
-			reg = <0x60b000 0x8000>;
+			reg = <0x773000 0x80000>;
 		};
-		ts_noinit_part: partition@613000 {
+		ts_noinit_part: partition@7f3000 {
 			compatible = "zephyr,mapped-partition";
 			label = "ts-noinit";
-			reg = <0x613000 0x1000>;
+			reg = <0x7f3000 0x1000>;
 		};
 		/* APP 状态 kv 8KB（DR-15） */
-		ts_kv_part: partition@614000 {
+		ts_kv_part: partition@7f4000 {
 			compatible = "zephyr,mapped-partition";
 			label = "ts-kv";
-			reg = <0x614000 0x2000>;
+			reg = <0x7f4000 0x2000>;
 		};
 		/* K3（Q-43③）：信任根表 8KB（双副本 2×4KB 乒乓） */
-		ts_trust_part: partition@616000 {
+		ts_trust_part: partition@7f6000 {
 			compatible = "zephyr,mapped-partition";
 			label = "ts-trust";
-			reg = <0x616000 0x2000>;
+			reg = <0x7f6000 0x2000>;
 		};
 		/* fw-b：未来 MCUmgr 固件第二 slot 预留（DEC-23；V1 未接线） */
-		fw_b_part: partition@618000 {
+		fw_b_part: partition@7f8000 {
 			label = "fw-b";
-			reg = <0x618000 0x5a8000>;
+			reg = <0x7f8000 0x3c8000>;
 		};
 	};
 };

@@ -18,6 +18,9 @@
 #include <ts/tsap.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
+#if defined(CONFIG_TS_APP_PSRAM_VERIFY_BUF) && defined(CONFIG_SHARED_MULTI_HEAP)
+#include <zephyr/multi_heap/shared_multi_heap.h>
+#endif
 #include "crypto/tweetnacl.h"
 #include "internal.h"
 /* sha256 复用 ts-store 实现（src/store/sha256.c 同 API；DEC-49②） */
@@ -85,7 +88,9 @@ static ts_res_t read_all(uint8_t slot, uint32_t off, uint8_t *buf, uint32_t len)
 }
 
 /* 读一个 definite 头元素（bstr/map）；返回数据长度与头占用字节数。
- * fail-closed 子集：仅短头/1B/2B 扩展（容器域 ≤64KB），不定长 = 拒绝。 */
+ * fail-closed 子集：短头/1B/2B/4B 扩展（K5：large 档 COSE payload bstr
+ * 达 200KB+——DEC-49 期「≤64KB 容器域」约束随大档解除；8B 扩展超 u32
+ * 域仍拒），不定长 = 拒绝。 */
 static ts_res_t read_head(uint8_t slot, uint32_t off, uint8_t want_maj,
 			  uint32_t *data_len, uint8_t *hdr_len)
 {
@@ -105,17 +110,22 @@ static ts_res_t read_head(uint8_t slot, uint32_t off, uint8_t want_maj,
 		*hdr_len = 1;
 		return TS_OK;
 	}
-	uint8_t nb = (info == 24) ? 1 : (info == 25) ? 2 : 0;
+	uint8_t nb = (info == 24) ? 1 : (info == 25) ? 2 : (info == 26) ? 4 : 0;
 
 	if (nb == 0) {
-		VS_REJECT(TS_E_INVALID_SIG); /* >64KB 段超出 V1 容器域 */
+		VS_REJECT(TS_E_INVALID_SIG); /* 8B 扩展超 u32 容器域 */
 	}
-	uint8_t lb[2] = {0, 0};
+	uint8_t lb[4] = {0, 0, 0, 0};
 
 	if (read_all(slot, off + 1, lb, nb) != TS_OK) {
 		VS_REJECT(TS_E_IO);
 	}
-	*data_len = (nb == 1) ? lb[0] : (((uint32_t)lb[0] << 8) | lb[1]);
+	uint32_t v = 0;
+
+	for (uint8_t i = 0; i < nb; i++) {
+		v = (v << 8) | lb[i];
+	}
+	*data_len = v;
 	*hdr_len = (uint8_t)(1 + nb);
 	return TS_OK;
 }
@@ -175,7 +185,11 @@ ts_res_t ts_appmgr_check_digest(uint8_t slot, tsap_view_t *v)
 
 /* sm 布局：sig(64) ‖ Sig_structure 定前缀（canonical：array4 + tstr(10)
  * "Signature1" + bstr(3) phdr + bstr"" + bstr(payload) 按长选头）；
- * payload 体随后逐块追加。前缀上界 = 1+11+4+1+3 = 20。 */
+ * payload 体随后逐块追加。前缀上界 = 1+11+4+1+5 = 22（K5：≥64KB 取
+ * 0x5A 4B 头——与 Agent 侧 canonical 编码一致；此前 2B 截断形两边
+ * Sig_structure 不一致 = 大包验签必败，真机 L359 定位）。 */
+#define SIG_STRUCTURE_PREFIX_MAX 22
+
 static size_t sig_structure_prefix(uint8_t *p, uint32_t payload_len)
 {
 	size_t pos = 0;
@@ -194,8 +208,14 @@ static size_t sig_structure_prefix(uint8_t *p, uint32_t payload_len)
 	} else if (payload_len < 256) {
 		p[pos++] = 0x58;
 		p[pos++] = (uint8_t)payload_len;
-	} else {
+	} else if (payload_len < 65536) {
 		p[pos++] = 0x59;
+		p[pos++] = (uint8_t)(payload_len >> 8);
+		p[pos++] = (uint8_t)payload_len;
+	} else {
+		p[pos++] = 0x5A;
+		p[pos++] = (uint8_t)(payload_len >> 24);
+		p[pos++] = (uint8_t)(payload_len >> 16);
 		p[pos++] = (uint8_t)(payload_len >> 8);
 		p[pos++] = (uint8_t)payload_len;
 	}
@@ -278,16 +298,31 @@ ts_res_t ts_appmgr_verify_slot(uint8_t slot, const uint8_t root_pubkey[32],
 	/* sm = sig(64) ‖ Sig_structure；payload 自 COSE 内嵌副本逐块读入，
 	 * 同时与裸段逐块比对（签名面 == 存储面）。 */
 	/* 单 scratch 双区：sm 区（sig‖Sig_structure）+ m 区（tweetnacl 出参，
-	 * 独立不别名——见下方调用点注释）。 */
-	static uint8_t scratch[CONFIG_TS_VERIFY_SCRATCH];
-	const uint32_t payload_len = v->manifest_len + v->wasm_len;
-	const size_t need = 2 * (64 + 20 + (size_t)payload_len);
+	 * 独立不别名——见下方调用点注释）。
+	 * K5：large 档板 TS_VERIFY_SCRATCH（≥2×容器）DRAM 静态不可行——
+	 * TS_APP_PSRAM_VERIFY_BUF = SMH 外部 RAM 懒分配同型（TS_APP_PSRAM_LOAD_BUF）。
+	 * 调用上下文 = 部署会话（gated 命令面，net 读任务线程）——单线程串行。 */
+#if defined(CONFIG_TS_APP_PSRAM_VERIFY_BUF) && defined(CONFIG_SHARED_MULTI_HEAP)
+	static uint8_t *scratch;
 
-	if (need > sizeof(scratch)) {
+	if (scratch == NULL) {
+		scratch = shared_multi_heap_alloc(SMH_REG_ATTR_EXTERNAL,
+						 CONFIG_TS_VERIFY_SCRATCH);
+		if (scratch == NULL) {
+			VS_REJECT(TS_E_NOMEM);
+		}
+	}
+#else
+	static uint8_t scratch[CONFIG_TS_VERIFY_SCRATCH];
+#endif
+	const uint32_t payload_len = v->manifest_len + v->wasm_len;
+	const size_t need = 2 * (64 + SIG_STRUCTURE_PREFIX_MAX + (size_t)payload_len);
+
+	if (need > (size_t)CONFIG_TS_VERIFY_SCRATCH) {
 		VS_REJECT(TS_E_PARAM); /* 容器超出验签缓冲（板级 TS_VERIFY_SCRATCH 调档） */
 	}
 	uint8_t *sm = scratch;
-	uint8_t *mbuf = scratch + 64 + 20 + payload_len;
+	uint8_t *mbuf = scratch + 64 + SIG_STRUCTURE_PREFIX_MAX + payload_len;
 
 	if (read_all(slot, sig_off, sm, 64) != TS_OK) {
 		VS_REJECT(TS_E_IO);

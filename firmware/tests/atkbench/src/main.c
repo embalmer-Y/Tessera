@@ -19,6 +19,8 @@
 #include <zephyr/net/dhcpv4.h> /* 须在 net_if.h 之后（参数表内 struct net_if 可见性） */
 #include <zephyr/sys/atomic.h>
 #include <zephyr/sys/reboot.h>
+#include <ff.h>
+#include <zephyr/fs/fs.h>
 #include <ts/appmgr.h>
 #include <ts/core.h>
 #include <ts/hal.h>
@@ -392,6 +394,29 @@ int main(void)
 	(void)ts_hal_register_dev(&ak_dev);
 	(void)ts_safety_register_channel(&ak_pwm);
 	(void)ts_hal_register_dev(&ak_pwm_dev);
+	/* K4：SD 挂载（dsdbench 同型）——ts-fs 面（fs natives + fs_paths 门）
+	 * 与 CG5-B 资源推送（sys/fs-* 命令）的前提。资源根目录幂等创建。 */
+	static FATFS ak_fat;
+	static struct fs_mount_t ak_mp = {
+		.type = FS_FATFS,
+		.mnt_point = "/SD:",
+		.fs_data = &ak_fat,
+	};
+	int mr = fs_mount(&ak_mp);
+
+	if (mr != 0 && mr != -EALREADY) {
+		printk("AK FAIL sd mount r=%d\n", mr);
+		return 1;
+	}
+	fs_mkdir("/SD:/res");
+	struct fs_dirent de;
+
+	if (fs_stat("/SD:/res", &de) == 0) {
+		printk("AK7 SD mounted%s（/SD:/res 就绪）\n",
+		       mr == -EALREADY ? " (already)" : "");
+	} else {
+		printk("AK7 SD mounted 但 /SD:/res 创建失败\n");
+	}
 	ts_core_boot(); /* noreturn：net_init → zenoh 命令面 + 步骤 8 slot 装载 */
 	return 0;
 }
