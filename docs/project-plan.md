@@ -212,7 +212,7 @@
 | K6 ✅ | 多真机 LN | deploybench + atkbench 双 cube：LN 组部署/断链策略/跨板判据（**AK6 LN PASS**：ln_create 双成员 → ln_deploy 扇出双板 confirmed → ln_status 聚合双 ACTIVE 无降级；xiao 以当前模块重刷〔F1/F5 修复平移〕；atk SMH 1MB→4MB；证据 ak6_console.txt） | — |
 | F1 ✅ | 本地交互源 | 按键（BOOT/扩展器 KEY）→ arb LOCAL 席位 + 压制 + 事件（CG3 机制接线）——**真机手势判据收口**（owner BOOT 短按 ×2：`AKL →LOCAL`/`→REMOTE` rc=0 双向切换；证据 af12_boot_console.txt） | — |
 | F2 ✅ | 本地 estop 清除 | KEY → clear_fault + prov estop_remote_clear 出厂缺省翻 disabled（ISO 13850 偏离撤销）——**远程门真机实证**（need=local-clear）+ **本地路真机判据收口**（owner BOOT 长按 ≥2s：`AKF1`→`AKF2 force rc=0`→`AKC 清除 rc=0` 链三行；证据 af12_boot_console.txt） | — |
-| F3 ◐ | 本地确认路 | LCD 呈现 manifest_summary + 按键确认 → 安装闸（EC3 本地路接线——嵌入式先行者面）——**DEC-62 已裁开工**（①固件侧挂起态/③手势模态/④bring-up/⑤2.5 单元按建议 + **②呈现面 owner 修订 = LVGL**〔弃自绘字体——芯片/尺寸适配性优先，R10 §6 注记：呈现属设备形态面非安全面〕）；执行 = **F3-1 ✅**（AKU1 真机 PASS——教训 36，证据 af31_lcd_console.txt）→ **F3-2/F3-3 ✅**（安装闸：lconf prov + activate/install 同闸 pending 态 + confirm/reject 仅固件本地路 + 60s fail-closed + 事件四态 + -13 回执 + 手势模态 + LCD 呈现；twister 16/16〔109，+1〕agent 196+2s〔+1〕L5/ruff/repo 全绿；**timeout 路真机 PASS**〔deploy → AKP1 → 60s → AKP4 撤销——证据 af3_gate_console.txt〕；**确认路真机 PASS**〔2026-10-16 owner 短按：AKP1 LCD 挂起 → AKPC → AKP2 meta 切换 → AK5 暖复位 → 自 flash 装载 `[app1/l0] AK4 DONE` 判据命中 → AK6 ACTIVE + 远程 get-app state=3 复核——证据 af3_gate_confirm_console.txt〕；拒绝路 = owner 长按判据待收〔AKPR/AKP3〕）| — ✅ DEC-62 |
+| F3 ✅ | 本地确认路 | LCD 呈现 manifest_summary + 按键确认 → 安装闸（EC3 本地路接线——嵌入式先行者面）——**DEC-62 已裁开工**（①固件侧挂起态/③手势模态/④bring-up/⑤2.5 单元按建议 + **②呈现面 owner 修订 = LVGL**〔弃自绘字体——芯片/尺寸适配性优先，R10 §6 注记：呈现属设备形态面非安全面〕）；执行 = **F3-1 ✅**（AKU1 真机 PASS——教训 36，证据 af31_lcd_console.txt）→ **F3-2/F3-3 ✅**（安装闸：lconf prov + activate/install 同闸 pending 态 + confirm/reject 仅固件本地路 + 60s fail-closed + 事件四态 + -13 回执 + 手势模态 + LCD 呈现；twister 16/16〔109，+1〕agent 196+2s〔+1〕L5/ruff/repo 全绿；**timeout 路真机 PASS**〔deploy → AKP1 → 60s → AKP4 撤销——证据 af3_gate_console.txt〕；**确认路真机 PASS**〔2026-10-16 owner 短按：AKP1 LCD 挂起 → AKPC → AKP2 meta 切换 → AK5 暖复位 → 自 flash 装载 `[app1/l0] AK4 DONE` 判据命中 → AK6 ACTIVE + 远程 get-app state=3 复核——证据 af3_gate_confirm_console.txt〕；**拒绝路真机 PASS**〔owner 长按 ≥2s：AKP1 slot=1 挂起 → AKPR → AKP3 撤销（槽保留可重推）——无复位无 meta 切换、既有 ACTIVE 不受影响 + get-app pending 已清——证据 af3_gate_reject_console.txt〕）——**三路（timeout/确认/拒绝）全真机收口** | — ✅ DEC-62 |
 | F4 ✅ | peripherals 自报 | get-info peripherals 块（hal 注册表自报 + Agent 装前消费）——真机实证 akled:gpio/akpwm:pwm/akcodec:adc + periph 责任链单源注册 | — |
 | G1 ✅ | Agent 任务链持久化 | LN 注册表落盘 + 跨重启 resume（D1）——LnRegistry(persist_path) 原子写/损坏条目降级跳过/IO 失败告警不抛 + env 重定向（TESSERA_LNO_REGISTRY）+ conftest memory 模式防 CI 副作用；测试 +6 | — |
 | G2 ✅ | 诊断自动回喂 | 部署后自动抓串口 → diag_classify → repair 再入队（D3）——post_deploy_check（健康短路/被动抓取+分类/抓取失败不掩蔽）+ capture_window（被动窗——失败路径专用，开埠脉动 F3 在案）+ deploy_push_app post_check_s/serial_port 直参；测试 +5 | — |
@@ -237,7 +237,7 @@
 
 ### B. 待 owner 裁决/动作项（当前）
 
-> **收口回归定格 @ 6e54dee（2026-10-16）**：twister 16/16（111）/agent 204+2s/ruff/L5 7/7/repo 5/sync 全绿、工作树干净——**tag-ready**（fw-v0.9.0 候选：形态批 F3 + 清欠批 P1 合版；owner 点头即 tag+push）。待 owner 两项：① Q-47 裁决（TLS 实施解锁）；② F3 拒绝路按键（长按 ≥2s；确认路 2026-10-16 已收——v1.100）+ 版本 tag review。
+> **收口回归定格 @ 6e54dee（2026-10-16）**：twister 16/16（111）/agent 204+2s/ruff/L5 7/7/repo 5/sync 全绿、工作树干净——**tag-ready**（fw-v0.9.0 候选：形态批 F3 + 清欠批 P1 合版；owner 点头即 tag+push）。待 owner 两项：① Q-47 裁决（TLS 实施解锁）；② 版本 tag review（F3 三路已全收——fw-v0.9.0 点头即 tag+push）。
 
 （DEC-62 项已裁毕：
 ：Q-46 → 开工/F3〔② LVGL 修订〕；版本 tag → 并入下版〔F3+P1 收口时一并 review+tag〕；gcov → 缓办维持〔随 CI 强化批评估〕——F1/F2 物理判据已先行收口 v1.91）
@@ -277,6 +277,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.101 · 2026-10-16：**F3 拒绝路真机判据收口——安装闸三路（timeout/确认/拒绝）全真机全绿，F3 ◐→✅**。BOOT 长按 ≥2s：AKP1 slot=1 挂起 → AKPR → AKP3 撤销（槽保留可重推）；无复位无 meta 切换，既有 ACTIVE（AK4 slot=0）不受影响 + get-app pending 已清复核。证据 af3_gate_reject_console.txt；驱动 /tmp/ak_f3_gate_e2e.py reject（F3G REJECT PASS）。待 owner 收窄为 Q-47 + tag review。
 - v1.100 · 2026-10-16：**F3 确认路真机判据收口（owner 到场按键）**——BOOT 短按全链：deploy → activate -13 → AKP1（LCD 挂起呈现）→ AKPC 确认 → AKP2 meta 切换 → AK5 暖复位 → 自 flash 装载判据 `AK4 DONE` 命中 → AK6 ACTIVE；远程 get-app cbor2 解码 state=3 复核。证据 af3_gate_confirm_console.txt；驱动 /tmp/ak_f3_gate_e2e.py confirm（F3G CONFIRM PASS）。§11f F3 拒绝路仍待 owner 长按。
 - v1.99 · 2026-10-16：**P1-3 交付（供电槽 natives）+ P1-4 裁剪清账（counter）**。① ts_power_set/get（ts-power 层全链——perm/预算/唯一写路径/readback——的 wasm 暴露；Agent 白名单/约定/面镜像）；② counter 零消费者实证裁剪（HLD §9 对照表 ✂️——R10 日落纪律首例）。twister 111 / agent 204+2s / ruff / repo 全绿。**清欠批终态：P1-1 ✅ P1-5 ✅ P1-3 ✅ P1-4 ✂️ P1-2 停门（Q-47 待裁）——批实质完成，TLS 随 Q-47 裁决开实施。**
 - v1.98 · 2026-10-16：**P1-2 设计事实调研 + Q-47 呈递停门（门③）**——zenohd 1.10.1 TLS/mTLS 全支持（listen tls + enable_mtls）；zenoh-pico Zephyr 集成缺 TLS 特性行（需仓携带补丁——钉版 1.10.1 基）；EC P-256 证书全套 ~1.5KB 入 4KB prov 可容；五子项呈递（补丁路径/CA+mTLS/prov bstr 三元组/并存口/内存重平）待 owner 裁决。

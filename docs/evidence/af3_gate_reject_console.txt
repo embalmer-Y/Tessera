@@ -1,0 +1,29 @@
+SPDX-License-Identifier: Apache-2.0
+# F3-2/F3-3 安装闸·拒绝路 真机 E2E 证据（atk dnesp32s3b，2026-10-16）
+# 链路：Agent deploy → slot1 → activate -13 TS_E_PENDING → AKP1 LCD 挂起呈现
+#       → owner BOOT 长按 ≥2s → AKPR 拒绝 → AKP3 install rejected（槽保留可重推）
+#       → 无暖复位/无 meta 切换：既有 ACTIVE APP（确认轮 AK4 slot=0）不受影响，
+#         board 存活 net=1；远程 get-app 复核（cbor2 解码，f3g-reject-dec）：
+#         state=3(ACTIVE) app_id=tessera.demo.ak4 slot=0 pending 已清
+# 驱动：/tmp/ak_f3_gate_e2e.py reject（F3G REJECT PASS）
+# 注：截取自 /tmp/ak3_console_live.txt（韧性好串口持有器全程留痕）
+AK alive t=168478 net=1
+[q] sys/get-info rlen=53 resp_len=229
+[q] sys/get-info rlen=57 resp_len=233
+[q] sys/lease-acquire rlen=105 resp_len=70
+[q] sys/app-begin rlen=98 resp_len=58
+[q] sys/app-chunk rlen=2142 resp_len=65
+[q] sys/app-chunk rlen=980 resp_len=68
+[q] sys/app-verify rlen=87 resp_len=83
+AKP1 pending install slot=1 entry=0（短按=确认 长按≥2s=拒绝）
+[appmgr] activate gated: PENDING slot=1 entry=0 (local confirm, 60000ms fail-closed)
+[q] sys/app-activate rlen=98 resp_len=61
+[q] sys/lease-release rlen=105 resp_len=51
+AKP3 install rejected slot=1（槽保留可重推）
+[appmgr] pending install rejected slot=1 entry=0 (cancelled — slot kept, re-push to retry)
+AKPR reject rc=0（BOOT 长按本地路）
+AK alive t=178480 net=1
+AK alive t=188486 net=1
+[q] sys/get-app rlen=60 resp_len=227
+AK alive t=198487 net=1
+AK alive t=208487 net=1
