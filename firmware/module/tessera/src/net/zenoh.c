@@ -179,6 +179,76 @@ static bool locator_cmd_face_ok(const char *loc)
 	return strncmp(loc, "tcp/", 4) == 0 || strncmp(loc, "tls/", 4) == 0;
 }
 
+#ifdef CONFIG_TS_NET_TLS
+/* TLS mTLS 供给（P1-2 · DEC-63③）：prov v2 三元组（DER）→ base64 配置键
+ * 注入（zenoh-pico tls_stream 消费 *_BASE64 键——DER 解析路径）。三键同现
+ * = 客户端双向认证（服务器验 CA + 服务器验设备证书）；名称校验维持缺省
+ * VERIFY_REQUIRED（服务器证书 SAN 须匹配 locator 主机——证书工具随 SAN
+ * 签发，不做信任降级）。tls/ locator 而无三元组 = fail-closed 拒建链。 */
+#include <mbedtls/base64.h>
+
+/* base64 编码暂存（开链期专用，静态避 net 线程栈峰）——DEC-63③ 常量上限派生 */
+static char b64_ca[((TS_PROV_TLS_CA_MAX + 2) / 3) * 4 + 1];
+static char b64_cert[((TS_PROV_TLS_CERT_MAX + 2) / 3) * 4 + 1];
+static char b64_key[((TS_PROV_TLS_KEY_MAX + 2) / 3) * 4 + 1];
+
+/* zenoh-pico 补丁钩子（DEC-63①）：阻塞握手脚本内喂 NET 看门狗——
+ * TLS 握手（PSA 运算 + 往返）可超过 NET 喂狗周期（2s），无心跳 = 饿死复位
+ * （真机实证：握手期 RTC_SW_CPU_RST + 无 noinit 留痕 = task_wdt 直通路径）。 */
+void z_tls_handshake_progress_hook(void)
+{
+	ts_wdt_feed(TS_WDT_NET);
+}
+
+static bool b64_of(const uint8_t *der, uint16_t der_len, char *out, size_t cap)
+{
+	size_t olen = 0;
+
+	if (mbedtls_base64_encode((unsigned char *)out, cap, &olen,
+				  der, der_len) != 0) {
+		return false;
+	}
+	out[olen] = '\0';
+	return true;
+}
+
+static ts_res_t tls_config_insert(z_loaned_config_t *cfg,
+				  const ts_prov_t *prov, const char *loc)
+{
+	if (strncmp(loc, "tls/", 4) != 0) {
+		if (prov->tls_ca_len != 0) {
+			printk("[ts-net] tls: prov 带三元组而 locator 非 tls/（明文运行——配置不一致如实登记）\n");
+		}
+		return TS_OK;
+	}
+	if (prov->tls_ca_len == 0 || prov->tls_cert_len == 0 ||
+	    prov->tls_key_len == 0) {
+		printk("[ts-net] tls: locator tls/ 而 prov 无三元组（fail-closed 拒建链，DEC-63③）\n");
+		return TS_E_PARAM;
+	}
+
+	const ts_prov_tls_t *t = ts_store_prov_tls();
+
+	if (!b64_of(t->ca, t->ca_len, b64_ca, sizeof(b64_ca)) ||
+	    !b64_of(t->cert, t->cert_len, b64_cert, sizeof(b64_cert)) ||
+	    !b64_of(t->key, t->key_len, b64_key, sizeof(b64_key)) ||
+	    zp_config_insert(cfg, Z_CONFIG_TLS_ROOT_CA_CERTIFICATE_BASE64_KEY,
+			     b64_ca) != Z_OK ||
+	    zp_config_insert(cfg, Z_CONFIG_TLS_CONNECT_CERTIFICATE_BASE64_KEY,
+			     b64_cert) != Z_OK ||
+	    zp_config_insert(cfg, Z_CONFIG_TLS_CONNECT_PRIVATE_KEY_BASE64_KEY,
+			     b64_key) != Z_OK ||
+	    zp_config_insert(cfg, Z_CONFIG_TLS_ENABLE_MTLS_KEY, "true") != Z_OK) {
+		printk("[ts-net] tls: mTLS 配置注入 FAIL\n");
+		return TS_E_IO;
+	}
+	printk("[ts-net] tls: mTLS 注入 ca=%uB cert=%uB key=%uB（名称校验 ON）\n",
+	       (unsigned)prov->tls_ca_len, (unsigned)prov->tls_cert_len,
+	       (unsigned)prov->tls_key_len);
+	return TS_OK;
+}
+#endif /* CONFIG_TS_NET_TLS */
+
 static ts_res_t zenoh_open(void)
 {
 	if (opened) {
@@ -207,6 +277,14 @@ static ts_res_t zenoh_open(void)
 		z_drop(z_move(cfg));
 		return TS_E_IO;
 	}
+#ifdef CONFIG_TS_NET_TLS
+	ts_res_t tr = tls_config_insert(z_loan_mut(cfg), prov, loc);
+
+	if (tr != TS_OK) {
+		z_drop(z_move(cfg));
+		return tr;
+	}
+#endif
 	z_result_t or = z_open(&zs, z_move(cfg), NULL);
 
 	if (or != Z_OK) {

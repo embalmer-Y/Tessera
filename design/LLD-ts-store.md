@@ -1,6 +1,6 @@
-# LLD · ts-store v0.5.2
+# LLD · ts-store v0.5.3
 
-> **状态**：v0.5.2（2026-10-16 F3 · DEC-62①：**prov v2 第三尾键 lconf**〔12 对形态；0/1 域外 fail-closed；11 对缺省 0 = 存量零重刷〕——安装闸开关，消费方 LLD-ts-appmgr §5c）；v0.5.1（2026-10-15 EC2 · **信任表实现**——ts_trust.c 落地：trust_walk 确定性走查/乒乓写+回读校验/惰性装载/撕裂回退；分区 8KB〔2×4KB 擦除块对齐——sim-flash 实证 2KB 步距范围抹除被拒〕）；v0.5（2026-10-15 EC1 · Q-43/DEC-60：**信任根表分区**——ts_trust.c 8KB 双副本乒乓〔2×4KB 擦除块对齐〕+ TUF root 同型全量替换表 schema + TS_STORE_TRUST 可选分区〔默认 n = V0.7 等价〕）；v0.4.1（2026-10-14 CG2 · Q-42：**prov schema v2 实现**——v1/v2 双形态确定性解码〔9/11 对，键序 = v1 前缀 + 尾部追加〕+ v1 缺字段缺省〔orchestrated + estop 远程清除开放〕+ 域外值 fail-closed + 未装载兜底 enabled）。上位：HLD v0.2 §3（模块表）/§4.6；公共约定 `LLD-00-common.md`。
+> **状态**：v0.5.3（2026-10-16 P1-2 · DEC-63③：**prov v2 bstr 三元组 tls_ca/tls_cert/tls_key**〔15 对形态——EC P-256 DER，上限 768/768/256；三键同现且非空、超上限/空值/域外对数 fail-closed；12 对及以下 = TLS off 存量零重刷逐字节兼容；ts_prov_tls_t 独立只读面〔CONFIG_TS_NET_TLS 门控——validate 维护通道零拷贝不触活态〕〕）；v0.5.2（2026-10-16 F3 · DEC-62①：**prov v2 第三尾键 lconf**〔12 对形态；0/1 域外 fail-closed；11 对缺省 0 = 存量零重刷〕——安装闸开关，消费方 LLD-ts-appmgr §5c）；v0.5.1（2026-10-15 EC2 · **信任表实现**——ts_trust.c 落地：trust_walk 确定性走查/乒乓写+回读校验/惰性装载/撕裂回退；分区 8KB〔2×4KB 擦除块对齐——sim-flash 实证 2KB 步距范围抹除被拒〕）；v0.5（2026-10-15 EC1 · Q-43/DEC-60：**信任根表分区**——ts_trust.c 8KB 双副本乒乓〔2×4KB 擦除块对齐〕+ TUF root 同型全量替换表 schema + TS_STORE_TRUST 可选分区〔默认 n = V0.7 等价〕）；v0.4.1（2026-10-14 CG2 · Q-42：**prov schema v2 实现**——v1/v2 双形态确定性解码〔9/11 对，键序 = v1 前缀 + 尾部追加〕+ v1 缺字段缺省〔orchestrated + estop 远程清除开放〕+ 域外值 fail-closed + 未装载兜底 enabled）。上位：HLD v0.2 §3（模块表）/§4.6；公共约定 `LLD-00-common.md`。
 > **职责**：统一存储抽象——分区布局、掉电安全 meta（kv）、只读 provisioning（prov）、noinit 留痕区、APP slot 读写。此前散落各模块的"烧录配置/安全参数分区"引用全部收敛到本模块。
 > **合同关联**：合同 10（安全参数不经运行时修改——prov 运行时只读是强制点）；DEC-05（slot/版本/回滚）、DEC-07（MCUmgr 底线）。
 
@@ -126,6 +126,7 @@ ts_res_t ts_store_slot_erase(uint8_t slot);  /* 全槽抹除：安装序前置�
 - DEC-20（locator/宿主）、DEC-21（根公钥体系）、DEC-23（分区布局）、DEC-27（META_MAX）、DEC-30⑤（CBOR schema v1）已裁；无未决。
 
 ## 修订记录
+- v0.5.3 · 2026-10-16：P1-2（DEC-63③/Q-47③）prov v2 TLS 三元组（15 对）——ts_rd_bstr_len 变长读取 + ts_prov_tls_t 独立装载面 + len 镜像（ts_prov_t 三 len + tls_out 自身 len——glue 单一消费面）+ 三键同现/非空/上限 fail-closed；walk 同路径 validate 零拷贝。阻断面见 LLD-ts-net v0.4.4 注记。
 - v0.5.2 · 2026-10-16：**F3（DEC-62①）**——prov v2 12 对形态：lconf 安装闸开关（缺省 0；域外 fail-closed）；store 用例矩阵扩展。
 - v0.5.1 · 2026-10-15：**EC2（信任表实现）**——ts_trust.c + part.c 两后端 + TS_STORE_TRUST/TS_TRUST_TABLE_MAX Kconfig + prov.c rd_* 助手提炼 internal.h 共享（prov/trust 单一纪律）；用例 framework.store test_trust_table（schema 矩阵/roundtrip/乒乓/撕裂回退/双损哨兵——RAM+flash 双变体）。分区 4KB→8KB 实施修正（擦除块对齐——DEC-60 登记值随修）。
 - v0.5 · 2026-10-15：**EC1（Q-43/DEC-60 · 信任根表设计）**——新增 §4a：ts_trust.c（表 CBOR 2 对定序键全量替换语义/8KB 双副本乒乓（2×4KB——EC2 实施期擦除块对齐定案）TS_STORE_TRUST 可选分区默认 n/单调 ver 防 TUF 同型）；用例面 = schema 矩阵 + 撕裂恢复（EC2 实施）。

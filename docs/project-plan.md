@@ -237,7 +237,7 @@
 
 ### B. 待 owner 裁决/动作项（当前）
 
-> **收口回归定格 @ 6e54dee（2026-10-16）**：twister 16/16（111）/agent 204+2s/ruff/L5 7/7/repo 5/sync 全绿、工作树干净——**tag-ready**（fw-v0.9.0 候选：形态批 F3 + 清欠批 P1 合版；owner 点头即 tag+push）。待 owner 两项：① Q-47 裁决（TLS 实施解锁）；② 版本 tag review（F3 三路已全收——fw-v0.9.0 点头即 tag+push）。
+> **收口回归定格 @ 6e54dee（2026-10-16）**：twister 16/16（111）/agent 204+2s/ruff/L5 7/7/repo 5/sync 全绿、工作树干净——**tag-ready**（fw-v0.9.0 候选：形态批 F3 + 清欠批 P1 合版；owner 点头即 tag+push）。Q-47 已裁（DEC-63 按建议）→ P1-2 实施大半交付 + 真机阻断登记（mbedtls 4.1.1 PSA ECDSA DER 验签——修复路径随下批呈递选项）。待 owner：① TLS 阻断修复路径裁决；② 版本 tag review（F3 三路已全收——fw-v0.9.0 点头即 tag+push）。
 
 （DEC-62 项已裁毕：
 ：Q-46 → 开工/F3〔② LVGL 修订〕；版本 tag → 并入下版〔F3+P1 收口时一并 review+tag〕；gcov → 缓办维持〔随 CI 强化批评估〕——F1/F2 物理判据已先行收口 v1.91）
@@ -277,6 +277,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.102 · 2026-10-16：**P1-2 TLS 实施批（DEC-63 五子项按建议）——大半交付 + 真机阻断登记**。交付：zenoh-pico-tls.patch 六文件（含五项上游缺口修复：socket union 别名覆写 _fd/DER+1 尾 NUL 解析/mbedtls 4.x API 迁移/MSG_NOSIGNAL/握手脚本 BIO 心跳）、prov 15 对 + glue mTLS 注入 + TS_NET_TLS 门控、工具入仓（flash_prov 三元组 + gen_tls_certs.sh）、zenohd TLS 9956 mTLS 实例（openssl 链验证 ✓）、回归全绿（twister 16/16〔113，+2〕/agent 204+2s/L5 7/7/ruff）。设计事实：zenohd 1.10.1（rustls）TLS1.3-only、x25519 key_share 必需（PSA_WANT_ECC_MONTGOMERY_255）、PKCS8 私钥形态。阻断（真机定位）：mbedtls 4.1.1 PSA ECDSA DER 验签拒收服务端签名（x509 链 0x08 + CertificateVerify -0x8D；openssl 同链全绿 = 板侧 PSA 层域；全链已点亮至 TLS1.3 EncryptedExtensions——证据 p1_tls_blocker_console.txt）。事故与复原：west flash 双板自动选口误刷（atk 镜像落 xiao）——双板复原 AK PASS/DB PASS（教训 37）；池重平 98304→69632。
 - v1.101 · 2026-10-16：**F3 拒绝路真机判据收口——安装闸三路（timeout/确认/拒绝）全真机全绿，F3 ◐→✅**。BOOT 长按 ≥2s：AKP1 slot=1 挂起 → AKPR → AKP3 撤销（槽保留可重推）；无复位无 meta 切换，既有 ACTIVE（AK4 slot=0）不受影响 + get-app pending 已清复核。证据 af3_gate_reject_console.txt；驱动 /tmp/ak_f3_gate_e2e.py reject（F3G REJECT PASS）。待 owner 收窄为 Q-47 + tag review。
 - v1.100 · 2026-10-16：**F3 确认路真机判据收口（owner 到场按键）**——BOOT 短按全链：deploy → activate -13 → AKP1（LCD 挂起呈现）→ AKPC 确认 → AKP2 meta 切换 → AK5 暖复位 → 自 flash 装载判据 `AK4 DONE` 命中 → AK6 ACTIVE；远程 get-app cbor2 解码 state=3 复核。证据 af3_gate_confirm_console.txt；驱动 /tmp/ak_f3_gate_e2e.py confirm（F3G CONFIRM PASS）。§11f F3 拒绝路仍待 owner 长按。
 - v1.99 · 2026-10-16：**P1-3 交付（供电槽 natives）+ P1-4 裁剪清账（counter）**。① ts_power_set/get（ts-power 层全链——perm/预算/唯一写路径/readback——的 wasm 暴露；Agent 白名单/约定/面镜像）；② counter 零消费者实证裁剪（HLD §9 对照表 ✂️——R10 日落纪律首例）。twister 111 / agent 204+2s / ruff / repo 全绿。**清欠批终态：P1-1 ✅ P1-5 ✅ P1-3 ✅ P1-4 ✂️ P1-2 停门（Q-47 待裁）——批实质完成，TLS 随 Q-47 裁决开实施。**

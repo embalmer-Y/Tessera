@@ -1,0 +1,60 @@
+SPDX-License-Identifier: Apache-2.0
+# P1-2 zenoh TLS E2E 进展证据（atk dnesp32s3b，2026-10-16 深夜）——阻断点定位留档
+# 已点亮：prov 15 对装载（CA 398B/证书 391B/私钥 138B PKCS8）→ glue base64 注入（532/524/184 字符）
+#   → TCP 建链 → ClientHello 171B 发出 → ServerHello（TLS1.3 + AES-256-GCM-SHA384 + x25519）→
+#   → 握手密钥派生 → 加密记录解密 → EncryptedExtensions → 服务端证书解析（CN=ts-router，
+#   issuer=Tessera Bench CA）→ x509 链校验 NOT_TRUSTED(0x08)；旁通验证后 CertificateVerify
+#   阶段 pk_verify_ext -0x8D（= PSA INVALID_SIGNATURE 映射，tf-psa 1.0 迁移表实证）。
+# 阻断定性：mbedtls 4.1.1 PSA ECDSA 验签拒收服务端 DER 签名（x509 链与握手 CertificateVerify
+#   同根因；openssl 同证书链全绿 + rustls(zenohd) 侧无异常 = 板侧 PSA 层域）。
+# 已修上游缺口（全部入 zenoh-pico-tls.patch）：Zephyr socket union _tls_sock 别名覆写 _fd（EBADF）、
+#   DER+1 尾 NUL 解析（零证书信任库/私钥拒收）、mbedtls 4.x API 迁移（pk/crt/rng/entropy）、
+#   MSG_NOSIGNAL、握手脚本 NET 看门狗饿死（BIO 心跳钩子）。
+# 环境教训：west flash 双板自动选口误刷（atk 镜像落 xiao——15 对「装载失败」一小时误诊根源；
+#   xiao 已复原 DB PASS）；esptool 5.x write-flash 不再收 stdin。
+# 附：zenohd 1.10.1（rustls）TLS1.3-only（TLS1.2 客户端 alert 70——openssl 实证）。
+[ts-net] tls: mTLS 注入 ca=398B cert=391B key=138B（名称校验 ON）
+[tls-dbg] glue b64 lens ca=532 cert=524 key=184
+[tls-dbg] client cfg key_len=184 cert_len=524
+[tls-dbg] tcp open
+[ts-net] zenoh_open: z_open rc=-102 loc=tls/192.168.2.91:9956
+[ts-net] tls: mTLS 注入 ca=398B cert=391B key=138B（名称校验 ON）
+[tls-dbg] glue b64 lens ca=532 cert=524 key=184
+[tls-dbg] client cfg key_len=184 cert_len=524
+[tls-dbg] tcp open
+[ts-net] zenoh_open: z_open rc=-102 loc=tls/192.168.2.91:9956
+[ts-net] tls: mTLS 注入 ca=398B cert=391B key=138B（名称校验 ON）
+[tls-dbg] glue b64 lens ca=532 cert=524 key=184
+[tls-dbg] client cfg key_len=184 cert_len=524
+[tls-dbg] tcp open
+[ts-net] zenoh_open: z_open rc=-102 loc=tls/192.168.2.91:9956
+[ts-net] tls: mTLS 注入 ca=398B cert=391B key=138B（名称校验 ON）
+[tls-dbg] glue b64 lens ca=532 cert=524 key=184
+[tls-dbg] client cfg key_len=184 cert_len=524
+[tls-dbg] tcp open
+[ts-net] zenoh_open: z_open rc=-102 loc=tls/192.168.2.91:9956
+[ts-net] tls: mTLS 注入 ca=398B cert=391B key=138B（名称校验 ON）
+[tls-dbg] glue b64 lens ca=532 cert=524 key=184
+[tls-dbg] client cfg key_len=184 cert_len=524
+[tls-dbg] tcp open
+[ts-net] zenoh_open: z_open rc=-102 loc=tls/192.168.2.91:9956
+[ts-net] tls: mTLS 注入 ca=398B cert=391B key=138B（名称校验 ON）
+[tls-dbg] glue b64 lens ca=532 cert=524 key=184
+[tls-dbg] client cfg key_len=184 cert_len=524
+[tls-dbg] tcp open
+[ts-net] zenoh_open: z_open rc=-102 loc=tls/192.168.2.91:9956
+[ts-net] tls: mTLS 注入 ca=398B cert=391B key=138B（名称校验 ON）
+[tls-dbg] glue b64 lens ca=532 cert=524 key=184
+[tls-dbg] client cfg key_len=184 cert_len=524
+[tls-dbg] tcp open
+[ts-net] zenoh_open: z_open rc=-102 loc=tls/192.168.2.91:9956
+[ts-net] tls: mTLS 注入 ca=398B cert=391B key=138B（名称校验 ON）
+[tls-dbg] glue b64 lens ca=532 cert=524 key=184
+[tls-dbg] client cfg key_len=184 cert_len=524
+[tls-dbg] tcp open
+[ts-net] zenoh_open: z_open rc=-102 loc=tls/192.168.2.91:9956
+[ts-net] tls: mTLS 注入 ca=398B cert=391B key=138B（名称校验 ON）
+[tls-dbg] glue b64 lens ca=532 cert=524 key=184
+[tls-dbg] client cfg key_len=184 cert_len=524
+[tls-dbg] tcp open
+[ts-net] zenoh_open: z_open rc=-102 loc=tls/192.168.2.91:9956

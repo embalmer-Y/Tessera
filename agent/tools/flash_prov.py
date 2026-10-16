@@ -15,8 +15,9 @@ esptool 写入 ts-prov 分区（运行时只读面，合同 10）。
 分区镜像 = u32 cbor_len（小端）| u16 crc16-ccitt（小端）| cbor[]——与
 prov.c 装载器布局一致（CG2 修复：此前直写裸 CBOR，装载器必拒）。
 键序 = prov.c 固定走查序（v,node_id,cube_id,routers,pk0,pk1,cred,pwr_ma,
-estop[,deploy_mode,estop_remote_clear]——v2 两键仅在显式给值时追加；旧固件
-只收 v1 九键，缺省输出维持 v1 形状）。
+estop[,deploy_mode,estop_remote_clear[,lconf[,tls_ca,tls_cert,tls_key]]]——
+尾部追加纪律：v2 两键显式给值时追加；--lconf → 12 键（F3 · DEC-62①）；
+--tls-ca/cert/key 三参同给 → 15 键（P1-2 · DEC-63③，EC P-256 DER）。
 """
 from __future__ import annotations
 
@@ -35,8 +36,13 @@ def _tstr(s: str) -> bytes:
 
 
 def _bstr(b: bytes) -> bytes:
-    assert len(b) < 256
-    return (bytes([0x40 | len(b)]) if len(b) < 24 else bytes([0x58, len(b)])) + b
+    n = len(b)
+    if n < 24:
+        return bytes([0x40 | n]) + b
+    if n < 256:
+        return bytes([0x58, n]) + b
+    assert n < 65536
+    return bytes([0x59, n >> 8, n & 0xFF]) + b
 
 
 def crc16_ccitt(data: bytes) -> int:
@@ -53,16 +59,24 @@ def crc16_ccitt(data: bytes) -> int:
 def build_prov(node: str, cube: str, router: str, pk0: bytes,
                pk1: bytes = b"\x00" * 32, pwr_ma: int = 500,
                deploy_mode: int | None = None,
-               estop_remote_clear: int | None = None) -> bytes:
+               estop_remote_clear: int | None = None,
+               lconf: int | None = None,
+               tls: tuple[bytes, bytes, bytes] | None = None) -> bytes:
     """构造 prov 分区镜像（头 + CBOR）。返回**整分区镜像**（非裸 CBOR）。
 
-    deploy_mode/estop_remote_clear 给值 → schema v2（11 键）；None → v1
-    （9 键——旧固件兼容形状，缺字段 = orchestrated + 远程清除开放）。
+    schema 形态（键序 = prov.c 固定走查序，尾部追加纪律）：
+      deploy_mode/estop_remote_clear 给值 → v2（11 键）；lconf → 12 键；
+      tls = (ca_der, cert_der, key_der) 三元组同现 → 15 键（P1-2 · DEC-63③，
+      EC P-256 DER）；None 维持既有缺省 → v1（9 键——旧固件兼容形状）。
     """
     assert len(pk0) == 32 and len(pk1) == 32
-    v2 = deploy_mode is not None or estop_remote_clear is not None
+    v2 = (deploy_mode is not None or estop_remote_clear is not None
+          or lconf is not None or tls is not None)
+    pairs = 9
+    if v2:
+        pairs = 15 if tls is not None else (12 if lconf is not None else 11)
     out = bytearray()
-    out += b"\xab" if v2 else b"\xa9"  # map(11|9) — 固定键序
+    out += bytes([0xA0 | pairs])  # map(n) definite — 固定键序
     out += _tstr("v") + (b"\x02" if v2 else b"\x01")
     out += _tstr("node_id") + _tstr(node)
     out += _tstr("cube_id") + _tstr(cube)
@@ -81,6 +95,16 @@ def build_prov(node: str, cube: str, router: str, pk0: bytes,
         assert ec in (0, 1), "estop_remote_clear ∈ {0=disabled,1=enabled}"
         out += _tstr("deploy_mode") + bytes([dm])
         out += _tstr("estop_remote_clear") + bytes([ec])
+    if pairs >= 12:
+        lc = lconf if lconf is not None else 0
+        assert lc in (0, 1), "lconf ∈ {0=off,1=on}"
+        out += _tstr("lconf") + bytes([lc])
+    if tls is not None:
+        ca, cert, key = tls
+        assert ca and cert and key, "TLS 三元组键在值空 = fail-closed（DEC-63③）"
+        out += _tstr("tls_ca") + _bstr(ca)
+        out += _tstr("tls_cert") + _bstr(cert)
+        out += _tstr("tls_key") + _bstr(key)
     return struct.pack("<IH", len(out), crc16_ccitt(bytes(out))) + bytes(out)
 
 
@@ -96,6 +120,14 @@ def main() -> int:
                     default=None, help="schema v2 部署模式（缺省 = v1 形状 = orchestrated）")
     ap.add_argument("--estop-remote-clear", choices=["enabled", "disabled"],
                     default=None, help="schema v2 远程 estop 清除通道（缺省 = v1 形状 = enabled）")
+    ap.add_argument("--lconf", type=int, choices=[0, 1], default=None,
+                    help="schema v2 12 键：安装闸本地确认（0=off/1=on；F3 · DEC-62①）")
+    ap.add_argument("--tls-ca", default=None,
+                    help="CA 证书 DER 文件（15 键三元组之一——P1-2 · DEC-63③，三参须同给）")
+    ap.add_argument("--tls-cert", default=None,
+                    help="设备客户端证书 DER 文件（三元组之一）")
+    ap.add_argument("--tls-key", default=None,
+                    help="设备私钥 DER 文件（EC SEC1；三元组之一）")
     ap.add_argument("--port", required=True)
     ap.add_argument("--offset", type=lambda x: int(x, 0), default=0x170000)
     a = ap.parse_args()
@@ -104,13 +136,31 @@ def main() -> int:
     pk1 = open(a.pub1, "rb").read() if a.pub1 else b"\x00" * 32
     dm = None if a.deploy_mode is None else int(a.deploy_mode == "standalone")
     ec = None if a.estop_remote_clear is None else int(a.estop_remote_clear == "enabled")
-    blob = build_prov(a.node, a.cube, a.router, pk0, pk1, a.pwr_ma, dm, ec)
+    tls = None
+    if any((a.tls_ca, a.tls_cert, a.tls_key)):
+        assert all((a.tls_ca, a.tls_cert, a.tls_key)), "--tls-ca/cert/key 须同给（三键同现纪律）"
+        tls = (open(a.tls_ca, "rb").read(), open(a.tls_cert, "rb").read(),
+               open(a.tls_key, "rb").read())
+        assert all(len(x) > 0 for x in tls), "TLS 三元组空文件 = fail-closed"
+    blob = build_prov(a.node, a.cube, a.router, pk0, pk1, a.pwr_ma, dm, ec,
+                      a.lconf, tls)
+    tls_desc = "off"
+    if tls is not None:
+        tls_desc = f"on ca={len(tls[0])}B cert={len(tls[1])}B key={len(tls[2])}B"
     print(f"prov image: {len(blob)}B（头 6B + cbor {len(blob) - 6}B；"
           f"pk0={pk0.hex()[:16]}… deploy_mode={a.deploy_mode or 'v1-default'} "
-          f"estop_remote_clear={a.estop_remote_clear or 'v1-default'}）")
+          f"estop_remote_clear={a.estop_remote_clear or 'v1-default'} "
+          f"lconf={a.lconf if a.lconf is not None else '缺省'} "
+          f"tls={tls_desc}）")
+    # esptool ≥5 不再接受 stdin "-"（write-flash 用法错）——落临时文件传路径
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(suffix=".bin", delete=False) as tf:
+        tf.write(blob)
+        img = tf.name
     subprocess.run(
-        ["esptool.py", "--port", a.port, "write-flash", hex(a.offset), "-"],
-        input=blob, check=True)
+        ["esptool.py", "--port", a.port, "write-flash", hex(a.offset), img],
+        check=True)
     print("written（复位后 prov_load 直读——运行时只读面）")
     return 0
 

@@ -599,6 +599,19 @@ config TS_NET_ZENOH
 	  Requires zenoh-pico Zephyr module in ZEPHYR_EXTRA_MODULES. Link-level
 	  liveness refinement (keepalive) lands with M3a.2.
 
+config TS_NET_TLS
+	bool "TLS command-plane link (mTLS, DEC-63)"
+	depends on TS_NET && TS_NET_ZENOH && ZENOH_PICO_LINK_TLS
+	default n
+	help
+	  zenoh tls/<ip>:<port> locator with prov v2 TLS triple (tls_ca/tls_cert/
+	  tls_key DER, 15-pair schema). Client mTLS: CA verify (VERIFY_REQUIRED,
+	  server cert SAN must match locator host) + device certificate
+	  presentation. Requires ZENOH_PICO_LINK_TLS (repo-carried patch
+	  ext/zenoh-pico-tls.patch, DEC-63-1) and CONFIG_MBEDTLS in the app.
+	  Default off = zero footprint; TLS-off prov (<=12 pair) byte-identical
+	  on any build.
+
 
 
 config TS_DRV_GPIO

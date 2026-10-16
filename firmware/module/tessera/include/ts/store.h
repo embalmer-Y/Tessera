@@ -75,7 +75,35 @@ typedef struct {
 	uint8_t local_confirm;      /* 0=off（无头缺省）/1=on：activate 验签后置
 					     * pending 待本地确认（60s fail-closed）；
 					     * 11 对 v2 缺字段 = 0（存量 prov 零重烧） */
+	/* —— schema v2 TLS 三元组（P1-2 · DEC-63③/Q-47③）：mTLS 供给（15 对）——
+	 * DER 本体经 ts_store_prov_tls() 独立只读面（ts_prov_t 保持小足迹）；
+	 * len=0 = 键缺省（12 对及以下 = TLS off，存量 prov 零重刷逐字节兼容）。 */
+	uint16_t tls_ca_len;
+	uint16_t tls_cert_len;
+	uint16_t tls_key_len;
 } ts_prov_t;
+
+/* TLS 三元组上限出处：EC P-256 实测 DER（CA ~570B〔含 SAN〕/设备证书 ~590B/
+ * SEC1 私钥 121B）+ ~30% 余量（DEC-63③）。 */
+#define TS_PROV_TLS_CA_MAX 768
+#define TS_PROV_TLS_CERT_MAX 768
+#define TS_PROV_TLS_KEY_MAX 256
+
+typedef struct {
+	uint8_t ca[TS_PROV_TLS_CA_MAX];
+	uint8_t cert[TS_PROV_TLS_CERT_MAX];
+	uint8_t key[TS_PROV_TLS_KEY_MAX];
+	uint16_t ca_len;
+	uint16_t cert_len;
+	uint16_t key_len;
+} ts_prov_tls_t;
+
+/* [any] TLS 三元组只读指针；ca_len=0 = TLS off（装载态镜像——validate
+ * 维护通道走查不触碰活态）。消费者 = ts-net TLS glue（DEC-63③）；
+ * 无 TLS 构建不提供（15 对 prov 仍装载 = TLS off）。 */
+#ifdef CONFIG_TS_NET_TLS
+const ts_prov_tls_t *ts_store_prov_tls(void);
+#endif
 
 ts_res_t ts_store_prov_load(void);      /* init 期一次；失败 = TS_E_IO */
 const ts_prov_t *ts_store_prov(void);   /* [any] 只读指针；无运行时写接口（合同 10） */

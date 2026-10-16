@@ -5,8 +5,9 @@
 #include <ts/store.h>
 #include <ts/tsap.h>
 
-/* CBOR 测试构造助手（固定 schema v1，与 prov.c 解码器对齐） */
-#define CB_MAX 512
+/* CBOR 测试构造助手（固定 schema，与 prov.c 解码器对齐）。
+ * 2048 = prov 15 对形态（TLS 三元组 DER 实测 ~1.3KB + 基础字段）。 */
+#define CB_MAX 2048
 
 struct cb {
 	uint8_t b[CB_MAX];
@@ -48,13 +49,36 @@ static void cb_bstr32(struct cb *c, uint8_t fill)
 	}
 }
 
+/* 变长 bstr（P1-2 · DEC-63③：TLS DER——≥256 走 0x59 两字节长形态） */
+static void cb_bstr_var(struct cb *c, uint32_t len, uint8_t fill)
+{
+	if (len < 24) {
+		cb_hdr(c, 0x40, len);
+	} else if (len < 256) {
+		cb_u8(c, 0x58);
+		cb_u8(c, (uint8_t)len);
+	} else {
+		cb_u8(c, 0x59);
+		cb_u8(c, (uint8_t)(len >> 8));
+		cb_u8(c, (uint8_t)len);
+	}
+	for (uint32_t i = 0; i < len; i++) {
+		cb_u8(c, fill + (uint8_t)i);
+	}
+}
+
 static void build_prov_cbor_full(struct cb *c, const char *node, const char *cube,
 				 const char *router, uint32_t pwr, int ver,
 				 uint8_t deploy_mode, uint8_t estop_remote_clear,
-				 int lconf)
+				 int lconf, const uint32_t *tls)
 {
 	memset(c, 0, sizeof(*c));
-	cb_hdr(c, 0xA0, (ver == 2) ? ((lconf >= 0) ? 12 : 11) : 9);
+	uint32_t pairs = 9;
+
+	if (ver == 2) {
+		pairs = (tls != NULL) ? 15 : ((lconf >= 0) ? 12 : 11);
+	}
+	cb_hdr(c, 0xA0, pairs);
 	cb_tstr(c, "v");
 	cb_hdr(c, 0x00, ver);
 	cb_tstr(c, "node_id");
@@ -76,14 +100,22 @@ static void build_prov_cbor_full(struct cb *c, const char *node, const char *cub
 	cb_hdr(c, 0x00, 1);
 	if (ver == 2) {
 		/* CG2（Q-42）：v2 = v1 键序前缀 + 尾部追加；F3（DEC-62①）第三键
-		 * lconf（12 对形态；lconf<0 = 11 对存量形态） */
+		 * lconf；P1-2（DEC-63③）TLS 三元组（15 对——lconf 必含，缺省 0） */
 		cb_tstr(c, "deploy_mode");
 		cb_hdr(c, 0x00, deploy_mode);
 		cb_tstr(c, "estop_remote_clear");
 		cb_hdr(c, 0x00, estop_remote_clear);
-		if (lconf >= 0) {
+		if (lconf >= 0 || tls != NULL) {
 			cb_tstr(c, "lconf");
-			cb_hdr(c, 0x00, (uint8_t)lconf);
+			cb_hdr(c, 0x00, (uint8_t)(lconf >= 0 ? lconf : 0));
+		}
+		if (tls != NULL) {
+			cb_tstr(c, "tls_ca");
+			cb_bstr_var(c, tls[0], 0xA0);
+			cb_tstr(c, "tls_cert");
+			cb_bstr_var(c, tls[1], 0xB0);
+			cb_tstr(c, "tls_key");
+			cb_bstr_var(c, tls[2], 0xC0);
 		}
 	}
 }
@@ -91,7 +123,7 @@ static void build_prov_cbor_full(struct cb *c, const char *node, const char *cub
 static void build_prov_cbor(struct cb *c, const char *node, const char *cube,
 			    const char *router, uint32_t pwr)
 {
-	build_prov_cbor_full(c, node, cube, router, pwr, 1, 0, 0, -1);
+	build_prov_cbor_full(c, node, cube, router, pwr, 1, 0, 0, -1, NULL);
 }
 
 /* ---- V0.8.0 EC2（Q-43③）：信任表持久化——schema 矩阵/乒乓/撕裂 ---------- */
@@ -253,7 +285,7 @@ ZTEST(framework_store, test_prov_v2_fields)
 {
 	struct cb c;
 
-	build_prov_cbor_full(&c, "n-v2", "c-v2", "tcp/10.0.0.2:7447", 200, 2, 1, 0, -1);
+	build_prov_cbor_full(&c, "n-v2", "c-v2", "tcp/10.0.0.2:7447", 200, 2, 1, 0, -1, NULL);
 	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
 	zassert_equal(ts_store_prov_load(), TS_OK);
 	const ts_prov_t *p = ts_store_prov();
@@ -264,10 +296,10 @@ ZTEST(framework_store, test_prov_v2_fields)
 	zassert_equal(p->estop_remote_clear, 0, "v2 显式 disabled");
 
 	/* 域外值 fail-closed（未知模式/通道值不静默归并——IR-10 同型） */
-	build_prov_cbor_full(&c, "n-x", "c-x", "tcp/x:1", 1, 2, 2, 1, -1);
+	build_prov_cbor_full(&c, "n-x", "c-x", "tcp/x:1", 1, 2, 2, 1, -1, NULL);
 	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
 	zassert_equal(ts_store_prov_load(), TS_E_IO, "deploy_mode=2 必须拒绝");
-	build_prov_cbor_full(&c, "n-y", "c-y", "tcp/x:1", 1, 2, 1, 2, -1);
+	build_prov_cbor_full(&c, "n-y", "c-y", "tcp/x:1", 1, 2, 1, 2, -1, NULL);
 	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
 	zassert_equal(ts_store_prov_load(), TS_E_IO, "estop_remote_clear=2 必须拒绝");
 
@@ -278,28 +310,80 @@ ZTEST(framework_store, test_prov_v2_fields)
 	zassert_equal(ts_store_prov_load(), TS_E_IO, "v=2 与 9 对错配必须拒绝");
 
 	/* F3 · DEC-62①：v2 12 对第三键 lconf——1 = 安装闸开 */
-	build_prov_cbor_full(&c, "n-lc", "c-lc", "tcp/x:1", 1, 2, 0, 1, 1);
+	build_prov_cbor_full(&c, "n-lc", "c-lc", "tcp/x:1", 1, 2, 0, 1, 1, NULL);
 	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
 	zassert_equal(ts_store_prov_load(), TS_OK);
 	zassert_equal(ts_store_prov()->local_confirm, 1, "12 对 lconf=1");
 	zassert_equal(ts_store_prov()->deploy_mode, TS_DEPLOY_ORCHESTRATED,
 		      "12 对 v2 前两尾键语义不变");
 	/* 显式 0 */
-	build_prov_cbor_full(&c, "n-lc0", "c-lc0", "tcp/x:1", 1, 2, 0, 1, 0);
+	build_prov_cbor_full(&c, "n-lc0", "c-lc0", "tcp/x:1", 1, 2, 0, 1, 0, NULL);
 	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
 	zassert_equal(ts_store_prov_load(), TS_OK);
 	zassert_equal(ts_store_prov()->local_confirm, 0, "12 对 lconf=0");
 	/* 域外值 fail-closed */
-	build_prov_cbor_full(&c, "n-lc2", "c-lc2", "tcp/x:1", 1, 2, 0, 1, 2);
+	build_prov_cbor_full(&c, "n-lc2", "c-lc2", "tcp/x:1", 1, 2, 0, 1, 2, NULL);
 	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
 	zassert_equal(ts_store_prov_load(), TS_E_IO, "lconf=2 必须拒绝");
 	/* 11 对存量形态 = lconf 缺省 0（存量 prov 零重刷等义） */
-	build_prov_cbor_full(&c, "n-v2b", "c-v2b", "tcp/x:1", 1, 2, 0, 1, -1);
+	build_prov_cbor_full(&c, "n-v2b", "c-v2b", "tcp/x:1", 1, 2, 0, 1, -1, NULL);
 	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
 	zassert_equal(ts_store_prov_load(), TS_OK);
 	zassert_equal(ts_store_prov()->local_confirm, 0, "11 对缺省 lconf=0");
 
 	/* 收尾复原 orchestrated（后续用例状态干净） */
+	build_prov_cbor(&c, "node-1", "cube-9", "tcp/10.0.0.1:7447", 500);
+	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_OK);
+}
+
+/* P1-2（DEC-63③/Q-47③）：prov schema v2 15 对——TLS mTLS 三元组 ---------- */
+ZTEST(framework_store, test_prov_tls_triple)
+{
+	struct cb c;
+	const uint32_t tls[3] = {570, 590, 121}; /* EC P-256 DER 实测形态 */
+
+	/* 15 对合法装载：len 镜像 + lconf 必含 */
+	build_prov_cbor_full(&c, "n-tls", "c-tls", "tls/10.0.0.9:9956", 300, 2, 0, 1, 1, tls);
+	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_OK);
+	const ts_prov_t *p = ts_store_prov();
+
+	zassert_equal(p->tls_ca_len, 570, "15 对 ca len 镜像");
+	zassert_equal(p->tls_cert_len, 590, "15 对 cert len 镜像");
+	zassert_equal(p->tls_key_len, 121, "15 对 key len 镜像");
+	zassert_equal(p->local_confirm, 1, "15 对 lconf 语义不变");
+
+	/* validate 维护通道同路径（单一事实源） */
+	build_prov_cbor_full(&c, "n-val", "c-val", "tcp/x:1", 1, 2, 0, 1, 0, tls);
+	zassert_equal(ts_store_prov_validate(c.b, c.n), TS_OK, "validate 15 对同路径");
+
+	/* 超 cap 拒（fail-closed——768/768/256 上限，DEC-63③） */
+	const uint32_t over[3] = {TS_PROV_TLS_CA_MAX + 1, 64, 64};
+	build_prov_cbor_full(&c, "n-o", "c-o", "tcp/x:1", 1, 2, 0, 1, 0, over);
+	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_E_IO, "ca 超 768B 必须拒绝");
+
+	/* 键在值空（len=0）拒——三键同现且非空纪律 */
+	const uint32_t empt[3] = {0, 64, 64};
+	build_prov_cbor_full(&c, "n-e", "c-e", "tcp/x:1", 1, 2, 0, 1, 0, empt);
+	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_E_IO, "空 bstr 必须拒绝");
+
+	/* 域外对数（13 对）拒——pairs 白名单 */
+	build_prov_cbor_full(&c, "n-13", "c-13", "tcp/x:1", 1, 2, 0, 1, 0, tls);
+	c.b[0] = 0xAD; /* map(13) */
+	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_E_IO, "13 对必须拒绝");
+
+	/* 12 对形态 = TLS off（lens 0——存量 prov 零重刷等义） */
+	build_prov_cbor_full(&c, "n-12", "c-12", "tcp/x:1", 1, 2, 0, 1, 0, NULL);
+	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_OK);
+	zassert_equal(ts_store_prov()->tls_ca_len, 0, "12 对 = TLS off");
+	zassert_equal(ts_store_prov()->tls_key_len, 0, "12 对 = TLS off");
+
+	/* 收尾复原（后续用例状态干净） */
 	build_prov_cbor(&c, "node-1", "cube-9", "tcp/10.0.0.1:7447", 500);
 	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
 	zassert_equal(ts_store_prov_load(), TS_OK);

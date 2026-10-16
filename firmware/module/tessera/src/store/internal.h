@@ -141,6 +141,30 @@ static inline bool ts_rd_bstr(ts_rd_t *r, uint8_t *out, size_t cap)
 	return true;
 }
 
+/* 变长 bstr（prov v2 TLS 三元组——DEC-63③）：len ≤ cap 实长出参。
+ * out=NULL = 仅消费走查（validate 通道零拷贝）。 */
+static inline bool ts_rd_bstr_len(ts_rd_t *r, uint8_t *out, size_t cap,
+				  uint16_t *len_out)
+{
+	uint8_t ib;
+
+	if (!ts_rd_u8(r, &ib) || (uint8_t)(ib & 0xE0) != 0x40) {
+		return false;
+	}
+	uint32_t len;
+
+	if (!ts_rd_len(r, ib & 0x1F, &len) || len > cap || r->rem < len) {
+		return false;
+	}
+	if (out != NULL) {
+		memcpy(out, r->p, len);
+	}
+	*len_out = (uint16_t)len;
+	r->p += len;
+	r->rem -= len;
+	return true;
+}
+
 static inline bool ts_rd_uint(ts_rd_t *r, uint32_t *out)
 {
 	uint8_t ib;
