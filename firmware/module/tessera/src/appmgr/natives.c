@@ -17,6 +17,8 @@
 #include <zephyr/sys/printk.h>
 #include <ts/appmgr.h> /* P1-1：ts_appmgr_msg_*（APP 间消息路由） */
 #include <ts/hal.h>
+#include <ts/power.h> /* P1-3：ts_power_request/slot_get（供电槽 native 面） */
+#include <ts/safety.h> /* P1-3：readback */
 #include <wasm_export.h>
 #ifdef CONFIG_TS_STORE_KV
 #include <ts/store.h> /* TS_KV_BLOB_MAX（V0.4.0 M9） */
@@ -388,6 +390,44 @@ static int32_t native_msg_recv(wasm_exec_env_t env, uint32_t ctx_opaque,
 	return (r == TS_OK) ? (int32_t)len : (int32_t)r;
 }
 
+
+/* P1-3（HLD §3.6 · DEC-03/合同 7）：受控供电槽 native 面——ts-power 层
+ * 全链（perm power:set:slot + 预算联动 POWER_BUDGET + 唯一写路径 commit）
+ * 的 wasm 暴露；get = safety readback（en 返回值 0/1，ma 出参）。 */
+static int32_t native_power_set(wasm_exec_env_t env, uint32_t ctx_opaque,
+				uint32_t slot, uint32_t on, uint32_t ma)
+{
+	ARG_UNUSED(ctx_opaque);
+	return (int32_t)ts_power_request(ctx_of(env), (uint8_t)slot,
+					 on != 0, ma);
+}
+
+static int32_t native_power_get(wasm_exec_env_t env, uint32_t ctx_opaque,
+				uint32_t slot, uint32_t ma_off)
+{
+	ARG_UNUSED(ctx_opaque);
+	const ts_pwr_slot_t *s = ts_power_slot_get((uint8_t)slot);
+
+	if (s == NULL) {
+		return TS_E_NOTFOUND;
+	}
+	ts_out_value_t rb;
+	ts_res_t r = ts_safety_readback(s->uid, &rb);
+
+	if (r != TS_OK) {
+		return (int32_t)r;
+	}
+	wasm_module_inst_t inst = wasm_runtime_get_module_inst(env);
+
+	if (!wasm_runtime_validate_app_addr(inst, ma_off, sizeof(uint32_t))) {
+		return TS_E_PARAM;
+	}
+	uint32_t *out = (uint32_t *)wasm_runtime_addr_app_to_native(inst, ma_off);
+
+	*out = rb.pwr.ma;
+	return rb.pwr.en ? 1 : 0;
+}
+
 static NativeSymbol ts_native_syms[] = {
 	{"ts_gpio_write", native_gpio_write, "(iii)i", NULL},
 	{"ts_gpio_read", native_gpio_read, "(ii)i", NULL},
@@ -412,6 +452,8 @@ static NativeSymbol ts_native_syms[] = {
 	{"ts_net_publish", native_net_publish, "(iiiiii)i", NULL},
 	{"ts_msg_send", native_msg_send, "(iiiiii)i", NULL}, /* P1-1：msg:send 名单授权 */
 	{"ts_msg_recv", native_msg_recv, "(iiiii)i", NULL},
+	{"ts_power_set", native_power_set, "(iiii)i", NULL}, /* P1-3：power:set:slot 权限 + 预算联动 */
+	{"ts_power_get", native_power_get, "(iiii)i", NULL},
 #endif
 #endif
 #ifdef CONFIG_TS_APP_THREADS

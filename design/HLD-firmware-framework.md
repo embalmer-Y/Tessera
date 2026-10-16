@@ -68,7 +68,7 @@
 ### 3.3 ts-hal
 
 - 外设类 API（V1）：`gpio`（读/写）、`pwm`、`adc`（输入）、`counter`、`power`（经 ts-power）。接口为板无关抽象（DEC-04：APP 不见具体硬件）。
-  - **v0.3 现状注记**：已实现 natives = gpio/pwm/adc/time/log/fs×4/av 采集+发布+音频输出/kv×2/net_publish/thread×2（17 面，LLD-ts-hal §3）；`counter` / `power_set` / `ts_msg_send` 未实现（登记待追加——§9 对照表）。
+  - **v0.3 现状注记**：已实现 natives = gpio/pwm/adc/time/log/fs×4/av 采集+发布+音频输出/kv×2/net_publish/thread×2（17 面，LLD-ts-hal §3）；`power_set/get`（P1-3）与 `ts_msg_send/recv`（P1-1）已实现（18+2 面）；`counter` 裁剪清账（P1-4——§9 对照表）。
 - **权限执行点**：每个 ts-hal 调用携带调用者 APP 上下文；对照 manifest 能力裁决，越权 → 拒绝 + 留痕（合同 10）。
 - 外设描述符（ts-periph 配合）：可插拔外设 = 描述符（类/实例/能力/安全参数）注册进框架；未注册外设不可寻址。
 - **输入采集（input monitor，DR-02）**：sysworkq 周期轮询输入实例（gpio-in / adc），值变化 → 发 `TS_EVT_INPUT_CHANGED` 并经 ts-net 发布遥测（周期〔DEC-27 #14〕；V1 无硬件中断驱动）。
@@ -236,7 +236,7 @@ Flash（按板可配，DEC-23）：bootloader 64KB ｜ 固件 slot ×2 ｜ APP s
 | ts-core 初始化编排/事件总线/单调时间 | §3.1 | ✅（+ 四层看门狗防线 DEC-48——超出本文） |
 | ts-safety 三态/唯一写路径/estop ISR/fail-safe | §3.2 | ✅（+ 部署模式/控制源仲裁〔合同 11 级，CG 批〕超出本文） |
 | ts-hal gpio/pwm/adc | §3.3 | ✅ 真机后端（LEDC/ADC 寄存器级验证） |
-| ts-hal counter 类 | §3.3 | ❌ 未实现（无消费者牵引——plan §11g 候选） |
+| ts-hal counter 类 | §3.3 | ✂️ **裁剪清账**（P1-4 评估 2026-10-16：零消费者实证〔demo/manifest/natives 全库无 counter 面〕；GPIO 沿计数语义已由 input monitor〔DR-02〕近似覆盖；R10 §4 日落纪律第一例——需求实据出现再重开） |
 | ts-hal power → APP native（power_set） | §3.3 | ◐ ts-power 模块已交付（槽/限流/预算），native 未暴露 |
 | ts-msg_send APP 间消息 | §3.4 | ❌ 未实现（多 APP 现以事件广播 + 遥测订阅交互——plan §11g 清欠首选） |
 | 输入监视 input monitor | §3.3 | ✅ 且升级为中断驱动（M5/DR-02，超出本文轮询设计） |

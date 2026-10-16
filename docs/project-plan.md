@@ -231,8 +231,8 @@
 |---|------|------|------|------|
 | P1-1 ✅ | `ts_msg_send` APP 间消息 | **已交付**（框架路由〔app_id 串身份寻址 + 权限先于目标解析——不泄露存在性〕+ msg:send 名单权限类〔IR-11 收口〕+ FIFO 满槽背压 + TS_APP_EVT_MSG 取件通知 + natives/Agent 镜像；twister 16/16〔111，+2〕agent 197+2s〔+1〕L5/ruff/repo 全绿；真机双 APP 互发 demo 可复用 multiappbench〔随下一板级轮〕） | ~1 单元 | HLD §3.4 原设计项；多 APP 业务的最后一环 |
 | P1-2 →呈递 | zenoh TLS 链路 | **Q-47 已呈递停门（门③）**：五子项 = pico 使能路径（仓携带补丁）/ 自建 CA + mTLS 双向 / prov v2 bstr 三元组（tls_ca/cert/key，缺省无键 = TLS off 零重刷）/ zenohd TLS 并存口 / 内存重平与工作量 ~1 单元。设计事实在档（zenohd TLS+mTLS 全支持；pico Zephyr 集成缺件 = 需补丁；EC P-256 ~1.5KB 入 4KB prov） | ~1 单元 | owner 裁后开工 |
-| P1-3 | `power_set`/`power_get` native | ts-power 槽暴露给 APP（power 权限类 + 预算联动语义：APP 自申请槽位） | ~0.5 单元 | 与 P1-4 可并 |
-| P1-4 | `counter` 外设类 | 评估实际需求后定：无消费者 → 维持裁剪登记（HLD 对照表 ❌ 项清账） | ~0.5 单元或裁剪 | 建议先评估（GPIO 中断计数已有 input monitor 覆盖近似语义） |
+| P1-3 ✅ | `power_set`/`power_get` native | **已交付**：ts_power_set/get natives（power 层全链已存——perm+预算+唯一写路径+readback；纯暴露面）+ Agent 白名单/约定/面镜像测试 | ~0.5 单元 | twister 111 / agent 204+2s 全绿 |
+| P1-4 ✂️ | `counter` 外设类 | **裁剪清账**：零消费者实证（demo/manifest/natives 全库无 counter 面；GPIO 沿计数由 input monitor 近似覆盖）；HLD §9 对照表已更新（R10 §4 日落纪律第一例——需求实据出现再重开） | 裁剪 | 评估完成 2026-10-16 |
 | P1-5 ✅ | Agent S8 补全（部署失败自动再入修复轮） | **已交付**：post_deploy_check 判据面（pass_patterns + criteria_pass 三态）+ CreationLoop.repair（证据经上轮小结回喂，S8_REPAIR_MAX=2 计入预算）+ CLI --deploy --serial-port 端到端闭环；agent 203+2s（+6） | ~0.5 单元 | HLD-agent §4 S8（v0.2.2 收口） |
 
 ### B. 待 owner 裁决/动作项（**已全部裁毕 2026-10-16 · DEC-62**：Q-46 → 开工/F3〔② LVGL 修订〕；版本 tag → 并入下版〔F3+P1 收口时一并 review+tag〕；gcov → 缓办维持〔随 CI 强化批评估〕——F1/F2 物理判据已先行收口 v1.91）
@@ -272,6 +272,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.99 · 2026-10-16：**P1-3 交付（供电槽 natives）+ P1-4 裁剪清账（counter）**。① ts_power_set/get（ts-power 层全链——perm/预算/唯一写路径/readback——的 wasm 暴露；Agent 白名单/约定/面镜像）；② counter 零消费者实证裁剪（HLD §9 对照表 ✂️——R10 日落纪律首例）。twister 111 / agent 204+2s / ruff / repo 全绿。**清欠批终态：P1-1 ✅ P1-5 ✅ P1-3 ✅ P1-4 ✂️ P1-2 停门（Q-47 待裁）——批实质完成，TLS 随 Q-47 裁决开实施。**
 - v1.98 · 2026-10-16：**P1-2 设计事实调研 + Q-47 呈递停门（门③）**——zenohd 1.10.1 TLS/mTLS 全支持（listen tls + enable_mtls）；zenoh-pico Zephyr 集成缺 TLS 特性行（需仓携带补丁——钉版 1.10.1 基）；EC P-256 证书全套 ~1.5KB 入 4KB prov 可容；五子项呈递（补丁路径/CA+mTLS/prov bstr 三元组/并存口/内存重平）待 owner 裁决。
 - v1.97 · 2026-10-16：**P1-5 交付（S8 部署判据 miss 自动修复轮——HLD-agent §4 S8 收口，v0.2.2）**。post_deploy_check 判据面（健康也抓窗对拍；criteria_pass 三态区分未验证/未命中）+ CreationLoop.repair（上轮小结通道回喂真机证据；修复窗 2、计入循环预算）+ CLI --serial-port 部署闭环。agent 203+2s（+6）/ruff 绿。
 - v1.96 · 2026-10-16：**P1-1 交付（ts_msg_send APP 间消息——HLD §3.4 原设计项收口）**。① 权限面：msg:send:<目标app_id> 名单形态（perm 层 msg_targets ≤4 + TS_PERM_OP_SEND——IR-11 fail-closed 登记的实现收口；LLD-ts-hal v0.2.5）；② 路由面：ts_appmgr_msg_send/recv（app_id 串身份寻址〔DEC-04 禁直接互访的唯一例外通道〕+ 权限先于目标解析〔不泄露运行面存在性〕+ FIFO 4×96B 满槽发送方背压 + TS_APP_EVT_MSG 取件通知；LLD-ts-appmgr v0.9 §5d）；③ natives ts_msg_send/recv + Agent 镜像（白名单 + 约定块 + 面镜像测试）。回归：twister 16/16〔111，+2〕/agent 197+2s〔+1〕/L5 7/7/ruff/repo 5 全绿。

@@ -322,3 +322,5 @@
 - 2026-10-16 · **P1-1 APP 间消息批登记**：ts_perm_check_msg + msg_targets 名单 + TS_PERM_OP_SEND + TS_PERM_MSG_TARGETS_MAX/NAME_MAX（hal perm msg:send:<app_id> 名单形态——IR-11 收口，LLD-ts-hal v0.2.5）；ts_appmgr_msg_send/recv/pending + TS_APP_EVT_MSG（0x4D53475A 取件通知）+ TS_APPMGR_MSG_SLOTS/MSG_MAX + ts_appmgr_rt_by_str（appmgr 消息路由——LLD-ts-appmgr v0.9 §5d）；ts_msg_send/ts_msg_recv（natives + Agent NATIVE_WHITELIST/约定块镜像）；test_16（hal 名单矩阵）/test_15（app 双实例路由）/TestMsgNativesMirror（agent 面镜像）。消费：plan §11g P1-1、HLD §3.4。
 
 - 2026-10-16 · **P1-5 S8 串联批登记**：post_deploy_check pass_patterns 判据面（criteria_pass 三态——S8 终止条件）；CreationLoop.repair/S8_REPAIR_MAX/上轮小结回喂复用（creation/loop.py 重构 _converge_and_package 共用体）；TerminalFrontend.repair（门面修复轮入口）；CLI run --serial-port（部署→判据窗→miss 自动修复轮→再部署 ≤2 窗）。消费：plan §11g P1-5、HLD-agent §4 S8（v0.2.2）。
+
+- 2026-10-16 · **P1-3/P1-4 批登记**：ts_power_set/ts_power_get（natives——ts-power 层 wasm 暴露 + Agent 白名单/约定镜像）；counter ✂️（裁剪清账——零消费者实证，HLD §9 对照表首例日落）。消费：plan §11g P1-3/P1-4。

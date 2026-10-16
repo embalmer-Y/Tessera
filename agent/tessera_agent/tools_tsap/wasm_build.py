@@ -42,6 +42,8 @@ NATIVE_WHITELIST = frozenset({
     "ts_thread_start", "ts_thread_join",
     # P1-1（HLD §3.4）：APP 间消息——框架路由（msg:send:<target> 名单授权）
     "ts_msg_send", "ts_msg_recv",
+    # P1-3（HLD §3.6 · 合同 7）：受控供电槽（power:set:slot 权限 + 预算联动）
+    "ts_power_set", "ts_power_get",
 })
 
 # 框架回调（runtime lookup：health_ping 必有；app_init/app_tick/app_evt

@@ -129,7 +129,9 @@ _CONVENTIONS = [
     "int ts_kv_save(int ctx,const char* buf,int len)；"
     "int ts_kv_load(int ctx,char* buf,int cap)；"
     "int ts_msg_send(int ctx,const char* target,int target_len,const char* data,int len)；"
-    "int ts_msg_recv(int ctx,char* from,int from_cap,char* buf,int cap)。",
+    "int ts_msg_recv(int ctx,char* from,int from_cap,char* buf,int cap)；"
+    "int ts_power_set(int ctx,int slot,int on,int ma)；"
+    "int ts_power_get(int ctx,int slot,int* ma)。",
     "（fs natives 仅当 manifest caps 含对应 fs:op 且 fs_paths 覆盖路径时可用；"
     "返回 >=0 为字节数、<0 为错误码；路径缓冲在 wasm 线性内存内。）"
     "（ts_kv_save/ts_kv_load = 本 APP 业务状态持久化（V0.4.0 M9，DR-15）："

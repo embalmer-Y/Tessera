@@ -286,3 +286,18 @@ class TestMsgNativesMirror:
         out = compile_app_c(self.MSG_C, str(tmp_path / "o"), [str(tmp_path)])
         assert set(out["imports"]) == {"ts_msg_send", "ts_msg_recv"}
         assert "app_evt" in out["exports"]
+
+
+def test_power_natives_face_ok(tmp_path):
+    """P1-3（HLD §3.6）：供电槽 natives 过白名单面检查。"""
+    src = (
+        "extern int ts_power_set(int ctx, int slot, int on, int ma);\n"
+        "extern int ts_power_get(int ctx, int slot, int *ma);\n"
+        '__attribute__((export_name("health_ping"))) '
+        "int health_ping(void) { return 0; }\n"
+        '__attribute__((export_name("app_tick"))) '
+        "int app_tick(void) { int ma; "
+        "return ts_power_set(0, 0, 1, 100) + ts_power_get(0, 0, &ma); }\n"
+    )
+    out = compile_app_c(src, str(tmp_path / "o"), [str(tmp_path)])
+    assert set(out["imports"]) == {"ts_power_set", "ts_power_get"}
