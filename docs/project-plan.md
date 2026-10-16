@@ -212,7 +212,7 @@
 | K6 ✅ | 多真机 LN | deploybench + atkbench 双 cube：LN 组部署/断链策略/跨板判据（**AK6 LN PASS**：ln_create 双成员 → ln_deploy 扇出双板 confirmed → ln_status 聚合双 ACTIVE 无降级；xiao 以当前模块重刷〔F1/F5 修复平移〕；atk SMH 1MB→4MB；证据 ak6_console.txt） | — |
 | F1 ✅ | 本地交互源 | 按键（BOOT/扩展器 KEY）→ arb LOCAL 席位 + 压制 + 事件（CG3 机制接线）——**真机手势判据收口**（owner BOOT 短按 ×2：`AKL →LOCAL`/`→REMOTE` rc=0 双向切换；证据 af12_boot_console.txt） | — |
 | F2 ✅ | 本地 estop 清除 | KEY → clear_fault + prov estop_remote_clear 出厂缺省翻 disabled（ISO 13850 偏离撤销）——**远程门真机实证**（need=local-clear）+ **本地路真机判据收口**（owner BOOT 长按 ≥2s：`AKF1`→`AKF2 force rc=0`→`AKC 清除 rc=0` 链三行；证据 af12_boot_console.txt） | — |
-| F3 →呈递 | 本地确认路 | LCD 呈现 manifest_summary + 按键确认 → 安装闸（EC3 本地路接线——嵌入式先行者面）；**Q-46 已呈递停门**（安装闸接入点/呈现面/手势模态/超时语义五子项——owner 裁后开工） | 门③ = Q-46 呈递停门 |
+| F3 ◐ | 本地确认路 | LCD 呈现 manifest_summary + 按键确认 → 安装闸（EC3 本地路接线——嵌入式先行者面）——**DEC-62 已裁开工**（①固件侧挂起态/③手势模态/④bring-up/⑤2.5 单元按建议 + **②呈现面 owner 修订 = LVGL**〔弃自绘字体——芯片/尺寸适配性优先，R10 §6 注记：呈现属设备形态面非安全面〕）；执行 = F3-1 LVGL bring-up → F3-2 闸/模态/事件 → F3-3 测试 | — ✅ DEC-62 |
 | F4 ✅ | peripherals 自报 | get-info peripherals 块（hal 注册表自报 + Agent 装前消费）——真机实证 akled:gpio/akpwm:pwm/akcodec:adc + periph 责任链单源注册 | — |
 | G1 ✅ | Agent 任务链持久化 | LN 注册表落盘 + 跨重启 resume（D1）——LnRegistry(persist_path) 原子写/损坏条目降级跳过/IO 失败告警不抛 + env 重定向（TESSERA_LNO_REGISTRY）+ conftest memory 模式防 CI 副作用；测试 +6 | — |
 | G2 ✅ | 诊断自动回喂 | 部署后自动抓串口 → diag_classify → repair 再入队（D3）——post_deploy_check（健康短路/被动抓取+分类/抓取失败不掩蔽）+ capture_window（被动窗——失败路径专用，开埠脉动 F3 在案）+ deploy_push_app post_check_s/serial_port 直参；测试 +5 | — |
@@ -225,7 +225,7 @@
 
 > 基线：§11f 全批收口（K3-K6 + F1/F2/F4 + G1-G3 + F6 根治，回归全绿，c8a7ee8）。本节为**当前唯一有效的待办权威清单**——按优先级/依赖分组；凡涉设计取舍的门③项均标明。
 
-### A. 清欠批 P1（HLD 设计内未实现项——建议下一批，无门③依赖）
+### A. 清欠批 P1（HLD 设计内未实现项——**2026-10-16 owner 点向全批开工，DEC-62④**；执行序 P1-1 → P1-5 → P1-2 → P1-3 → P1-4）
 
 | 序 | 单元 | 内容 | 规模 | 备注 |
 |---|------|------|------|------|
@@ -235,13 +235,7 @@
 | P1-4 | `counter` 外设类 | 评估实际需求后定：无消费者 → 维持裁剪登记（HLD 对照表 ❌ 项清账） | ~0.5 单元或裁剪 | 建议先评估（GPIO 中断计数已有 input monitor 覆盖近似语义） |
 | P1-5 | Agent S8 补全（部署失败自动再入修复轮） | 判据 miss → post_deploy_check 证据 → 自动作为修复轮回注 A08 循环（预算内）——把 repair_loop 接进创作循环的 FAILED→REPAIRING 转移 | ~0.5 单元 | 组件全在（repair_loop/diag/D3），只差状态机接线 |
 
-### B. 待 owner 裁决/动作项（非开发批）
-
-| 项 | 等什么 |
-|---|--------|
-| Q-46（F3 本地确认路安装闸） | 五子项裁决（呈递在 decisions.md——固件侧挂起态/呈现面/手势模态/60s fail-closed/工作量 2.5 单元） |
-| 版本 tag | §11f 批的 tag 命名/review（板级+形态批不属版本批惯例——owner 定夺是否 tag 或并入下一版本） |
-| G3 余项 gcov 基线 | CI 基建决策（CONFIG_COVERAGE + native_sim 宿主构建联动——随 CI 强化单独评估） |
+### B. 待 owner 裁决/动作项（**已全部裁毕 2026-10-16 · DEC-62**：Q-46 → 开工/F3〔② LVGL 修订〕；版本 tag → 并入下版〔F3+P1 收口时一并 review+tag〕；gcov → 缓办维持〔随 CI 强化批评估〕——F1/F2 物理判据已先行收口 v1.91）
 
 ### C. 环境挂起项（外部依赖，不占批）
 
@@ -278,6 +272,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.93 · 2026-10-16：**DEC-62 裁决批登记**——Q-46/F3 开工（①③④⑤按建议 + ②呈现面 owner 修订 = **LVGL**）；版本 tag 并入下版；gcov 缓办维持；P1 清欠批全批点向（执行序 P1-1→P1-5→P1-2→P1-3→P1-4）；**R10 HAL 扩展性与安全边界留档**（docs/research/R10-hal-scalability.md——Zephyr 暴露八问题否决/安全边界 O(1)/长尾解法 A 特权驱动组件 + B 策略数据；HAL 扩展门③在案依据）。§11f F3 →呈递 改 ◐ 开工；§11g B 表裁毕清空。
 - v1.92 · 2026-10-16：**§11g C 表陈旧项清理**——「P4 摄像头帧证据」行删除：该行派生自 board-p4-01.md §7（2026-10-10 时点），次日 V2-1 即 DA PASS 收口（owner 排线修复已生效 + #121774 workaround + 发送层根治），v1.90 派生时误带入，如实更正。
 - v1.91 · 2026-10-16：**F1/F2 物理判据收口（owner 到家按键）**——BOOT 手势三动作真机判据全命中：短按 ×2 = `AKL →LOCAL`/`→REMOTE` rc=0（CG3 席位切换真机闭环）+ 长按 ≥2s = `AKF1`→`AKF2 force rc=0`→`AKC 本地清除 rc=0`（estop 本地路闭环——远程门 need=local-clear 先期已实证）；全程 net=1 板存活；证据 docs/evidence/af12_boot_console.txt。§11f F1/F2 ◐→✅（全批仅 F3 呈递/G3 gcov 顺延两项非 ✅）；§11g B 表删「F1/F2 物理判据」行。
 - v1.90 · 2026-10-16：**文档对齐实现批（owner 指令：更新文档/检查代码/列后续计划）**——HLD-firmware v0.3（§3.3/§3.4/§3.5/§7 现状注记 + **§9 设计-实现对照表**〔设计项逐项 ✅/◐/❌ + 登记出处〕）；HLD-agent v0.2.1（AG1-8 完成态 + D1/D3 + S8 半步注记）；README demo 表补 §11f 六项真机判据；names.md 补 Q-44/Q-46/DEC-61 索引 + 本批标识符登记（TS_APP_PSRAM_LOAD_BUF/VERIFY_BUF、post_deploy_check、capture_window、TESSERA_LNO_REGISTRY、D-AK4、AK7-AK9/AKF/AKC/AKL）；**§11g 后续开发计划定稿**（A 清欠批 P1-1…P1-5 / B 待 owner 四项 / C 环境挂起三项 / D Agent 候选五项随点向 / E 长期方向）。代码核查：twister 16/16（108）/agent 195+2s/repo 5/L5 7/7/ruff/sync 全绿 + 模块零 TODO + [q] 观测面注释按 F5 定案收口。

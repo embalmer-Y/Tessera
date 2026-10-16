@@ -42,10 +42,11 @@
 | Q-42 | prov v2/manifest v2 档位/门值（CG 门③） | decisions.md | 已裁 → DEC-59 |
 | Q-43 | 信任根表 schema/存储/命令面（EC 门③） | decisions.md | 已裁 → DEC-60 |
 | Q-44 | ES8311 音频面（K2 门③——第二板卡接入批） | decisions.md | 已裁 → DEC-61（owner 泛指令先例） |
-| Q-46 | 本地确认路安装闸（F3 门③——五子项呈递停门） | decisions.md | **待裁**（2026-10-16 呈递） |
+| Q-46 | 本地确认路安装闸（F3 门③——五子项呈递停门） | decisions.md | 已裁 → DEC-62（②呈现面 owner 修订 = LVGL） |
 | DEC-39 … DEC-56 | 统一计划/板级批/MD 批/V0.1-0.4 版本批/环境迁移/需求校准（通用域解放）各批裁决与交付登记 | decisions.md | 生效（自检 SC-15 补索引） |
 | DEC-57 / DEC-58 / DEC-59 / DEC-60 | Q-38…41 全 A + 质量优先条款 / CG0 门④措辞 + 双 HLD / Q-42 三项按建议值 / Q-43 五项按建议值 | decisions.md | 生效 |
 | DEC-61 | Q-44 ES8311 三子项按建议值（owner 泛指令先例） | decisions.md | 生效 |
+| DEC-62 | Q-46/F3 开工（② LVGL 修订）+ tag 并入下版 + gcov 缓办 + P1 全批点向 + R10 留档 | decisions.md | 生效 |
 
 ## 2. 任务与里程碑
 
@@ -57,6 +58,7 @@
 | R3 | Agent 基座选型调研（coding agent / 框架 / MCP 封装） | owner 指令（2026-09-22） | v1.0 落盘，随 Q-14/Q-15/Q-16 呈递待裁 |
 | R4 | Agent 交互与接入方式调研（协议/实践/趋势） | owner 指令（2026-09-22，质疑 MCP 选型触发） | v1.0 落盘，随 Q-16 重呈 + Q-17 新登记待裁 |
 | R5 | Agent Python 栈 HLD 级核验（PydanticAI/FastMCP/TSAP 签名栈/zenoh-python） | owner 指令（2026-09-22，Q-18 涟漪审查"有调整的地方需要重新research"） | v1.0 落盘，供 Agent HLD 与 design-review-02 使用 |
+| R10 | HAL 扩展性与安全边界（owner 架构讨论留档：Zephyr 暴露八问题否决 / 安全边界 O(1) / 长尾解法 A 特权组件 + B 策略数据） | owner 2026-10-16 架构问询（DEC-62⑤） | v1.0 落盘，HAL 扩展门③在案依据 |
 | MA0…MA3 | Agent 轨道里程碑（骨架/网关+核心+fw 工具/模拟器+TSAP/部署+skills+高层链） | design/HLD-agent.md §7 | MA0 ✓；**MA1 本地全绿（2026-09-22：ruff+pytest 26/26+FastMCP 客户端实测+fw_build 句柄化实测）**；MA2/MA3 待启动 |
 | TaError / TA_E_* | Agent 结构化错误模型与错误码族（LLD-A00 §1；MA1 实现） | agent/tessera_agent/common/errors.py | 已实现（MA1） |
 | TaskRegistry / Task | 长任务句柄注册表（对齐 Tasks V2 语义；TTL/环形日志，LLD-A00 §2） | agent/tessera_agent/common/tasks.py | 已实现（MA1） |
