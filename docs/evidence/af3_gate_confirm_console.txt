@@ -1,0 +1,195 @@
+SPDX-License-Identifier: Apache-2.0
+# F3-2/F3-3 安装闸·确认路 真机 E2E 证据（atk dnesp32s3b，2026-10-16）
+# 链路：Agent deploy → activate -13 TS_E_PENDING（结构化中间态）→ AKP1 LCD 挂起呈现
+#       → owner BOOT 短按 → AKPC 确认 → AKP2 meta 切换 → AK5 暖复位 → 自 flash 装载
+#       → [app1/l0] AK4 DONE 判据命中 → AK6 ACTIVE；远程 get-app 复核：
+#       state=3(ACTIVE) app_id=tessera.demo.ak4 slot=0（cbor2 解码，f3g-confirm-dec）
+# 驱动：/tmp/ak_f3_gate_e2e.py confirm（F3G CONFIRM PASS）
+# 注：截取自 /tmp/ak3_console_live.txt（韧性好串口持有器全程留痕）
+[q] sys/lease-acquire rlen=105 resp_len=70
+[q] sys/app-begin rlen=98 resp_len=58
+[q] sys/app-chunk rlen=2142 resp_len=65
+[q] sys/app-chunk rlen=980 resp_len=68
+[q] sys/app-verify rlen=87 resp_len=83
+AK alive t=1326904 net=1
+AKP1 pending install slot=0 entry=0（短按=确认 长按≥2s=拒绝）
+[appmgr] activate gated: PENDING slot=0 entry=0 (local confirm, 60000ms fail-closed)
+[q] sys/app-activate rlen=98 resp_len=61
+[q] sys/lease-release rlen=105 resp_len=51
+AKP2 install confirmed slot=0（meta 已切换——暖复位装载）
+AKPC confirm rc=0 slot=0（BOOT 短按本地路——meta 已切换）
+AK4 activated slot=0（2s 后暖复位装载）
+AK5 warm reboot
+���ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x18 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x40382a54
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fc95700,len:0x64dc
+load:0x40374000,len:0x116f0
+load:0x50000000,len:0x24
+SHA-256 comparison failed:
+Calculated: d85c0ba291fee9ab115ab6b66b6365858afe48fe33dad6089119b893c116ab89
+Expected: 00000000c0830000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4037cb4c
+I (soc_init): ESP Simple boot
+I (soc_init): compile time Oct 16 2026 21:16:50
+W (soc_init): Unicore bootloader
+I (soc_init): chip revision: v0.2
+I (flash_init): Boot SPI Speed : 80MHz
+I (flash_init): SPI Mode       : DIO
+I (flash_init): SPI Flash Size : 16MB
+I (boot): DRAM	: lma=00000020h vma=3fc95700h size=064dch ( 25820)
+I (boot): IRAM	: lma=00006504h vma=40374000h size=116f0h ( 71408)
+I (boot): RTC_DATA	: lma=00017bfch vma=50000000h size=00024h (    36)
+I (boot): IROM	: lma=00020000h vma=42000000h size=d1a90h (858768)
+I (boot): DROM	: lma=00100000h vma=3c0e0000h size=171a4h ( 94628)
+I (boot): libc heap size 3 kB.
+I (cache): Instruction cache: size 16KB, 8Ways, cache line size 32Byte
+I (spi_flash): detected chip: boya
+I (spi_flash): flash io: dio
+I (octal_psram): vendor id    : 0x0d (AP)
+I (octal_psram): dev id       : 0x02 (generation 3)
+I (octal_psram): density      : 0x03 (64 Mbit)
+I (octal_psram): good-die     : 0x01 (Pass)
+I (octal_psram): Latency      : 0x01 (Fixed)
+I (octal_psram): VCC          : 0x01 (3V)
+I (octal_psram): SRF          : 0x01 (Fast Refresh)
+I (octal_psram): BurstType    : 0x01 (Hybrid Wrap)
+I (octal_psram): BurstLen     : 0x01 (32 Byte)
+I (octal_psram): Readlatency  : 0x02 (10 cycles@Fixed)
+I (octal_psram): DriveStrength: 0x00 (1/1)
+I (esp_psram): Found 8MB PSRAM device
+I (esp_psram): Speed: 40MHz
+I (esp_psram): SPI SRAM memory test OK
+*** Booting Zephyr OS build v4.5.0-rc1 ***
+AK0 atkbench start
+AK1 wifi_connect rc=0
+[es8311] init: fs=16000 bclk=1024000 slot=32bit ring=4x1280B addr=0x18
+AKa0 es8311 init rc=0
+AKa1 capture 8 frames peak=4095（>32 = ADC 链活）
+AKa2 playback skipped（默认静音——ATKBENCH_AUDIO_PLAY=1 启用）
+AK AUDIO PASS（record-only，peak=4095）
+AKw associated t=1884
+AK2 prov load=0 burn=0（0=OK/-8=空）
+AK9 peripherals 注册 rc=0（caps 自报面）
+AK7 SD mounted（/SD:/res 就绪）
+AK8 本地交互源就绪（BOOT 短按=席位 长按=estop 演示链）
+AKU1 LCD+LVGL init rc=0（0=OK——屏应显示开机画面）
+[ts-net] init prov_load=0 node=akn cube=akc
+[appmgr] load buf: psram 262144B
+[appmgr] wamr pool heap: buf=0x3c140070 size=524288 (psram/smh)
+[app1/l0] ak4 init
+[app1/l0] ak4 match=1
+[app1/l0] AK4 DONE
+[ts-net] zenoh_open: CONNECTED loc=tcp/192.168.2.91:9955
+AK6 app running app_id=tessera.demo.ak4 slot=0 t=2252
+AK PASS
+AK alive t=4252 net=1
+AK alive t=14253 net=1
+[q] sys/get-app rlen=60 resp_len=227
+AK alive t=24253 net=1
+[appmgr] WDT-WARN diag: app0 state=queued prio=10
+[appmgr] wf[00] +0040 42077498
+[appmgr] wf[01] +0054 42077498
+[appmgr] wf[02] +00e4 40378f13
+[appmgr] wf[03] +00f0 400570e8
+[appmgr] wf[04] +00f4 400570f3
+[appmgr] wf[05] +015c 403792c0
+[appmgr] wf[06] +0164 42084050
+[appmgr] wf[07] +0170 400570e8
+[appmgr] wf[08] +01ec 403792c0
+[appmgr] wf[09] +01f4 4207ff55
+[appmgr] wf[10] +0200 400570e8
+[appmgr] wf[11] +0204 400570f3
+[appmgr] wf[12] +0230 42083c52
+[appmgr] wf[13] +02c8 420783fc
+[appmgr] wf[14] +0374 4207f6fb
+[appmgr] wf[15] +0380 400570e8
+[appmgr] wf[16] +0384 400570f3
+[appmgr] wf[17] +0484 420782fc
+[appmgr] wf[18] +04e4 420783fc
+[appmgr] wf[19] +05c8 4037c7ac
+[appmgr] wf[20] +08a4 4037737d
+[appmgr] wf[21] +0b50 42b8e109
+[appmgr] wf[22] +0ce8 42cf4156
+[appmgr] wf[23] +0f30 406a141b
+[appmgr] wf[24] +1048 402d5c28
+[appmgr] wf[25] +1058 42bc960b
+[appmgr] wf[26] +10d0 4012f5fb
+[appmgr] wf[27] +1258 42b81e29
+[appmgr] wf[28] +1608 42080f67
+[appmgr] wf[29] +18ec 40222ae9
+[appmgr] wf[30] +1b94 409615f9
+[appmgr] wf[31] +1ba8 42811ad3
+[appmgr] wf[32] +1d48 40536507
+[q] sys/get-app rlen=59 resp_len=226
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x18 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x40382a54
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fc95700,len:0x64dc
+load:0x40374000,len:0x116f0
+load:0x50000000,len:0x24
+SHA-256 comparison failed:
+Calculated: d85c0ba291fee9ab115ab6b66b6365858afe48fe33dad6089119b893c116ab89
+Expected: 00000000c0830000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4037cb4c
+I (soc_init): ESP Simple boot
+I (soc_init): compile time Oct 16 2026 21:16:50
+W (soc_init): Unicore bootloader
+I (soc_init): chip revision: v0.2
+I (flash_init): Boot SPI Speed : 80MHz
+I (flash_init): SPI Mode       : DIO
+I (flash_init): SPI Flash Size : 16MB
+I (boot): DRAM	: lma=00000020h vma=3fc95700h size=064dch ( 25820)
+I (boot): IRAM	: lma=00006504h vma=40374000h size=116f0h ( 71408)
+I (boot): RTC_DATA	: lma=00017bfch vma=50000000h size=00024h (    36)
+I (boot): IROM	: lma=00020000h vma=42000000h size=d1a90h (858768)
+I (boot): DROM	: lma=00100000h vma=3c0e0000h size=171a4h ( 94628)
+I (boot): libc heap size 3 kB.
+I (cache): Instruction cache: size 16KB, 8Ways, cache line size 32Byte
+I (spi_flash): detected chip: boya
+I (spi_flash): flash io: dio
+I (octal_psram): vendor id    : 0x0d (AP)
+I (octal_psram): dev id       : 0x02 (generation 3)
+I (octal_psram): density      : 0x03 (64 Mbit)
+I (octal_psram): good-die     : 0x01 (Pass)
+I (octal_psram): Latency      : 0x01 (Fixed)
+I (octal_psram): VCC          : 0x01 (3V)
+I (octal_psram): SRF          : 0x01 (Fast Refresh)
+I (octal_psram): BurstType    : 0x01 (Hybrid Wrap)
+I (octal_psram): BurstLen     : 0x01 (32 Byte)
+I (octal_psram): Readlatency  : 0x02 (10 cycles@Fixed)
+I (octal_psram): DriveStrength: 0x00 (1/1)
+I (esp_psram): Found 8MB PSRAM device
+I (esp_psram): Speed: 40MHz
+I (esp_psram): SPI SRAM memory test OK
+*** Booting Zephyr OS build v4.5.0-rc1 ***
+AK0 atkbench start
+AK1 wifi_connect rc=0
+[es8311] init: fs=16000 bclk=1024000 slot=32bit ring=4x1280B addr=0x18
+AKa0 es8311 init rc=0
+AKa1 capture 8 frames peak=4095（>32 = ADC 链活）
+AKa2 playback skipped（默认静音——ATKBENCH_AUDIO_PLAY=1 启用）
+AK AUDIO PASS（record-only，peak=4095）
+AKw associated t=5973
+AK2 prov load=0 burn=0（0=OK/-8=空）
+AK9 peripherals 注册 rc=0（caps 自报面）
+AK7 SD mounted（/SD:/res 就绪）
+AK8 本地交互源就绪（BOOT 短按=席位 长按=estop 演示链）
+AKU1 LCD+LVGL init rc=0（0=OK——屏应显示开机画面）
+[wdt] 上次异常复位留痕 reason=0x00020001（noinit 归因）
+[ts-net] init prov_load=0 node=akn cube=akc
+[appmgr] load buf: psram 262144B
+[appmgr] wamr pool heap: buf=0x3c140070 size=524288 (psram/smh)
+[app1/l0] ak4 init
+[app1/l0] ak4 match=1
+[app1/l0] AK4 DONE
+[ts-net] zenoh_open: CONNECTED loc=tcp/192.168.2.91:9955
+AK6 app running app_id=tessera.demo.ak4 slot=0 t=6457
