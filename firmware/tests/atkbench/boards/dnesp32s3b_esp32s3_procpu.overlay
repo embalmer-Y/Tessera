@@ -138,8 +138,14 @@
 };
 
 /* K2：ES8311 音频四引脚（owner V1.1 引脚表：BCK=21/WS=13/SDOUT=14/SDIN=47）
- * + XL9555 禁用（SPK_EN 裸 I2C 驱动——pca9555 驱动缓存互踩规避） */
+ * + XL9555 禁用（SPK_EN 裸 I2C 驱动——pca9555 驱动缓存互踩规避）。
+ * F3-1 连带：lcd_bl regulator 节点也引用 io_expander——背光同走裸 I2C
+ * （ui_lcd.c：XL9555 OP0=0x02/CF0=0x06 bit7 高有效），节点随之禁用。 */
 &io_expander {
+	status = "disabled";
+};
+
+&lcd_bl {
 	status = "disabled";
 };
 

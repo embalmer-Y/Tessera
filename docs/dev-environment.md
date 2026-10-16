@@ -179,6 +179,8 @@ python3.12 -m venv ~/project/agent-venv
 
 35. **WAMR 2.4.5 三坑（2026-10-13 真多线程批 M19 实证）**：① **loader 原地改写 wasm 缓冲**——`is_load_from_file_buf` 路径把 import 串整体后移 1 字节（借 LEB 长度字节造 C 串，wasm_runtime.c const_str_list_insert）；**嵌入 wasm 必须放可写段**（`static uint8_t`；const → 写 RO 段即 SIGSEGV〔sim〕/装载怪错〔板〕）——tests/app 的 xxd 非 const 头是活例，自写生成器须同形。② **Zephyr 平台层 os_thread 族不可用于嵌入侧 spawn**：join 对已退线程恒返 0 空操作、退出值从不回传（value_ptr 弃用）、thread_obj 回收断言竞态（tid != thread_data->tid abort）——替代定式 = `wasm_runtime_spawn_exec_env`（纯对象创建）+ 我方 k_thread/k_thread_join（app 主线程同款机制）。③ **xtensa 无 8 字节原子且 SDK 无 libatomic**——SHARED_MEMORY 解释器路径引 `__atomic_load_8` 族即链接失败；wamr_compat.c 垫片（irq_lock 单核语义）。④ **lib-pthread × 指令计量 = 上游不兼容**（线程 env 计量初值 0 + 计量宏 ==0 即异常 → 线程首指令死）——宿主侧 ts_thread_* natives 编排替代（DEC-55）。
 
+36. **F3-1 LCD bring-up 四坑（2026-10-16 LVGL @ atkbench 实证）**：① **空 WiFi 凭据烤入 = net_mgmt 校验层 -22**（esp32_wifi connect 全路径无 -EINVAL；症状链条 = 恒不关联 → zenoh -102 → NET wdt 复位循环）——归因连环误判三小时（背光电流/lcd_cam RF/系统堆不足三假设，NO_BL 判别实验与池子回补均否证），最终 **`strings zephyr.elf | grep <SSID>` 一步定案**（env.sh 变量名 = `TS_WIFI_*`，构建命令用了旧名 `DEPLOYBENCH_*` → 空串注入）；守卫 = 载体 CMakeLists 空 SSID `FATAL_ERROR` 拒构建。② **Zephyr LVGL glue 内存三坑**：`LV_MEM_SIZE_KILOBYTES` 为死配置（glue 强制 `LV_STDLIB_CUSTOM`）；LVGL 全部分配实际走 `LV_Z_MEM_POOL`——缺省 2048/6144 均运行时崩（image cache/theme 样式 NULL 写，EXCCAUSE 29/28、无 assert 栈），**16384 = 文本面运行时下限**（全链绿实证）；`LV_Z_MEM_POOL_HEAP_LIB_C` 路径亦崩（上游域登记）。③ **S3 USB-Serial-JTAG × esptool × 串口持有者**：pyserial 在 USB 重枚举期必崩（read 异常 = holder 静默死亡 → 口关闭脉动可把板带进 download 模式 `boot:0x10`）；定式 = 韧性 holder（异常捕获重开重连永不退出）+ **esptool 烧录前必停 holder**（并发 = "No more data to read"）。④ **pkill 自匹配第三复发**：复合命令含目标字面量即自杀（本会话实证）——杀持有者与重启/烧录必须分步独立调用。
+
 ## 9. 原生 x86 Linux 环境（2026-10-11 迁移重建——**当前事实源**；§1-§8 为 WSL 历史记录）
 
 > 迁移依据：owner 裁决 + `docs/migration-x86.md`。本节以重建实测为准；WSL 时代的教训中标注"已消失"者不再适用（/tmp tmpfs 清空、usbipd、Windows PATH 泄漏、Hyper-V 防火墙）。
@@ -242,6 +244,7 @@ sudo usermod -aG dialout emb   # 重新登录生效
 - 迁移包处置确认后执行 Windows 侧清除（migration-x86.md §6 owner 决定项）。
 
 ## 修订记录
+- v2.23 · 2026-10-16：F3-1 LCD bring-up 批——§5 增教训 36（空凭据烤入 = net_mgmt -22 + strings 一步定案 + CMake 空守卫/LVGL glue 内存三坑〔LV_MEM 死配置、LV_Z_MEM_POOL 16384 下限、HEAP_LIB_C 崩〕/USJ×esptool×holder 定式/pkill 自匹配第三复发）；atkbench LCD+LVGL 真机 AKU1 PASS（docs/evidence/af31_lcd_console.txt）。
 - v2.22 · 2026-10-13：M19 真多线程批——§5 增教训 35（WAMR loader 原地改写 wasm 缓冲——嵌入必须可写段/os_thread 族三缺陷 → 宿主 k_thread 替代/xtensa 软 8 字节原子/lib-pthread × 计量不兼容）；thrdemo 真机 DT PASS。
 - v2.21 · 2026-10-13：M17b PDM bring-up 收口——§5 增教训 34（esp32s3 裸外设 RCC 三步〔出复位缺失 = 寄存器全 0 写不落〕+ PDM RX 官方时钟算式〔fs×128/bck_div≥8〕+ 分层焊盘镜像诊断法 + GPIO 回读假阳性）；pdmbench PDMB PASS（docs/evidence/pdmb_PASS_console.txt）。
 - v2.20 · 2026-10-11：**原生 x86 Linux 环境重建（§9 新立，当前事实源）**——无 sudo 全用户态手法（venv --without-pip/pip 工具链/clang 18.1.8 tarball+libtinfo5+rpath/deb 解包头文件与 libgcc 编 C 扩展/SDK 手动 gnu/ 布局）；网络通道定版（FlClash 7890 + ghfast.top 镜像 insteadOf + HTTP/1.1）；验证：agent 113+2s+ruff/repo pytest 2/板级构建 xiao_esp32s3 全绿；twister 阻塞 host gcc（owner sudo 待办 §9.6）；**登记 tools/board 34 脚本未实际入仓（b1a31e4 三处登记失实）**；Python 3.12→3.14 版本差异实证兼容。

@@ -212,7 +212,7 @@
 | K6 ✅ | 多真机 LN | deploybench + atkbench 双 cube：LN 组部署/断链策略/跨板判据（**AK6 LN PASS**：ln_create 双成员 → ln_deploy 扇出双板 confirmed → ln_status 聚合双 ACTIVE 无降级；xiao 以当前模块重刷〔F1/F5 修复平移〕；atk SMH 1MB→4MB；证据 ak6_console.txt） | — |
 | F1 ✅ | 本地交互源 | 按键（BOOT/扩展器 KEY）→ arb LOCAL 席位 + 压制 + 事件（CG3 机制接线）——**真机手势判据收口**（owner BOOT 短按 ×2：`AKL →LOCAL`/`→REMOTE` rc=0 双向切换；证据 af12_boot_console.txt） | — |
 | F2 ✅ | 本地 estop 清除 | KEY → clear_fault + prov estop_remote_clear 出厂缺省翻 disabled（ISO 13850 偏离撤销）——**远程门真机实证**（need=local-clear）+ **本地路真机判据收口**（owner BOOT 长按 ≥2s：`AKF1`→`AKF2 force rc=0`→`AKC 清除 rc=0` 链三行；证据 af12_boot_console.txt） | — |
-| F3 ◐ | 本地确认路 | LCD 呈现 manifest_summary + 按键确认 → 安装闸（EC3 本地路接线——嵌入式先行者面）——**DEC-62 已裁开工**（①固件侧挂起态/③手势模态/④bring-up/⑤2.5 单元按建议 + **②呈现面 owner 修订 = LVGL**〔弃自绘字体——芯片/尺寸适配性优先，R10 §6 注记：呈现属设备形态面非安全面〕）；执行 = F3-1 LVGL bring-up → F3-2 闸/模态/事件 → F3-3 测试 | — ✅ DEC-62 |
+| F3 ◐ | 本地确认路 | LCD 呈现 manifest_summary + 按键确认 → 安装闸（EC3 本地路接线——嵌入式先行者面）——**DEC-62 已裁开工**（①固件侧挂起态/③手势模态/④bring-up/⑤2.5 单元按建议 + **②呈现面 owner 修订 = LVGL**〔弃自绘字体——芯片/尺寸适配性优先，R10 §6 注记：呈现属设备形态面非安全面〕）；执行 = **F3-1 LVGL bring-up ✅（AKU1 真机 PASS——背光裸 I2C/树内并口驱动/16384 池下限/空凭据守卫，教训 36，证据 af31_lcd_console.txt）** → F3-2 闸/模态/事件 → F3-3 测试 | — ✅ DEC-62 |
 | F4 ✅ | peripherals 自报 | get-info peripherals 块（hal 注册表自报 + Agent 装前消费）——真机实证 akled:gpio/akpwm:pwm/akcodec:adc + periph 责任链单源注册 | — |
 | G1 ✅ | Agent 任务链持久化 | LN 注册表落盘 + 跨重启 resume（D1）——LnRegistry(persist_path) 原子写/损坏条目降级跳过/IO 失败告警不抛 + env 重定向（TESSERA_LNO_REGISTRY）+ conftest memory 模式防 CI 副作用；测试 +6 | — |
 | G2 ✅ | 诊断自动回喂 | 部署后自动抓串口 → diag_classify → repair 再入队（D3）——post_deploy_check（健康短路/被动抓取+分类/抓取失败不掩蔽）+ capture_window（被动窗——失败路径专用，开埠脉动 F3 在案）+ deploy_push_app post_check_s/serial_port 直参；测试 +5 | — |
@@ -272,6 +272,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.94 · 2026-10-16：**F3-1 交付（LCD bring-up——LVGL @ atkbench，AKU1 真机 PASS）**。① 呈现面：ui_lcd.c（LVGL 9.5 Zephyr glue——消息队列编排单线程纪律 + UI 线程 prio 12〔F6 教训〕+ 状态行 1Hz）+ 背光 = XL9555 P0-7 裸 I2C（pca9555 驱动维持禁用——K2 同源）。② 树内事实：ST7789V 走 esp32 lcd_cam 并口（MIPI-DBI 8080，板 DTS chosen 全挂——Kconfig 使能即可）；lcd_bl regulator 节点因引用禁用扩展器随禁。③ **四坑定案（教训 36）**：空 WiFi 凭据烤入 = net_mgmt -22（归因连环误判后 `strings` 一步定案——env.sh 变量名 TS_WIFI_*；守卫 = CMakeLists 空 SSID FATAL_ERROR）；LVGL glue 内存（LV_MEM 死配置 / LV_Z_MEM_POOL 16384 文本面下限 / HEAP_LIB_C 崩——上游域）；USJ×esptool×holder 定式（韧性 holder + 烧录前停 holder）；pkill 自匹配第三复发。④ 内存重平：系统池 122880→102400 + LVGL 专池 16KB + VDB 3%。全链真机：WiFi 关联 + AKU1 + zenoh CONNECTED + AK PASS + 存活稳定（证据 af31_lcd_console.txt）。
 - v1.93 · 2026-10-16：**DEC-62 裁决批登记**——Q-46/F3 开工（①③④⑤按建议 + ②呈现面 owner 修订 = **LVGL**）；版本 tag 并入下版；gcov 缓办维持；P1 清欠批全批点向（执行序 P1-1→P1-5→P1-2→P1-3→P1-4）；**R10 HAL 扩展性与安全边界留档**（docs/research/R10-hal-scalability.md——Zephyr 暴露八问题否决/安全边界 O(1)/长尾解法 A 特权驱动组件 + B 策略数据；HAL 扩展门③在案依据）。§11f F3 →呈递 改 ◐ 开工；§11g B 表裁毕清空。
 - v1.92 · 2026-10-16：**§11g C 表陈旧项清理**——「P4 摄像头帧证据」行删除：该行派生自 board-p4-01.md §7（2026-10-10 时点），次日 V2-1 即 DA PASS 收口（owner 排线修复已生效 + #121774 workaround + 发送层根治），v1.90 派生时误带入，如实更正。
 - v1.91 · 2026-10-16：**F1/F2 物理判据收口（owner 到家按键）**——BOOT 手势三动作真机判据全命中：短按 ×2 = `AKL →LOCAL`/`→REMOTE` rc=0（CG3 席位切换真机闭环）+ 长按 ≥2s = `AKF1`→`AKF2 force rc=0`→`AKC 本地清除 rc=0`（estop 本地路闭环——远程门 need=local-clear 先期已实证）；全程 net=1 板存活；证据 docs/evidence/af12_boot_console.txt。§11f F1/F2 ◐→✅（全批仅 F3 呈递/G3 gcov 顺延两项非 ✅）；§11g B 表删「F1/F2 物理判据」行。

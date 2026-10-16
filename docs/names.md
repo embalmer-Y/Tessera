@@ -313,3 +313,5 @@
 - 2026-10-15 · **自检 SC-15**：§1 补登 DEC-39…60 / Q-20…43 索引（区间行——此前批次漏登）；§2 补 V0.8.0 生态批行；§5 补 EC 批 API 族行。
 
 - 2026-10-16 · **§11f 板级/形态/Agent 批登记**：TS_APP_PSRAM_LOAD_BUF / TS_APP_PSRAM_VERIFY_BUF（Kconfig——大档装载/验签缓冲 PSRAM 化，K5）；ESP_SPIRAM_HEAP_SIZE 板级抬升（atk 4MB）；ts_periph 自报面（caps peripherals 数组，F4）；akcodec（atk 外设 uid）；AK7-AK9/AKF1-AKF2/AKC/AKL（atkbench console 判据行族：SD 挂载/peripherals 注册/合成 force/本地 estop 清除/arb 席位）；deploy.post_deploy_check + diag.capture_window（G2/D3 部署后诊断自动回喂）；LnRegistry(persist_path) + TESSERA_LNO_REGISTRY（G1/D1 注册表持久化 + env 重定向）；D-AK4（demo——资源推送消费端）；akbench（第二板载体——dnesp32s3b）。消费：Q-44/DEC-61、plan §11f。
+
+- 2026-10-16 · **F3-1 LCD bring-up 批登记**：ui_lcd.c/h + ak_ui_init/ak_ui_screen/ak_ui_thread_fn（atkbench LCD 呈现面——LVGL 9.5 @ Zephyr glue，消息队列编排单线程纪律，UI 线程 prio 12）；ak_bl_on（XL9555 OP0=0x02/CF0=0x06 bit7 裸 I2C 背光——Awinic 交错寄存器图，与 es8311.c SPK_EN 同图）；AKU1（atkbench console 判据行：LCD+LVGL init）；LV_Z_MEM_POOL 定案（16384 文本面下限——教训 36②）；af31_lcd_console.txt（F3-1 证据）；R10-hal-scalability.md（HAL 扩展性与安全边界——DEC-62⑤）。消费：Q-46/DEC-62、plan §11f F3。

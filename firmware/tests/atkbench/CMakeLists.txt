@@ -8,9 +8,16 @@ cmake_minimum_required(VERSION 3.20.5)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(atkbench)
 
+# F3-1 空凭据守卫（真机回归链教训）：SSID 为空 = 烤入空串 → net_mgmt
+# 校验 -22 → WiFi 永不关联 → NET wdt 复位循环（症状与硬件无关——
+# 归因期背光/lcd_cam/堆假设连环误判，实为构建注入空）。直接失败构建。
+if(NOT DEFINED ATKBENCH_WIFI_SSID OR ATKBENCH_WIFI_SSID STREQUAL "")
+  message(FATAL_ERROR "ATKBENCH_WIFI_SSID 为空——用 -DATKBENCH_WIFI_SSID=... 注入（仓外凭据纪律）")
+endif()
+
 target_compile_definitions(app PRIVATE
   ATKBENCH_WIFI_SSID="${ATKBENCH_WIFI_SSID}"
   ATKBENCH_WIFI_PASSWORD="${ATKBENCH_WIFI_PASSWORD}"
   ATKBENCH_ROUTER="${ATKBENCH_ROUTER}")
 
-target_sources(app PRIVATE src/main.c)
+target_sources(app PRIVATE src/main.c src/ui_lcd.c)

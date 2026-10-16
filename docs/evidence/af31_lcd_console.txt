@@ -1,0 +1,46 @@
+I (octal_psram): good-die     : 0x01 (Pass)
+I (octal_psram): Latency      : 0x01 (Fixed)
+I (octal_psram): VCC          : 0x01 (3V)
+I (octal_psram): SRF          : 0x01 (Fast Refresh)
+I (octal_psram): BurstType    : 0x01 (Hybrid Wrap)
+I (octal_psram): BurstLen     : 0x01 (32 Byte)
+I (octal_psram): Readlatency  : 0x02 (10 cycles@Fixed)
+I (octal_psram): DriveStrength: 0x00 (1/1)
+I (esp_psram): Found 8MB PSRAM device
+I (esp_psram): Speed: 40MHz
+I (esp_psram): SPI SRAM memory test OK
+*** Booting Zephyr OS build v4.5.0-rc1 ***
+AK0 atkbench start
+AK1 wifi_connect rc=0
+[es8311] init: fs=16000 bclk=1024000 slot=32bit ring=4x1280B addr=0x18
+AKa0 es8311 init rc=0
+AKa1 capture 8 frames peak=4095（>32 = ADC 链活）
+AKa2 playback skipped（默认静音——ATKBENCH_AUDIO_PLAY=1 启用）
+AK AUDIO PASS（record-only，peak=4095）
+AKw associated t=10001
+AK2 prov load=0 burn=0（0=OK/-8=空）
+AK9 peripherals 注册 rc=0（caps 自报面）
+AK7 SD mounted（/SD:/res 就绪）
+AK8 本地交互源就绪（BOOT 短按=席位 长按=estop 演示链）
+AKU1 LCD+LVGL init rc=0（0=OK——屏应显示开机画面）
+[wdt] 上次异常复位留痕 reason=0x00020001（noinit 归因）
+[ts-net] init prov_load=0 node=akn cube=akc
+[appmgr] load buf: psram 262144B
+[appmgr] wamr pool heap: buf=0x3c140070 size=524288 (psram/smh)
+[app1/l0] ak4 init
+[app1/l0] ak4 match=1
+[app1/l0] AK4 DONE
+[ts-net] zenoh_open: CONNECTED loc=tcp/192.168.2.91:9955
+AK6 app running app_id=tessera.demo.ak4big slot=1 t=10851
+AK PASS
+AK alive t=12851 net=1
+AK alive t=22852 net=1
+AK alive t=32853 net=1
+AK alive t=42854 net=1
+AK alive t=52860 net=1
+AK alive t=62861 net=1
+AK alive t=72861 net=1
+AK alive t=82862 net=1
+AK alive t=92864 net=1
+AK alive t=102865 net=1
+AK alive t=112867 net=1

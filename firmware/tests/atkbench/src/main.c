@@ -32,6 +32,8 @@
 #include <ts/safety.h>
 #include <ts/store.h>
 
+#include "ui_lcd.h" /* F3-1：LCD 呈现面（LVGL） */
+
 #ifndef ATKBENCH_WIFI_SSID
 #define ATKBENCH_WIFI_SSID ""
 #endif
@@ -526,6 +528,11 @@ int main(void)
 		printk("AK7 SD mounted 但 /SD:/res 创建失败\n");
 	}
 	ak_local_input_init(); /* F1/F2 设备形态批：本地交互源 */
+	/* F3-1（DEC-62②）：LCD bring-up——呈现失败如实上报但不阻塞 bench
+	 * 主链（无屏/背光链路故障 ≠ 部署链故障；判据 = AKU1 行 + 屏上开机画面） */
+	int urc = ak_ui_init();
+
+	printk("AKU1 LCD+LVGL init rc=%d（0=OK——屏应显示开机画面）\n", urc);
 	ts_core_boot(); /* noreturn：net_init → zenoh 命令面 + 步骤 8 slot 装载 */
 	return 0;
 }
