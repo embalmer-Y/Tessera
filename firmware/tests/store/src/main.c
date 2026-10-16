@@ -50,10 +50,11 @@ static void cb_bstr32(struct cb *c, uint8_t fill)
 
 static void build_prov_cbor_full(struct cb *c, const char *node, const char *cube,
 				 const char *router, uint32_t pwr, int ver,
-				 uint8_t deploy_mode, uint8_t estop_remote_clear)
+				 uint8_t deploy_mode, uint8_t estop_remote_clear,
+				 int lconf)
 {
 	memset(c, 0, sizeof(*c));
-	cb_hdr(c, 0xA0, ver == 2 ? 11 : 9);
+	cb_hdr(c, 0xA0, (ver == 2) ? ((lconf >= 0) ? 12 : 11) : 9);
 	cb_tstr(c, "v");
 	cb_hdr(c, 0x00, ver);
 	cb_tstr(c, "node_id");
@@ -74,18 +75,23 @@ static void build_prov_cbor_full(struct cb *c, const char *node, const char *cub
 	cb_tstr(c, "estop");
 	cb_hdr(c, 0x00, 1);
 	if (ver == 2) {
-		/* CG2（Q-42）：v2 = v1 键序前缀 + 尾部追加两键 */
+		/* CG2（Q-42）：v2 = v1 键序前缀 + 尾部追加；F3（DEC-62①）第三键
+		 * lconf（12 对形态；lconf<0 = 11 对存量形态） */
 		cb_tstr(c, "deploy_mode");
 		cb_hdr(c, 0x00, deploy_mode);
 		cb_tstr(c, "estop_remote_clear");
 		cb_hdr(c, 0x00, estop_remote_clear);
+		if (lconf >= 0) {
+			cb_tstr(c, "lconf");
+			cb_hdr(c, 0x00, (uint8_t)lconf);
+		}
 	}
 }
 
 static void build_prov_cbor(struct cb *c, const char *node, const char *cube,
 			    const char *router, uint32_t pwr)
 {
-	build_prov_cbor_full(c, node, cube, router, pwr, 1, 0, 0);
+	build_prov_cbor_full(c, node, cube, router, pwr, 1, 0, 0, -1);
 }
 
 /* ---- V0.8.0 EC2（Q-43③）：信任表持久化——schema 矩阵/乒乓/撕裂 ---------- */
@@ -247,7 +253,7 @@ ZTEST(framework_store, test_prov_v2_fields)
 {
 	struct cb c;
 
-	build_prov_cbor_full(&c, "n-v2", "c-v2", "tcp/10.0.0.2:7447", 200, 2, 1, 0);
+	build_prov_cbor_full(&c, "n-v2", "c-v2", "tcp/10.0.0.2:7447", 200, 2, 1, 0, -1);
 	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
 	zassert_equal(ts_store_prov_load(), TS_OK);
 	const ts_prov_t *p = ts_store_prov();
@@ -258,10 +264,10 @@ ZTEST(framework_store, test_prov_v2_fields)
 	zassert_equal(p->estop_remote_clear, 0, "v2 显式 disabled");
 
 	/* 域外值 fail-closed（未知模式/通道值不静默归并——IR-10 同型） */
-	build_prov_cbor_full(&c, "n-x", "c-x", "tcp/x:1", 1, 2, 2, 1);
+	build_prov_cbor_full(&c, "n-x", "c-x", "tcp/x:1", 1, 2, 2, 1, -1);
 	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
 	zassert_equal(ts_store_prov_load(), TS_E_IO, "deploy_mode=2 必须拒绝");
-	build_prov_cbor_full(&c, "n-y", "c-y", "tcp/x:1", 1, 2, 1, 2);
+	build_prov_cbor_full(&c, "n-y", "c-y", "tcp/x:1", 1, 2, 1, 2, -1);
 	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
 	zassert_equal(ts_store_prov_load(), TS_E_IO, "estop_remote_clear=2 必须拒绝");
 
@@ -270,6 +276,28 @@ ZTEST(framework_store, test_prov_v2_fields)
 	c.b[3] = 0x02; /* "v" 值 1→2，pairs 仍 9 */
 	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
 	zassert_equal(ts_store_prov_load(), TS_E_IO, "v=2 与 9 对错配必须拒绝");
+
+	/* F3 · DEC-62①：v2 12 对第三键 lconf——1 = 安装闸开 */
+	build_prov_cbor_full(&c, "n-lc", "c-lc", "tcp/x:1", 1, 2, 0, 1, 1);
+	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_OK);
+	zassert_equal(ts_store_prov()->local_confirm, 1, "12 对 lconf=1");
+	zassert_equal(ts_store_prov()->deploy_mode, TS_DEPLOY_ORCHESTRATED,
+		      "12 对 v2 前两尾键语义不变");
+	/* 显式 0 */
+	build_prov_cbor_full(&c, "n-lc0", "c-lc0", "tcp/x:1", 1, 2, 0, 1, 0);
+	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_OK);
+	zassert_equal(ts_store_prov()->local_confirm, 0, "12 对 lconf=0");
+	/* 域外值 fail-closed */
+	build_prov_cbor_full(&c, "n-lc2", "c-lc2", "tcp/x:1", 1, 2, 0, 1, 2);
+	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_E_IO, "lconf=2 必须拒绝");
+	/* 11 对存量形态 = lconf 缺省 0（存量 prov 零重刷等义） */
+	build_prov_cbor_full(&c, "n-v2b", "c-v2b", "tcp/x:1", 1, 2, 0, 1, -1);
+	zassert_equal(ts_store_prov_write_test(c.b, c.n), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_OK);
+	zassert_equal(ts_store_prov()->local_confirm, 0, "11 对缺省 lconf=0");
 
 	/* 收尾复原 orchestrated（后续用例状态干净） */
 	build_prov_cbor(&c, "node-1", "cube-9", "tcp/10.0.0.1:7447", 500);

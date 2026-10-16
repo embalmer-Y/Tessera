@@ -55,6 +55,7 @@ void ts_appmgr_test_reset(void)
 #if defined(CONFIG_TS_APP_WAMR) && defined(CONFIG_TS_HAL_FS)
 	memset(res_paths, 0, sizeof(res_paths));
 #endif
+	ts_appmgr_pend_reset_test(); /* F3：挂起定时器/staging 随隔离清台 */
 }
 #endif
 
@@ -135,6 +136,9 @@ ts_res_t ts_appmgr_get_info_n(uint8_t entry, ts_app_info_t *out)
 		initialized = true;
 	}
 	*out = current_apps[entry];
+	/* F3 · DEC-62①：安装闸挂起面（加性——pending_slot 0xFF = 无） */
+	out->pending_slot = (pending.active && pending.entry == entry)
+		? pending.slot : 0xFF;
 	return TS_OK;
 }
 

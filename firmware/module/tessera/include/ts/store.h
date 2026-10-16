@@ -69,8 +69,12 @@ typedef struct {
 	/* —— schema v2（CG2 · Q-41/Q-42）：部署模式与 estop 远程清除通道 —— */
 	uint8_t deploy_mode;        /* ts_deploy_mode_t；v1 缺字段 = orchestrated */
 	uint8_t estop_remote_clear; /* 0=disabled/1=enabled；v1 缺字段 = enabled
-				     * （现网兼容——无本地交互设备的唯一清除通道；
-				     * LLD-ts-safety §5a） */
+					     * （现网兼容——无本地交互设备的唯一清除通道；
+					     * LLD-ts-safety §5a） */
+	/* —— schema v2 尾部追加第三键（F3 · DEC-62①）：安装闸本地确认 —— */
+	uint8_t local_confirm;      /* 0=off（无头缺省）/1=on：activate 验签后置
+					     * pending 待本地确认（60s fail-closed）；
+					     * 11 对 v2 缺字段 = 0（存量 prov 零重烧） */
 } ts_prov_t;
 
 ts_res_t ts_store_prov_load(void);      /* init 期一次；失败 = TS_E_IO */

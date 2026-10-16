@@ -848,6 +848,22 @@ static ts_res_t cmd_app_activate(const ts_net_cmd_args_t *a, uint8_t *r, size_t 
 	ts_app_info_t info;
 	ts_res_t res = ts_appmgr_stage_activate_n(entry, &info);
 
+	/* F3 · DEC-62①：安装闸 = 结构化中间态回执（非失败——status=-13 +
+	 * data {pending, slot}）。确认仅固件本地路；Agent 链按「待本地确认」
+	 * 收尾（呈现面 = EC3 无头呈报同族）。 */
+	if (res == TS_E_PENDING) {
+		size_t p = 0;
+
+		if (!ts_cbor_put_map(r, cap, &p, 2) ||
+		    !ts_cbor_put_tstr(r, cap, &p, "pending") ||
+		    !ts_cbor_put_uint(r, cap, &p, 1) ||
+		    !ts_cbor_put_tstr(r, cap, &p, "slot") ||
+		    !ts_cbor_put_uint(r, cap, &p, info.pending_slot)) {
+			return TS_E_STATE; /* 回执编码失败 = 拒（不裸露半编码面） */
+		}
+		*n = p;
+		return TS_E_PENDING;
+	}
 	if (res != TS_OK) {
 		return res;
 	}

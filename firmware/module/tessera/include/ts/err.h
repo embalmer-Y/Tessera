@@ -26,6 +26,7 @@ typedef int32_t ts_res_t; /* TS_OK=0；负数为错误 */
 #define TS_E_ROLLBACK_LIMIT (-10)
 #define TS_E_UNINIT         (-11)
 #define TS_E_RANGE          (-12)  /* 限幅/slew/预算拒绝（输出被安全层拦截） */
+#define TS_E_PENDING        (-13)  /* 结构化中间态：激活待本地确认（F3 · DEC-62①——非失败） */
 
 /*
  * 故障原因码（LLD-00 §2.1，DR-09）：u32 reason = 来源<<16 | 细因。

@@ -63,6 +63,10 @@ typedef enum {
 	TS_EVT_ARB_CHANGED, /* 控制源仲裁席变更（CG3 · 合同 11：old/owner/t——切换零输出） */
 	TS_EVT_RESOURCE_WRITTEN, /* 宿主资源推送完成（CG5-B · 方案 A：sha256 验证通过留痕） */
 	TS_EVT_TRUST_UPDATED, /* 信任根表更新（EC2 · Q-43④：ver 严格 N+1 链——安全类留痕） */
+	TS_EVT_PENDING_INSTALL, /* 安装闸挂起（F3 · DEC-62①：activate 过闸待本地确认） */
+	TS_EVT_INSTALL_CONFIRMED, /* 安装闸本地确认 → meta 已切换（待复位装载） */
+	TS_EVT_INSTALL_REJECTED, /* 安装闸本地拒绝（槽保留可重推） */
+	TS_EVT_INSTALL_TIMEOUT, /* 安装闸 60s fail-closed 超时撤销（槽保留可重推） */
 	TS_EVT_ID_COUNT,
 } ts_evt_id_t;
 
@@ -87,6 +91,13 @@ typedef struct {
 	uint32_t ver;
 	uint8_t n_keys; /* 更新后开发者键数 */
 } ts_trust_evt_t;
+
+/* TS_EVT_PENDING_INSTALL / INSTALL_{CONFIRMED,REJECTED,TIMEOUT} payload
+ *（F3 · DEC-62①——slot 绝对槽号 + entry 实例位；app_id 经 pending_summary 取） */
+typedef struct {
+	uint8_t slot;
+	uint8_t entry;
+} ts_pending_evt_t;
 
 /** [thread] 仅 init 期注册；容量 CONFIG_TS_CORE_MAX_SUBS（DEC-27: 4），满 = TS_E_NOMEM。 */
 ts_res_t ts_evt_subscribe(ts_evt_id_t id, ts_evt_cb_t fn, void *user);

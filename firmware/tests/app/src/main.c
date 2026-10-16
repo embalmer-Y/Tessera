@@ -917,3 +917,152 @@ ZTEST(framework_app, test_08_activate_while_running)
 	zassert_true(ts_appmgr_app_running());
 	zassert_equal(ts_appmgr_app_stop(), TS_OK);
 }
+
+/* ---- F3（DEC-62① · Q-46①③）：安装闸本地确认——挂起/确认/拒绝/超时 ----- */
+
+/* prov v2 12 对最小构建器（键序 = 定稿 schema；store 套件 build_prov_cbor_full
+ * 同序对照——本套件只测 appmgr 闸行为，schema 矩阵在 framework.store） */
+static size_t build_prov12(uint8_t *o, size_t cap, uint8_t lconf)
+{
+	ARG_UNUSED(cap);
+	size_t n = 0;
+
+	o[n++] = 0xAC; /* map(12) */
+#define P_T(s) do { o[n++] = (uint8_t)(0x60 | (sizeof(s) - 1)); \
+	memcpy(o + n, s, sizeof(s) - 1); n += sizeof(s) - 1; } while (0)
+#define P_KV_U(k, v) do { P_T(k); o[n++] = (uint8_t)(v); } while (0)
+	P_KV_U("v", 2);
+	P_T("node_id"); P_T("gate-n");
+	P_T("cube_id"); P_T("gate-c");
+	P_T("routers"); o[n++] = 0x81; P_T("tcp/10.0.0.9:7447");
+	P_T("pk0"); o[n++] = 0x58; o[n++] = 32; memset(o + n, 0x11, 32); n += 32;
+	P_T("pk1"); o[n++] = 0x58; o[n++] = 32; memset(o + n, 0x22, 32); n += 32;
+	P_T("cred"); P_T("cred");
+	P_T("pwr_ma"); o[n++] = 0x19; o[n++] = 500 >> 8; o[n++] = 500 & 0xFF;
+	P_KV_U("estop", 0);
+	P_KV_U("deploy_mode", 0);
+	P_KV_U("estop_remote_clear", 1);
+	P_KV_U("lconf", lconf);
+#undef P_KV_U
+#undef P_T
+	return n;
+}
+
+/* 完整 staging 会话（begin→chunk→verify——boot_pkg 测试根签名） */
+static ts_res_t stage_full(uint8_t *slot_out)
+{
+	uint8_t slot;
+	uint32_t hw;
+	ts_res_t r = ts_appmgr_stage_begin(sizeof(boot_pkg), &slot);
+
+	if (r != TS_OK) {
+		return r;
+	}
+	r = ts_appmgr_stage_chunk(0, boot_pkg, sizeof(boot_pkg), &hw);
+	if (r == TS_OK && hw == sizeof(boot_pkg)) {
+		r = ts_appmgr_stage_verify(NULL, NULL, NULL, NULL);
+	}
+	if (slot_out != NULL) {
+		*slot_out = slot;
+	}
+	return r;
+}
+
+ZTEST(framework_app, test_14_install_gate)
+{
+	uint8_t pb[192];
+	size_t pn = build_prov12(pb, sizeof(pb), 1);
+	ts_app_info_t info;
+	ts_appmgr_meta_t meta;
+	uint8_t slot;
+
+	ts_store_test_reset();
+	ts_appmgr_test_reset();
+	zassert_equal(ts_store_prov_write_test(pb, pn), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_OK);
+	zassert_equal(ts_store_prov()->local_confirm, 1);
+
+	/* 基线：直装一版——install 单发路同过闸（EC4 一切安装通道同一收口：
+	 * meta 就位 = 「挂起不切 meta」的可观测前提）。 */
+	zassert_equal(ts_appmgr_install(boot_pkg, sizeof(boot_pkg), NULL, &info),
+		      TS_E_PENDING, "install 通道同闸（fail-closed 无例外）");
+	zassert_equal(ts_appmgr_confirm_pending(&info), TS_OK, "本地确认后落位");
+	uint8_t active_before = info.active_slot;
+
+	/* ① activate 过闸：不切 meta、置 pending、结构化中间态 */
+	zassert_equal(stage_full(&slot), TS_OK);
+	zassert_not_equal(slot, active_before, "staging 目标 = 对内乒乓槽");
+	zassert_equal(ts_appmgr_stage_activate(&info), TS_E_PENDING,
+		      "lconf=1 = activate 过闸");
+	zassert_true(ts_appmgr_pending_active());
+	zassert_equal(info.pending_slot, slot, "pending 面 = 目标槽");
+	zassert_equal(ts_appmgr_meta_read(&meta), TS_OK);
+	zassert_equal(meta.entries[0].active_slot, active_before,
+		      "meta 未切（等本地确认）");
+
+	/* ② 单窗：挂起期再 activate = BUSY */
+	zassert_equal(ts_appmgr_stage_activate(&info), TS_E_BUSY);
+
+	/* ③ 呈现面单一事实源（EC3 同 manifest 数据面——ASCII 行） */
+	char sum[320];
+	int sn = ts_appmgr_pending_summary(sum, sizeof(sum));
+
+	zassert_true(sn > 0, "summary 非空");
+	zassert_not_null(strstr(sum, "app: com.tessera.fixture"));
+	zassert_not_null(strstr(sum, "0.1.0"));
+	zassert_not_null(strstr(sum, "caps:"));
+	zassert_not_null(strstr(sum, "slot:"));
+	zassert_equal(ts_appmgr_pending_summary(sum, 8), 0, "非挂起/小缓冲 = 0");
+
+	/* ④ get-app 挂起面（加性 pending_slot） */
+	zassert_equal(ts_appmgr_get_info(&info), TS_OK);
+	zassert_equal(info.pending_slot, slot);
+
+	/* ⑤ 确认（固件本地路）→ meta 原子切换 */
+	zassert_equal(ts_appmgr_confirm_pending(&info), TS_OK);
+	zassert_false(ts_appmgr_pending_active());
+	zassert_equal(info.active_slot, slot, "确认 = meta 切至目标槽");
+	zassert_equal(info.pending_slot, 0xFF);
+	zassert_equal(ts_appmgr_meta_read(&meta), TS_OK);
+	zassert_equal(meta.entries[0].active_slot, slot, "持久面同步");
+	zassert_equal(ts_appmgr_confirm_pending(&info), TS_E_STATE, "无挂起 = 拒");
+	active_before = slot; /* ⑥⑦ 的对比基线 = 当前活动槽 */
+
+	/* ⑥ 拒绝路径：meta 不动 + 清台（重试须完整重推） */
+	zassert_equal(stage_full(&slot), TS_OK);
+	zassert_equal(ts_appmgr_stage_activate(&info), TS_E_PENDING);
+	zassert_equal(ts_appmgr_reject_pending(), TS_OK);
+	zassert_false(ts_appmgr_pending_active());
+	zassert_equal(ts_appmgr_meta_read(&meta), TS_OK);
+	zassert_equal(meta.entries[0].active_slot, active_before, "拒绝 = meta 不动");
+	zassert_equal(ts_appmgr_stage_activate(&info), TS_E_STATE, "拒后清台");
+
+	/* ⑦ 60s fail-closed 超时（本套件 400ms 档）：撤销 + meta 不动 + 清台 */
+	zassert_equal(stage_full(&slot), TS_OK);
+	zassert_equal(ts_appmgr_stage_activate(&info), TS_E_PENDING);
+	k_sleep(K_MSEC(CONFIG_TS_APPMGR_PENDING_TIMEOUT_MS + 200));
+	zassert_false(ts_appmgr_pending_active(), "超时撤销");
+	zassert_equal(ts_appmgr_meta_read(&meta), TS_OK);
+	zassert_equal(meta.entries[0].active_slot, active_before, "超时 = meta 不动");
+	zassert_equal(ts_appmgr_stage_activate(&info), TS_E_STATE, "超时后清台");
+
+	/* ⑧ begin 覆盖闸：挂起中新推 = 挂起窗随新会话终止 */
+	zassert_equal(stage_full(&slot), TS_OK);
+	zassert_equal(ts_appmgr_stage_activate(&info), TS_E_PENDING);
+	zassert_equal(ts_appmgr_stage_begin(sizeof(boot_pkg), &slot), TS_OK);
+	zassert_false(ts_appmgr_pending_active(), "新 begin 终止挂起窗");
+
+	/* ⑨ lconf=0（无头缺省）：activate 直切——旧行为零回归 */
+	pn = build_prov12(pb, sizeof(pb), 0);
+	zassert_equal(ts_store_prov_write_test(pb, pn), TS_OK);
+	zassert_equal(ts_store_prov_load(), TS_OK);
+	zassert_equal(stage_full(&slot), TS_OK);
+	zassert_equal(ts_appmgr_stage_activate(&info), TS_OK, "闸关 = 原路径");
+	zassert_equal(info.active_slot, slot);
+	zassert_equal(info.pending_slot, 0xFF);
+
+	/* 收尾：prov 复原 v1 缺省态（后续用例零扰动） */
+	ts_store_test_reset();
+	ts_appmgr_test_reset();
+	zassert_equal(ts_store_prov_load(), TS_E_IO, "空分区 = 缺省兜底（lconf=0）");
+}

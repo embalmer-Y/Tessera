@@ -12,6 +12,18 @@
 extern ts_app_info_t current_apps[CONFIG_TS_APP_MAX_INSTANCES];
 extern bool initialized;
 
+/* F3 安装闸挂起态（pkg.c 定义，slot.c get_info 消费——DEC-62①）：仅内存
+ *（复位即失 = fail-closed）；确认/拒绝仅固件内本地路。 */
+struct ts_appmgr_pend {
+	bool active;
+	uint8_t slot;
+	uint8_t entry;
+};
+extern struct ts_appmgr_pend pending;
+#ifdef CONFIG_TS_TEST
+void ts_appmgr_pend_reset_test(void); /* 测试隔离：pending+stage 清台 */
+#endif
+
 /* verify.c（DEC-49）：全量验签（头 v2 → 摘要 → COSE ed25519）与 boot 快校验 */
 ts_res_t ts_appmgr_verify_slot(uint8_t slot, const uint8_t root_pubkey[32],
 			       tsap_view_t *v, uint8_t digest_out[32]);

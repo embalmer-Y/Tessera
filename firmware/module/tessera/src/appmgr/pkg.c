@@ -5,6 +5,7 @@
  * pk0）——IR2-02 结构桩时代结束；失败 → TS_E_INVALID_SIG + 留痕。
  * MA3.1：安装链分步化（stage_begin/chunk/verify/activate，LLD-A06 §3）——
  * ts_appmgr_install 与 sys/app-* 命令消费同一内部链（行为一致）。 */
+#include <stdio.h>
 #include <string.h>
 #include <ts/appmgr.h>
 #include <ts/core.h>
@@ -165,6 +166,45 @@ static struct {
 	uint8_t entry;       /* 目标 entry（Q-32②；legacy 单 APP = 0） */
 } stage;
 
+/* ---- F3 安装闸挂起态（DEC-62① · Q-46①③）----------------------------------
+ * pending 仅内存（复位即失 = fail-closed：无 meta 足迹、槽字节保留）；
+ * 60s 超时 = k_work（sysworkq）撤销 + 事件。确认/拒绝仅固件内本地路。
+ *（非 static——internal.h 声明，slot.c get_info 消费） */
+struct ts_appmgr_pend pending;
+
+static struct k_work_delayable pend_timer;
+static ts_pending_evt_t pend_pl; /* 事件 payload 静态存储（core.h 公共类型） */
+
+static void pend_publish(ts_evt_id_t id)
+{
+	pend_pl.slot = pending.slot;
+	pend_pl.entry = pending.entry;
+	const ts_evt_t evt = {.id = id, .t_ms = ts_time_ms(),
+			      .data = &pend_pl, .len = sizeof(pend_pl)};
+	ts_evt_publish(&evt);
+}
+
+static void pend_clear(void)
+{
+	pending.active = false;
+	k_work_cancel_delayable(&pend_timer);
+}
+
+static void pend_timeout(struct k_work *w)
+{
+	ARG_UNUSED(w);
+	if (!pending.active) {
+		return;
+	}
+	/* fail-closed：超时撤销（槽字节保留可重推；staging 会话终止） */
+	pend_publish(TS_EVT_INSTALL_TIMEOUT);
+	printk("[appmgr] pending install timeout slot=%u entry=%u "
+	       "(cancelled — slot kept, re-push to retry)\n",
+	       pending.slot, pending.entry);
+	pend_clear();
+	memset(&stage, 0, sizeof(stage));
+}
+
 ts_res_t ts_appmgr_stage_begin_n(uint32_t total_len, uint8_t entry, uint8_t *slot_out)
 {
 	/* v2 容器下限：头 16 + 摘要 32 + 最小 manifest/COSE + 签名域 */
@@ -203,6 +243,7 @@ ts_res_t ts_appmgr_stage_begin_n(uint32_t total_len, uint8_t entry, uint8_t *slo
 		return er; /* 槽抹除失败 = 拒绝开始安装（fail-closed） */
 	}
 	memset(&stage, 0, sizeof(stage));
+	pend_clear(); /* F3：新推覆盖闸（begin 重置语义——挂起窗随新会话终止） */
 	stage.active = true;
 	stage.total = total_len;
 	stage.slot = target;
@@ -304,11 +345,11 @@ ts_res_t ts_appmgr_stage_verify(const uint8_t root_pubkey[32],
 	return TS_OK;
 }
 
-ts_res_t ts_appmgr_stage_activate_n(uint8_t entry, ts_app_info_t *out)
+/* 提交体（activate 原步骤 5-7；F3 确认路复用——digest 复查 + 停旧 APP +
+ * meta 原子切换 + 资源绑定 + 清台）。调用前置条件：stage.active/verified
+ * 且 entry 匹配（两路共用同一前置检查）。 */
+static ts_res_t stage_commit(uint8_t entry, ts_app_info_t *out)
 {
-	if (!stage.active || !stage.verified || entry != stage.entry) {
-		return TS_E_STATE; /* 未验证不得激活（fail-closed）；entry 与 begin 不符 = 拒绝 */
-	}
 	/* 5. 激活对拍（IR2-02 次账收口）：摘要重哈希 == 头摘要（verify 后
 	 * 的持久化完整性复查）+ 摘要入 meta（boot 快校验对象）。 */
 	tsap_view_t v;
@@ -362,6 +403,7 @@ ts_res_t ts_appmgr_stage_activate_n(uint8_t entry, ts_app_info_t *out)
 	current_apps[entry].state = TS_APP_STAGED;
 	current_apps[entry].active_slot = stage.slot;
 	current_apps[entry].rollback_count = 0;
+	current_apps[entry].pending_slot = 0xFF;
 	if (out != NULL) {
 		*out = current_apps[entry];
 	}
@@ -387,6 +429,197 @@ ts_res_t ts_appmgr_stage_activate_n(uint8_t entry, ts_app_info_t *out)
 #endif
 	memset(&stage, 0, sizeof(stage)); /* 终态清台（下轮 begin 重置） */
 	return TS_OK;
+}
+
+ts_res_t ts_appmgr_stage_activate_n(uint8_t entry, ts_app_info_t *out)
+{
+	if (!stage.active || !stage.verified || entry != stage.entry) {
+		return TS_E_STATE; /* 未验证不得激活（fail-closed）；entry 与 begin 不符 = 拒绝 */
+	}
+	/* F3 安装闸（DEC-62①）：lconf=1 = activate 过闸不切 meta——置 pending
+	 * （60s fail-closed）+ 事件外发；确认/拒绝仅固件内本地路（无 zenoh
+	 * 命令面——远程不可确认，只能重推或等超时）。返回 TS_E_PENDING 结构化
+	 * 中间态（net 命令层据此回执 pending 面）。 */
+	if (ts_store_prov()->local_confirm) {
+		if (pending.active) {
+			return TS_E_BUSY; /* 单挂起窗（新推须先超时/被拒） */
+		}
+		pending.active = true;
+		pending.slot = stage.slot;
+		pending.entry = stage.entry;
+		k_work_init_delayable(&pend_timer, pend_timeout);
+		k_work_reschedule(&pend_timer,
+				  K_MSEC(CONFIG_TS_APPMGR_PENDING_TIMEOUT_MS));
+		pend_publish(TS_EVT_PENDING_INSTALL);
+		printk("[appmgr] activate gated: PENDING slot=%u entry=%u "
+		       "(local confirm, %ums fail-closed)\n",
+		       pending.slot, pending.entry,
+		       (unsigned)CONFIG_TS_APPMGR_PENDING_TIMEOUT_MS);
+		if (out != NULL) {
+			*out = current_apps[entry];
+			out->pending_slot = pending.slot;
+		}
+		return TS_E_PENDING;
+	}
+	return stage_commit(entry, out);
+}
+
+/* ---- 安装闸本地路（F3 · DEC-62①）---------------------------------------- */
+
+ts_res_t ts_appmgr_confirm_pending(ts_app_info_t *out)
+{
+	if (!pending.active) {
+		return TS_E_STATE;
+	}
+	if (!stage.active || !stage.verified || stage.entry != pending.entry) {
+		/* 防御：pending 期 stage 被清（理论不可达——begin/超时都先清
+		 * pending；fail-closed 侧如实撤销） */
+		pend_publish(TS_EVT_INSTALL_REJECTED);
+		pend_clear();
+		memset(&stage, 0, sizeof(stage));
+		return TS_E_STATE;
+	}
+	uint8_t entry = pending.entry;
+	ts_res_t r = stage_commit(entry, out);
+
+	if (r == TS_OK) {
+		pend_publish(TS_EVT_INSTALL_CONFIRMED);
+		pend_clear();
+	}
+	return r;
+}
+
+ts_res_t ts_appmgr_reject_pending(void)
+{
+	if (!pending.active) {
+		return TS_E_STATE;
+	}
+	pend_publish(TS_EVT_INSTALL_REJECTED);
+	printk("[appmgr] pending install rejected slot=%u entry=%u "
+	       "(cancelled — slot kept, re-push to retry)\n",
+	       pending.slot, pending.entry);
+	pend_clear();
+	memset(&stage, 0, sizeof(stage)); /* 清台（远程重试须完整重推） */
+	return TS_OK;
+}
+
+bool ts_appmgr_pending_active(void)
+{
+	return pending.active;
+}
+
+#ifdef CONFIG_TS_TEST
+/* 测试隔离（F3）：pending/连带 staging 会话随 appmgr reset 清台（残留
+ * 挂起定时器会跨用例误触发） */
+void ts_appmgr_pend_reset_test(void)
+{
+	pend_clear();
+	memset(&stage, 0, sizeof(stage));
+}
+#endif
+
+int ts_appmgr_pending_summary(char *buf, size_t cap)
+{
+	if (!pending.active || buf == NULL || cap < 64) {
+		return 0;
+	}
+	/* 呈现面单一事实源（EC3 §3.2）：manifest 数据面 = 固件解析（与
+	 * Agent tsap_tools.manifest_summary 同字段族——ASCII 行，\n 分隔） */
+	static uint8_t man[512];
+	uint32_t man_len = 0;
+
+	if (ts_store_slot_read(pending.slot, TSAP_CONTENT_OFF, man, sizeof(man))
+		    != TS_OK) {
+		return 0;
+	}
+	/* manifest 长度自 TSAP 头（check_digest 的 view 同源——直读头） */
+	tsap_view_t v;
+
+	if (ts_appmgr_check_digest(pending.slot, &v) != TS_OK) {
+		return 0;
+	}
+	man_len = v.manifest_len;
+
+	char app_id[64] = "?";
+	char app_ver[16] = "?";
+	char caps[160] = "-";
+	char tier[8] = "small";
+	char res[96] = "-";
+	unsigned threads = 1;
+
+#if defined(CONFIG_TS_APP_WAMR) && defined(CONFIG_TS_HAL_FS)
+	{
+		ts_app_needs_t nd;
+
+		if (ts_appmgr_scan_needs(man, man_len, &nd) == TS_OK) {
+			strncpy(tier, nd.tier == 1 ? "large" : "small", sizeof(tier) - 1);
+			strncpy(res, nd.res_csv[0] ? nd.res_csv : "-", sizeof(res) - 1);
+			res[sizeof(res) - 1] = '\0';
+		}
+	}
+#endif
+	if (man_len <= sizeof(man)) {
+		ts_cbor_rd_t r;
+		uint32_t pairs;
+
+		ts_cbor_rd_init(&r, man, man_len);
+		if (ts_cbor_map_open(&r, &pairs)) {
+			for (uint32_t i = 0; i < pairs; i++) {
+				char key[16];
+
+				if (!ts_cbor_tstr(&r, key, sizeof(key))) {
+					break;
+				}
+				if (strcmp(key, "app_id") == 0) {
+					ts_cbor_tstr(&r, app_id, sizeof(app_id));
+				} else if (strcmp(key, "app_ver") == 0) {
+					ts_cbor_tstr(&r, app_ver, sizeof(app_ver));
+				} else if (strcmp(key, "threads") == 0) {
+					uint64_t u;
+
+					if (ts_cbor_uint(&r, &u)) {
+						threads = (unsigned)u;
+					}
+				} else if (strcmp(key, "caps") == 0) {
+					uint32_t n;
+
+					if (ts_cbor_array_open(&r, &n)) {
+						size_t cl = 0;
+
+						caps[0] = '\0';
+						for (uint32_t j = 0; j < n; j++) {
+							char cap[48];
+
+							if (!ts_cbor_tstr(&r, cap, sizeof(cap)) ||
+							    cl + strlen(cap) + 2 >= sizeof(caps)) {
+								break;
+							}
+							if (cl > 0) {
+								caps[cl++] = ';';
+							}
+							memcpy(caps + cl, cap, strlen(cap));
+							cl += strlen(cap);
+							caps[cl] = '\0';
+						}
+					}
+				} else if (!ts_cbor_skip(&r, 1)) {
+					break; /* tier/needs 等：scan_needs 单一事实源已取 */
+				}
+			}
+		}
+	}
+	int n = snprintf(buf, cap,
+			 "app: %s %s\n"
+			 "slot: %u  entry: %u\n"
+			 "tier: %s  threads: %u\n"
+			 "caps: %s\n"
+			 "res: %s\n"
+			 "wasm: %uB  pkg: %uB",
+			 app_id, app_ver, pending.slot, pending.entry, tier,
+			 threads, caps, res, (unsigned)v.wasm_len,
+			 (unsigned)stage.total);
+
+	return (n > 0 && (size_t)n < cap) ? n : 0;
 }
 
 ts_res_t ts_appmgr_stage_activate(ts_app_info_t *out)

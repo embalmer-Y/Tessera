@@ -1,0 +1,13 @@
+[q] sys/get-info rlen=53 resp_len=229
+[q] sys/get-info rlen=57 resp_len=233
+[q] sys/lease-acquire rlen=105 resp_len=70
+[q] sys/app-begin rlen=98 resp_len=58
+[q] sys/app-chunk rlen=2142 resp_len=65
+[q] sys/app-chunk rlen=980 resp_len=68
+[q] sys/app-verify rlen=87 resp_len=83
+AKP1 pending install slot=0 entry=0（短按=确认 长按≥2s=拒绝）
+[appmgr] activate gated: PENDING slot=0 entry=0 (local confirm, 60000ms fail-closed)
+[q] sys/app-activate rlen=98 resp_len=61
+[q] sys/lease-release rlen=105 resp_len=51
+AKP4 install timeout slot=0（fail-closed 撤销）
+[appmgr] pending install timeout slot=0 entry=0 (cancelled — slot kept, re-push to retry)

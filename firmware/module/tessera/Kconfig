@@ -249,6 +249,15 @@ config TS_APPMGR
 
 if TS_APPMGR
 
+config TS_APPMGR_PENDING_TIMEOUT_MS
+	int "F3 install-gate pending timeout (ms, fail-closed)"
+	default 60000
+	help
+	  DEC-62 (Q-46①): with prov v2 lconf=1, activate enters a
+	  pending-local-confirm state; on timeout the pending install is
+	  cancelled (slot kept, re-push to retry). Headless builds with
+	  lconf=0 are unaffected. Test benches may lower this value.
+
 config TS_APP_WAMR
 	bool "WAMR wasm runtime (WAMR-2.4.5 pinned)"
 	default y

@@ -119,8 +119,13 @@ static void wifi_handler(struct net_mgmt_event_callback *cb, uint64_t event,
  *  ——gen_db_prov.py 迁移失落后的重写；手抄禁令，教训 27）。pk 全零：V1
  *  固件验签 = COSE 结构级（K2 后 ES8311/信任链载体——真验签链已在，
  *  K3 信任表上线后实机多根）。 */
+/* v2 12 对形态（F3 · DEC-62①）：v1 前缀 + deploy_mode=orchestrated +
+ * estop_remote_clear=0（本地清除板）+ lconf=1（安装闸开——真机判据
+ * 载体）。**数组 = 脚本机械生成**（~/project/logs/gen_ak_prov.py；
+ * 手抄禁令，教训 27）。pk 全零：TEST 有效集 = 测试根 ∪ 信任表（K3）。 */
+/* 机械生成（gen_ak_prov.py——重跑复现；禁手抄，教训 27） */
 static const uint8_t prov_blob[] = {
-	0xab, 0x61, 0x76, 0x02, 0x67, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64,
+	0xac, 0x61, 0x76, 0x02, 0x67, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64,
 	0x63, 0x61, 0x6b, 0x6e, 0x67, 0x63, 0x75, 0x62, 0x65, 0x5f, 0x69, 0x64,
 	0x63, 0x61, 0x6b, 0x63, 0x67, 0x72, 0x6f, 0x75, 0x74, 0x65, 0x72, 0x73,
 	0x81, 0x75, 0x74, 0x63, 0x70, 0x2f, 0x31, 0x39, 0x32, 0x2e, 0x31, 0x36,
@@ -135,8 +140,10 @@ static const uint8_t prov_blob[] = {
 	0x72, 0x5f, 0x6d, 0x61, 0x19, 0x01, 0xf4, 0x65, 0x65, 0x73, 0x74, 0x6f,
 	0x70, 0x00, 0x6b, 0x64, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x5f, 0x6d, 0x6f,
 	0x64, 0x65, 0x00, 0x72, 0x65, 0x73, 0x74, 0x6f, 0x70, 0x5f, 0x72, 0x65,
-	0x6d, 0x6f, 0x74, 0x65, 0x5f, 0x63, 0x6c, 0x65, 0x61, 0x72, 0x00,
+	0x6d, 0x6f, 0x74, 0x65, 0x5f, 0x63, 0x6c, 0x65, 0x61, 0x72, 0x00, 0x65,
+	0x6c, 0x63, 0x6f, 0x6e, 0x66, 0x01,
 };
+/* 198B（走查序由 ts_store_prov_validate 校验） */
 
 /* APP 部署目标通道（gpio inst 0 = dbled；PWM inst 1 = dbpwm）
  * MD1.1 增 PWM 通道：D3 呼吸灯 demo 限幅判据（limits max = 5000Hz|700‰，
@@ -340,6 +347,72 @@ static struct gpio_callback ak_boot_cb;
 static struct k_work ak_key_work;
 static atomic_t ak_key_down_ms;
 
+/* ---- F3-2 安装闸呈现（DEC-62①③）：事件 → LCD + AKP 判据行 + 手势模态 ---- */
+static void ak_gate_evt(const ts_evt_t *evt, void *user)
+{
+	ARG_UNUSED(user);
+	const ts_pending_evt_t *pl = evt->data;
+
+	switch (evt->id) {
+	case TS_EVT_PENDING_INSTALL: {
+		static char sum[320];
+		int n = ts_appmgr_pending_summary(sum, sizeof(sum));
+
+		printk("AKP1 pending install slot=%u entry=%u（短按=确认 长按≥2s=拒绝）\n",
+		       pl->slot, pl->entry);
+		if (n > 0) {
+			/* summary \n 分隔 → 行数组（EC3：同一 manifest 数据面） */
+			const char *lines[12];
+			uint8_t nl = 0;
+			char *w = sum;
+
+			while (nl < 12) {
+				lines[nl++] = w;
+				char *brk = strchr(w, '\n');
+
+				if (brk == NULL) {
+					break;
+				}
+				*brk = '\0';
+				w = brk + 1;
+			}
+			(void)ak_ui_screen("INSTALL PENDING", lines, nl);
+		}
+		break;
+	}
+	case TS_EVT_INSTALL_CONFIRMED: {
+		printk("AKP2 install confirmed slot=%u（meta 已切换——暖复位装载）\n",
+		       pl->slot);
+		static const char *const ok[] = {
+			"install confirmed", "meta switched", "warm reboot next",
+		};
+
+		(void)ak_ui_screen("INSTALL", ok, 3);
+		break;
+	}
+	case TS_EVT_INSTALL_REJECTED: {
+		printk("AKP3 install rejected slot=%u（槽保留可重推）\n", pl->slot);
+		static const char *const rj[] = {
+			"install rejected", "slot kept", "re-push to retry",
+		};
+
+		(void)ak_ui_screen("INSTALL", rj, 3);
+		break;
+	}
+	case TS_EVT_INSTALL_TIMEOUT: {
+		printk("AKP4 install timeout slot=%u（fail-closed 撤销）\n", pl->slot);
+		static const char *const to[] = {
+			"install timeout", "cancelled fail-closed", "re-push to retry",
+		};
+
+		(void)ak_ui_screen("INSTALL", to, 3);
+		break;
+	}
+	default:
+		break;
+	}
+}
+
 static void ak_key_work_fn(struct k_work *w)
 {
 	ARG_UNUSED(w);
@@ -348,6 +421,23 @@ static void ak_key_work_fn(struct k_work *w)
 
 	if (held < 50) {
 		return; /* 抖动滤除 */
+	}
+	/* F3 手势模态（Q-46③）：pending 期短按=确认 / 长按≥2s=拒绝——模态
+	 * 独占（与 F1 arb 切换互斥：pending 期不切席位）。确认/拒绝仅此本地路
+	 *（无 zenoh 命令面 = 远程不可确认）。 */
+	if (ts_appmgr_pending_active()) {
+		if (held >= 2000) {
+			ts_res_t r = ts_appmgr_reject_pending();
+
+			printk("AKPR reject rc=%d（BOOT 长按本地路）\n", (int)r);
+		} else {
+			ts_app_info_t info;
+			ts_res_t r = ts_appmgr_confirm_pending(&info);
+
+			printk("AKPC confirm rc=%d slot=%u（BOOT 短按本地路——meta 已切换）\n",
+			       (int)r, info.active_slot);
+		}
+		return;
 	}
 	if (held >= 2000) {
 		printk("AKF1 bench 合成 force akpwm（estop 面演示触发）\n");
@@ -533,6 +623,17 @@ int main(void)
 	int urc = ak_ui_init();
 
 	printk("AKU1 LCD+LVGL init rc=%d（0=OK——屏应显示开机画面）\n", urc);
+	/* F3-2 安装闸事件订阅（呈现 + 手势模态数据面；pub.c 外发 …/sys/event） */
+	{
+		static const ts_evt_id_t gids[] = {
+			TS_EVT_PENDING_INSTALL, TS_EVT_INSTALL_CONFIRMED,
+			TS_EVT_INSTALL_REJECTED, TS_EVT_INSTALL_TIMEOUT,
+		};
+
+		for (size_t gi = 0; gi < sizeof(gids) / sizeof(gids[0]); gi++) {
+			(void)ts_evt_subscribe(gids[gi], ak_gate_evt, NULL);
+		}
+	}
 	ts_core_boot(); /* noreturn：net_init → zenoh 命令面 + 步骤 8 slot 装载 */
 	return 0;
 }

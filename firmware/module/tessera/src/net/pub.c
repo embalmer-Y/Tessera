@@ -32,6 +32,7 @@ static ts_net_qos_t evt_qos(ts_evt_id_t id)
 	case TS_EVT_PERM_DENIED:
 	case TS_EVT_ARB_CHANGED: /* CG3 · 合同 11：控制权切换 = 安全类（留痕必达优先） */
 	case TS_EVT_TRUST_UPDATED: /* EC2 · Q-43④：信任链变更 = 安全类（同上） */
+	case TS_EVT_PENDING_INSTALL: /* F3 · DEC-62①：安装闸挂起 = 留痕必达（确认窗起点） */
 		return TS_NET_QOS_SAFETY; /* DEC-42 QoS 映射 */
 	default:
 		return TS_NET_QOS_BESTEFFORT;
@@ -160,6 +161,22 @@ static void on_evt(const ts_evt_t *evt, void *user)
 		}
 		break;
 	}
+	case TS_EVT_PENDING_INSTALL: /* F3 · DEC-62① 四态同 payload {slot,entry} */
+	case TS_EVT_INSTALL_CONFIRMED:
+	case TS_EVT_INSTALL_REJECTED:
+	case TS_EVT_INSTALL_TIMEOUT: {
+		const ts_pending_evt_t *pl = evt->data;
+		uint8_t extra[24];
+		size_t p = 0;
+
+		if (ts_cbor_put_tstr(extra, sizeof(extra), &p, "slot") &&
+		    ts_cbor_put_uint(extra, sizeof(extra), &p, pl->slot) &&
+		    ts_cbor_put_tstr(extra, sizeof(extra), &p, "entry") &&
+		    ts_cbor_put_uint(extra, sizeof(extra), &p, pl->entry)) {
+			push_evt(evt->id, evt->t_ms, "sys", extra, p, 2);
+		}
+		break;
+	}
 	case TS_EVT_PERM_DENIED: /* 合同 10 留痕外发 */
 	case TS_EVT_INPUT_CHANGED: /* DR-02 输入变化 */
 	default:
@@ -188,6 +205,10 @@ ts_res_t ts_net_pub_init(void)
 		TS_EVT_ARB_CHANGED, /* CG3 · 合同 11：控制权切换留痕外发 */
 		TS_EVT_RESOURCE_WRITTEN, /* CG5-B：资源推送完成留痕（观测类） */
 		TS_EVT_TRUST_UPDATED, /* EC2 · Q-43④：信任根表更新留痕（安全类） */
+		TS_EVT_PENDING_INSTALL, /* F3 · DEC-62①：安装闸四态外发（挂起 = 安全类） */
+		TS_EVT_INSTALL_CONFIRMED,
+		TS_EVT_INSTALL_REJECTED,
+		TS_EVT_INSTALL_TIMEOUT,
 	};
 
 	for (size_t i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {

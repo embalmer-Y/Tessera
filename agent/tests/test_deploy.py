@@ -38,6 +38,7 @@ class FakeCube:
         self.fs_corrupt = False  # 注入：commit 期篡改一字节（摘要失配路径）
         self.lease_holder: str | None = None
         self.lease_deny = False
+        self.lconf = False  # F3 · DEC-62①：安装闸（activate → -13 pending）
         self.active_slot = 0
         self.stage: dict | None = None
         self.chunks: dict[int, bytes] = {}
@@ -200,6 +201,10 @@ class FakeCube:
             self.activate_calls += 1
             if self.stage is None or not self.stage["verified"]:
                 return self._enc(rid, -4, {})
+            if self.lconf:
+                # F3 · DEC-62①：安装闸 = -13 结构化中间态（meta 未切）
+                return self._enc(rid, -13, {"pending": 1,
+                                            "slot": self.stage["slot"]})
             self.active_slot = self.stage["slot"]
             return self._enc(rid, 0, {"state": 2, "active_slot": self.active_slot,
                                       "rollback_count": 0})
@@ -519,3 +524,20 @@ def test_trust_update_arg_matrix(tmp_path):
     bad_key.write_bytes(b"\x00" * 16)
     with pytest.raises(TaError, match="32B"):
         deploy.trust_update(fc, "fn", "fc", [], str(bad_key))
+
+
+def test_push_app_install_gate_pending(tmp_path):
+    """F3 · DEC-62①：安装闸——activate 返回 -13 pending 中间态：部署按
+    「待板上本地确认」收尾（非失败），租约照常归还；确认仅板侧本地路。"""
+    pkg, pub, raw = _make_pkg(tmp_path)
+    fake = FakeCube()
+    fake.lconf = True
+    logs: list[str] = []
+    out = deploy.push_app(fake, "fn", "fc", pkg, pub, chunk_size=512,
+                          log_fn=logs.append)
+    assert out["pending_local_confirm"] is True
+    assert out["pending_slot"] == fake.stage["slot"]
+    assert "confirmed" not in out or out.get("confirmed") is not True
+    assert fake.active_slot == 0, "meta 未切（等本地确认）"
+    assert out["released"] is True and fake.lease_holder is None
+    assert any("PENDING" in ln for ln in logs)

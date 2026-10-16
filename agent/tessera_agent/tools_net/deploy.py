@@ -28,6 +28,7 @@ from tessera_agent.tools_tsap import tools as tsap_tools
 # 来源: LLD-A06 §3（2KB 默认 / 4KB 上限）
 CHUNK_DEFAULT = 2048
 CHUNK_MAX = 4096
+TS_E_PENDING = -13  # 固件 err.h（F3 · DEC-62①）：安装闸结构化中间态
 # 来源: DEC-41（TTL 10s）——续期间隔 = TTL/3
 LEASE_TTL_S = 10.0
 RENEW_AFTER_S = LEASE_TTL_S / 3.0
@@ -252,9 +253,24 @@ def push_app(
                           detail={"firmware": fw_facts, "local": local_facts})
         log(f"verify PASS: facts={fw_facts}")
 
-        # ⑤ activate → get-app 确认（版本回读一致才置 confirmed）
-        act = _cmd_ok(svc, node, cube, "app-activate", rid("activate"),
-                      idem=idem("activate"), app=app)
+        # ⑤ activate → get-app 确认（版本回读一致才置 confirmed）。
+        # F3 · DEC-62① 安装闸：prov lconf=1 的板 activate 返回 -13 结构化
+        # 中间态 {pending, slot}——部署按「待板上本地确认」收尾（确认仅
+        # 固件本地路：短按 BOOT=确认/长按≥2s=拒绝；60s fail-closed 超时
+        # 撤销后可重推）。EC3 双路同数据面：本侧呈报 = install_permission_brief。
+        act_raw = _cmd(svc, node, cube, "app-activate", rid("activate"),
+                       idem=idem("activate"), app=app)
+        if act_raw.status == TS_E_PENDING:
+            pend = act_raw.data or {}
+            result["pending_local_confirm"] = True
+            result["pending_slot"] = int(pend.get("slot", -1))
+            result["app_id_target"] = app
+            log(f"activate PENDING slot={result['pending_slot']}: "
+                "待板上本地确认（短按=确认/长按≥2s=拒绝，60s fail-closed）")
+            return result
+        if act_raw.status != 0:
+            raise CmdError("app-activate", act_raw)
+        act = act_raw.data
         result["active_slot"] = act.get("active_slot")
         result["app_id_target"] = app
         app_view = _cmd_ok(svc, node, cube, "get-app", rid("getapp"), app=app)

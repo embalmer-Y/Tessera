@@ -11,10 +11,12 @@
  *        "pwr_ma":uint, "estop":uint}
  * CBOR schema v2（CG2 · Q-42，键序 = v1 前缀 + 尾部追加）：
  *   map{"v":2, …v1 同序九键…, "deploy_mode":uint(0|1), "estop_remote_clear":uint(0|1)}
- * v1 兼容缺省（Q-42）：缺字段 = deploy_mode orchestrated + estop_remote_clear
- * enabled（现网无本地交互设备的唯一清除通道）。解码器为固定 schema 的
- * **确定性子集实现**（definite-length map/text/bytes/uint；任何超集/不定长
- * = TS_E_IO）——不引入通用 CBOR 依赖（真机足迹纪律）。
+ * schema v2 尾部追加第三键（F3 · DEC-62①，12 对）：
+ *   …, "lconf":uint(0|1)   ——安装闸本地确认（0=off 无头缺省）
+ * v1/v2(11对) 兼容缺省（Q-42/DEC-62）：缺字段 = deploy_mode orchestrated +
+ * estop_remote_clear enabled + lconf 0（存量 prov 零重刷）。解码器为固定
+ * schema 的**确定性子集实现**（definite-length map/text/bytes/uint；任何
+ * 超集/不定长 = TS_E_IO）——不引入通用 CBOR 依赖（真机足迹纪律）。
  */
 #include <string.h>
 #include <ts/store.h>
@@ -69,23 +71,26 @@ static ts_res_t prov_walk(const uint8_t *cbor, uint32_t cbor_len, ts_prov_t *out
 	}
 	uint32_t pairs;
 
-	/* v1 = 9 对；v2 = 11 对（键序 = v1 前缀 + 尾部追加，Q-42） */
+	/* v1 = 9 对；v2 = 11 对（CG2）或 12 对（F3 追加 lconf——键序 = v1 前缀
+	 * + 尾部追加，Q-42 纪律） */
 	if (!ts_rd_len(&r, ib & 0x1F, &pairs) ||
-	    (pairs != 9 && pairs != 11)) {
+	    (pairs != 9 && pairs != 11 && pairs != 12)) {
 		return TS_E_IO;
 	}
 
-	/* v1 缺字段缺省（Q-42 现网兼容）——先置再走查（out 可能为脏 scratch） */
+	/* v1/v2(11) 缺字段缺省（Q-42 现网兼容 + F3 无头缺省）——先置再走查
+	 *（out 可能为脏 scratch） */
 	out->deploy_mode = TS_DEPLOY_ORCHESTRATED;
 	out->estop_remote_clear = 1;
+	out->local_confirm = 0;
 
 	char key[20];
 	uint32_t u;
 
 	/* 键序固定（定稿 schema）；逐键消费 */
-	static const char *const keys[11] = {
+	static const char *const keys[12] = {
 		"v", "node_id", "cube_id", "routers", "pk0", "pk1", "cred", "pwr_ma",
-		"estop", "deploy_mode", "estop_remote_clear",
+		"estop", "deploy_mode", "estop_remote_clear", "lconf",
 	};
 
 	for (uint32_t k = 0; k < pairs; k++) {
@@ -93,7 +98,7 @@ static ts_res_t prov_walk(const uint8_t *cbor, uint32_t cbor_len, ts_prov_t *out
 			return TS_E_IO;
 		}
 		switch (k) {
-		case 0: /* v：9 对 ⇔ v1、11 对 ⇔ v2（错配 = 结构损坏） */
+		case 0: /* v：9 对 ⇔ v1、11/12 对 ⇔ v2（错配 = 结构损坏） */
 			if (!ts_rd_uint(&r, &u) || u != (uint32_t)(pairs == 9 ? 1 : 2)) {
 				return TS_E_IO;
 			}
@@ -162,11 +167,17 @@ static ts_res_t prov_walk(const uint8_t *cbor, uint32_t cbor_len, ts_prov_t *out
 			}
 			out->deploy_mode = (uint8_t)u;
 			break;
-		default: /* estop_remote_clear：0|1 之外 fail-closed */
+		case 10: /* estop_remote_clear：0|1 之外 fail-closed（12 对形态） */
 			if (!ts_rd_uint(&r, &u) || u > 1U) {
 				return TS_E_IO;
 			}
 			out->estop_remote_clear = (uint8_t)u;
+			break;
+		default: /* lconf（F3 · DEC-62①）：安装闸本地确认；域外 fail-closed */
+			if (!ts_rd_uint(&r, &u) || u > 1U) {
+				return TS_E_IO;
+			}
+			out->local_confirm = (uint8_t)u;
 			break;
 		}
 	}

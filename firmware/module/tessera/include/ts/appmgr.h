@@ -30,6 +30,8 @@ typedef struct {
 	uint8_t rollback_count;  /* 回滚计数（超限 → QUARANTINED） */
 	char app_id[64];
 	char app_ver[16];
+	uint8_t pending_slot;    /* F3 · DEC-62①：安装闸挂起中的目标槽；0xFF = 无
+				  *（加性字段——旧消费方零影响） */
 } ts_app_info_t;
 
 /** 安装一个 TSAP 包（验签 → 写 inactive slot → meta 原子切换）。
@@ -51,6 +53,20 @@ ts_res_t ts_appmgr_stage_verify(const uint8_t root_pubkey[32],
 				uint32_t *manifest_len, uint32_t *wasm_len,
 				uint32_t *cose_off);
 ts_res_t ts_appmgr_stage_activate(ts_app_info_t *out);
+
+/* ---- 安装闸本地确认（F3 · DEC-62① · Q-46①③）-------------------------------
+ * prov v2 lconf=1 时：activate 验签通过 → 不切 meta，置 pending（60s
+ * fail-closed 超时撤销，槽保留可重推）+ TS_EVT_PENDING_INSTALL 事件外发
+ * （呈现随设备形态——LCD/按键）。确认/拒绝**仅固件内本地路**：本 API 无
+ * zenoh 命令面 = 远程不可确认（远程只能重推或等超时——LLD §5c）。确认 =
+ * 走原 activate 提交体（digest 复查 + 停旧 APP + meta 原子切换）。 */
+ts_res_t ts_appmgr_confirm_pending(ts_app_info_t *out); /* → TS_OK = meta 已切换（复位装载随调用方） */
+ts_res_t ts_appmgr_reject_pending(void);                /* 撤销 pending + 清台（槽字节保留） */
+bool ts_appmgr_pending_active(void);                    /* [any] 手势模态查询（pending 期按键语义切换） */
+/** pending 包摘要（ASCII 多行 \n 分隔，呈现面单一事实源——EC3 本地路消费
+ * 同一 manifest 数据面）：app/ver/slot/tier/caps/needs/尺寸。返回行字节数；
+ * 非 pending 态返回 0。 */
+int ts_appmgr_pending_summary(char *buf, size_t cap);
 
 /** 获取当前 active APP 信息。 */
 ts_res_t ts_appmgr_get_info(ts_app_info_t *out);
