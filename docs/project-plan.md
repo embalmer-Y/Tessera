@@ -216,7 +216,7 @@
 | F4 ✅ | peripherals 自报 | get-info peripherals 块（hal 注册表自报 + Agent 装前消费）——真机实证 akled:gpio/akpwm:pwm/akcodec:adc + periph 责任链单源注册 | — |
 | G1 ✅ | Agent 任务链持久化 | LN 注册表落盘 + 跨重启 resume（D1）——LnRegistry(persist_path) 原子写/损坏条目降级跳过/IO 失败告警不抛 + env 重定向（TESSERA_LNO_REGISTRY）+ conftest memory 模式防 CI 副作用；测试 +6 | — |
 | G2 ✅ | 诊断自动回喂 | 部署后自动抓串口 → diag_classify → repair 再入队（D3）——post_deploy_check（健康短路/被动抓取+分类/抓取失败不掩蔽）+ capture_window（被动窗——失败路径专用，开埠脉动 F3 在案）+ deploy_push_app post_check_s/serial_port 直参；测试 +5 | — |
-| G3 | 测试债 | 覆盖率工具启用（gcov 基线）+ L5 工具单测 | — |
+| G3 ◐ | 测试债 | L5 工具单测 ✅（check_1/2 合成夹具 + 仓级烟测，repo pytest 5）；gcov 基线 → 顺延登记：native_sim 宿主构建 + CONFIG_COVERAGE 联动属 CI 基建决策（非仓内代码），随 CI 强化批单独评估 | — |
 | G4 | 终局 | 全量回归 + 文档同步 + tag + 自检 | review |
 
 **事实修正登记**：树内板文档称 NS4168 codec——实为 ES8311 codec + NS4168 功放（owner 原理图核实）；两音频输入源（ES8311 ADC / PDM 麦克风）共享数据引脚 IO47（分时互斥——K2 设计输入选型依据）。
