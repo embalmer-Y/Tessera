@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: Apache-2.0 */
 /* D-AK4: K4 net+SD 资源推送真机 demo（CG5-B 方案 A 消费端）。
  * Zero #include, zero libc（D-SD 同型纪律）。宿主在激活后经部署会话推送
  * 资源文件 /SD:/res/ak4.txt（36B = "AK4-RES-" + 28 数字）；APP 每 tick
