@@ -316,12 +316,18 @@ static void deploy_watch(void *p1, void *p2, void *p3)
 	 * （激活语义：STAGED 待加载周期——运行需重启装载，persistbench 同型） */
 	printk("AK3 deploy target ready slot=%u t=%u（等待 Agent 部署）\n",
 	       info.active_slot, (unsigned)k_uptime_get_32());
-	for (;;) {
+	for (int i = 0;; i++) {
 		k_msleep(300);
 		ts_app_info_t cur;
 
 		if (ts_appmgr_get_info(&cur) != TS_OK) {
 			continue;
+		}
+		/* 观测盲区修复（P1 收口期实证：本分支 27 分钟静默被误读为板死
+		 * ——与 AK PASS 分支同款 10s 存活行） */
+		if (i % 33 == 32) {
+			printk("AK alive t=%u net=%d（等待部署）\n",
+			       (unsigned)k_uptime_get_32(), (int)ts_net_state());
 		}
 		if (cur.active_slot != info.active_slot &&
 		    cur.state == TS_APP_STAGED) {
