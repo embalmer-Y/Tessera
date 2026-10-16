@@ -1025,3 +1025,23 @@
 - 2026-10-16（凌晨） · **K3 夜间会话收兵（如实）+ 三发现登记**：K3 信任链真机 E2E 驱动被两个真发现阻塞，未完成——**信任链固件面本身在板上实证工作**（trust-get 恒 44B 正确回执 ×多轮；K2/K1 全链不受影响）。**F1（板级·高价值）**：zenoh-pico 会话在 PC 侧持续查询高压下死锁 → 看门狗复位（noinit 留痕 0x00020000 实证；形态 = 板自认 net=1 但查询零回执僵尸态）——K6 多机 LN 的实质风险项，需专项根因（疑 zenoh-pico 回复路径资源泄漏——D8 时代「查询面停滞」同族不同触发面）。**F2（工具链）**：deploy._cmd 的 query_one 路径在驱动脚本进程内出现确定性空回执（同形隔离脚本恒通——含 raw query 直迭代复测；疑 zenoh-python 回执物化竞态；已加空载荷重试 ×3 保留为通用加固，深层未解）。**F3（环境）**：新板 CH340 一键下载电路 = 串口开/关埠均产生复位脉动（关埠即复位——console 观测须常驻持有器；持有器已撤，板留静音独立态）。K3 驱动脚本在 ~/project/logs/ak3_trust_e2e.py（仓外）留档待 F2 解后续跑。
 
 - 2026-10-16（下午） · **DEC-62（Q-46 裁决 + 批次三裁决 + R10 留档：owner 全批点向）**：owner 2026-10-16 指令「先将 HAL 相关讨论记入文档然后 Q-46 按建议开工，但其中我希望②呈现面直接引入 LVGL 虽然其本身更加庞大但对于未来不同类型的芯片支持以及屏幕尺寸适配都会更加方便；tag 并入下版；gcov 缓办；P1 按建议顺序全做」。登记：**① Q-46/F3 本地确认路安装闸开工**——①接入点 = 固件侧挂起态（local_confirm prov v2 字段缺省关 = 无头板逐字节不变；activate 验签后不切 meta 置 pending；确认 → meta 切换 + 暖复位装载；拒绝/超时 60s fail-closed 撤销 pending 槽保留可重推）、③手势模态（pending 期 BOOT 短按=确认/长按 ≥2s=拒绝，与 F1 arb 切换互斥）、④LCD bring-up 前置、⑤工作量 2.5 单元——按建议值；**②呈现面 owner 修订 = 直接引入 LVGL**（弃 Q-46② 自绘 8×16 字体方案——owner 理由：未来不同芯片支持与屏幕尺寸适配更方便；代价 = flash/DRAM 预算增大 + modules/lib/lvgl 依赖，接受——呈现属设备形态面非安全面，LVGL 不入写路径/权限面）。**② 版本 tag**：§11f 板级+形态批不单独 tag，并入下版（F3+P1 收口版本一并 review + tag）。**③ gcov 基线**：缓办维持登记（CI 基建决策，随 CI 强化批评估）。**④ P1 清欠批全批点向**（执行序 P1-1 ts_msg_send → P1-5 Agent S8 → P1-2 TLS → P1-3 power native → P1-4 counter 评估）。**⑤ R10 留档**：HAL 扩展性与安全边界（docs/research/R10-hal-scalability.md——Zephyr 暴露八问题否决 / 安全边界 O(1) 重框 / 长尾解法 A 特权驱动组件 + B 通用动词×策略数据 / 需求门控与日落治理）= 未来 HAL 扩展门③在案依据（「直接暴露宿主 API」类提案以 §2 清单直接否决）。可逆性：local_confirm 缺省关；LVGL 门控默认 n（无屏构建零变化）。
+
+## Q-47（zenoh TLS 链路——P1-2 门③ 呈递停门，2026-10-16）
+
+**背景**：P1-2（plan §11g A 表 · DEC-62④）= 远程部署安全面（公网/跨网段前置）。设计事实调研（本批）：
+
+1. **zenohd（本机 1.10.1 二进制）TLS 全支持**：zenoh-link-tls 内建——`listen tls/<ip>:<port>` locator + 配置键 `listen_certificate/listen_private_key/root_ca_certificate/enable_mtls`（mTLS 双向认证就绪）。
+2. **zenoh-pico 1.10.1 源含 TLS**（src/link/unicast/tls.c 等，`Z_FEATURE_LINK_TLS` 守卫）——但 **Zephyr 集成缺件**：zephyr/CMakeLists.txt 无 `CONFIG_ZENOH_PICO_LINK_TLS` 特性行、无 mbedtls 链接（host 构建走 pkg-config，Zephyr 路不通）。
+3. **TLS 后端 = 树内 mbedtls**（Zephyr 模块在位，构建已含其对象）。
+4. **证书体积**：EC P-256 全套（CA 证书 + 客户端证书 + 私钥，DER）≈ 1.5KB——prov 4KB 分区可容（当前 blob 198B）。
+5. **内存**：mbedtls 握手缓冲 ~16KB 级系统堆增量——atk 池 102400 需实测重平。
+
+**子项与建议值**：
+
+① **pico 使能路径**：建议 **仓携带补丁**（firmware/module/tessera/ext/zenoh-pico-tls.patch：zephyr/CMakeLists 特性行 + Kconfig ZENOH_PICO_LINK_TLS + mbedtls 链接；基于钉版 1.10.1——dev-environment 增装载步骤，升级时重放）。备选 = 我方模块全局 define 注入（模块序脆弱，不推荐）。
+② **证书体系**：建议 **自建离线 CA（owner 持 CA 私钥，仓外）+ 设备客户端证书 + mTLS 双向**（zenohd enable_mtls + root_ca 校验客户端——服务器认证〔设备验路由〕与设备认证〔路由验设备〕双面；安卓自签哲学同源 R9 §2）。bench 期单张共享设备证书；量产期 per-device 由 CA 签发（烧录流水线面，生产化批）。
+③ **供给面**：建议 **prov v2 尾部追加 bstr 三元组**（tls_ca/tls_cert/tls_key，DER；缺省无三键 = TLS off，存量 prov 零重刷逐字节兼容——lconf 同型尾部追加纪律）。locator 侧 prov routers 携 `tls/<ip>:<port>`（ts-net glue 增 scheme 识别）。
+④ **zenohd 侧**：建议 **TLS 独立端口并存**（明文 9955 保留过渡期 + TLS 新口起独立 zenohd 实例；证书 PEM 仓外 ~/project/tls/，600 权限）。迁移终态 = 板全量 TLS 后关明文口。
+⑤ **内存与工作量**：mbedtls 增量实测重平（握手缓冲优先内部；不足再评估 PSRAM 自定义分配器——上游 mbedTLS Zephyr 集成约束在案）。工作量 ~1 单元（补丁/Kconfig/prov/tooling 0.5 + zenohd TLS 实例 + bench E2E 0.5）。证书生成工具（openssl 脚本 + gen_*_prov 联动）随批入仓。
+
+**停门**：owner 裁 ①-④（尤其 mTLS 双向与 prov 三元组形态）后开工。

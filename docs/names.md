@@ -43,6 +43,7 @@
 | Q-43 | 信任根表 schema/存储/命令面（EC 门③） | decisions.md | 已裁 → DEC-60 |
 | Q-44 | ES8311 音频面（K2 门③——第二板卡接入批） | decisions.md | 已裁 → DEC-61（owner 泛指令先例） |
 | Q-46 | 本地确认路安装闸（F3 门③——五子项呈递停门） | decisions.md | 已裁 → DEC-62（②呈现面 owner 修订 = LVGL） |
+| Q-47 | zenoh TLS 链路（P1-2 门③——五子项呈递停门） | decisions.md | **待裁**（2026-10-16 呈递） |
 | DEC-39 … DEC-56 | 统一计划/板级批/MD 批/V0.1-0.4 版本批/环境迁移/需求校准（通用域解放）各批裁决与交付登记 | decisions.md | 生效（自检 SC-15 补索引） |
 | DEC-57 / DEC-58 / DEC-59 / DEC-60 | Q-38…41 全 A + 质量优先条款 / CG0 门④措辞 + 双 HLD / Q-42 三项按建议值 / Q-43 五项按建议值 | decisions.md | 生效 |
 | DEC-61 | Q-44 ES8311 三子项按建议值（owner 泛指令先例） | decisions.md | 生效 |
