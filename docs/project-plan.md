@@ -235,7 +235,12 @@
 | P1-4 ✂️ | `counter` 外设类 | **裁剪清账**：零消费者实证（demo/manifest/natives 全库无 counter 面；GPIO 沿计数由 input monitor 近似覆盖）；HLD §9 对照表已更新（R10 §4 日落纪律第一例——需求实据出现再重开） | 裁剪 | 评估完成 2026-10-16 |
 | P1-5 ✅ | Agent S8 补全（部署失败自动再入修复轮） | **已交付**：post_deploy_check 判据面（pass_patterns + criteria_pass 三态）+ CreationLoop.repair（证据经上轮小结回喂，S8_REPAIR_MAX=2 计入预算）+ CLI --deploy --serial-port 端到端闭环；agent 203+2s（+6） | ~0.5 单元 | HLD-agent §4 S8（v0.2.2 收口） |
 
-### B. 待 owner 裁决/动作项（**已全部裁毕 2026-10-16 · DEC-62**：Q-46 → 开工/F3〔② LVGL 修订〕；版本 tag → 并入下版〔F3+P1 收口时一并 review+tag〕；gcov → 缓办维持〔随 CI 强化批评估〕——F1/F2 物理判据已先行收口 v1.91）
+### B. 待 owner 裁决/动作项（当前）
+
+> **收口回归定格 @ 6e54dee（2026-10-16）**：twister 16/16（111）/agent 204+2s/ruff/L5 7/7/repo 5/sync 全绿、工作树干净——**tag-ready**（fw-v0.9.0 候选：形态批 F3 + 清欠批 P1 合版；owner 点头即 tag+push）。待 owner 三项：① Q-47 裁决（TLS 实施解锁）；② F3 确认/拒绝按键判据（两轮）；③ 版本 tag review。
+
+（DEC-62 项已裁毕：
+：Q-46 → 开工/F3〔② LVGL 修订〕；版本 tag → 并入下版〔F3+P1 收口时一并 review+tag〕；gcov → 缓办维持〔随 CI 强化批评估〕——F1/F2 物理判据已先行收口 v1.91）
 
 ### C. 环境挂起项（外部依赖，不占批）
 
