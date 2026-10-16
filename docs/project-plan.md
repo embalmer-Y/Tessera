@@ -210,8 +210,8 @@
 | K4 ✅ | net+SD 资源推送 E2E | atkbench 直兼（板自带 SD SPI2 + WiFi）——fs 分区挂载 + push_resources 真机（**AK4 RES PASS**：large 包 needs.resources 白名单 + fs-commit sha256 verified + APP 消费端字节命中；证据 ak45_console.txt） | — |
 | K5 ✅ | large 档板级配置 | LOAD_MAX/SLOT_SIZE 抬升 + 内存账重平 + large 全链（**206KB wasm→412KB 包全链**：512KB 槽×4 + 装载/验签缓冲 PSRAM 化〔TS_APP_PSRAM_LOAD_BUF/VERIFY_BUF 新面〕+ 512KB WAMR 池 + COSE 4B 长度头族修复〔read_head/Sig_structure〕+ put_bool RFC 修正；F6 分块流楔死登记——日志面 printk×flash 争用） | — |
 | K6 ✅ | 多真机 LN | deploybench + atkbench 双 cube：LN 组部署/断链策略/跨板判据（**AK6 LN PASS**：ln_create 双成员 → ln_deploy 扇出双板 confirmed → ln_status 聚合双 ACTIVE 无降级；xiao 以当前模块重刷〔F1/F5 修复平移〕；atk SMH 1MB→4MB；证据 ak6_console.txt） | — |
-| F1 ◐ | 本地交互源 | 按键（BOOT/扩展器 KEY）→ arb LOCAL 席位 + 压制 + 事件（CG3 机制接线）——**接线交付**（AK8 就绪行 + AKL 判据线；手势判据待 owner 物理按键） | — |
-| F2 ◐ | 本地 estop 清除 | KEY → clear_fault + prov estop_remote_clear 出厂缺省翻 disabled（ISO 13850 偏离撤销）——**远程门真机实证**（need=local-clear）+ 本地路接线（长按 AKC 判据线待 owner 按键） | — |
+| F1 ✅ | 本地交互源 | 按键（BOOT/扩展器 KEY）→ arb LOCAL 席位 + 压制 + 事件（CG3 机制接线）——**真机手势判据收口**（owner BOOT 短按 ×2：`AKL →LOCAL`/`→REMOTE` rc=0 双向切换；证据 af12_boot_console.txt） | — |
+| F2 ✅ | 本地 estop 清除 | KEY → clear_fault + prov estop_remote_clear 出厂缺省翻 disabled（ISO 13850 偏离撤销）——**远程门真机实证**（need=local-clear）+ **本地路真机判据收口**（owner BOOT 长按 ≥2s：`AKF1`→`AKF2 force rc=0`→`AKC 清除 rc=0` 链三行；证据 af12_boot_console.txt） | — |
 | F3 →呈递 | 本地确认路 | LCD 呈现 manifest_summary + 按键确认 → 安装闸（EC3 本地路接线——嵌入式先行者面）；**Q-46 已呈递停门**（安装闸接入点/呈现面/手势模态/超时语义五子项——owner 裁后开工） | 门③ = Q-46 呈递停门 |
 | F4 ✅ | peripherals 自报 | get-info peripherals 块（hal 注册表自报 + Agent 装前消费）——真机实证 akled:gpio/akpwm:pwm/akcodec:adc + periph 责任链单源注册 | — |
 | G1 ✅ | Agent 任务链持久化 | LN 注册表落盘 + 跨重启 resume（D1）——LnRegistry(persist_path) 原子写/损坏条目降级跳过/IO 失败告警不抛 + env 重定向（TESSERA_LNO_REGISTRY）+ conftest memory 模式防 CI 副作用；测试 +6 | — |
@@ -240,7 +240,6 @@
 | 项 | 等什么 |
 |---|--------|
 | Q-46（F3 本地确认路安装闸） | 五子项裁决（呈递在 decisions.md——固件侧挂起态/呈现面/手势模态/60s fail-closed/工作量 2.5 单元） |
-| F1/F2 按键手势物理判据 | owner 按一下 BOOT 键（AKL/AKF/AKC 判据线已就位——本地路安全属性不设远程触发） |
 | 版本 tag | §11f 批的 tag 命名/review（板级+形态批不属版本批惯例——owner 定夺是否 tag 或并入下一版本） |
 | G3 余项 gcov 基线 | CI 基建决策（CONFIG_COVERAGE + native_sim 宿主构建联动——随 CI 强化单独评估） |
 
@@ -280,6 +279,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.91 · 2026-10-16：**F1/F2 物理判据收口（owner 到家按键）**——BOOT 手势三动作真机判据全命中：短按 ×2 = `AKL →LOCAL`/`→REMOTE` rc=0（CG3 席位切换真机闭环）+ 长按 ≥2s = `AKF1`→`AKF2 force rc=0`→`AKC 本地清除 rc=0`（estop 本地路闭环——远程门 need=local-clear 先期已实证）；全程 net=1 板存活；证据 docs/evidence/af12_boot_console.txt。§11f F1/F2 ◐→✅（全批仅 F3 呈递/G3 gcov 顺延两项非 ✅）；§11g B 表删「F1/F2 物理判据」行。
 - v1.90 · 2026-10-16：**文档对齐实现批（owner 指令：更新文档/检查代码/列后续计划）**——HLD-firmware v0.3（§3.3/§3.4/§3.5/§7 现状注记 + **§9 设计-实现对照表**〔设计项逐项 ✅/◐/❌ + 登记出处〕）；HLD-agent v0.2.1（AG1-8 完成态 + D1/D3 + S8 半步注记）；README demo 表补 §11f 六项真机判据；names.md 补 Q-44/Q-46/DEC-61 索引 + 本批标识符登记（TS_APP_PSRAM_LOAD_BUF/VERIFY_BUF、post_deploy_check、capture_window、TESSERA_LNO_REGISTRY、D-AK4、AK7-AK9/AKF/AKC/AKL）；**§11g 后续开发计划定稿**（A 清欠批 P1-1…P1-5 / B 待 owner 四项 / C 环境挂起三项 / D Agent 候选五项随点向 / E 长期方向）。代码核查：twister 16/16（108）/agent 195+2s/repo 5/L5 7/7/ruff/sync 全绿 + 模块零 TODO + [q] 观测面注释按 F5 定案收口。
 - v1.89 · 2026-10-16：**K6 交付（多真机 LN E2E AK6 LN PASS）**——双 cube（dbn/dbc @ xiao + akn/akc @ atk）LN 组全链：ln_create → ln_deploy 扇出（同包双板 confirmed）→ ln_status 聚合（双 ACTIVE + degraded_members 空）；xiao deploybench 以当前模块重刷（F1/F5 修复平移 + 凭据 cmake 重注入——prov 随重刷重建教训）；atk 侧 ESP_SPIRAM_HEAP_SIZE 1MB→4MB（SMH 外部区三笔分配 512K+256K+420K 超 1MB 实证）。
 - v1.88 · 2026-10-16：**K4+K5 交付（net+SD 资源推送 E2E + large 档板级全链）**——① SD 上板一次通（SPI2 引脚表权威 + sdhc-spi-slot + AK7 挂载行）；② K4 AK4 RES PASS（CG5-B 资源推送真机闭环：needs.resources 白名单 + fs-commit sha256 读回 + APP 消费端字节命中）；③ K5 large 全链（206KB wasm/412KB 包编译-验签-安装-激活-PSRAM 装载-512KB 池实例化-运行-消费；caps 自报 [small,large]/1024KB 槽池）；④ 三处大包边界缺陷根治（cbor put_bool 0xE1→0xF5 + read_head 4B 长度 + Sig_structure 0x5A 4B 头——F5 同族）；⑤ 新面 TS_APP_PSRAM_LOAD_BUF/VERIFY_BUF（HLD §4.6 沙箱域纪律）；⑥ **F6 根治**：200 分块流 APPMGR WDT 楔死（APP 线程卡 printk——日志面×flash 争用，F1 家族变体待专项）。D-AK4 demo 入仓。

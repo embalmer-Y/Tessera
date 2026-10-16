@@ -1,0 +1,30 @@
+AK alive t=21393665 net=1
+AK alive t=21403666 net=1
+AK alive t=21413677 net=1
+AK alive t=21423678 net=1
+AK alive t=21433679 net=1
+AK alive t=21443679 net=1
+AK alive t=21453680 net=1
+AK alive t=21463681 net=1
+AK alive t=21473681 net=1
+AK alive t=21483682 net=1
+AK alive t=21493682 net=1
+AK alive t=21503683 net=1
+AK alive t=21513684 net=1
+AKL arb 席位切换 →LOCAL rc=0（本地交互源）
+AKL arb 席位切换 →REMOTE rc=0（本地交互源）
+AK alive t=21523684 net=1
+AKF1 bench 合成 force akpwm（estop 面演示触发）
+AKF2 force rc=0（通道入 SAFE_FAULT）
+AKC 本地 estop 清除 rc=0（BOOT 长按本地路）
+AK alive t=21533685 net=1
+AK alive t=21543685 net=1
+AK alive t=21553686 net=1
+AK alive t=21563687 net=1
+AK alive t=21573687 net=1
+AK alive t=21583688 net=1
+AK alive t=21593688 net=1
+AK alive t=21603695 net=1
+AKw associated t=21607377
+AK alive t=21613696 net=1
+AK alive t=21623697 net=1
