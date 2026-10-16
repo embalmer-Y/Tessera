@@ -210,8 +210,8 @@
 | K4 ✅ | net+SD 资源推送 E2E | atkbench 直兼（板自带 SD SPI2 + WiFi）——fs 分区挂载 + push_resources 真机（**AK4 RES PASS**：large 包 needs.resources 白名单 + fs-commit sha256 verified + APP 消费端字节命中；证据 ak45_console.txt） | — |
 | K5 ✅ | large 档板级配置 | LOAD_MAX/SLOT_SIZE 抬升 + 内存账重平 + large 全链（**206KB wasm→412KB 包全链**：512KB 槽×4 + 装载/验签缓冲 PSRAM 化〔TS_APP_PSRAM_LOAD_BUF/VERIFY_BUF 新面〕+ 512KB WAMR 池 + COSE 4B 长度头族修复〔read_head/Sig_structure〕+ put_bool RFC 修正；F6 分块流楔死登记——日志面 printk×flash 争用） | — |
 | K6 ✅ | 多真机 LN | deploybench + atkbench 双 cube：LN 组部署/断链策略/跨板判据（**AK6 LN PASS**：ln_create 双成员 → ln_deploy 扇出双板 confirmed → ln_status 聚合双 ACTIVE 无降级；xiao 以当前模块重刷〔F1/F5 修复平移〕；atk SMH 1MB→4MB；证据 ak6_console.txt） | — |
-| F1 | 本地交互源 | 按键（BOOT/扩展器 KEY）→ arb LOCAL 席位 + 压制 + 事件（CG3 机制接线） | — |
-| F2 | 本地 estop 清除 | KEY → clear_fault + prov estop_remote_clear 出厂缺省翻 disabled（ISO 13850 偏离撤销） | — |
+| F1 ◐ | 本地交互源 | 按键（BOOT/扩展器 KEY）→ arb LOCAL 席位 + 压制 + 事件（CG3 机制接线）——**接线交付**（AK8 就绪行 + AKL 判据线；手势判据待 owner 物理按键） | — |
+| F2 ◐ | 本地 estop 清除 | KEY → clear_fault + prov estop_remote_clear 出厂缺省翻 disabled（ISO 13850 偏离撤销）——**远程门真机实证**（need=local-clear）+ 本地路接线（长按 AKC 判据线待 owner 按键） | — |
 | F3 | 本地确认路 | LCD 呈现 manifest_summary + 按键确认 → 安装闸（EC3 本地路接线——嵌入式先行者面） | 门③（安装闸接入点设计）|
 | F4 | peripherals 自报 | get-info peripherals 块（hal 注册表自报 + Agent 装前消费） | — |
 | G1 | Agent 任务链持久化 | LN 注册表落盘 + 跨重启 resume（D1） | — |

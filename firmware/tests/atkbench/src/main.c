@@ -11,6 +11,7 @@
  * AK* console 行 = 板侧时间线（deploybench 同型）；DEPLOY_* = client 侧判定。
  * 凭证经 cmake 变量注入（ATKBENCH_WIFI_*，不入仓库）。 */
 #include <string.h>
+#include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
 #include <zephyr/net/net_event.h>
 #include <zephyr/net/net_if.h>
@@ -114,7 +115,7 @@ static void wifi_handler(struct net_mgmt_event_callback *cb, uint64_t event,
  *  固件验签 = COSE 结构级（K2 后 ES8311/信任链载体——真验签链已在，
  *  K3 信任表上线后实机多根）。 */
 static const uint8_t prov_blob[] = {
-	0xa9, 0x61, 0x76, 0x01, 0x67, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64,
+	0xab, 0x61, 0x76, 0x02, 0x67, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64,
 	0x63, 0x61, 0x6b, 0x6e, 0x67, 0x63, 0x75, 0x62, 0x65, 0x5f, 0x69, 0x64,
 	0x63, 0x61, 0x6b, 0x63, 0x67, 0x72, 0x6f, 0x75, 0x74, 0x65, 0x72, 0x73,
 	0x81, 0x75, 0x74, 0x63, 0x70, 0x2f, 0x31, 0x39, 0x32, 0x2e, 0x31, 0x36,
@@ -127,7 +128,9 @@ static const uint8_t prov_blob[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x64, 0x63, 0x72, 0x65, 0x64, 0x60, 0x66, 0x70, 0x77,
 	0x72, 0x5f, 0x6d, 0x61, 0x19, 0x01, 0xf4, 0x65, 0x65, 0x73, 0x74, 0x6f,
-	0x70, 0x00,
+	0x70, 0x00, 0x6b, 0x64, 0x65, 0x70, 0x6c, 0x6f, 0x79, 0x5f, 0x6d, 0x6f,
+	0x64, 0x65, 0x00, 0x72, 0x65, 0x73, 0x74, 0x6f, 0x70, 0x5f, 0x72, 0x65,
+	0x6d, 0x6f, 0x74, 0x65, 0x5f, 0x63, 0x6c, 0x65, 0x61, 0x72, 0x00,
 };
 
 /* APP 部署目标通道（gpio inst 0 = dbled；PWM inst 1 = dbpwm）
@@ -320,6 +323,74 @@ static void deploy_watch(void *p1, void *p2, void *p3)
 }
 K_THREAD_DEFINE(deploy_watch_tid, 4096, deploy_watch, NULL, NULL, NULL, 13, 0, 0);
 
+/* ---- F1/F2 设备形态批：本地交互源（BOOT = IO0 低有效）--------------------
+ * F1（本地交互源）：短按（<2s）→ arb 席位切换 REMOTE↔LOCAL——CG3 机制
+ *（激活压制远程写 + ARB_CHANGED 事件 + 切换零输出）的真机接线。
+ * F2（本地 estop 清除）：长按（≥2s）→ 本地清除链演示——[bench 合成
+ * force akpwm（estop 面演示——物理 estop 无板载按键，合成触发如实标注）]
+ * → ts_safety_clear_fault 本地路；远程清除已被 prov v2 estop_remote_clear=0
+ * 关断（CG6 ISO 13850 偏离撤销形态——远程 sys/estop-clear = need local-clear）。 */
+static const struct gpio_dt_spec ak_boot = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
+static struct gpio_callback ak_boot_cb;
+static struct k_work ak_key_work;
+static atomic_t ak_key_down_ms;
+
+static void ak_key_work_fn(struct k_work *w)
+{
+	ARG_UNUSED(w);
+	uint32_t down = (uint32_t)atomic_get(&ak_key_down_ms);
+	uint32_t held = k_uptime_get_32() - down;
+
+	if (held < 50) {
+		return; /* 抖动滤除 */
+	}
+	if (held >= 2000) {
+		printk("AKF1 bench 合成 force akpwm（estop 面演示触发）\n");
+		int fr = ts_safety_force_channel_fault("akpwm");
+		printk("AKF2 force rc=%d（通道入 SAFE_FAULT）\n", fr);
+		k_msleep(400);
+		ts_res_t cr = ts_safety_clear_fault();
+		printk("AKC 本地 estop 清除 rc=%d（BOOT 长按本地路）\n", (int)cr);
+	} else {
+		ts_arb_owner_t cur = ts_safety_arb_owner();
+		ts_arb_owner_t next = (cur == TS_ARB_REMOTE) ? TS_ARB_LOCAL : TS_ARB_REMOTE;
+		ts_res_t r = ts_safety_set_arb(next);
+
+		printk("AKL arb 席位切换 →%s rc=%d（本地交互源）\n",
+		       next == TS_ARB_LOCAL ? "LOCAL" : "REMOTE", (int)r);
+	}
+}
+
+static void ak_boot_isr(const struct device *port, struct gpio_callback *cb,
+			uint32_t pins)
+{
+	ARG_UNUSED(port);
+	ARG_UNUSED(cb);
+	ARG_UNUSED(pins);
+	int v = gpio_pin_get_raw(ak_boot.port, ak_boot.pin);
+
+	if (v == 0) {
+		atomic_set(&ak_key_down_ms, (atomic_val_t)k_uptime_get_32());
+	} else {
+		k_work_submit(&ak_key_work);
+	}
+}
+
+static void ak_local_input_init(void)
+{
+	if (!gpio_is_ready_dt(&ak_boot)) {
+		printk("AK FAIL boot key not ready\n");
+		return;
+	}
+	gpio_pin_configure_dt(&ak_boot, GPIO_INPUT);
+	gpio_pin_interrupt_configure_dt(&ak_boot, GPIO_INT_EDGE_BOTH);
+	gpio_init_callback(&ak_boot_cb, ak_boot_isr, BIT(ak_boot.pin));
+	gpio_add_callback_dt(&ak_boot, &ak_boot_cb);
+	k_work_init(&ak_key_work, ak_key_work_fn);
+	printk("AK8 本地交互源就绪（BOOT 短按=席位 长按=estop 演示链）\n");
+}
+
+
 int main(void)
 {
 	printk("AK0 atkbench start\n");
@@ -417,6 +488,7 @@ int main(void)
 	} else {
 		printk("AK7 SD mounted 但 /SD:/res 创建失败\n");
 	}
+	ak_local_input_init(); /* F1/F2 设备形态批：本地交互源 */
 	ts_core_boot(); /* noreturn：net_init → zenoh 命令面 + 步骤 8 slot 装载 */
 	return 0;
 }
