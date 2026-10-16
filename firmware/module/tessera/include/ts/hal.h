@@ -46,12 +46,19 @@ typedef enum {
 	TS_PERM_OP_SET,
 	TS_PERM_OP_LIST,   /* DEC-47⑤：fs 专用（list） */
 	TS_PERM_OP_DELETE, /* DEC-47⑤：fs 专用（delete） */
+	TS_PERM_OP_SEND,   /* P1-1：msg 专用（msg:send:<target>——HLD §3.4） */
 	TS_PERM_OP_COUNT,
 } ts_perm_op_t;
 
-/* 实例位图：每 class 最多 32 实例（CONFIG_TS_HAL_MAX_INSTANCES=24 → 够用） */
+/* 实例位图：每 class 最多 32 实例（CONFIG_TS_HAL_MAX_INSTANCES=24 → 够用）。
+ * P1-1（HLD §3.4）：msg 类为**名单形态**（目标 = APP 串身份，非数值实例）
+ * ——位图维持 op 开关，名单存 msg_targets（IR-11 fail-closed 登记的实现面）。 */
+#define TS_PERM_MSG_TARGETS_MAX 4
+#define TS_PERM_MSG_NAME_MAX 40
+
 typedef struct {
 	uint32_t bitmap[TS_PERM_CLASS_COUNT][TS_PERM_OP_COUNT];
+	char msg_targets[TS_PERM_MSG_TARGETS_MAX][TS_PERM_MSG_NAME_MAX];
 } ts_perm_table_t;
 
 /** 解析一条能力串（"class:op:instances"）→ 更新表。返回 TS_OK 或 TS_E_PARAM。 */
@@ -59,6 +66,11 @@ ts_res_t ts_perm_parse(const char *cap, ts_perm_table_t *table);
 
 /** 裁决：class+op+inst 是否在表内。返回 TS_OK 或 TS_E_PERM（+ 事件发布）。 */
 ts_res_t ts_perm_check(ts_ctx_t ctx, ts_perm_class_t cls, ts_perm_op_t op, uint8_t inst);
+
+/** P1-1（HLD §3.4）：msg 名单裁决——msg:send:<target> 声明的目标名单命中
+ * 才放行（未声明/未绑定 = TS_E_PERM + 合同 10 留痕；与 ts_perm_check 同
+ * 事件形态 cls=MSG/op=SEND）。 */
+ts_res_t ts_perm_check_msg(ts_ctx_t ctx, const char *target);
 
 /** 清零表（加载期用）。 */
 void ts_perm_table_init(ts_perm_table_t *table);

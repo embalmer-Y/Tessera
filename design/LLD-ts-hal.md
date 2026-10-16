@@ -1,6 +1,6 @@
-# LLD · ts-hal v0.2.4 草案
+# LLD · ts-hal v0.2.5 草案
 
-> **状态**：v0.2.4（2026-10-16 K2：ES8311 全 codec 输入输出 + ts_av_write 输出新面）；v0.2.3（2026-10-14 CG5-B：宿主原语三件 + prefix_match 提取；实现长期在库——早期「草案待 review」标注滞后，本行更正）。上位：HLD §3.3；公共约定 `LLD-00-common.md`。
+> **状态**：v0.2.5（2026-10-16 P1-1：**msg 名单形态实现**——IR-11 登记收口（msg:send:<app_id> 串身份名单〔≤4 目标，幂等，域外字符拒〕；op 仅 send——recv 被动无权限门；ts_perm_check_msg 名单裁决 + 合同 10 留痕）；TS_PERM_OP_SEND 加性）；v0.2.4（2026-10-16 K2：ES8311 全 codec 输入输出 + ts_av_write 输出新面）；v0.2.3（2026-10-14 CG5-B：宿主原语三件 + prefix_match 提取；实现长期在库——早期「草案待 review」标注滞后，本行更正）。上位：HLD §3.3；公共约定 `LLD-00-common.md`。
 > **职责**：面向 APP 的板无关外设 API（gpio/pwm/adc/power）、**权限执行点**（manifest 能力 → 每调用裁决）、外设实例寻址。
 > **合同关联**：合同 2（输出必经 ts-safety）、3（输入不受保护影响）、10（越权拒绝 + 留痕）。
 
@@ -101,6 +101,7 @@ ts_res_t ts_hal_register_class(const ts_periph_desc_t *desc);  /* ts-periph 调�
 
 ## 修订记录
 
+- v0.2.5 · 2026-10-16：**P1-1（HLD §3.4）msg 名单形态**——§2 文法的 name 形态落地（ts_perm_parse msg 分支 + msg_targets 名单 + ts_perm_check_msg）；用例 framework.hal test_16。
 - v0.2.4 · 2026-10-16：**K2（Q-44②/DEC-61② · ES8311 音频输入输出）**——新增 ES8311 全 codec 后端（hal/es8311.c：I2C 控制 + I2S0 标准 Philips 32-bit 槽——BCLK 1.024MHz 满足原理图「SLCK>1MHz」无 MCLK 约束；RX 环 EOF 轮询 + TX 静音环打补丁）；**ts_av_write 音频输出新面**（av:write 权限位图加性 + pcm16 绑定门——manifest 零变化〔av_srk 字段实施简化：V1 输出固定 16k pcm16 与输入同语义〕）；bring-up 六坑真机定案入册。真机 AK AUDIO PASS（证据 docs/evidence/ak_audio_console.txt）。用例 framework.hal test_13_av_write_adjudication + agent 白名单同步。
 - v0.2.3- v0.2.3 · 2026-10-14：CG5-B（Q-39③ 方案 A）——宿主原语三件 + prefix_match 公共助手提取（§3 fs 节注）。
 

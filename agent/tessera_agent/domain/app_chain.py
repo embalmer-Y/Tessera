@@ -100,9 +100,12 @@ _CONVENTIONS = [
     # 格式（{'perm': 'pwm:0#set'}），manifest 硬校验 fail-closed 拦下但链路
     # 不可用；文法短小，直接入提示消除对 skill 阅读的依赖。
     "caps 是字符串数组，文法 ts_perm_v1：\"class:op:instances\"，"
-    "class∈{gpio,pwm,adc,power,fs,av,msg,sys}，op∈{read,write,set,list,delete}，"
+    "class∈{gpio,pwm,adc,power,fs,av,msg,sys}，op∈{read,write,set,list,delete,send}，"
     "instances=实例号（0-3 或 0,2 或 0-3）——例如 [\"pwm:set:0\", "
     "\"gpio:write:0\", \"fs:read:0\"]。"
+    "msg 类例外（APP 间消息）：实例段 = 目标 APP 串身份——"
+    "\"msg:send:<目标app_id>\"（如 [\"msg:send:tessera.demo.other\"]；"
+    "最多 4 个目标，未声明目标的发送运行时拒绝）。"
     "fs 类的路径授权用 manifest 可选字段 fs_paths（绝对路径前缀白名单数组，"
     "如 [\"/SD:/apps-data\"]——未列前缀的路径运行时拒绝）。"
     "av 类（采集/流发布，MD1.2g）必须在 manifest 声明 av_fmt（\"jpeg\"|"
@@ -124,7 +127,9 @@ _CONVENTIONS = [
     "int ts_net_publish(int ctx,int frame_id,int chunk_id,"
     "int n_chunks,const char* buf,int len)；"
     "int ts_kv_save(int ctx,const char* buf,int len)；"
-    "int ts_kv_load(int ctx,char* buf,int cap)。",
+    "int ts_kv_load(int ctx,char* buf,int cap)；"
+    "int ts_msg_send(int ctx,const char* target,int target_len,const char* data,int len)；"
+    "int ts_msg_recv(int ctx,char* from,int from_cap,char* buf,int cap)。",
     "（fs natives 仅当 manifest caps 含对应 fs:op 且 fs_paths 覆盖路径时可用；"
     "返回 >=0 为字节数、<0 为错误码；路径缓冲在 wasm 线性内存内。）"
     "（ts_kv_save/ts_kv_load = 本 APP 业务状态持久化（V0.4.0 M9，DR-15）："
@@ -132,6 +137,10 @@ _CONVENTIONS = [
     "save 全量覆盖、load 返回最新长度（≥0）或错误码（<0；-6 = 未存过）；"
     "仅当 caps 含 kv:write:0 / kv:read:0 时可用——静态状态优先存全局变量，"
     "仅**跨重启/升级需要保留**的才用 kv。）"
+    "（ts_msg_send/ts_msg_recv = APP 间消息（P1-1）：向运行中的目标 APP 串身份发送 "
+    "≤96B 载荷（授权 = caps 的 msg:send 名单；目标未运行 = -7；对方消息槽满 = -5）；"
+        "接收方在 app_evt 收到负载 0x4D53475A 时调 ts_msg_recv 取件（from = 发送方身份；"
+        "返回 ≥0 为长度，0 = 空。）"
     "（资源档位 CG4：manifest 可选字段 tier=\"small\"（缺省，wasm ≤16KB）/"
     "\"large\"（≤256KB，须附 needs={linear_memory_kb, stack_kb, resources[]}——"
     "线性内存/栈在编译期钉死；resources = 需要的 fs 路径前缀清单）。"

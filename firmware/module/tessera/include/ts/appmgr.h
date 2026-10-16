@@ -83,6 +83,29 @@ ts_res_t ts_appmgr_trust_update(const uint8_t *cose, uint32_t cose_len);
 /** 健康探针超时回调（health.c 周期检查发现超时时调用）→ 触发回滚或隔离。 */
 ts_res_t ts_appmgr_health_fail(void);
 
+/* ---- APP 间消息（P1-1 · HLD §3.4：框架路由 + app_id 命名空间隔离）--------
+ * 唯一互访通道：ts_msg_send(target_app_id, payload) 经框架路由至目标实例
+ * 消息槽 + mailbox 事件（TS_APP_EVT_MSG）；禁止任何直接互访（DEC-04）。
+ * 授权 = manifest caps `msg:send:<target-app-id>` 名单（perm 层裁决，合同
+ * 10 留痕）。发送侧满槽 = TS_E_BUSY（背压不丢弃）；接收侧被动无权限门。 */
+#define TS_APP_EVT_MSG 0x4D53475AU /* "MSGZ"：app_evt 收此负载 = 调 ts_msg_recv 取件（HLD §3.4） */
+#define TS_APPMGR_MSG_SLOTS 4      /* 每实例消息槽深（DEC-62④ P1-1/HLD §3.4：满 = 发送方 TS_E_BUSY 背压——DEC-27 #15 mailbox 深度档） */
+#define TS_APPMGR_MSG_MAX 96       /* 单消息载荷上限（DEC-62④ P1-1/HLD §3.4：对齐 log 面 96B 档——LLD-ts-hal §3） */
+
+/** 发送（APP 侧经 native ts_msg_send；宿主/测试可直调）。target = APP 串
+ * 身份（运行中实例匹配 app_id_str）；返回 TS_OK/TS_E_PERM/TS_E_NOTFOUND/
+ * TS_E_BUSY/TS_E_RANGE。 */
+ts_res_t ts_appmgr_msg_send(ts_ctx_t ctx, const char *target,
+			    const uint8_t *data, uint32_t len);
+
+/** 取件（发往 ctx 实例的下一条；空 = *len=0 返回 TS_OK）。from 出参 =
+ * 发送方串身份（缓冲 ≥ TS_PERM_MSG_NAME_MAX）。 */
+ts_res_t ts_appmgr_msg_recv(ts_ctx_t ctx, char *from, size_t from_cap,
+			    uint8_t *buf, uint32_t cap, uint32_t *len);
+
+/** 观测：实例待取消息数（net 自报/测试用）。 */
+uint8_t ts_appmgr_msg_pending(uint16_t app_id);
+
 /** 显式回滚（sys 命令或健康探针路径）。 */
 ts_res_t ts_appmgr_rollback(void);
 

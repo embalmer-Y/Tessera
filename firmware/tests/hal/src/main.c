@@ -48,6 +48,51 @@ ZTEST(framework_hal, test_04_perm_parse_invalid)
 	zassert_equal(ts_perm_parse("gpio:write:99", &t), TS_E_PARAM); /* >31 */
 }
 
+/* P1-1（HLD §3.4）：msg 类名单形态——文法矩阵 + 名单裁决 */
+ZTEST(framework_hal, test_16_perm_msg_list_form)
+{
+	ts_perm_table_t t;
+
+	ts_perm_table_init(&t);
+	/* 合法名单（重复幂等；串身份文法 = zenoh key 段同源） */
+	zassert_equal(ts_perm_parse("msg:send:tessera.demo.b", &t), TS_OK);
+	zassert_equal(ts_perm_parse("msg:send:tessera.demo.b", &t), TS_OK,
+		      "重复声明幂等");
+	zassert_equal(ts_perm_parse("msg:send:a-2.x_z", &t), TS_OK);
+	/* 纯数字串 = 合法名（app_id 文法 [a-z0-9.-] 允许——无数值实例歧义面：
+	 * 名单语义统一为串匹配） */
+	zassert_equal(ts_perm_parse("msg:send:0", &t), TS_OK);
+	zassert_equal(ts_perm_parse("msg:read:tessera.b", &t), TS_E_PARAM,
+		      "msg 非 send op = 拒（recv 被动无权限门——无消费者形态）");
+	/* 非法名字（越界字符/超长/空） */
+	zassert_equal(ts_perm_parse("msg:send:tessera demo", &t), TS_E_PARAM);
+	zassert_equal(ts_perm_parse("msg:send:bad/name", &t), TS_E_PARAM);
+	zassert_equal(ts_perm_parse("msg:send:", &t), TS_E_PARAM);
+	char cap[64] = "msg:send:";
+
+	memset(cap + 9, 'a', 50);
+	cap[59] = '\0';
+	zassert_equal(ts_perm_parse(cap, &t), TS_E_PARAM, "超长名字");
+	/* 名单上限 4：已 3（b/a-2.x_z + read 面）→ 补第 4 OK、第 5 = NOMEM */
+	zassert_equal(ts_perm_parse("msg:send:t4", &t), TS_OK);
+	zassert_equal(ts_perm_parse("msg:send:t5", &t), TS_E_NOMEM, "名单上限 4");
+
+	/* 名单裁决（绑定 ctx 后 check_msg） */
+	ts_ctx_t ctx;
+
+	zassert_equal(ts_hal_bind_context(&ctx, 0x21, &t), TS_OK);
+	zassert_equal(ts_perm_check_msg(ctx, "tessera.demo.b"), TS_OK,
+		      "声明目标命中");
+	zassert_equal(ts_perm_check_msg(ctx, "tessera.demo.ghost"), TS_E_PERM,
+		      "未声明目标 = 拒（合同 10 留痕在 perm 层）");
+	ts_ctx_t unbound = {.app_id = 0x7F};
+
+	zassert_equal(ts_perm_check_msg(unbound, "tessera.demo.b"), TS_E_PERM,
+		      "未绑定上下文 = 拒");
+	zassert_equal(ts_perm_check_msg(ctx, NULL), TS_E_PARAM);
+	ts_hal_unbind_context(&ctx);
+}
+
 /* ---- 越权裁决（L1，含边界实例号）---------------------------------------- */
 
 ZTEST(framework_hal, test_02_perm_check_allowed_and_denied)

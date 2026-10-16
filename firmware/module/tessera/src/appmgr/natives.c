@@ -15,6 +15,7 @@
 #include <string.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
+#include <ts/appmgr.h> /* P1-1：ts_appmgr_msg_*（APP 间消息路由） */
 #include <ts/hal.h>
 #include <wasm_export.h>
 #ifdef CONFIG_TS_STORE_KV
@@ -335,6 +336,58 @@ static int32_t native_thread_join(wasm_exec_env_t env, uint32_t ctx_opaque,
 
 /* wasm 导入符号表（namespace "env"；签名 = wasm 参数/返回类型） */
 
+
+/* P1-1（HLD §3.4）：APP 间消息——框架路由唯一互访通道（DEC-04）。
+ * 发送授权 = msg:send:<target> 名单（perm 层）；接收被动取件。 */
+static int32_t native_msg_send(wasm_exec_env_t env, uint32_t ctx_opaque,
+			       uint32_t target_off, uint32_t target_len,
+			       uint32_t data_off, uint32_t len)
+{
+	ARG_UNUSED(ctx_opaque);
+	wasm_module_inst_t inst = wasm_runtime_get_module_inst(env);
+
+	if (target_len == 0 || target_len >= TS_PERM_MSG_NAME_MAX ||
+	    !wasm_runtime_validate_app_addr(inst, target_off, target_len)) {
+		return TS_E_PARAM;
+	}
+	char target[TS_PERM_MSG_NAME_MAX];
+	const char *t = (const char *)wasm_runtime_addr_app_to_native(inst, target_off);
+
+	memcpy(target, t, target_len);
+	target[target_len] = '\0';
+	if (memchr(target, '\0', target_len) != NULL) {
+		return TS_E_PARAM;
+	}
+	if (len > TS_APPMGR_MSG_MAX ||
+	    (len > 0 && !wasm_runtime_validate_app_addr(inst, data_off, len))) {
+		return TS_E_PARAM;
+	}
+	const uint8_t *data = (const uint8_t *)wasm_runtime_addr_app_to_native(inst, data_off);
+
+	return (int32_t)ts_appmgr_msg_send(ctx_of(env), target, data, len);
+}
+
+static int32_t native_msg_recv(wasm_exec_env_t env, uint32_t ctx_opaque,
+			       uint32_t from_off, uint32_t from_cap,
+			       uint32_t buf_off, uint32_t cap)
+{
+	ARG_UNUSED(ctx_opaque);
+	wasm_module_inst_t inst = wasm_runtime_get_module_inst(env);
+
+	if (cap == 0 || cap > TS_APPMGR_MSG_MAX ||
+	    !wasm_runtime_validate_app_addr(inst, buf_off, cap) ||
+	    (from_cap > 0 && !wasm_runtime_validate_app_addr(inst, from_off, from_cap))) {
+		return TS_E_PARAM;
+	}
+	char *from = (from_cap > 0)
+		? (char *)wasm_runtime_addr_app_to_native(inst, from_off) : NULL;
+	uint8_t *buf = (uint8_t *)wasm_runtime_addr_app_to_native(inst, buf_off);
+	uint32_t len = 0;
+	ts_res_t r = ts_appmgr_msg_recv(ctx_of(env), from, from_cap, buf, cap, &len);
+
+	return (r == TS_OK) ? (int32_t)len : (int32_t)r;
+}
+
 static NativeSymbol ts_native_syms[] = {
 	{"ts_gpio_write", native_gpio_write, "(iii)i", NULL},
 	{"ts_gpio_read", native_gpio_read, "(ii)i", NULL},
@@ -357,6 +410,8 @@ static NativeSymbol ts_native_syms[] = {
 	{"ts_av_write", native_av_write, "(iii)i", NULL}, /* K2：av:write 输出面 */
 #ifdef CONFIG_TS_NET
 	{"ts_net_publish", native_net_publish, "(iiiiii)i", NULL},
+	{"ts_msg_send", native_msg_send, "(iiiiii)i", NULL}, /* P1-1：msg:send 名单授权 */
+	{"ts_msg_recv", native_msg_recv, "(iiiii)i", NULL},
 #endif
 #endif
 #ifdef CONFIG_TS_APP_THREADS

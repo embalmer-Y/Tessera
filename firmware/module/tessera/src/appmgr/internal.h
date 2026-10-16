@@ -24,6 +24,12 @@ extern struct ts_appmgr_pend pending;
 void ts_appmgr_pend_reset_test(void); /* 测试隔离：pending+stage 清台 */
 #endif
 
+/* P1-1（HLD §3.4）：rt 串身份查找（消息路由/测试面）+ ctx 取得
+ *（natives.c 同源——防伪造注入值）。 */
+struct ts_app_rt;
+ts_ctx_t ts_app_rt_ctx(struct ts_app_rt *rt);
+struct ts_app_rt *ts_appmgr_rt_by_str(const char *app_id_str);
+
 /* verify.c（DEC-49）：全量验签（头 v2 → 摘要 → COSE ed25519）与 boot 快校验 */
 ts_res_t ts_appmgr_verify_slot(uint8_t slot, const uint8_t root_pubkey[32],
 			       tsap_view_t *v, uint8_t digest_out[32]);

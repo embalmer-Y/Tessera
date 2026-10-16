@@ -256,3 +256,33 @@ class TestAvWriteWhitelist:
         """ts_av_write 在 NATIVE_WHITELIST（av:write 输出面——固件 natives 同步）。"""
         from tessera_agent.tools_tsap.wasm_build import NATIVE_WHITELIST
         assert "ts_av_write" in NATIVE_WHITELIST
+
+
+class TestMsgNativesMirror:
+    """P1-1（HLD §3.4）：APP 间消息 natives 镜像——ts_msg_send/ts_msg_recv
+    过白名单面检查（固件 NATIVE_WHITELIST/perm 名单授权的 Agent 侧同源）。"""
+
+    MSG_C = (
+        "extern int ts_msg_send(int ctx, const char *t, int tl,"
+        " const char *d, int len);\n"
+        "extern int ts_msg_recv(int ctx, char *from, int fc, char *buf, int cap);\n"
+        '__attribute__((export_name("health_ping"))) '
+        "int health_ping(void) { return 0; }\n"
+        '__attribute__((export_name("app_evt"))) '
+        "int app_evt(unsigned long long payload) {\n"
+        "    if (payload == 0x4D53475AULL) {\n"
+        "        char from[40]; char buf[96];\n"
+        "        return ts_msg_recv(0, from, sizeof(from), buf, sizeof(buf));\n"
+        "    }\n"
+        "    return 0;\n"
+        "}\n"
+        '__attribute__((export_name("app_tick"))) '
+        "int app_tick(void) {\n"
+        "    return ts_msg_send(0, \"tessera.demo.b\", 14, \"hi\", 2);\n"
+        "}\n"
+    )
+
+    def test_msg_natives_face_ok(self, tmp_path):
+        out = compile_app_c(self.MSG_C, str(tmp_path / "o"), [str(tmp_path)])
+        assert set(out["imports"]) == {"ts_msg_send", "ts_msg_recv"}
+        assert "app_evt" in out["exports"]

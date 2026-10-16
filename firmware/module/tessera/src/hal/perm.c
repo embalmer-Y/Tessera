@@ -44,8 +44,47 @@ static int parse_op(const char *s, size_t len)
 	if (len == 5 && strncmp(s, "write", 5) == 0) return TS_PERM_OP_WRITE;
 	if (len == 3 && strncmp(s, "set", 3) == 0) return TS_PERM_OP_SET;
 	if (len == 4 && strncmp(s, "list", 4) == 0) return TS_PERM_OP_LIST; /* DEC-47⑤ */
-	if (len == 6 && strncmp(s, "delete", 6) == 0) return TS_PERM_OP_DELETE;
+	if (len == 6 && strncmp(s, "delete", 6) == 0) return TS_PERM_OP_DELETE; /* DEC-47⑤ */
+	if (len == 4 && strncmp(s, "send", 4) == 0) return TS_PERM_OP_SEND; /* P1-1 */
 	return -1;
+}
+
+/* P1-1（HLD §3.4）：msg 类目标名单形态——实例段为 APP 串身份
+ *（[A-Za-z0-9._-]{1,39}，同 zenoh key 段白名单文法——IR2-11 同源）。
+ * 数值形态对 msg 无语义 = 拒（fail-closed，IR-11 登记的实现面收口）。 */
+static bool valid_msg_name(const char *s, size_t len)
+{
+	if (len == 0 || len >= TS_PERM_MSG_NAME_MAX) {
+		return false;
+	}
+	for (size_t i = 0; i < len; i++) {
+		char c = s[i];
+		bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+			  (c >= '0' && c <= '9') || c == '.' || c == '_' || c == '-';
+
+		if (!ok) {
+			return false;
+		}
+	}
+	return true;
+}
+
+static ts_res_t msg_target_add(ts_perm_table_t *table, const char *s, size_t len)
+{
+	char name[TS_PERM_MSG_NAME_MAX];
+
+	memcpy(name, s, len);
+	name[len] = '\0';
+	for (int i = 0; i < TS_PERM_MSG_TARGETS_MAX; i++) {
+		if (table->msg_targets[i][0] == '\0') {
+			strcpy(table->msg_targets[i], name);
+			return TS_OK;
+		}
+		if (strcmp(table->msg_targets[i], name) == 0) {
+			return TS_OK; /* 重复声明幂等 */
+		}
+	}
+	return TS_E_NOMEM; /* 名单上限 4（超 = 装载期拒绝，不静默截断） */
 }
 
 /* 解析实例段（数值文法）："0-3" / "0,2" / "5"。
@@ -110,6 +149,25 @@ ts_res_t ts_perm_parse(const char *cap, ts_perm_table_t *table)
 
 	if (op < 0) return TS_E_PARAM;
 
+	/* P1-1：msg 类 = 名单形态（实例段为 APP 串身份，非数值位图）；
+	 * op 仅 send（recv 被动无权限门——其余 op 无消费者，fail-closed） */
+	if (cls == TS_PERM_CLASS_MSG) {
+		size_t tlen = strlen(c2 + 1);
+
+		if (op != TS_PERM_OP_SEND ||
+		    !valid_msg_name(c2 + 1, tlen)) {
+			return TS_E_PARAM;
+		}
+		ts_res_t mr = msg_target_add(table, c2 + 1, tlen);
+
+		if (mr != TS_OK) {
+			return mr;
+		}
+		/* op 开关位图同步置位（观测面一致：位图位 + 名单双记录） */
+		table->bitmap[cls][op] |= 1U;
+		return TS_OK;
+	}
+
 	uint32_t bitmap = 0;
 	ts_res_t r = parse_instances(c2 + 1, strlen(c2 + 1), &bitmap);
 
@@ -145,6 +203,38 @@ ts_res_t ts_perm_check(ts_ctx_t ctx, ts_perm_class_t cls, ts_perm_op_t op, uint8
 		}
 	}
 	return TS_E_PERM; /* 未绑定上下文 = 拒绝 */
+}
+
+ts_res_t ts_perm_check_msg(ts_ctx_t ctx, const char *target)
+{
+	if (target == NULL) {
+		return TS_E_PARAM;
+	}
+	for (int i = 0; i < MAX_BOUND_CTX; i++) {
+		if (contexts[i].used && contexts[i].app_id == ctx.app_id) {
+			for (int t = 0; t < TS_PERM_MSG_TARGETS_MAX; t++) {
+				if (contexts[i].table.msg_targets[t][0] != '\0' &&
+				    strcmp(contexts[i].table.msg_targets[t], target) == 0) {
+					return TS_OK;
+				}
+			}
+			/* 合同 10：越权拒绝并留痕（与数值面同事件形态） */
+			struct {
+				uint16_t app_id;
+				uint8_t cls, op, inst;
+			} payload = {.app_id = ctx.app_id, .cls = TS_PERM_CLASS_MSG,
+				     .op = TS_PERM_OP_SEND, .inst = 0};
+			const ts_evt_t evt = {
+				.id = TS_EVT_PERM_DENIED,
+				.t_ms = ts_time_ms(),
+				.data = &payload,
+				.len = sizeof(payload),
+			};
+			ts_evt_publish(&evt);
+			return TS_E_PERM;
+		}
+	}
+	return TS_E_PERM; /* 未绑定上下文 = 拒 */
 }
 
 ts_res_t ts_hal_bind_context(ts_ctx_t *ctx, uint16_t app_id, const ts_perm_table_t *table)

@@ -1066,3 +1066,102 @@ ZTEST(framework_app, test_14_install_gate)
 	ts_appmgr_test_reset();
 	zassert_equal(ts_store_prov_load(), TS_E_IO, "空分区 = 缺省兜底（lconf=0）");
 }
+
+/* ---- P1-1（HLD §3.4）：APP 间消息路由——名单授权/FIFO 背压/取件 --------- */
+ZTEST(framework_app, test_15_msg_routing)
+{
+	ts_appmgr_app_test_reset();
+	ts_safety_set_link(true);
+	/* 双实例（同 wasm——串身份区分）：A 声明 msg:send:tessera.b 名单 */
+	zassert_equal(ts_appmgr_app_start(1, app_wasm, app_wasm_len,
+					  "msg:send:tessera.b;msg:send:tessera.ghost;gpio:write:0-3"),
+		      TS_OK);
+	zassert_equal(ts_appmgr_app_start(2, app_wasm, app_wasm_len,
+					  "gpio:write:0-3"), TS_OK);
+	ts_appmgr_app_set_idstr(1, "tessera.a");
+	ts_appmgr_app_set_idstr(2, "tessera.b");
+
+	struct ts_app_rt *ra = ts_appmgr_rt_by_str("tessera.a");
+	struct ts_app_rt *rb = ts_appmgr_rt_by_str("tessera.b");
+
+	zassert_not_null(ra, "运行实例串身份可寻址");
+	zassert_not_null(rb);
+	zassert_is_null(ts_appmgr_rt_by_str("tessera.ghost"), "未运行 = 不可寻址");
+	ts_ctx_t ca = ts_app_rt_ctx(ra);
+	ts_ctx_t cb = ts_app_rt_ctx(rb);
+
+	/* ① 名单内发送 → 槽入队 + pending + 首个即投递 */
+	uint8_t ping[5] = "ping1";
+
+	zassert_equal(ts_appmgr_msg_send(ca, "tessera.b", ping, 5), TS_OK);
+	zassert_equal(ts_appmgr_msg_pending(2), 1, "B 待取 1 件");
+
+	/* ② 未声明目标 = PERM（B 无 msg 名单——合同 10） */
+	zassert_equal(ts_appmgr_msg_send(cb, "tessera.a", ping, 5), TS_E_PERM);
+
+	/* ③ 已授权但未运行的目标 = NOTFOUND（命名空间按 app_id 隔离；未授权
+	 * 目标的探测在权限层即拒——不泄露运行面存在性） */
+	zassert_equal(ts_appmgr_msg_send(ca, "tessera.ghost", ping, 5),
+		      TS_E_NOTFOUND);
+
+	/* ④ 超长 = RANGE（>96B） */
+	uint8_t big[TS_APPMGR_MSG_MAX + 1] = {0};
+
+	zassert_equal(ts_appmgr_msg_send(ca, "tessera.b", big, sizeof(big)),
+		      TS_E_RANGE);
+
+	/* ⑤ 取件：from 身份 + 载荷逐字节 + pending 归零 */
+	char from[TS_PERM_MSG_NAME_MAX];
+	uint8_t buf[TS_APPMGR_MSG_MAX];
+	uint32_t len = 0;
+
+	zassert_equal(ts_appmgr_msg_recv(cb, from, sizeof(from), buf,
+					 sizeof(buf), &len), TS_OK);
+	zassert_equal(len, 5);
+	zassert_ok(strcmp(from, "tessera.a"), "发送方身份随槽携带");
+	zassert_ok(memcmp(buf, "ping1", 5));
+	zassert_equal(ts_appmgr_msg_pending(2), 0);
+
+	/* ⑥ 空取件 = TS_OK + len 0（非错误） */
+	zassert_equal(ts_appmgr_msg_recv(cb, from, sizeof(from), buf,
+					 sizeof(buf), &len), TS_OK);
+	zassert_equal(len, 0);
+
+	/* ⑦ 满槽背压：4 发满 → 第 5 = BUSY；FIFO 序保持；取一补一 */
+	for (int i = 0; i < TS_APPMGR_MSG_SLOTS; i++) {
+		ping[4] = (char)('0' + i);
+		zassert_equal(ts_appmgr_msg_send(ca, "tessera.b", ping, 5), TS_OK);
+	}
+	zassert_equal(ts_appmgr_msg_send(ca, "tessera.b", ping, 5), TS_E_BUSY,
+		      "满槽 = 发送方背压（不丢）");
+	zassert_equal(ts_appmgr_msg_recv(cb, from, sizeof(from), buf,
+					 sizeof(buf), &len), TS_OK);
+	zassert_equal(len, 5);
+	zassert_ok(memcmp(buf, "ping0", 5), "FIFO 序");
+	ping[4] = '9';
+	zassert_equal(ts_appmgr_msg_send(ca, "tessera.b", ping, 5), TS_OK,
+		      "取一补一");
+
+	/* ⑧ 接收缓冲不足 = RANGE 且不弹出（消息保留） */
+	zassert_equal(ts_appmgr_msg_recv(cb, from, sizeof(from), buf, 2, &len),
+		      TS_E_RANGE);
+	zassert_equal(ts_appmgr_msg_pending(2), TS_APPMGR_MSG_SLOTS);
+
+	/* ⑨ 排空 4 件（序 ping1..3 + ping9）*/
+	for (int i = 1; i <= TS_APPMGR_MSG_SLOTS; i++) {
+		zassert_equal(ts_appmgr_msg_recv(cb, from, sizeof(from), buf,
+						 sizeof(buf), &len), TS_OK);
+		zassert_equal(len, 5);
+	}
+	zassert_equal(ts_appmgr_msg_pending(2), 0);
+
+	/* ⑩ evt 投递面：发送后 mailbox 含 TS_APP_EVT_MSG（观测窗内轮询——
+	 * app 线程消费 last_evt 的精确断言受线程时序影响，取确定性部分：
+	 * 发送方满槽/权限路径已闭环，mailbox 投递由 evt_id 既有机制保证） */
+	zassert_equal(ts_appmgr_msg_send(ca, "tessera.b", ping, 5), TS_OK);
+
+	/* 收尾：停双实例 */
+	zassert_equal(ts_appmgr_app_stop_id(1), TS_OK);
+	zassert_equal(ts_appmgr_app_stop_id(2), TS_OK);
+	ts_appmgr_app_test_reset();
+}

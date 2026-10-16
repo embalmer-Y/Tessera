@@ -1,6 +1,6 @@
-# LLD · ts-appmgr v0.8（M2b.2 完成）
+# LLD · ts-appmgr v0.9（M2b.2 完成）
 
-> **状态**：v0.8（2026-10-16 F3 · DEC-62①③ **安装闸本地确认**——§5c：prov v2 lconf/activate 过闸/confirm-reject 本地路 API/60s fail-closed/事件四态/-13 回执/install 同闸；timeout 路真机 af3_gate_console）；v0.7.2（2026-10-15 EC4 · 侧载纪律定稿 + L5 检查 7 引用）；v0.7.1（2026-10-15 EC2 · **多根验签与 trust-update 实现**——verify_slot NULL=有效集迭代〔显式键语义不变：TEST 固定测试根覆盖维持〕+ ts_appmgr_trust_effective + cose_ram_parse/check〔COSE_Sign1 RAM 解析〕+ ts_appmgr_trust_update 编排〔schema→严格 N+1→现有效集签名→乒乓持久化+事件〕；ts_appmgr_install NULL 根键放开；生产回滚 NULL 恒拒缺陷根治）；v0.7（2026-10-15 EC1 · Q-43/DEC-60：**验签链多根设计**——有效集 = 工厂根〔prov pk0+pk1，pk1 转正消费〕∪ 信任表.keys；verify_slot NULL = 有效集迭代〔含生产回滚 NULL 恒拒存量缺陷根治〕；trust-update 命令链编排 + 侧载纪律）；v0.6.3（2026-10-14 CG5-B：**资源白名单 registry**——needs.resources → res_csv〔scan 单一解析源〕→ activate 绑定 + boot 恢复；sys/fs-* 授权源）；v0.6.2（2026-10-14 CG5-A · Q-39④：**get-info caps 块实现**——{tiers, max_linear_memory_kb, slot_pool_kb} 设备自报 + Agent push_app 装前预检〔caps 缺失 = 旧固件跳过〕；CG5-B 资源推送随下单元）。上位：HLD §3.4 + HLD-contract-v2 §5；公共约定 `LLD-00-common.md`。上位：HLD §3.4 + HLD-contract-v2 §5；公共约定 `LLD-00-common.md`。
+> **状态**：v0.9（2026-10-16 P1-1 · **APP 间消息路由**——§5d：ts_appmgr_msg_send/recv （HLD §3.4——框架路由唯一互访通道；msg:send 名单授权；FIFO 满槽背压；TS_APP_EVT_MSG 取件通知；natives ts_msg_send/recv）；v0.8（2026-10-16 F3 · DEC-62①③ **安装闸本地确认**——§5c：prov v2 lconf/activate 过闸/confirm-reject 本地路 API/60s fail-closed/事件四态/-13 回执/install 同闸；timeout 路真机 af3_gate_console）；v0.7.2（2026-10-15 EC4 · 侧载纪律定稿 + L5 检查 7 引用）；v0.7.1（2026-10-15 EC2 · **多根验签与 trust-update 实现**——verify_slot NULL=有效集迭代〔显式键语义不变：TEST 固定测试根覆盖维持〕+ ts_appmgr_trust_effective + cose_ram_parse/check〔COSE_Sign1 RAM 解析〕+ ts_appmgr_trust_update 编排〔schema→严格 N+1→现有效集签名→乒乓持久化+事件〕；ts_appmgr_install NULL 根键放开；生产回滚 NULL 恒拒缺陷根治）；v0.7（2026-10-15 EC1 · Q-43/DEC-60：**验签链多根设计**——有效集 = 工厂根〔prov pk0+pk1，pk1 转正消费〕∪ 信任表.keys；verify_slot NULL = 有效集迭代〔含生产回滚 NULL 恒拒存量缺陷根治〕；trust-update 命令链编排 + 侧载纪律）；v0.6.3（2026-10-14 CG5-B：**资源白名单 registry**——needs.resources → res_csv〔scan 单一解析源〕→ activate 绑定 + boot 恢复；sys/fs-* 授权源）；v0.6.2（2026-10-14 CG5-A · Q-39④：**get-info caps 块实现**——{tiers, max_linear_memory_kb, slot_pool_kb} 设备自报 + Agent push_app 装前预检〔caps 缺失 = 旧固件跳过〕；CG5-B 资源推送随下单元）。上位：HLD §3.4 + HLD-contract-v2 §5；公共约定 `LLD-00-common.md`。上位：HLD §3.4 + HLD-contract-v2 §5；公共约定 `LLD-00-common.md`。
 > **职责**：APP 包接收/验签/双 slot 存储/版本与回滚；WAMR 宿主（实例化 + 按能力装配导入面）；APP 线程与健康探针。
 > **合同关联**：合同 10（权限硬边界 = 符号过滤装配）；DEC-04/05/17。
 > **外部依赖**：WAMR（wasm_runtime_* 家族，具体签名以钉住版本为准，M0 核验）。
@@ -89,6 +89,14 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
 - **手势模态（设备形态胶水——Q-46③）**：pending 期 BOOT 短按=确认 / 长按≥2s=拒绝（模态独占——与 F1 arb 切换互斥）；呈现 = 形态面（atkbench：LVGL + AKP1-4 判据行——DEC-62②）。
 - 用例：framework.app test_14（过闸/单窗/summary/get-app 面/确认切 meta/拒绝不动/超时 fail-closed/begin 覆盖/lconf=0 零回归）+ framework.store prov v2 12 对矩阵 + agent test_push_app_install_gate_pending（-13 中间态收尾）。真机：af3_gate_console.txt（timeout 路径全链——deploy → AKP1 → 60s → AKP4 撤销）；确认/拒绝路径 = owner 按键判据（AKPC/AKP2、AKPR/AKP3）。
 
+## 5d. APP 间消息路由（P1-1 · HLD §3.4——DEC-04 禁直接互访的唯一例外通道）
+
+- **API**：`ts_appmgr_msg_send(ctx, target_app_id, data, len)`（native `ts_msg_send`）→ 框架路由至目标运行实例（串身份 rt.app_id_str 匹配；多实例同 app_id = 首个命中）；`ts_appmgr_msg_recv(ctx, from, buf, cap, &len)`（native `ts_msg_recv`，接收被动无权限门）。evt 通知 = mailbox 投递 `TS_APP_EVT_MSG`（0x4D53475A "MSGZ"——app_evt 收此负载调 recv 取件）。
+- **授权（合同 10）**：manifest caps `msg:send:<目标app_id>` 名单（≤4 目标/幂等/串文法 = zenoh key 段同源——LLD-ts-hal §2 v0.2.5）；**权限先于目标解析**（未授权探测不泄露运行面存在性）。目标未运行 = TS_E_NOTFOUND；未声明 = TS_E_PERM（留痕）。
+- **FIFO 语义**：每实例 4 槽 × 96B（`TS_APPMGR_MSG_SLOTS/MSG_MAX`——DEC-62④ P1-1 出处）；**满槽 = 发送方 TS_E_BUSY 背压不丢弃**（与 mailbox 广播满丢最旧语义分立：点对点语义 vs 观测语义）；发送方身份随槽携带（审计/回信寻址）；接收缓冲不足 = TS_E_RANGE 不弹出。
+- **Agent 镜像**：NATIVE_WHITELIST +2；约定块文法/签名/使用说明（msg:send 名单 + 0x4D53475A 取件协议）；面检查镜像测试。
+- 用例：framework.hal test_16（名单文法矩阵 + 裁决）+ framework.app test_15（双实例路由/授权矩阵/FIFO 序/背压/取件）+ agent TestMsgNativesMirror。真机双 APP 互发 demo = 可复用 multiappbench（板侧固件含新 native 面——随下一板级轮）。
+
 ## 6. 测试要点
 
 - L1：包解析/验签（坏签名/截断/字段缺失矩阵）；slot 切换掉电注入（meta 撕裂恢复）。
@@ -107,6 +115,7 @@ meta: { active_slot, app_id, app_ver, rollback_count, boot_gen }
   - **收尾单元落地（v0.4）**：ts_appmgr_boot_start（active slot TSAP → manifest canonical 走查〔未知键 fail-closed；caps ';' 组合——ts_perm_parse 位图或合并；app_id/app_ver 提取；stack_kb/heap_kb 读取但 V1 消耗运行时常量〕→ wasm 装载〔CONFIG_TS_APP_LOAD_MAX 结构性上限〕→ app_start → STAGED→ACTIVE）；boot 步骤 8 app_load 尾部追加（APP 故障不阻塞启动 = 合同 6 显式例外〔HLD §4.4-8〕）；CONFIG_TS_APP_WAMR 默认 y；Agent E2E 使用固件同源夹具 wasm。
 
 ## 修订记录
+- v0.9 · 2026-10-16：**P1-1（HLD §3.4 APP 间消息）**——新增 §5d 路由面 + natives + Agent 镜像；twister 111（+2）/agent 197（+1）。
 - v0.8 · 2026-10-16：**F3（Q-46①③/DEC-62 安装闸本地确认）**——新增 §5c：固件侧挂起态（lconf prov 第三尾键，缺省 0 = 无头板不变）+ activate/install 同闸（EC4 无例外）+ confirm/reject 仅固件本地路 + 60s fail-closed + 事件四态 + -13 结构化回执 + pending_slot 加性面。用例 test_14 + store 12 对矩阵 + agent pending 测试；真机 timeout 路全链 PASS（AKP1→AKP4）。
 - v0.7.2 · 2026-10-15：**EC4（侧载纪律定稿）**——§5b 增 L5 检查 7 引用（slot 收口白名单 = pkg.c）；SD/USB 侧载本体按设备形态按需（Q-40②）。
 - v0.7.1 · 2026-10-15：**EC2（多根验签/trust-update 实现）**——§5b 落地：有效集构建（TEST={测试根}∪表——多根 sim 可测）/COSE RAM 验签/更新编排五步；install NULL 放开；rollback NULL 生产恒拒缺陷修复。用例 framework.app test_13_trust_chain（11 断言组：基线拒/租约门/陌生键拒/跳版拒/注册/多根安装/重放拒/互荐/全撤回复拒/工厂根全程可用）+ 夹具 gen_trust_fixtures.py 入仓（固定种子+测试根签名——教训 27）。

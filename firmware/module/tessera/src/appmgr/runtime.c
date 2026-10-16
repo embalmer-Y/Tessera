@@ -737,6 +737,133 @@ void ts_appmgr_app_evt_bcast(uint32_t payload)
 	}
 }
 
+/* ---- APP 间消息路由（P1-1 · HLD §3.4）-------------------------------------
+ * 每实例定长 FIFO（TS_APPMGR_MSG_SLOTS × TS_APPMGR_MSG_MAX）；满槽 = 发送
+ * 方 TS_E_BUSY 背压（不静默丢弃——与 mailbox 满丢最旧语义分立：消息是
+ * 点对点语义，mailbox 是广播观测语义）。投递 = 槽入队 + mailbox
+ * TS_APP_EVT_MSG（APP 在 app_evt 收此负载后 ts_msg_recv 取件）。
+ * 发送方身份随槽携带（from = rt.app_id_str——审计/回信寻址）。 */
+struct app_msg {
+	char from[TS_PERM_MSG_NAME_MAX];
+	uint8_t len;
+	uint8_t data[TS_APPMGR_MSG_MAX];
+};
+
+static struct {
+	struct app_msg slots[TS_APPMGR_MSG_SLOTS];
+	uint8_t head, count;
+} msgq[CONFIG_TS_APP_MAX_INSTANCES];
+
+struct ts_app_rt *ts_appmgr_rt_by_str(const char *app_id_str)
+{
+	for (size_t i = 0; i < CONFIG_TS_APP_MAX_INSTANCES; i++) {
+		if (rt[i].used && atomic_get(&rt[i].running) != 0 &&
+		    rt[i].app_id_str[0] != '\0' &&
+		    strcmp(rt[i].app_id_str, app_id_str) == 0) {
+			return &rt[i];
+		}
+	}
+	return NULL;
+}
+
+ts_res_t ts_appmgr_msg_send(ts_ctx_t ctx, const char *target,
+			    const uint8_t *data, uint32_t len)
+{
+	if (target == NULL || (len > 0 && data == NULL)) {
+		return TS_E_PARAM;
+	}
+	if (len > TS_APPMGR_MSG_MAX) {
+		return TS_E_RANGE;
+	}
+	/* 权限门（msg:send:<target> 名单——合同 10 留痕在 perm 层） */
+	struct ts_app_rt *self = NULL;
+
+	for (size_t i = 0; i < CONFIG_TS_APP_MAX_INSTANCES; i++) {
+		if (rt[i].used && rt[i].ctx.app_id == ctx.app_id) {
+			self = &rt[i];
+			break;
+		}
+	}
+	if (self == NULL) {
+		return TS_E_STATE; /* 发送方非运行实例（宿主直调无此路径） */
+	}
+	ts_res_t pr = ts_perm_check_msg(ctx, target);
+
+	if (pr != TS_OK) {
+		return pr;
+	}
+	/* 目标解析（运行中实例的串身份；多实例同 app_id = 首个命中——
+	 * 命名空间按 app_id 隔离，entry 寻址不可达 DEC-04） */
+	struct ts_app_rt *dst = ts_appmgr_rt_by_str(target);
+
+	if (dst == NULL) {
+		return TS_E_NOTFOUND;
+	}
+	size_t di = (size_t)(dst - rt);
+
+	if (msgq[di].count >= TS_APPMGR_MSG_SLOTS) {
+		return TS_E_BUSY; /* 满槽背压（不丢） */
+	}
+	struct app_msg *m = &msgq[di].slots[(msgq[di].head + msgq[di].count) %
+					    TS_APPMGR_MSG_SLOTS];
+
+	strncpy(m->from, self->app_id_str, sizeof(m->from) - 1);
+	m->from[sizeof(m->from) - 1] = '\0';
+	m->len = (uint8_t)len;
+	memcpy(m->data, data, len);
+	msgq[di].count++;
+
+	/* mailbox 事件（满丢最旧 = 既有观测语义；消息本体已在槽内不丢） */
+	(void)ts_appmgr_app_evt_id((uint16_t)(dst - rt + 1), TS_APP_EVT_MSG);
+	return TS_OK;
+}
+
+ts_res_t ts_appmgr_msg_recv(ts_ctx_t ctx, char *from, size_t from_cap,
+			    uint8_t *buf, uint32_t cap, uint32_t *len)
+{
+	if (len == NULL) {
+		return TS_E_PARAM;
+	}
+	*len = 0;
+	struct ts_app_rt *self = NULL;
+
+	for (size_t i = 0; i < CONFIG_TS_APP_MAX_INSTANCES; i++) {
+		if (rt[i].used && rt[i].ctx.app_id == ctx.app_id) {
+			self = &rt[i];
+			break;
+		}
+	}
+	if (self == NULL) {
+		return TS_E_STATE;
+	}
+	size_t idx = (size_t)(self - rt);
+
+	if (msgq[idx].count == 0) {
+		return TS_OK; /* 空 = *len 0（非错误） */
+	}
+	struct app_msg *m = &msgq[idx].slots[msgq[idx].head];
+
+	if (cap < m->len) {
+		return TS_E_RANGE; /* 调用方缓冲不足（消息保留，不弹出） */
+	}
+	if (from != NULL && from_cap > 0) {
+		strncpy(from, m->from, from_cap - 1);
+		from[from_cap - 1] = '\0';
+	}
+	memcpy(buf, m->data, m->len);
+	*len = m->len;
+	msgq[idx].head = (msgq[idx].head + 1) % TS_APPMGR_MSG_SLOTS;
+	msgq[idx].count--;
+	return TS_OK;
+}
+
+uint8_t ts_appmgr_msg_pending(uint16_t app_id)
+{
+	struct ts_app_rt *r = rt_by_id(app_id);
+
+	return (r == NULL) ? 0 : msgq[r - rt].count;
+}
+
 bool ts_appmgr_app_running_id(uint16_t app_id)
 {
 	struct ts_app_rt *r = rt_by_id(app_id);
@@ -784,6 +911,7 @@ void ts_appmgr_app_test_reset(void)
 		}
 		memset(&rt[i], 0, sizeof(rt[i]));
 		k_msgq_purge(&mbs[i]);
+		memset(&msgq[i], 0, sizeof(msgq[i])); /* P1-1：消息槽随隔离清台 */
 	}
 }
 #endif

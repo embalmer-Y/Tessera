@@ -40,6 +40,8 @@ NATIVE_WHITELIST = frozenset({
     # V2 纵深 M19（DEC-55/Q-37 A）：宿主侧线程编排——固件 TS_APP_THREADS
     # 门控注册（默认构建不存在 = 装载期未解析导入即拒，fail-closed 仍闭环）
     "ts_thread_start", "ts_thread_join",
+    # P1-1（HLD §3.4）：APP 间消息——框架路由（msg:send:<target> 名单授权）
+    "ts_msg_send", "ts_msg_recv",
 })
 
 # 框架回调（runtime lookup：health_ping 必有；app_init/app_tick/app_evt
