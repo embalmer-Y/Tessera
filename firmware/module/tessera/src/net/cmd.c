@@ -498,6 +498,7 @@ static ts_res_t cmd_fs_chunk(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap,
 		return TS_E_IO;
 	}
 	*n = p;
+	k_sleep(K_MSEC(1)); /* F6 同型同修（app-chunk 注记） */
 	return TS_OK;
 }
 
@@ -805,6 +806,13 @@ static ts_res_t cmd_app_chunk(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap
 		return TS_E_IO;
 	}
 	*n = p;
+	/* F6 修复（真机 200 分块流定案）：zenoh 读任务继承创建者优先级
+	 * （pthread INHERIT_SCHED → main prio 0），背靠背分块流期间无阻塞
+	 * 连转 → 低优先级线程（APP prio 10 / 喂狗路径）整个流期 queued →
+	 * APPMGR WDT 复位（noinit 0x20001——非死锁，饥饿）。每分块 1ms
+	 * 让步 = 412KB 包全流 +200ms（吞吐无关紧要），低优先级线程得以
+	 * 调度喂狗。资源分块（fs-chunk）同型同修。 */
+	k_sleep(K_MSEC(1));
 	return TS_OK;
 }
 
