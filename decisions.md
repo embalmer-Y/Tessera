@@ -323,6 +323,20 @@
 - **建议**：（留档）未及正式呈报——owner 于初步笔记阶段直接裁定，见 DEC-18。
 - **影响**：Agent 与模块间 API（DEC-12）；断链心跳与检测时限（安全合同第 3/5 条的参数来源）；多立方体编址（DEC-02 遗留题）；证书/密钥管理与分发；Zephyr 网络栈裁剪与内存占用。
 
+## Q-46（本地确认路安装闸——F3 门③ 呈递停门，2026-10-16）
+
+**背景**：EC3（LLD-A02 v0.2.2 §3.2）已定数据面 = 固件 manifest_summary 单一事实源（无头路已上线）；本地确认路 = 「LCD 呈现 + 按键确认 → 安装闸」的设备形态接线（嵌入式安装期本地确认无公开先例 = 先行者面，R9 §4 对照在档）。atk 板载 ST7789V 320×240 + BOOT 键（IO0——F1/F2 已占用短/长按语义）。owner 暂不在家——呈递备裁，不实现。
+
+**子项与建议值**：
+
+① **安装闸接入点（核心）**：建议 **固件侧挂起态**——`local_confirm` prov v2 字段（缺省沿用现状 = 无头形态不受影响；有屏形态出厂 = enabled）+ appmgr 激活流增「待本地确认」态：activate 验签通过后不切 meta，固件渲染 manifest_summary 至 LCD 并置 pending-install（事件外发）；本地确认事件（经 arb 本地席位机制——EC3 既定「确认事件经 arb 本地席位入固件」）→ meta 切换 + 暖复位装载；**拒绝或超时（建议 60s，fail-closed）= 撤销 pending，槽保留可重推**。备选 B = Agent 侧闸（固件零改动）——但违背 EC3「数据面单一事实源在固件」且离线部署（standalone 形态）失效；不推荐。
+② **呈现面**：建议 Zephyr display 子系统 + 自绘 8×16 位图字体（manifest_summary ~10 行文本：app_id/ver/caps/fs_paths/tier/needs/threads/尺寸 + install_permission_brief 一行摘要）——**不引 LVGL**（DRAM 预算 + 复杂度；文本呈报足够）。
+③ **手势模态**：install-pending 激活期 BOOT 键语义切换为「短按 = 确认 / 长按 ≥2s = 拒绝」（模态独占——与 F1 arb 切换互斥：pending 期不切席位）；pending 消解后恢复 F1/F2 语义。
+④ **LCD bring-up 前置**：ST7789V 树内驱动（board DTS chosen 已挂 display）+ SPI?/QSPI 帧冲——atk 板为 SPI 屏（board.cmake 支持栈待查）；bring-up 独立半单元（点屏 → 清屏 → 文本渲染三层）。
+⑤ **工作量**：LCD bring-up 1 单元 + 闸/模态/事件 1 单元 + 测试（sim 无屏形态 = local_confirm=n 全回归不变 + bench 真机判据）0.5 单元。
+
+**停门**：owner 裁 ①-③（尤其安装闸接入点与超时语义）后开工。
+
 ## 三、修订记录
 
 - 2026-09-19 · K1 录入：DEC-01…16（2026-09-18 owner 裁定）+ 待裁 Q-01/Q-02（依 `FOUNDING_PROMPT.md` §9-2）。
