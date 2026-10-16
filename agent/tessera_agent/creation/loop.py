@@ -76,6 +76,11 @@ class LoopResult:
     facts: dict[str, Any] = field(default_factory=dict)  # 收敛轮验证事实（编译/面）
 
 
+# P1-5（HLD-agent §4 S8）：部署判据 miss → 修复轮自动回注（repair 从外环
+# 手动转内环自动——R6 §2）。修复轮计入同一轮次预算；S8 修复窗独立 ≤2。
+S8_REPAIR_MAX = 2
+
+
 class CreationLoop:
     """单任务创作循环。事件流：on_event(kind, data)——AG4 终端渲染/AG6 task_log 同源。"""
 
@@ -107,6 +112,9 @@ class CreationLoop:
         self.evidence_log: list[dict[str, Any]] = []
         self.facts: dict[str, Any] = {}  # 收敛轮验证事实（AG6 返回映射消费）
         self._last_summary = ""  # 上轮小结（AG6：manifest 校验反馈等非证据类回喂）
+        self._repairs = 0  # S8 修复轮计数（P1-5）
+        self._artifact: PackageOutcome | None = None
+        self._failure_reason = ""
 
     # ---- 内部 ------------------------------------------------------------
 
@@ -180,10 +188,48 @@ class CreationLoop:
             {"id": p.id, "desc": p.desc, "status": p.status} for p in self.plan
         ]})
 
+        await self._converge_and_package()
+        return self._result()
+
+    async def repair(self, evidence: str, *, reason: str = "deploy") -> LoopResult:
+        """S8（P1-5 · HLD-agent §4）：部署后诊断证据自动回注修复轮。
+
+        PACKAGED → IMPLEMENTING（证据经「上轮小结」通道回喂——AG6 机制
+        复用）→ 再收敛/再打包。修复轮计入同一轮次预算；S8 修复窗 ≤
+        S8_REPAIR_MAX；超限或预算尽 = FAILED（证据归档，工作区保留）。
+        evidence = post_deploy_check 回执的判据/诊断面（调用方序列化）。
+        """
+        if self.state != PACKAGED:
+            self._emit("final", {"state": self.state, "rounds": self.round,
+                                 "repair_reject": "非 PACKAGED 态不可修复轮"})
+            return self._result()
+        if self._repairs >= S8_REPAIR_MAX or self.budget_exceeded():
+            self.state = FAILED
+            self._emit("final", {"state": self.state, "rounds": self.round,
+                                 "s8_budget": self._repairs})
+            return self._result()
+        self._repairs += 1
+        ev_head = evidence[:400]
+        self._last_summary = (
+            f"【部署判据未命中 · 自动修复轮 {self._repairs}/{S8_REPAIR_MAX}"
+            f"（来源：{reason}）】" + "\n" + ev_head + "\n"
+            + "请据上述真机证据修复工程"
+            "（判据行必须逐字出现在运行输出中），完成后照常声明完成。")
+        self.state = IMPLEMENTING
+        self._emit("state", {"state": self.state, "repair": self._repairs,
+                             "reason": reason})
+        self._snapshot()
+        await self._converge_and_package()
+        return self._result()
+
+    # ---- 内部 ------------------------------------------------------------
+
+    async def _converge_and_package(self) -> None:
+        """实现⇄验证循环 + 打包（run/repair 共用体；终态落 self.state）。"""
         self.state = IMPLEMENTING
         self._emit("state", {"state": self.state})
         self._snapshot()
-        failure_reason = ""
+        self._failure_reason = ""
         while self.round < self.budget:
             prompt = self._assemble_prompt()
             outcome = await self.runner.implement(prompt)
@@ -215,9 +261,9 @@ class CreationLoop:
             self._emit("state", {"state": self.state})
             break
         else:
-            failure_reason = f"轮次预算耗尽（{self.budget}）——证据归档，工作区保留"
+            self._failure_reason = (
+                f"轮次预算耗尽（{self.budget}）——证据归档，工作区保留")
 
-        artifact: PackageOutcome | None = None
         if self.state == CONVERGED:
             if self.key_path:
                 artifact = await asyncio.to_thread(
@@ -228,22 +274,25 @@ class CreationLoop:
                                          "package": artifact.package_path})
                 else:
                     self.state = FAILED
-                    failure_reason = f"打包失败：{artifact.detail}"
+                    self._failure_reason = f"打包失败：{artifact.detail}"
                     self.evidence_log.append(
                         {"round": self.round, "step": "package",
                          "detail": artifact.detail})
+                self._artifact = artifact
             # 无 key_path：CONVERGED 即终态（打包由外层显式触发——AG6 接线面）
         elif self.state != CONVERGED:
             self.state = FAILED
         self._emit("final", {"state": self.state, "rounds": self.round})
+
+    def _result(self) -> LoopResult:
         return LoopResult(
             state=self.state,
             rounds_used=self.round,
             plan=self.plan,
             evidence_log=self.evidence_log,
-            artifact=artifact,
+            artifact=getattr(self, "_artifact", None),
             workspace=str(self.ws.root),
-            failure_reason=failure_reason,
+            failure_reason=getattr(self, "_failure_reason", ""),
             facts=self.facts,
         )
 

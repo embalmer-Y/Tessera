@@ -233,7 +233,7 @@
 | P1-2 | zenoh TLS 链路 | `Z_FEATURE_LINK_TLS` 开启 + 证书入 prov 安全区 + 双端联调（zenohd TLS 监听）+ 命令面 locator 纪律（DEC-40 扩展） | ~1 单元 | 远程部署安全面（公网/跨网段场景前置）；环境依赖 = 证书流程设计（可批内呈递小 Q） |
 | P1-3 | `power_set`/`power_get` native | ts-power 槽暴露给 APP（power 权限类 + 预算联动语义：APP 自申请槽位） | ~0.5 单元 | 与 P1-4 可并 |
 | P1-4 | `counter` 外设类 | 评估实际需求后定：无消费者 → 维持裁剪登记（HLD 对照表 ❌ 项清账） | ~0.5 单元或裁剪 | 建议先评估（GPIO 中断计数已有 input monitor 覆盖近似语义） |
-| P1-5 | Agent S8 补全（部署失败自动再入修复轮） | 判据 miss → post_deploy_check 证据 → 自动作为修复轮回注 A08 循环（预算内）——把 repair_loop 接进创作循环的 FAILED→REPAIRING 转移 | ~0.5 单元 | 组件全在（repair_loop/diag/D3），只差状态机接线 |
+| P1-5 ✅ | Agent S8 补全（部署失败自动再入修复轮） | **已交付**：post_deploy_check 判据面（pass_patterns + criteria_pass 三态）+ CreationLoop.repair（证据经上轮小结回喂，S8_REPAIR_MAX=2 计入预算）+ CLI --deploy --serial-port 端到端闭环；agent 203+2s（+6） | ~0.5 单元 | HLD-agent §4 S8（v0.2.2 收口） |
 
 ### B. 待 owner 裁决/动作项（**已全部裁毕 2026-10-16 · DEC-62**：Q-46 → 开工/F3〔② LVGL 修订〕；版本 tag → 并入下版〔F3+P1 收口时一并 review+tag〕；gcov → 缓办维持〔随 CI 强化批评估〕——F1/F2 物理判据已先行收口 v1.91）
 
@@ -272,6 +272,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.97 · 2026-10-16：**P1-5 交付（S8 部署判据 miss 自动修复轮——HLD-agent §4 S8 收口，v0.2.2）**。post_deploy_check 判据面（健康也抓窗对拍；criteria_pass 三态区分未验证/未命中）+ CreationLoop.repair（上轮小结通道回喂真机证据；修复窗 2、计入循环预算）+ CLI --serial-port 部署闭环。agent 203+2s（+6）/ruff 绿。
 - v1.96 · 2026-10-16：**P1-1 交付（ts_msg_send APP 间消息——HLD §3.4 原设计项收口）**。① 权限面：msg:send:<目标app_id> 名单形态（perm 层 msg_targets ≤4 + TS_PERM_OP_SEND——IR-11 fail-closed 登记的实现收口；LLD-ts-hal v0.2.5）；② 路由面：ts_appmgr_msg_send/recv（app_id 串身份寻址〔DEC-04 禁直接互访的唯一例外通道〕+ 权限先于目标解析〔不泄露运行面存在性〕+ FIFO 4×96B 满槽发送方背压 + TS_APP_EVT_MSG 取件通知；LLD-ts-appmgr v0.9 §5d）；③ natives ts_msg_send/recv + Agent 镜像（白名单 + 约定块 + 面镜像测试）。回归：twister 16/16〔111，+2〕/agent 197+2s〔+1〕/L5 7/7/ruff/repo 5 全绿。
 - v1.95 · 2026-10-16：**F3-2/F3-3 交付（安装闸本地确认——DEC-62①③ 落地）**。① prov v2 lconf（12 对——store v0.5.2）；② appmgr 挂起态（activate/install 同闸〔EC4 无例外〕+ confirm/reject 仅固件本地路 + 60s fail-closed + pending_summary 单一事实源——appmgr v0.8 §5c）；③ net -13 回执 + 事件四态（net v0.4.3）；④ atkbench 手势模态 + LCD 呈现 + AKP 判据行族；⑤ Agent deploy pending 收尾 + FakeCube 语义。**timeout 路真机全链 PASS**；确认/拒绝 = owner 按键。回归：twister 16/16〔109，+1〕/agent 196+2s〔+1〕/L5 7/7/ruff/repo 5 全绿。
 - v1.94 · 2026-10-16：**F3-1 交付（LCD bring-up——LVGL @ atkbench，AKU1 真机 PASS）**。① 呈现面：ui_lcd.c（LVGL 9.5 Zephyr glue——消息队列编排单线程纪律 + UI 线程 prio 12〔F6 教训〕+ 状态行 1Hz）+ 背光 = XL9555 P0-7 裸 I2C（pca9555 驱动维持禁用——K2 同源）。② 树内事实：ST7789V 走 esp32 lcd_cam 并口（MIPI-DBI 8080，板 DTS chosen 全挂——Kconfig 使能即可）；lcd_bl regulator 节点因引用禁用扩展器随禁。③ **四坑定案（教训 36）**：空 WiFi 凭据烤入 = net_mgmt -22（归因连环误判后 `strings` 一步定案——env.sh 变量名 TS_WIFI_*；守卫 = CMakeLists 空 SSID FATAL_ERROR）；LVGL glue 内存（LV_MEM 死配置 / LV_Z_MEM_POOL 16384 文本面下限 / HEAP_LIB_C 崩——上游域）；USJ×esptool×holder 定式（韧性 holder + 烧录前停 holder）；pkill 自匹配第三复发。④ 内存重平：系统池 122880→102400 + LVGL 专池 16KB + VDB 3%。全链真机：WiFi 关联 + AKU1 + zenoh CONNECTED + AK PASS + 存活稳定（证据 af31_lcd_console.txt）。

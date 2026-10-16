@@ -75,3 +75,39 @@ def test_capture_failure_not_masking(monkeypatch) -> None:
 def test_app_id_expect_mismatch_unhealthy() -> None:
     out = post_deploy_check(FakeSvcOK(), "n", "c", app_id_expect="other")
     assert out["healthy"] is False
+
+
+# ---- P1-5（S8）：判据面——pass_patterns 升级健康判定 --------------------------
+
+
+def test_criteria_hit_upgrades_verdict(monkeypatch) -> None:
+    """健康 + 判据行命中 = criteria_pass True（S8 终止条件）。"""
+    import tessera_agent.tools_diag.capture as cap
+
+    monkeypatch.setattr(cap, "capture_window",
+                        lambda p, s, *, baud=115200: "AK alive t=1\nAPP DONE n=5\n")
+    out = post_deploy_check(FakeSvcOK(), "n", "c", serial_port="/dev/x",
+                            pass_patterns=["APP DONE"])
+    assert out["healthy"] is True
+    assert out["criteria_pass"] is True
+    assert out["diag"]["category"] == "pass"
+
+
+def test_criteria_miss_feeds_s8(monkeypatch) -> None:
+    """健康但判据行未现 = criteria_pass False + diag（S8 修复轮回喂证据）。"""
+    import tessera_agent.tools_diag.capture as cap
+
+    monkeypatch.setattr(cap, "capture_window",
+                        lambda p, s, *, baud=115200: "AK alive t=1 net=1\n")
+    out = post_deploy_check(FakeSvcOK(), "n", "c", serial_port="/dev/x",
+                            pass_patterns=["APP DONE"])
+    assert out["healthy"] is True
+    assert out["criteria_pass"] is False
+    assert out["diag"]["category"] != "pass"
+
+
+def test_criteria_without_serial_unverified() -> None:
+    """无串口 + 判据 = criteria_pass None（未验证 ≠ 未命中——如实区分）。"""
+    out = post_deploy_check(FakeSvcOK(), "n", "c", pass_patterns=["APP DONE"])
+    assert out["healthy"] is True
+    assert out["criteria_pass"] is None

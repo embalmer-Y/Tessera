@@ -305,8 +305,10 @@ def post_deploy_check(
     serial_port: str | None = None,
     window_s: float = 8.0,
     app_id_expect: str | None = None,
+    pass_patterns: list[str] | None = None,
 ) -> dict[str, Any]:
-    """部署后健康检查 + 失败自动诊断（G 批 D3 · CLI 调研批候选③）。
+    """部署后健康检查 + 失败自动诊断（G 批 D3 · CLI 调研批候选③；
+    P1-5 S8 增判据面）。
 
     健康判定 = get-app state==ACTIVE（可选 app_id 精确比对）。健康 →
     {healthy: true, get-app:…}；非健康 → 若给出 serial_port 则被动窗口
@@ -314,12 +316,23 @@ def post_deploy_check(
     classify_run 自动分类，回执携带 category/repair_hint/evidence——
     调用方（MCP 部署面/创作循环）直接回喂 LLM，免人工逐工具诊断。
     无串口配置 → 仅结构化不健康快照（分类留调用方）。
+
+    P1-5（HLD-agent §4 S8）：给出 pass_patterns 时**判据面升级**——
+    即使 get-app 健康也抓窗对拍判据行（bench 契约：判据行出现即达成）；
+    回执增 {criteria_pass, pass_patterns}；判据 miss = criteria_pass
+    False + diag（S8 修复轮回喂证据）。抓取失败 = criteria_pass None
+    （不掩蔽主判定——如实区分「未验证」与「未命中」）。
     """
     g = _cmd_ok(svc, node, cube, "get-app", f"pc-{cube}")
     healthy = int(g.get("state", -1)) == 3 and (
         app_id_expect is None or g.get("app_id", "") == app_id_expect)
     out: dict[str, Any] = {"healthy": healthy, "get-app": g}
-    if healthy or serial_port is None:
+    need_capture = serial_port is not None and (
+        not healthy or (pass_patterns is not None and len(pass_patterns) > 0))
+    if not need_capture:
+        if pass_patterns is not None:
+            out["criteria_pass"] = None  # 无串口/无判据窗 = 未验证（≠ 未命中）
+            out["pass_patterns"] = pass_patterns
         return out
     from tessera_agent.tools_diag import capture as diag_capture
     from tessera_agent.tools_diag import classify as diag_cls
@@ -328,10 +341,17 @@ def post_deploy_check(
         text = diag_capture.capture_window(serial_port, window_s)
     except Exception as exc:  # noqa: BLE001 —— 抓取失败不掩蔽主判定
         out["diag_error"] = f"{type(exc).__name__}: {exc}"
+        if pass_patterns is not None:
+            out["criteria_pass"] = None  # 未验证（≠ 未命中）
+            out["pass_patterns"] = pass_patterns
         return out
-    r = diag_cls.classify_run(text, pass_patterns=[])
+    r = diag_cls.classify_run(text,
+                              pass_patterns=pass_patterns or [])
     out["diag"] = {"category": r.category, "summary": r.summary,
                    "repair_hint": r.repair_hint, "evidence": r.evidence}
+    if pass_patterns is not None:
+        out["criteria_pass"] = r.category == "pass"
+        out["pass_patterns"] = pass_patterns
     return out
 
 

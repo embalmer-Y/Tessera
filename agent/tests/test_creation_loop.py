@@ -15,6 +15,7 @@ import pytest
 from tessera_agent.common.errors import TA_E_ARGS, TA_E_NOT_CONFIGURED, TaError
 from tessera_agent.creation.loop import (
     CONVERGED,
+    DRAFT,
     FAILED,
     PACKAGED,
     PLANNING,
@@ -177,10 +178,12 @@ def test_converged_without_keypath(ws):
     assert result.artifact is None
 
 
-def _run(loop):
+def _run(coro_or_loop):
     import asyncio
 
-    return asyncio.run(loop.run())
+    if hasattr(coro_or_loop, "run"):
+        return asyncio.run(coro_or_loop.run())
+    return asyncio.run(coro_or_loop)  # 既有协程（S8 repair 等）
 
 
 # ---- FirmwareCreationVerifier 真链（真 clang） ------------------------------
@@ -282,3 +285,55 @@ def test_firmware_verifier_compile_evidence_carries_stderr(tmp_path):
     outcome = verifier.compile(ws)
     assert outcome.ok is False
     assert "expected" in outcome.detail  # clang 诊断原文回喂
+
+
+# ---- S8（P1-5 · HLD-agent §4）：部署判据 miss → 修复轮自动回注 --------------
+
+
+def test_s8_repair_round_reconverges_and_repacks(ws):
+    """PACKAGED → repair(真机证据) → 修复轮（证据经上轮小结回喂）→ 再收敛
+    再打包（S8_REPAIR_MAX 内）。"""
+    events: list = []
+    runner = ScriptedRunner([
+        RoundOutcome(declared_done=True, summary="v1"),  # 首收敛
+        RoundOutcome(declared_done=True, summary="fix-1"),  # 修复轮
+    ])
+    verifier = DummyVerifier()
+    loop = CreationLoop(ws, verifier, runner, "spec",
+                        criteria=["APP DONE"], key_path="/tmp/k",
+                        on_event=lambda k, d: events.append((k, d)))
+    assert _run(loop).state == PACKAGED
+
+    r2 = _run(loop.repair("category=criteria-miss evidence=['AK FAIL install r=-9']"))
+
+    assert r2.state == PACKAGED
+    assert len(runner.prompts) == 2, "修复轮实际执行（prompt 链推进）"
+    assert "criteria-miss" in runner.prompts[1], "真机诊断证据经上轮小结回喂"
+    assert "AK FAIL install r=-9" in runner.prompts[1]
+    assert r2.artifact is not None and r2.artifact.ok
+    kinds = _events(events)
+    assert any(d.get("repair") == 1 for d in kinds["state"]), "修复轮事件可观测"
+
+
+def test_s8_repair_budget_exhausts_to_failed(ws):
+    """修复窗超限（S8_REPAIR_MAX=2）= FAILED（证据归档语义）。"""
+    runner = ScriptedRunner([
+        RoundOutcome(declared_done=True, summary="v1"),
+        RoundOutcome(declared_done=True, summary="fix-1"),
+        RoundOutcome(declared_done=True, summary="fix-2"),
+    ])
+    loop = CreationLoop(ws, DummyVerifier(), runner, "spec",
+                        key_path="/tmp/k")
+    assert _run(loop).state == PACKAGED
+    assert _run(loop.repair("miss-1")).state == PACKAGED
+    assert _run(loop.repair("miss-2")).state == PACKAGED, "第 2 窗仍可修"
+    r3 = _run(loop.repair("miss-3"))
+    assert r3.state == FAILED, "第 3 次修复请求 = 窗耗尽（S8_REPAIR_MAX=2）"
+
+
+def test_s8_repair_rejects_non_packaged(ws):
+    """非 PACKAGED 态 repair = 拒（状态机保形——DRAFT 不可修复轮）。"""
+    runner = ScriptedRunner([])
+    loop = CreationLoop(ws, DummyVerifier(), runner, "spec")
+    r = _run(loop.repair("early"))
+    assert r.state == DRAFT, "DRAFT 原态保持"

@@ -33,6 +33,8 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--json", action="store_true", help="JSONL 流式输出（CI）")
     run.add_argument("--no-plan-confirm", action="store_true",
                      help="跳过计划确认（默认确认）")
+    run.add_argument("--serial-port", default=None, metavar="PORT",
+                     help="S8 部署判据窗串口（配 --deploy——判据 miss 自动修复轮）")
     run.add_argument("--deploy", action="store_true",
                      help="收敛后自动部署（app_deploy 链；strict 审批仍拦）")
     args = parser.parse_args(argv)
@@ -48,6 +50,31 @@ def main(argv: list[str] | None = None) -> int:
         return _run_command(args)
     parser.print_help()
     return 0
+
+
+def _spec_patterns(spec: str) -> list[str]:
+    """S8 判据源 = spec【判据】节（NV-2 单一事实源；缺节 = 空 = 无判据窗）。"""
+    from tessera_agent.tools_diag import spec_gate as _sg
+
+    return list(_sg.check_spec(spec).pass_patterns)
+
+
+def _post_check(ctx, node: str, cube: str, port: str,
+                patterns: list[str]) -> dict:
+    from tessera_agent.tools_net import deploy as net_deploy
+    from tessera_agent.tools_net.zenoh_service import ZenohService
+
+    with ZenohService(ctx.cfg.router_locator) as svc:
+        return net_deploy.post_deploy_check(
+            svc, node, cube, serial_port=port, window_s=8.0,
+            pass_patterns=patterns)
+
+
+def _fmt_s8_evidence(diag: dict) -> str:
+    d = diag.get("diag") or {}
+    return (f"category={d.get('category')} summary={d.get('summary')}\n"
+            f"repair_hint={d.get('repair_hint')}\n"
+            f"evidence={d.get('evidence')}")
 
 
 def _run_command(args) -> int:
@@ -68,7 +95,7 @@ def _run_command(args) -> int:
 
     try:
         cfg = load_config()
-    except Exception as exc:  # noqa: BLE001——启动期配置错误如实报
+    except Exception as exc:  # noqa: BLE001 —— 启动期配置错误如实报
         print(f"配置错误：{exc}", file=sys.stderr)
         return 2
 
@@ -152,12 +179,38 @@ def _run_command(args) -> int:
         from tessera_agent.domain.app_chain import app_deploy
 
         pub = str(Path(key_path).expanduser().with_suffix(".pub"))
-        try:
-            out = asyncio.run(app_deploy(ctx, result.artifact.package_path, pub))
-        except TaError as exc:
-            print(f"部署失败：{exc.message}", file=sys.stderr)
-            return 1
-        print(f"部署确认：{out['node']}/{out['cube']}")
+        # S8（P1-5 · HLD-agent §4）：部署 → 判据窗检查（--serial-port）→
+        # miss = 诊断证据回注创作循环修复轮 → 再打包再部署（≤S8_REPAIR_MAX，
+        # repair 轮计入循环预算）。无串口 = 仅部署确认（S5 原语义）。
+        patterns = list(_spec_patterns(spec))
+        for attempt in range(3):  # 首部署 + 2 修复窗
+            try:
+                out = asyncio.run(app_deploy(ctx, result.artifact.package_path, pub))
+            except TaError as exc:
+                print(f"部署失败：{exc.message}", file=sys.stderr)
+                return 1
+            print(f"部署确认：{out['node']}/{out['cube']}")
+            if not args.serial_port or not patterns:
+                return 0
+            diag = asyncio.run(_post_check(ctx, out["node"], out["cube"],
+                                           args.serial_port, patterns))
+            if diag.get("criteria_pass") is True:
+                print(f"S8 判据命中：{diag.get('pass_patterns')}")
+                return 0
+            if diag.get("criteria_pass") is None:
+                print(f"S8 判据未验证（抓取失败/无窗）：{diag.get('diag_error', '—')}",
+                      file=sys.stderr)
+                return 0
+            print(f"S8 判据 miss（第 {attempt + 1} 窗）：{diag.get('diag')}",
+                  file=sys.stderr)
+            if attempt == 2:
+                print("S8 修复窗耗尽——证据在工作区/审计流", file=sys.stderr)
+                return 1
+            result = asyncio.run(
+                fe.repair(_fmt_s8_evidence(diag), reason="deploy-criteria"))
+            if result.state != PACKAGED or result.artifact is None:
+                print("S8 修复轮未再收敛——证据归档", file=sys.stderr)
+                return 1
     return 0
 
 

@@ -143,6 +143,7 @@ class TerminalFrontend:
         return await self._drive(loop)
 
     async def _drive(self, loop: CreationLoop) -> LoopResult:
+        self._loop = loop  # S8（P1-5）：修复轮再入（deploy 判据 miss 回注）
         try:
             result = await loop.run()
         except _Aborted as exc:
@@ -188,6 +189,16 @@ class TerminalFrontend:
             on_event=self._on_event(opts),
         )
         return await self._drive(loop)
+
+    async def repair(self, evidence: str, *, reason: str = "deploy") -> LoopResult:
+        """S8（P1-5 · HLD-agent §4）：部署判据 miss → 诊断证据回注修复轮
+        （loop.repair 驱动 + 终报；CLI --deploy 闭环消费）。"""
+        loop = getattr(self, "_loop", None)
+        if loop is None:
+            raise RuntimeError("无活动创作循环（先 run）")
+        result = await loop.repair(evidence, reason=reason)
+        self._report(result)
+        return result
 
     def _report(self, result: LoopResult) -> None:
         """终报（LLD-A09 §4）：--json = 结构化行；文本 = render_final。"""
