@@ -181,6 +181,9 @@ static void audio_selftest(void)
 	printk("AKa0 es8311 init rc=%d\n", rc);
 	if (rc != 0) {
 		printk("AK AUDIO FAIL（无芯片/初始化拒——i2c/i2s 链见上）\n");
+#ifdef ATKBENCH_SKIP_PERIPH_FAIL
+		printk("AK WARN audio 降级（SKIP_PERIPH——TLS E2E）\n");
+#endif
 		return;
 	}
 	/* 静音保底：功放关断（NL 低有效——常静音态）。放音自检改
@@ -611,8 +614,14 @@ int main(void)
 	int mr = fs_mount(&ak_mp);
 
 	if (mr != 0 && mr != -EALREADY) {
+#ifdef ATKBENCH_SKIP_PERIPH_FAIL
+		/* TLS-E2E 助推（cmake 旗标）：SD 物理失联降级为告警——外设判据
+		 * 缺省仍 FAIL；本旗标仅解锁 net/TLS 主链判据（plan v1.104）。 */
+		printk("AK WARN sd mount r=%d（SKIP_PERIPH——TLS E2E 降级）\n", mr);
+#else
 		printk("AK FAIL sd mount r=%d\n", mr);
 		return 1;
+#endif
 	}
 	fs_mkdir("/SD:/res");
 	struct fs_dirent de;

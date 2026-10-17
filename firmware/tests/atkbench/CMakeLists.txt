@@ -19,5 +19,9 @@ target_compile_definitions(app PRIVATE
   ATKBENCH_WIFI_SSID="${ATKBENCH_WIFI_SSID}"
   ATKBENCH_WIFI_PASSWORD="${ATKBENCH_WIFI_PASSWORD}"
   ATKBENCH_ROUTER="${ATKBENCH_ROUTER}")
+# TLS-E2E 助推旗标（外设失联降级告警——缺省不定义 = 判据不变；plan v1.104）
+if(DEFINED ATKBENCH_SKIP_PERIPH_FAIL)
+  target_compile_definitions(app PRIVATE ATKBENCH_SKIP_PERIPH_FAIL=1)
+endif()
 
 target_sources(app PRIVATE src/main.c src/ui_lcd.c)

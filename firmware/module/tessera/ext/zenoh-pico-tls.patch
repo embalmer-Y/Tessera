@@ -47,7 +47,7 @@ index d43a9fb..a366d0d 100644
  
  typedef struct {
 diff --git a/src/link/transport/upper/tls_stream.c b/src/link/transport/upper/tls_stream.c
-index 22609fb..86f5772 100644
+index 22609fb..333342c 100644
 --- a/src/link/transport/upper/tls_stream.c
 +++ b/src/link/transport/upper/tls_stream.c
 @@ -26,9 +26,9 @@
@@ -201,7 +201,25 @@ index 22609fb..86f5772 100644
      }
  
      if (listen_cert_base64 != NULL) {
-@@ -322,7 +355,10 @@ static z_result_t _z_tls_load_client_cert(_z_tls_context_t *ctx, const _z_str_in
+@@ -293,12 +326,17 @@ static z_result_t _z_tls_load_listen_cert(_z_tls_context_t *ctx, const _z_str_in
+             return res;
+         }
+     } else {
++#ifdef MBEDTLS_FS_IO /* Tessera patch: file paths only where FS_IO exists */
+         int ret = mbedtls_x509_crt_parse_file(&ctx->_listen_cert, listen_cert_str);
+         if (ret != 0) {
+             _Z_ERROR("Failed to parse listening side certificate file %s: -0x%04x", listen_cert_str, -ret);
+             return _Z_ERR_GENERIC;
+         }
+         _Z_DEBUG("Loaded listening side certificate from %s", listen_cert_str);
++#else
++        _Z_ERROR("TLS listen certificate file path unsupported without MBEDTLS_FS_IO");
++        return _Z_ERR_GENERIC;
++#endif
+     }
+ 
+     return _Z_RES_OK;
+@@ -322,7 +360,10 @@ static z_result_t _z_tls_load_client_cert(_z_tls_context_t *ctx, const _z_str_in
              return res;
          }
      } else {
@@ -213,7 +231,7 @@ index 22609fb..86f5772 100644
          int ret =
              mbedtls_pk_parse_keyfile(&ctx->_client_key, key_path, NULL, mbedtls_hmac_drbg_random, &ctx->_hmac_drbg);
  #else
-@@ -333,6 +369,10 @@ static z_result_t _z_tls_load_client_cert(_z_tls_context_t *ctx, const _z_str_in
+@@ -333,6 +374,10 @@ static z_result_t _z_tls_load_client_cert(_z_tls_context_t *ctx, const _z_str_in
              return _Z_ERR_GENERIC;
          }
          _Z_DEBUG("Loaded client private key from %s", key_path);
@@ -224,7 +242,25 @@ index 22609fb..86f5772 100644
      }
  
      if (cert_base64 != NULL) {
-@@ -418,7 +458,9 @@ z_result_t _z_open_tls(_z_tls_socket_t *sock, const _z_sys_net_endpoint_t *rep,
+@@ -341,12 +386,17 @@ static z_result_t _z_tls_load_client_cert(_z_tls_context_t *ctx, const _z_str_in
+             return res;
+         }
+     } else {
++#ifdef MBEDTLS_FS_IO /* Tessera patch: file paths only where FS_IO exists */
+         int ret = mbedtls_x509_crt_parse_file(&ctx->_client_cert, cert_path);
+         if (ret != 0) {
+             _Z_ERROR("Failed to parse client certificate file %s: -0x%04x", cert_path, -ret);
+             return _Z_ERR_GENERIC;
+         }
+         _Z_DEBUG("Loaded client certificate from %s", cert_path);
++#else
++        _Z_ERROR("TLS client certificate file path unsupported without MBEDTLS_FS_IO");
++        return _Z_ERR_GENERIC;
++#endif
+     }
+ 
+     return _Z_RES_OK;
+@@ -418,7 +468,9 @@ z_result_t _z_open_tls(_z_tls_socket_t *sock, const _z_sys_net_endpoint_t *rep,
      }
      mbedtls_ssl_conf_authmode(&sock->_tls_ctx->_ssl_config,
                                verify_name ? MBEDTLS_SSL_VERIFY_REQUIRED : MBEDTLS_SSL_VERIFY_OPTIONAL);
@@ -234,7 +270,7 @@ index 22609fb..86f5772 100644
  
      if (enable_mtls) {
          int own_ret = mbedtls_ssl_conf_own_cert(&sock->_tls_ctx->_ssl_config, &sock->_tls_ctx->_client_cert,
-@@ -457,6 +499,7 @@ z_result_t _z_open_tls(_z_tls_socket_t *sock, const _z_sys_net_endpoint_t *rep,
+@@ -457,6 +509,7 @@ z_result_t _z_open_tls(_z_tls_socket_t *sock, const _z_sys_net_endpoint_t *rep,
      mbedtls_ssl_set_bio(&sock->_tls_ctx->_ssl, &sock->_sock._fd, _z_tls_bio_send, _z_tls_bio_recv, NULL);
  
      while ((mbedret = mbedtls_ssl_handshake(&sock->_tls_ctx->_ssl)) != 0) {
@@ -242,7 +278,7 @@ index 22609fb..86f5772 100644
          if (mbedret != MBEDTLS_ERR_SSL_WANT_READ && mbedret != MBEDTLS_ERR_SSL_WANT_WRITE) {
              _Z_ERROR("TLS handshake failed: -0x%04x", -mbedret);
              _z_tcp_close(&sock->_sock);
-@@ -551,7 +594,9 @@ z_result_t _z_listen_tls(_z_tls_socket_t *sock, const _z_sys_net_endpoint_t *rep
+@@ -551,7 +604,9 @@ z_result_t _z_listen_tls(_z_tls_socket_t *sock, const _z_sys_net_endpoint_t *rep
  
      mbedtls_ssl_conf_authmode(&sock->_tls_ctx->_ssl_config,
                                enable_mtls ? MBEDTLS_SSL_VERIFY_REQUIRED : MBEDTLS_SSL_VERIFY_NONE);

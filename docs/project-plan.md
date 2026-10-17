@@ -230,14 +230,14 @@
 | 序 | 单元 | 内容 | 规模 | 备注 |
 |---|------|------|------|------|
 | P1-1 ✅ | `ts_msg_send` APP 间消息 | **已交付**（框架路由〔app_id 串身份寻址 + 权限先于目标解析——不泄露存在性〕+ msg:send 名单权限类〔IR-11 收口〕+ FIFO 满槽背压 + TS_APP_EVT_MSG 取件通知 + natives/Agent 镜像；twister 16/16〔111，+2〕agent 197+2s〔+1〕L5/ruff/repo 全绿；真机双 APP 互发 demo 可复用 multiappbench〔随下一板级轮〕） | ~1 单元 | HLD §3.4 原设计项；多 APP 业务的最后一环 |
-| P1-2 →呈递 | zenoh TLS 链路 | **Q-47 已呈递停门（门③）**：五子项 = pico 使能路径（仓携带补丁）/ 自建 CA + mTLS 双向 / prov v2 bstr 三元组（tls_ca/cert/key，缺省无键 = TLS off 零重刷）/ zenohd TLS 并存口 / 内存重平与工作量 ~1 单元。设计事实在档（zenohd TLS+mTLS 全支持；pico Zephyr 集成缺件 = 需补丁；EC P-256 ~1.5KB 入 4KB prov） | ~1 单元 | owner 裁后开工 |
+| P1-2 ✅ | zenoh TLS 链路 | **Q-47 已呈递停门（门③）**：五子项 = pico 使能路径（仓携带补丁）/ 自建 CA + mTLS 双向 / prov v2 bstr 三元组（tls_ca/cert/key，缺省无键 = TLS off 零重刷）/ zenohd TLS 并存口 / 内存重平与工作量 ~1 单元。设计事实在档（zenohd TLS+mTLS 全支持；pico Zephyr 集成缺件 = 需补丁；EC P-256 ~1.5KB 入 4KB prov） | ~1 单元 | owner 裁后开工 |
 | P1-3 ✅ | `power_set`/`power_get` native | **已交付**：ts_power_set/get natives（power 层全链已存——perm+预算+唯一写路径+readback；纯暴露面）+ Agent 白名单/约定/面镜像测试 | ~0.5 单元 | twister 111 / agent 204+2s 全绿 |
 | P1-4 ✂️ | `counter` 外设类 | **裁剪清账**：零消费者实证（demo/manifest/natives 全库无 counter 面；GPIO 沿计数由 input monitor 近似覆盖）；HLD §9 对照表已更新（R10 §4 日落纪律第一例——需求实据出现再重开） | 裁剪 | 评估完成 2026-10-16 |
 | P1-5 ✅ | Agent S8 补全（部署失败自动再入修复轮） | **已交付**：post_deploy_check 判据面（pass_patterns + criteria_pass 三态）+ CreationLoop.repair（证据经上轮小结回喂，S8_REPAIR_MAX=2 计入预算）+ CLI --deploy --serial-port 端到端闭环；agent 203+2s（+6） | ~0.5 单元 | HLD-agent §4 S8（v0.2.2 收口） |
 
 ### B. 待 owner 裁决/动作项（当前）
 
-> **收口回归定格 @ 6e54dee（2026-10-16）**：twister 16/16（111）/agent 204+2s/ruff/L5 7/7/repo 5/sync 全绿、工作树干净——**tag-ready**（fw-v0.9.0 候选：形态批 F3 + 清欠批 P1 合版；owner 点头即 tag+push）。Q-47 已裁（DEC-63 按建议）→ P1-2 实施大半交付 + 真机阻断登记（mbedtls 4.1.1 PSA ECDSA DER 验签——修复路径随下批呈递选项）。待 owner：① TLS 阻断修复路径裁决；② 版本 tag review（F3 三路已全收——fw-v0.9.0 点头即 tag+push）。
+> **收口回归定格 @ 6e54dee（2026-10-16）**：twister 16/16（111）/agent 204+2s/ruff/L5 7/7/repo 5/sync 全绿、工作树干净——**tag-ready**（fw-v0.9.0 候选：形态批 F3 + 清欠批 P1 合版；owner 点头即 tag+push）。**P1-2 ✅ 全链收口（2026-10-17——CONNECTED loc=tls + 经 TLS 部署判据；根因 = 双重内存耗尽已修，前架构域诊断推翻）。待 owner：① 外设物理域复查（es8311/SD/LCD 重插后失联）；② 版本 tag review（fw-v0.9.0 点头即 tag+push）。**
 
 （DEC-62 项已裁毕：
 ：Q-46 → 开工/F3〔② LVGL 修订〕；版本 tag → 并入下版〔F3+P1 收口时一并 review+tag〕；gcov → 缓办维持〔随 CI 强化批评估〕——F1/F2 物理判据已先行收口 v1.91）
@@ -277,6 +277,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.104 · 2026-10-17：**P1-2 TLS 全链真机点亮——CONNECTED loc=tls/192.168.2.91:9956 + 经 TLS 部署全判据（upload 2926B/真验签/安装闸 PENDING→timeout fail-closed/终态 STAGED+pending 清）**。根因修正：89cee3e「架构域 ECDSA」诊断**推翻**——板上独立判别机同证书同配置 x509 verify rc=0 全过；真因 = **双重内存耗尽**（mbedtls 堆 16384 握手不足 + 系统池不足 z_malloc -80——ECDSA 症状为其下游表象）。修正值：堆 31744/池 58368/VDB 1。console 路由固化 overlay（uart0 物理不通假停滞破案——dev-env 教训 38）。会话陈旧单向化登记（E2E 前重置纪律）。补丁重生成 329 行六文件可重放。回归：twister 16/16（113）/agent 204+2s/L5 7/7/ruff。**P1-2 单元 ✅ 收口**。外设物理域（es8311/SD/LCD 失联）待 owner 复查接触。
 - v1.103 · 2026-10-17：**P1-2 续批（阻断修复实验）——宿主判别机完成 + 板启动事故阻断**：① 宿主判别机（native_sim + PSA_CRYPTO 显式 + 双模块，同证书同配置）**x509 链校验全过 rc=0** → 板侧 mbedtls PSA ECDSA 验签失败定性为架构/构建特定域（xtensa 编译或板全配置差异——非纯 Kconfig），「窄化 PSA 配置」单一路径预期不足，需板恢复后按判别机对照二分；② **/tmp 系统清洗事故**：ak_build 增量构建目录（板可引导的未知仓外配置态）丢失——全新构建的任何镜像（含 F3-1 源）PSRAM 后停滞（排除 probe/频率/镜像头/分区表/源回退五假说）；真硅 8MB 事实入仓（board conf/overlay）；③ 板双口全哑需 owner 物理断电重启；④ TLS 阻断修复路径裁决升级为**板恢复 + 判别机对照**双前置。
 - v1.102 · 2026-10-16：**P1-2 TLS 实施批（DEC-63 五子项按建议）——大半交付 + 真机阻断登记**。交付：zenoh-pico-tls.patch 六文件（含五项上游缺口修复：socket union 别名覆写 _fd/DER+1 尾 NUL 解析/mbedtls 4.x API 迁移/MSG_NOSIGNAL/握手脚本 BIO 心跳）、prov 15 对 + glue mTLS 注入 + TS_NET_TLS 门控、工具入仓（flash_prov 三元组 + gen_tls_certs.sh）、zenohd TLS 9956 mTLS 实例（openssl 链验证 ✓）、回归全绿（twister 16/16〔113，+2〕/agent 204+2s/L5 7/7/ruff）。设计事实：zenohd 1.10.1（rustls）TLS1.3-only、x25519 key_share 必需（PSA_WANT_ECC_MONTGOMERY_255）、PKCS8 私钥形态。阻断（真机定位）：mbedtls 4.1.1 PSA ECDSA DER 验签拒收服务端签名（x509 链 0x08 + CertificateVerify -0x8D；openssl 同链全绿 = 板侧 PSA 层域；全链已点亮至 TLS1.3 EncryptedExtensions——证据 p1_tls_blocker_console.txt）。事故与复原：west flash 双板自动选口误刷（atk 镜像落 xiao）——双板复原 AK PASS/DB PASS（教训 37）；池重平 98304→69632。
 - v1.101 · 2026-10-16：**F3 拒绝路真机判据收口——安装闸三路（timeout/确认/拒绝）全真机全绿，F3 ◐→✅**。BOOT 长按 ≥2s：AKP1 slot=1 挂起 → AKPR → AKP3 撤销（槽保留可重推）；无复位无 meta 切换，既有 ACTIVE（AK4 slot=0）不受影响 + get-app pending 已清复核。证据 af3_gate_reject_console.txt；驱动 /tmp/ak_f3_gate_e2e.py reject（F3G REJECT PASS）。待 owner 收窄为 Q-47 + tag review。

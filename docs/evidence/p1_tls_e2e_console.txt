@@ -1,0 +1,31 @@
+# P1-2 TLS 链路真机 E2E 证据（atk dnesp32s3b，2026-10-17）
+
+## 判据链
+1. 15 对 prov 装载：AK2 prov load=0（tls_ca 398B/tls_cert 391B/tls_key 138B PKCS8）
+2. glue mTLS 注入：[ts-net] tls: mTLS 注入 ca=398B cert=391B key=138B（名称校验 ON）
+3. **TLS1.3 建链：[ts-net] zenoh_open: CONNECTED loc=tls/192.168.2.91:9956**
+4. TLS 双向数据：[q] sys/get-info rlen=53 resp_len=229（板回执经 TLS 到达 agent）
+5. **经 TLS 部署全链（agent→tcp/9957→同路由→板 tls/9956 mTLS）**：
+   TLS-E2E board online（经明文口 9957 → 同路由 TLS 口 9956）
+   TLS-E2E tsap_verify PASS: tessera.demo.ak4-1.0.0.tsap（2926B，分块 2048B）
+   TLS-E2E lease acquired: id=1 holder=tessera-agent
+   TLS-E2E upload → slot 1（total=2926B）
+   TLS-E2E upload complete: 2926/2926B
+   TLS-E2E verify PASS: facts={'manifest_len': 224, 'wasm_len': 1177, 'cose_off': 1449}
+   TLS-E2E activate PENDING slot=1: 待板上本地确认（60s fail-closed）
+   TLS-E2E lease released
+6. 闸 timeout fail-closed + 终态：get-app state=2（STAGED 槽保留可重推）/ pending 已清
+7. 板 TLS 存活：AK alive net=1 持续
+
+## 根因修正（前诊断推翻）
+- 前诊断「mbedtls 4.1.1 PSA ECDSA DER 验签拒收（架构域）」**不成立**——板上独立判别机
+  （同证书同配置）x509 verify rc=0 全过；真根因 = **双重内存耗尽**：
+  ① mbedtls 专用堆 16384B 在握手期（双 4KB SSL 缓冲+证书解析+ECDSA 上下文）不足
+  ② 系统池不足 → z_malloc 失败（-80）
+  修正值：MBEDTLS_HEAP_SIZE 16384→31744 + HEAP_MEM_POOL_SIZE 69632→58368 + LVGL VDB 2→1
+- 历史误导链：ECDSA 症状（0x08/-0x8D）为内存耗尽的下游表象；宿主判别机「过」与板「败」
+  的差异是板上会话内存占用（判别机无握手）
+
+## 环境
+zenohd 双听：tls/0.0.0.0:9956（mTLS：enable_mtls + router.crt/ca.crt）+ tcp/0.0.0.0:9957
+驱动：~/project/logs/ak_tls_e2e.py；证书：~/project/tls/（EC P-256，PKCS8 设备私钥）

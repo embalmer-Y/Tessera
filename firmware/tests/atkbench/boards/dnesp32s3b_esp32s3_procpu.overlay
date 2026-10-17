@@ -76,10 +76,21 @@
 
 /delete-node/ &slot1_partition;
 
-/* 真硅 8MB（esptool 实测 gd 8192k；板文件 16M 声明 = 镜像头 16M——
- * esptool 刷写警告 + 引导日志 "Detected size(8192k) smaller than header
- * (16384k). Probe failed"。K1 期增量构建曾以仓外状态正常引导（该构建目录
- * 已随 /tmp 清理丢失）；8MB 修正后引导停滞未解——见 plan v1.103 阻断登记）。 */
+/* 板载真硅 8MB（esptool 实测 gd 8192k——板文件 16M 声明失实；探测失败
+ * 为非致命告警但分区表须按真容量约束）。console = USJ（本板 uart0 经
+ * CH343 的通路未接/不通——真机实证 ACM1 恒 0B；历史 AK 输出皆在 USJ =
+ * ACM0。曾因全量重建回退 console=uart0 造成"启动停滞"假象——dev-env 教训 38）。 */
+&usb_serial {
+	status = "okay";
+};
+
+/ {
+	chosen {
+		zephyr,console = &usb_serial;
+		zephyr,shell-uart = &usb_serial;
+	};
+};
+
 &flash0 {
 	reg = <0x0 0x800000>;
 
