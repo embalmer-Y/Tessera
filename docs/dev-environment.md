@@ -246,6 +246,7 @@ sudo usermod -aG dialout emb   # 重新登录生效
 - 迁移包处置确认后执行 Windows 侧清除（migration-x86.md §6 owner 决定项）。
 
 ## 修订记录
+- v2.25 · 2026-10-17：P1-2 续批——**/tmp 清洗事故与板启动阻断登记**：① 系统级 /tmp 清理将 ak_build（K1 起增量构建目录——含使板可引导的未知仓外配置态）、串口持有器脚本、console 留痕、zenohd TLS 实例日志全部清除；② 重建全新构建目录后**任何镜像（含 F3-1 期提交源）均于 PSRAM 初始化后停滞**（已排除：probe 代码/flash 频率 40M/镜像头 8MB 修正/分区表 0x8000 内容/源提交回退——根因未解，疑增量目录曾携带关键仓外配置）；③ **真硅事实入仓**：atk 板载 flash = gd 8MB（esptool 实测；板文件 16M 声明失实——K1 文档「16MB flash」勘误），board conf/overlay 已定 8MB；④ **宿主判别机结论（重大）**：native_sim + 同 mbedtls/PSA 配置 + 同证书 → **x509 链校验全过（rc=0）**——板侧 ECDSA 验签失败定性为**架构/构建特定**（xtensa 工具链或板全配置域），非纯配置错误；⑤ 板现双口全哑（最后双偏移刷写后）——**需 owner 物理断电重启**（USB 重插）后复测。判别机源 /tmp/tlstest2（易失，如需固化再入仓）。
 - v2.24 · 2026-10-16：P1-2 TLS 批——§7-4 更新（zenoh-pico TLS 仓携带补丁六文件——装载步骤与重放纪律）；§5 增教训 37（**west flash 双板自动选口**：双板并接时 west flash 自动端口可选中错误板〔atk 镜像落 xiao——P1-2 一小时「15 对装载失败」误诊真因〕；烧录一律 esptool --port 显式指定 / esptool 5.x write-flash 不再收 stdin "-"〔临时文件传路径〕/ pkill 自匹配第 4-5 复发〔含 pgrep -f 复合——pkill/pgrep 字面量绝不与后续命令同体〕）；设计事实：zenohd 1.10.1（rustls）TLS1.3-only；mbedtls 4.1.1 PSA ECDSA DER 验签阻断（真机定位——证据 p1_tls_blocker_console.txt，修复随下批）。
 - v2.23 · 2026-10-16：F3-1 LCD bring-up 批——§5 增教训 36（空凭据烤入 = net_mgmt -22 + strings 一步定案 + CMake 空守卫/LVGL glue 内存三坑〔LV_MEM 死配置、LV_Z_MEM_POOL 16384 下限、HEAP_LIB_C 崩〕/USJ×esptool×holder 定式/pkill 自匹配第三复发）；atkbench LCD+LVGL 真机 AKU1 PASS（docs/evidence/af31_lcd_console.txt）。
 - v2.22 · 2026-10-13：M19 真多线程批——§5 增教训 35（WAMR loader 原地改写 wasm 缓冲——嵌入必须可写段/os_thread 族三缺陷 → 宿主 k_thread 替代/xtensa 软 8 字节原子/lib-pthread × 计量不兼容）；thrdemo 真机 DT PASS。
