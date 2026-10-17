@@ -86,7 +86,39 @@ TLS 重连路径无退避且在握手段不喂 NET 狗（x86 时代路由常活�
   TLS 重连加退避 + 握手段喂狗（或 WDT 窗口豁免），固件健壮性批次处置。
 注：zenohd TLS 实例随本会话存活；持久化（systemd 用户单元）待 owner 点向。
 
-## 9. 网络通道实测（对比基准 2026-10-17）
+## 9a. 凭据入位 + 分层验证⑦ NVD PASS（2026-10-17 11:50-13:08——环境验收金标准闭环）
+
+凭据（owner 提供，env.sh 600 仓外）：WiFi cemetery / LLM = MiniMax Anthropic 兼容端点。
+agent/config.toml 重建两坑（checklist §9 已回填具体形态）：① 必须分节表
+（[providers]/[zenoh]/[agent]——扁平键 = ConfigError）；② 模型串须带前缀
+`anthropic:MiniMax-M3`（裸名 = pydantic-ai UserError）。端点冒烟 200。
+
+NVD 全链四轮（v3→v6 收敛过程 = 三个真发现）：
+  v3：develop ✅（1 轮 77.7s 1370B）→ 上传 ✅ → **安装闸 PENDING fail-closed**
+      （prov lconf=1——F3 设计行为；NVD 正典口径 = 闸关 prov，x86 同）
+  v4：闸关重烧后 **activate confirmed: slot=1 + deploy 完成** ✅（caps 自报
+      small+large/512KB/peripherals 全对）→ 判据 FAIL：抓窗 18s << atkbench
+      boot ~45-50s（音频/LCD/LVGL 自检远慢于 xiao deploybench——18s 窗是
+      xiao 口径，atk 口径须 90s）
+  v5：抓窗修正后 **get-info Timeout**——一四二④「TLS 会话陈旧单向化」现实重现
+      （部署距上次复位 ~165s；v4 成功时仅 ~95s——会话龄窗口介于其间）
+  v6：**驱动落地「前重置纪律」**（reset → 轮询 CONNECTED → 立即部署，会话龄
+      <数秒）→ 全链 PASS：
+      develop 89.1s（1574B 2 轮）→ upload 1574/1574B → activate confirmed slot=0
+      → 复位核验 → console 判据：
+        [app1/l0] nvd init / nvd tick cnt=01..10 / **NVD DONE ticks=10**（精确命中）
+      === 判据：NVD PASS（主判据 + 2 附属前缀）rc=0 @ 13:08:39 ===
+
+意义：**需求 → 真 LLM 生成 → TSAP 签名打包 → zenoh TLS 无线部署 → 真机判据**
+在 ARM 重建机上首次完整重现（checklist 分层验证 ①-⑦ 全部执行完毕；
+⑥ 判据 AKa0/AK7/AKU1 + CONNECTED 已于 boot 日志与本次部署链中全数命中）。
+驱动脚本 ~/project/logs/nvd_demo_arm.py（仓外惯例；仓内 nvd_demo.py 为 x86 口径）。
+
+登记（后续专项）：① TLS 会话陈旧单向化根因深查（一四二④ 维持）+ 前重置纪律
+  应上收为 app_deploy 内建（现于驱动层）；② atk 口径判据窗 90s 可参数化入仓内
+  nvd_demo.py（板型感知窗口）。
+
+## 10. 网络通道实测（对比基准 2026-10-17）
 github 直连（release CDN/git 大传输）：20-44KB/s 级且间歇断连（blobs 连续 RemoteDisconnected）
 ghfast.top 镜像：git ~1.5-3MB/s；blob/release 资产可用（blobs 71 件全经此通道 + sha256 全过）
 LAN 代理 192.168.2.90:7890：基准 551KB/s（与 ghfast 同量级）；30 分钟后代理不可达（connect timeout）——

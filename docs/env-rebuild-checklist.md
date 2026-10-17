@@ -136,8 +136,14 @@ cargo install --locked zenohd --version 1.10.1   # 产物入 ~/.cargo/bin，软�
 # ~/project/logs/env.sh（600）:
 export TS_WIFI_SSID=... TS_WIFI_PASSWORD=...      # 板级构建注入
 export ANTHROPIC_BASE_URL=... ANTHROPIC_API_KEY=...  # Agent 真 LLM（Anthropic 兼容端点）
-# agent/config.toml（gitignored，~/project/Tessera/agent/）:
-#   按 agent/tessera_agent/common/config.py 默认值重建（default_model/context_window/router_locator）
+# agent/config.toml（gitignored，~/project/Tessera/agent/）——**必须分节表 + 模型串带前缀**
+#  （ARM 机实测两坑：扁平键 = ConfigError「必须是表」；裸模型名 = pydantic-ai UserError）：
+#   [providers]
+#   default_model = "anthropic:MiniMax-M3"   # MiniMax Anthropic 兼容端点（§2.y 口径）
+#   context_window = 1000000                 # 1M 窗口（§2.y）
+#   [zenoh]
+#   router_locator = "tcp/127.0.0.1:9957"    # 本机 zenohd TCP 口
+#   [agent]（workspace_repo/west_* 按本机路径）
 # TLS 证书（TLS E2E 才需要）: tools/board/gen_tls_certs.sh → ~/project/tls/（600）
 ```
 
@@ -161,8 +167,8 @@ python3 -m venv ~/project/agent-venv
 | ③ | agent 回归 | `cd agent && pytest tests/ -q && ruff check .` | **204 passed +2 skipped** / ruff 干净（aarch64/py3.13 实测 ✅） |
 | ④ | repo pytest | `firmware/tests/pytest` 下 pytest | 2 passed（2026-10-17 实测 = **5 passed**——套件已扩，以实际为准） |
 | ⑤ | sync_check | agent venv `python -m tessera_agent.skills.sync_check` | 与 SOURCES.lock 一致 ✅ |
-| ⑥ | 板级冒烟（有板时） | tools/board/README.md「典型编排」①-⑥ | CONNECTED loc=tls + AKa0/AK7/AKU1 rc=0（板链路 esptool flash-id 实测 ✅；冒烟待 WiFi 凭据） |
-| ⑦ | 全链验收（有板+LLM key） | `python3 tools/board/nvd_demo.py` | NVD PASS（真 LLM→部署→真机判据）（待凭据） |
+| ⑥ | 板级冒烟（有板时） | tools/board/README.md「典型编排」①-⑥ | CONNECTED loc=tls + AKa0/AK7/AKU1 rc=0（**aarch64 实测 ✅**——含 prov 重指本机路由 + 板稳定） |
+| ⑦ | 全链验收（有板+LLM key） | `python3 tools/board/nvd_demo.py` | NVD PASS（真 LLM→部署→真机判据）（**aarch64 实测 ✅ NVD PASS** @ 2026-10-17——注意三点：x86 路径/node-cube 需按机适配（仓外驱动副本惯例）；atk 口径判据窗 90s（boot ~50s，18s 是 xiao 口径）；部署前「复位+等 CONNECTED」纪律（一四二④ 会话陈旧——驱动落地 reset_and_wait_connected）） |
 
 ## 12. 平台差异登记（已实测 vs 待实测）
 
