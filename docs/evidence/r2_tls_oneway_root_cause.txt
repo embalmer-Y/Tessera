@@ -1,0 +1,80 @@
+R2 · TLS 会话陈旧单向化：复现 + 根因定案 + 修复真机判定（2026-10-17 15:42-16:35，DEC-64②）
+
+## 1. 复现（活标本）
+
+- 15:42:22 板 CONNECTED loc=tls/192.168.2.101:9956（flash_prov 指向本机 zenohd TLS）。
+- 15:43-15:53 探测：get-info 回执 0.06s/3.02s/0.67s/1.49s（age 1-11min 健康）。
+- 15:58:41 部署驱动（app_deploy 首条 get-info）：router 记录
+  "Didn't receive final reply for query south:0:peer/4d263756:33:1: Timeout(10s)"
+  —— 会话龄 ~16min，查询死。板 console alive 行 net=1（板自认链活）。
+- 13:01 同日早 NVD v5 现场同型（会话龄仅 ~165s；v4 成功时 95s）——
+  一四二④「陈旧单向化」现实重现，且 x86 时代同象（非本机特异）。
+
+## 2. TCP 层解剖（路由器侧 ss -tnoie）
+
+  Recv-Q 0 / Send-Q 1953（1478→1953 增长：查询 + router keepalive 堆积）
+  rto:120000 backoff:9  retrans:1/21  lost:1  bytes_retrans:820
+  snd_wnd:1536（板收窗枯竭）  rcv_ooopack:5（板收乱序包入队）
+  lastrcv:44ms（板→router 方向完全正常——hb/遥测持续到达）
+
+定性：单段（~820B）丢失后 21 次重传未被板 ACK（rto 退避至 120s 封顶），
+下行永久黑涸而上行照常 = TCP 单向僵尸。板侧 TCP 收到后续段 OOO 缓冲、
+cumulative ACK 不覆盖缺口（Zephyr 4.5 原生 TCP 乱序/重传域，上游域嫌疑；
+R2 修复不以此为本——见 §4 系统级防线）。
+
+## 3. 根因链（代码级闭合）
+
+1. zenoh-pico 1.10.1 Zephyr TCP open（tcp_zephyr.c _z_tcp_zephyr_open）设
+   SO_RCVTIMEO=100ms（Z_CONFIG_SOCKET_TIMEOUT）——设计意图：recv 短超时
+   轮询，让 executor 在 read/lease/keep-alive 三 fut 间轮转。
+2. **atkbench 构建 `# CONFIG_NET_CONTEXT_RCVTIMEO is not set`**（Zephyr
+   Kconfig 默认 n，无人启用）→ setsockopt 静默无效（sockets_inet.c
+   IS_ENABLED 守卫直接 fall-through，无错误返回）。
+3. → recv 永久阻塞；pico runtime = 单 background-executor 线程
+   （background_executor.c 仅 _z_task_init 一只）协作轮转三 fut →
+   **read 任务把 executor 钉死在 recv 内**。
+4. → lease 任务（unicast/lease.c：整租期无入向消息 → "Closing session
+   because it has expired" → failed_result → RECONNECTING →
+   _z_client_reopen_task_fn 自动重连，Z_FEATURE_AUTO_RECONNECT=1 在树）
+   **永远得不到调度** → 入向断流判死永不执行 → 不重连。
+5. 我方 glue is_up = 任务活性自省（线程活着 ≠ 在轮转）→ CONNECTED 恒真；
+   我方 net_wq 的 z_put hb/遥测（独立线程，不依赖 executor）继续到达
+   router → router 侧 _received 恒真 → router 也不判死 → 双侧互盲。
+6. 净效应：板 net=1 + 查询全死 =「单向化」，唯一恢复手段 = 板复位
+   （= 一四二④/NVD v5/驱动「前重置纪律」的根因）。
+
+## 4. 修复（DEC-64②）
+
+- module Kconfig：TS_NET_ZENOH `select NET_CONTEXT_RCVTIMEO`（硬性要求
+  ——pico 的 SO_RCVTIMEO 轮询设计前提；help 记根因链）。
+- atkbench 板级：NET_MAX_CONTEXTS 12→4（RCVTIMEO 静态面溢出 140B 实证
+  驱动；bench 仅 1 条 zenoh context，每 context 数百 B 静态数组）。
+- 构建实证：pristine 重建 .config `CONFIG_NET_CONTEXT_RCVTIMEO=y`、
+  零 overflow、镜像产出。
+
+## 5. 真机判据：iptables 单向下行黑洞 A/B
+
+规则：`iptables -I OUTPUT 1 -d 192.168.2.67 -p tcp --dport 49971 -j DROP`
+（只丢 host→板当前连接下行；SYN 静默吞 = 无 FIN 黑洞，精确复刻 §2 形态；
+新连接用新临时端口不受影响）。
+
+  修复前（同日 15:58 活标本）：黑洞态自发形成后 **25min+ 无自愈**
+  （查询恒超时、TCP 连接 ESTABLISHED、板不复位）。
+  修复后（16:27:37 挂规则）：
+    t+5s   NO-REPLY（黑洞生效——板尚在旧连接）
+    t+20s  REPLY 35B **T+0.05s**（已自愈）
+    t+40s  REPLY 35B T+0.12s（稳态）
+  端口证据：49971 → **62395**（板主动关闭死连接 → 全新 TCP+TLS 连接）
+  ——租期判死 + 自动重连全链生效，**零复位、零人工**。
+  摘除规则后稳态复核：REPLY T+0.21s，连接 62395 稳定。
+
+## 6. 关联登记
+
+- console 观测面两次停摆（15:59:22 / 16:24:02 boot 后即停）= USJ hub
+  1-7.2 线缆域（一四三已登记待 owner 重插）——与 R2 无关，本次判据全部
+  走 zenoh 层 + ss 端口层，不依赖 console。
+- 上游域嫌疑（不阻塞）：Zephyr 4.5 原生 TCP 乱序/重传恢复缺陷（§2 解剖）
+  ——黑涸触发器仍可能发生，但系统级防线（10s 判死 + 自动重连）已把
+  「分钟-小时级查询死」收敛为「≤15s 自愈」。
+- 一四二④「E2E 前重置纪律」的根因至此闭合：陈旧化 = 本缺陷的表象；
+  纪律保留为部署面冗余防线（无害），非必需。
