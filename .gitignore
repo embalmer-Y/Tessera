@@ -15,7 +15,6 @@ compile_commands.json
 /zephyr/
 /bootloader/
 /modules/
-/tools/
 /manifest-repo/
 
 # ---- Python（Agent / 测试 / 脚本）----

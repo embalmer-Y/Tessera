@@ -12,7 +12,7 @@
 
 ## 2. 新机器环境重建（原生 x86 Linux 与 WSL 的差异）
 
-基础步骤与 `docs/dev-environment.md` §1-§3 相同（目录 `~/project/{tessera,zephyrproject,logs}`、west 工作区 v4.5.0-rc1、SDK 1.0.1、两个 venv）。差异点：
+基础步骤与 `docs/dev-environment.md` §1-§3 相同（目录 `~/project/{tessera,zephyrproject,logs}`、west 工作区 v4.5.0-rc1、SDK 1.0.1、两个 venv）。**（2026-10-17 注：完整重建配方以 `docs/env-rebuild-checklist.md` 为权威——本节为 x86 迁移时点差异记录。）** 差异点：
 
 | 项 | WSL（旧） | 原生 Linux（新） |
 |---|---|---|
@@ -55,7 +55,7 @@ python3 -m venv ~/project/agent-venv
 
 原先只存在于 WSL `~/project/logs` 的资产，已按性质入仓：
 
-- **`tools/board/`（34 个脚本，新目录）**：全部板级构建/烧录/运行/验证/包生成工具（`*_build.sh`/`*_flash.sh`/`db_e2e.sh`/`dav_run_v21.sh`/`ota_client.py`/`dav_recv.py`/`console_smoke.py`/`live_console.py`/`nv*_*.py`/`v2*_*.py`/`gen_*`）。**WiFi 凭据已参数化**（`TS_WIFI_SSID`/`TS_WIFI_PASSWORD` 环境变量，缺失即报错——fail-closed）。
+- ~~`tools/board/`（34 个脚本）入仓~~ **本条登记失实（两次）且从未兑现**：b1a31e4 提交内容实际为零 tools/board 文件——根因 = `.gitignore` 整目录忽略 `/tools/`（`git add -A` 静默跳过）。2026-10-17 fw-v0.9.0 环境审查批修复：gitignore 摘除 + 当前 era 实际使用的 16 个会话驱动脚本 + ota_client/gen_tls_certs.sh 真实入仓（WSL 时代 34 脚本本体随 WSL 销毁不再可考——其功能后继 = 现清单，见 `tools/board/README.md`）。
 - **`docs/evidence/`（关键真机单迹，新目录）**：decisions 登记册引用的验证证据物理文件（nv1/nv6 全流程 console、simreal 首基线 JSON、D-AV 双帧图像、#121774 禁自愈 951 超时对照、auditbench AB PASS、dsd 换卡 PASS）。
 
 **未入仓、由迁移包带走的**（见 §5 迁移包）：
@@ -85,12 +85,7 @@ GitHub 推送：新机器配置 SSH key（`embalmer-Y` 身份，`embalmer-Y <y19
 
 ## 5. 迁移验证清单（新机器逐项打勾）
 
-1. `cd ~/project/tessera && git log --oneline -1` = 迁移前 HEAD；`git tag | grep fw-` 含 `fw-v0.1.0`/`fw-v0.2.0`。
-2. 固件回归：twister 15/15（80 用例；**必须带 `--extra-args=ZEPHYR_EXTRA_MODULES=...` 与 `TS_WAMR_DIR`**——标准口径见 dev-environment §3）。
-3. agent 回归：`pytest tests/ -q` 113 passed + `ruff check .` 干净。
-4. repo pytest：`firmware/tests/pytest` 2 passed（编码守卫）。
-5. 板级冒烟（板接原生 USB）：persistbench 或 auditbench 构建+烧录+console 判据（`tools/board/` 脚本；换烧前擦 ts 分区——教训 33）。
-6. zenoh 联调：zenohd 起路由 + 板 WiFi 连入 + `deploy_status` 可发现。
+**本节验证清单已升级为独立权威文档 `docs/env-rebuild-checklist.md`（fw-v0.9.0 起环境重建唯一总单；本节以下为 2026-10-11 历史口径存档）。** 历史口径：① HEAD 与 tag 集（当前应含 fw-v0.1.0…fw-v0.9.0）；② twister（现口径 16/16 套件 113 用例）；③ agent pytest（现口径 204+2s）+ ruff；④ repo pytest 2；⑤ 板级冒烟（tools/board/README.md 典型编排）；⑥ zenoh 联调 + TLS E2E（TLS 态 zenohd 双监听）。
 
 ## 6. Windows 机器清除指引
 

@@ -34,11 +34,12 @@
 | 路径 | 内容 |
 |---|---|
 | `firmware/module/tessera/` | 固件框架源码（ts-* 七模块） |
-| `firmware/tests/` | twister 套件（16 套件 107 用例）+ 板级 bench（netbench/deploybench/otabench/…） |
+| `firmware/tests/` | twister 套件（16 套件 113 用例）+ 板级 bench（netbench/deploybench/otabench/…） |
 | `firmware/app/` | 生产 app（板级片段：S3 PSRAM/WiFi/分区） |
-| `agent/` | MCP server + 模拟器 + TSAP 工具链 + skills（pytest 183 用例） |
+| `agent/` | MCP server + 模拟器 + TSAP 工具链 + skills（pytest 204 用例） |
 | `design/` | HLD + 七模块 LLD（v0.2 已确认） |
-| `docs/` | dev-environment（环境事实源）/ project-plan / impl-review 族 |
+| `tools/board/` | 板级联调工具（E2E 驱动/prov·证书生成/串口持有器/消费端——README 含典型编排） |
+| `docs/` | dev-environment（环境事实源）/ **env-rebuild-checklist（全新机器重建总单，含 ARM Linux）** / project-plan / impl-review 族 |
 | `decisions.md` | Q/DEC 裁决登记册（全部决策可溯） |
 
 ## 依赖与钉版
@@ -62,7 +63,7 @@
 
 ## 快速上手（Linux 环境）
 
-环境事实源见 `docs/dev-environment.md`（目录规范 `~/project/{tessera,zephyrproject,logs}`；Zephyr v4.5.0-rc1 + Zephyr SDK 1.0.1 钉版）。当前主力环境 = 原生 x86 Linux（迁移指南 `docs/migration-x86.md`；WSL2 历史口径见 dev-environment §1-8）。
+环境事实源见 `docs/dev-environment.md`；**从零重建（多机/含 ARM Linux）按 `docs/env-rebuild-checklist.md` 逐项执行**（Zephyr v4.5.0-rc1 + Zephyr SDK 1.0.1 钉版；目录规范 `~/project/{Tessera,zephyrproject,logs}`）。迁移历史与平台差异记录见 `docs/migration-x86.md`（WSL2 历史口径见 dev-environment §1-8）。
 
 ```bash
 # 固件构建（native_sim）

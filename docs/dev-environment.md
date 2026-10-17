@@ -230,7 +230,7 @@ python3.12 -m venv ~/project/agent-venv
 
 ### 9.5 遗留问题登记
 
-1. **`tools/board/` 34 个脚本从未实际入仓**——b1a31e4 提交消息/decisions/AGENTS 三处登记"已入仓"与文件清单事实不符（实际仅 docs/evidence 11 项 + 文档 3 项）。恢复渠道 = owner 迁移包（`D:\tessera_migration_bundle`，§3"未入仓脚本"字样涵盖）或旧 WSL（若未 unregister）。恢复后须真实入仓并修正登记。
+1. ~~`tools/board/` 34 个脚本从未实际入仓~~ **✅ 2026-10-17 结案（fw-v0.9.0 环境审查批）**：根因 = `.gitignore` 整目录忽略 `/tools/`（git add 静默跳过——b1a31e4/5cc02d4 两处「入仓」登记皆机械性失实）；已摘除忽略 + 当前 era 16 个会话驱动 + ota_client/gen_tls_certs.sh 真实入仓（WSL 原脚本本体已随 WSL 销毁不可考——功能后继 = 现清单 tools/board/README.md）。重建总单新立 `docs/env-rebuild-checklist.md`（多机含 ARM）。
 2. `west packages pip --install` 不可用（某模块〔sof 族〕钉 `grpcio-tools==1.68.0` 无 3.14 版）——esptool 改为直装 `esptool==5.4.0`，功能等价。
 3. ghfast.top 镜像为第三方加速（内容经 git SHA 校验，完整性不受影响）；不稳定时回退代理直连通道。
 
