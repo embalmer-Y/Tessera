@@ -76,10 +76,13 @@
 
 /delete-node/ &slot1_partition;
 
-/* 板载真硅 8MB（esptool 实测 gd 8192k——板文件 16M 声明失实；探测失败
- * 为非致命告警但分区表须按真容量约束）。console = USJ（本板 uart0 经
- * CH343 的通路未接/不通——真机实证 ACM1 恒 0B；历史 AK 输出皆在 USJ =
- * ACM0。曾因全量重建回退 console=uart0 造成"启动停滞"假象——dev-env 教训 38）。 */
+/* 板载真硅 = boya 16MB（bootloader 实报 + esptool JEDEC 0x68:0x4018——
+ * 2026-10-17 二次勘误，前「gd 8MB」登记翻案；本表 8MB reg 声明为保守
+ * 兼容形态：全部分区 <8MB，16MB 硅上仅用下半，功能等价）。
+ * console = USJ（曾因全量重建回退 console=uart0 造成"启动停滞"假象——
+ * dev-env 教训 38。2026-10-17 修正注记：uart0/CH343 打印路实测可用
+ * 〔教训 38 修正——dev-env v2.28〕，console=uart0 为可运营替代形态，
+ * 烧录/复位可经 CH343 与 console 解耦。） */
 &usb_serial {
 	status = "okay";
 };
