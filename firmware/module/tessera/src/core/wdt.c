@@ -30,6 +30,7 @@
 struct wdt_src {
 	uint32_t period_ms;
 	atomic_t last_feed32; /* ts_time_ms 低 32 位；无符号差值对回绕安全 */
+	atomic_t grace_until32; /* R1·DEC-64①：豁免窗绝对截止（0 = 无；feed 清除） */
 	bool registered;
 	bool active; /* DEC-48①：首次 feed 激活——未激活源不参与逾期判定 */
 };
@@ -39,6 +40,9 @@ static bool started;
 
 /* 硬 WDT 超时 = min(2×max(periods), 10000ms)（来源: DEC-22 / DEC-27） */
 #define TS_HARD_WDT_CAP_MS 10000
+
+/* 豁免窗预算钳制（R1·DEC-64①）：防误用长预算把失防窗扩到分钟级 */
+#define TS_WDT_GRACE_CAP_MS 60000
 
 #ifdef CONFIG_TASK_WDT
 static int twdt_ch = -1;
@@ -70,8 +74,28 @@ void ts_wdt_feed(ts_wdt_src_t src)
 {
 	if (src < TS_WDT_COUNT) {
 		atomic_set(&srcs[src].last_feed32, (atomic_val_t)(uint32_t)ts_time_ms());
+		atomic_set(&srcs[src].grace_until32, 0); /* R1：正常喂狗恢复即清豁免窗 */
 		srcs[src].active = true; /* DEC-48①：首次喂狗 = 激活 */
 	}
+}
+
+void ts_wdt_grace(ts_wdt_src_t src, uint32_t budget_ms)
+{
+	if (src >= TS_WDT_COUNT || budget_ms == 0) {
+		return;
+	}
+	struct wdt_src *s = &srcs[src];
+
+	/* 豁免不激活源（激活 = feed 专属，DEC-48① 语义不变） */
+	if (!s->registered || !s->active) {
+		return;
+	}
+	if (budget_ms > TS_WDT_GRACE_CAP_MS) {
+		budget_ms = TS_WDT_GRACE_CAP_MS;
+	}
+	/* 绝对截止 = now + budget；u32 回绕由签名差值比较吸收 */
+	atomic_set(&s->grace_until32,
+		   (atomic_val_t)((uint32_t)ts_time_ms() + budget_ms));
 }
 
 void ts_wdt_deactivate(ts_wdt_src_t src)
@@ -87,11 +111,20 @@ void ts_wdt_deactivate(ts_wdt_src_t src)
 /* 巡检：返回首个逾期源；无则 TS_WDT_COUNT。 */
 ts_wdt_src_t ts_wdt_patrol_once(void)
 {
+	uint32_t now32 = (uint32_t)ts_time_ms();
+
 	for (int s = 0; s < TS_WDT_COUNT; s++) {
 		if (!srcs[s].registered || !srcs[s].active) {
 			continue;
 		}
 		if (elapsed_since(&srcs[s]) > srcs[s].period_ms) {
+			/* R1·DEC-64①：豁免窗内不判逾（声明式合法阻塞期）；
+			 * 超窗恢复判逾——预算过期 = 真卡死，fail-safe 保持 */
+			uint32_t gu = (uint32_t)atomic_get(&srcs[s].grace_until32);
+
+			if (gu != 0 && (int32_t)(now32 - gu) < 0) {
+				continue;
+			}
 			/* LLD §5：先 WDT_WARN（带 src 与最后 feed 时间）→ system_fail */
 			struct {
 				ts_wdt_src_t src;
@@ -206,3 +239,15 @@ ts_res_t ts_wdt_start(void)
 				    K_MSEC(ts_wdt_patrol_period_ms()));
 	return TS_OK;
 }
+
+#ifdef CONFIG_TS_TEST
+bool ts_wdt_grace_active(ts_wdt_src_t src)
+{
+	if (src >= TS_WDT_COUNT) {
+		return false;
+	}
+	uint32_t gu = (uint32_t)atomic_get(&srcs[src].grace_until32);
+
+	return gu != 0 && (int32_t)((uint32_t)ts_time_ms() - gu) < 0;
+}
+#endif

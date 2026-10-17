@@ -67,6 +67,12 @@ ts_net_state_t ts_net_session_poll(uint64_t now_ms)
 		if (now_ms < next_try_ms) {
 			return state;
 		}
+		/* R1·DEC-64①：open 体阻塞豁免——死路由上 TCP connect（SYN/ARP
+		 * 超时）+ TLS 握手 + 会话声明可阻塞数秒、超 NET 喂狗窗；退避表
+		 * 只护调用间隔、tick 顶喂狗只护间隙，均护不住调用体（2026-10-17
+		 * 真机复位环实证，arm64_rebuild §8）。预算过期恢复判逾 = 真卡死
+		 * 仍 fail-safe。 */
+		ts_wdt_grace(TS_WDT_NET, CONFIG_TS_NET_OPEN_BUDGET_MS);
 		if (ts_net_transport->open() == TS_OK && ts_net_transport->is_up()) {
 			state = TS_NET_CONNECTED;
 			attempt = 0;
@@ -80,6 +86,7 @@ ts_net_state_t ts_net_session_poll(uint64_t now_ms)
 			next_try_ms = now_ms + ts_net_backoff_ms(attempt);
 			attempt++;
 		}
+		ts_wdt_feed(TS_WDT_NET); /* open 已返回：续喂 + 清豁免（成败同路） */
 		return state;
 	}
 	/* CONNECTED：传输层掉线检测（is_up 由传输实现驱动：读写失败/keepalive） */

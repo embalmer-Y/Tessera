@@ -267,6 +267,17 @@
 - 生产化批（安全认证路径/量产烧录流水线——owner 点向后规划）
 - SMP 多核 APP 并行（维持裁剪：rt[N] 单核已满足语义——需求实据出现再评估）
 
+### F. 健壮性收口批 V0.10.0（§11h，2026-10-17 owner 泛指令点向「按照推荐开发顺序进行开发」——DEC-64；执行序 R1 → R2 → R4 → R3）
+
+> 来源：ARM 重建会话（一四五）三项登记固件健壮性缺陷 + TLS 会话陈旧观察项；owner 按建议序点向开工。定位 = 无路由器/长失联场景 fail-safe 常驻（降级而非复位循环）与 ARM 机新暴露域收口。
+
+| 序 | 单元 | 内容 | 规模 | 备注 |
+|---|------|------|------|------|
+| R1 ✅ | 断链重连健壮化 | **已交付**（根因 = 退避表只护调用间隔、tick 顶喂狗只护间隙，**护不住 open 调用体**——死路由 TCP connect+TLS 握手阻塞 > NET 喂狗窗 2s → 巡检中途判逾 → system_fail 复位环〔arm64_rebuild §8 真机实证〕。修复 = **声明式 WDT 豁免窗**：core 增 `ts_wdt_grace(src, budget)`（窗内巡检不判逾/超窗恢复判逾 fail-safe 保持/feed 清除/60s 钳制/不激活源）+ session_poll open 前后接线（grace → open → feed 成败同路）+ CONFIG_TS_NET_OPEN_BUDGET_MS 15000（观测单次失败 2-5s ×~3 裕度）；握手段 BIO 心跳钩（DEC-63①）保留为独立防线。用例 core grace 数学六断言组 + net test_17 接线双路；LLD-ts-core v0.2.3/LLD-ts-net v0.4.5） | ~0.5 单元 | DEC-64① |
+| R2 | TLS 会话陈旧根因 | 长时 TLS 会话单向化（一四二④：回执丢失、重置恢复——E2E 前重置纪律的根因化 + 固件侧自愈或规程固化） | ~1 单元 | zenoh-pico 补丁域排查 |
+| R4 | 健壮性小项 | nvd_demo 板型感知窗参数化（atkbench boot ~50s 硬编码 90s 判据窗）；zenohd TLS systemd 用户单元持久化（现随会话存活——owner 点向项） | ~0.5 单元 | 环境/工具面 |
+| R3 | WAMR /64 仿真缺陷 | native_sim/native/64 下 AARCH64/X86_64 目标 SIGSEGV（exec_env user_data 垃圾指针，gdb 定证——framework.app/threads 两套件 known-fail；E 证据 §7）——invoke-native 路径 root cause（WAMR 上游对照 / 我方 64 位 argv 装配二分） | 1-2 单元 | native_sim 仿真域，不涉真机 |
+
 ## 12. 执行纪律（v1.70 增补质量优先条款）
 
 - **质量优先（DEC-57，owner 2026-10-13 指令原文精神）**：**不允许最简实现**——各交付单元的设计与实现须考虑整体架构、后续可维护性与架构可扩展性；现方案不能很好满足目标时，**停批与 owner 确认讨论重新选择方案或技术**，不得静默绕行或降级实现。
@@ -277,6 +288,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.107 · 2026-10-17：**V0.10.0「健壮性收口批」立项 + R1 交付（DEC-64——owner 泛指令「按照你的推荐开发顺序进行开发」按建议序 R1→R2→R4→R3）**。R1 断链重连健壮化 ✅：根因 = 死路由 open 调用体阻塞（TCP connect+TLS 握手）超 NET 喂狗窗、退避表与 tick 顶喂狗均护不住调用体（arm64_rebuild §8 复位环实证）；修复 = core 声明式 WDT 豁免窗 ts_wdt_grace（窗内不判逾/超窗恢复 fail-safe/feed 清除/60s 钳制）+ session_poll open 接线 + TS_NET_OPEN_BUDGET_MS 15000；LLD-ts-core v0.2.3/LLD-ts-net v0.4.5；§11h 新立（R2 TLS 会话陈旧/R4 小项/R3 WAMR /64）。
 - v1.106 · 2026-10-17：**fw-v0.9.0 tag 打点推送（基线 5a8b9f3，附注式）——形态批 F3 + 清欠批 P1 + P1-2 TLS 合版正式收口**。同批环境审查（owner：环境将销毁、多机含 ARM 重建）：**tools/board 登记失实链结案**（.gitignore `/tools/` 整目录忽略 = b1a31e4/5cc02d4 两处「入仓」机械性失实根因；16 会话驱动 + gen_tls_certs.sh/ota_client.py 真实入仓 + tools/board/README.md）；**新立 docs/env-rebuild-checklist.md**（重建唯一总单：x86_64 实测 + aarch64 推定⚠待回填 + 分层验证七步）；migration-x86 §3/§5 更正；README 计数对齐（twister 113/agent 204）。回归：py_compile 19/bash -n/sync_check/pristine 构建（前批）全绿。
 - v1.105 · 2026-10-17：**外设三路失败破案 + 板态复原（owner 复核反馈触发：SD 已重格/板载焊接连接无虞）**。判别过程：F3-1 worktree 全新构建不可判别（16M 布局 + console 不可见）→ 真值探针路线（console 临时切 uart0 经 CH343——ROM 下载协议已证数据路可用）→ **同族配置 boot 三外设全绿**（es8311 rc=0 / SD mounted / LCD rc=0，两 boot 复现）——配置回归与接触不良两假说均证伪，根因 = 板态域（I2C0 总线锁死 + SD 旧卡态）。**四项事实纠偏**：① flash 真硅 = boya 16MB（bootloader+JEDEC 双证——89cee3e「gd 8MB」二次翻案，8MB 布局保守兼容续用）；② 教训 38 修正（uart0 打印路可用——CH343 三功能〔console+esptool+复位〕解耦成立）；③ 新教训 39：prov-write-test 兜底静默覆盖已烧 TLS prov（复烧即愈；真 prov 烧录改编排末步纪律）；④ USJ 宿主枚举闩死（hub 1-7.2，ROM 下载态亦不枚举——线缆域待 owner 重插）。板复原：prov 重烧 15 对 TLS（tls/…:9956）→ mTLS 注入 + CONNECTED loc=tls + 命令面回执全环通。证据 docs/evidence/periph_restore_console.txt；dev-env v2.28。 · 2026-10-17：**P1-2 TLS 全链真机点亮——CONNECTED loc=tls/192.168.2.91:9956 + 经 TLS 部署全判据（upload 2926B/真验签/安装闸 PENDING→timeout fail-closed/终态 STAGED+pending 清）**。根因修正：89cee3e「架构域 ECDSA」诊断**推翻**——板上独立判别机同证书同配置 x509 verify rc=0 全过；真因 = **双重内存耗尽**（mbedtls 堆 16384 握手不足 + 系统池不足 z_malloc -80——ECDSA 症状为其下游表象）。修正值：堆 31744/池 58368/VDB 1。console 路由固化 overlay（uart0 物理不通假停滞破案——dev-env 教训 38）。会话陈旧单向化登记（E2E 前重置纪律）。补丁重生成 329 行六文件可重放。回归：twister 16/16（113）/agent 204+2s/L5 7/7/ruff。**P1-2 单元 ✅ 收口**。外设物理域（es8311/SD/LCD 失联）待 owner 复查接触。
 - v1.103 · 2026-10-17：**P1-2 续批（阻断修复实验）——宿主判别机完成 + 板启动事故阻断**：① 宿主判别机（native_sim + PSA_CRYPTO 显式 + 双模块，同证书同配置）**x509 链校验全过 rc=0** → 板侧 mbedtls PSA ECDSA 验签失败定性为架构/构建特定域（xtensa 编译或板全配置差异——非纯 Kconfig），「窄化 PSA 配置」单一路径预期不足，需板恢复后按判别机对照二分；② **/tmp 系统清洗事故**：ak_build 增量构建目录（板可引导的未知仓外配置态）丢失——全新构建的任何镜像（含 F3-1 源）PSRAM 后停滞（排除 probe/频率/镜像头/分区表/源回退五假说）；真硅 8MB 事实入仓（board conf/overlay）；③ 板双口全哑需 owner 物理断电重启；④ TLS 阻断修复路径裁决升级为**板恢复 + 判别机对照**双前置。

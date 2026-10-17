@@ -142,6 +142,11 @@ ts_res_t ts_wdt_register(ts_wdt_src_t src, uint32_t period_ms);
 /** [any] 原子更新 last_feed。 */
 void ts_wdt_feed(ts_wdt_src_t src);
 
+/** [any] 声明式阻塞豁免窗（R1·DEC-64①）：源即将进入**有预算的合法阻塞操作**
+ *  （net open 体等）。窗内巡检不判该源逾期；超窗恢复判逾（真卡死仍 fail-safe）；
+ *  feed 清除。未注册/未激活源 no-op（grace 不激活源——激活 = feed 专属）。 */
+void ts_wdt_grace(ts_wdt_src_t src, uint32_t budget_ms);
+
 /** [thread] 去激活喂狗源（DEC-48① 对称面：APPMGR 随 APP 停止去激活——
  *  停后无人喂 = 预期态不判逾期；下次 feed 重新激活）。单元 F。 */
 void ts_wdt_deactivate(ts_wdt_src_t src);
@@ -191,6 +196,8 @@ FUNC_NORETURN void ts_core_boot(void);
 void ts_evt_poll_drain(void);
 /** 单次巡检判定（不等待真实周期），返回逾期源（无则 TS_WDT_COUNT）。 */
 ts_wdt_src_t ts_wdt_patrol_once(void);
+/** 豁免窗活性查询（窗在且未过期）——net open 接线用例消费。 */
+bool ts_wdt_grace_active(ts_wdt_src_t src);
 #endif
 
 #ifdef __cplusplus

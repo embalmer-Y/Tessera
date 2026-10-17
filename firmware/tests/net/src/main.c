@@ -18,6 +18,7 @@
 /* ---- 注入桩传输 ---------------------------------------------------------- */
 
 static int fake_open_fail;
+static bool open_grace_seen; /* fake_open 调用体内的 wdt 豁免窗观测（test_17 消费） */
 static int fake_close_calls;
 static int fake_pub_calls;
 static bool fake_up_v;
@@ -32,6 +33,7 @@ static uint32_t prev_len;
 
 static ts_res_t fake_open(void)
 {
+	open_grace_seen = ts_wdt_grace_active(TS_WDT_NET);
 	return fake_open_fail ? TS_E_IO : TS_OK;
 }
 static void fake_close(void)
@@ -1429,6 +1431,33 @@ ZTEST(framework_net, test_16_arb_lease_view)
 	zassert_equal(ts_net_cmd_dispatch("sys/trust-update", req, rlen, resp,
 					  sizeof(resp), &rl2), TS_E_NOTFOUND,
 		      "同上（gated 命令亦不在面）");
+}
+
+/* ---- L2：open 阻塞体喂狗豁免接线（R1·DEC-64①，LLD-ts-net §2）------------- */
+
+ZTEST(framework_net, test_17_open_grace_wiring)
+{
+	/* 本套件 wdt 首次注册（巡检不在本套件运行——仅经 seam 查询）；
+	 * 契约：session_poll 于 open 前置 grace、返回后 feed 清窗，成败同路 */
+	zassert_equal(ts_wdt_register(TS_WDT_NET, 100), TS_OK);
+	ts_wdt_feed(TS_WDT_NET); /* 激活（grace 仅对激活源生效） */
+
+	ts_net_test_reset();
+	open_grace_seen = false;
+	fake_open_fail = 1;
+	fake_up_v = false;
+	ts_net_set_transport(&fake_t);
+	zassert_equal(ts_net_session_poll(0), TS_NET_DOWN, "open 失败（入退避）");
+	zassert_true(open_grace_seen, "grace 于 open 调用体内置位");
+	zassert_false(ts_wdt_grace_active(TS_WDT_NET), "open 返回后 feed 清窗");
+
+	/* 成功路同语义（退避 250ms 后建链） */
+	open_grace_seen = false;
+	fake_open_fail = 0;
+	fake_up_v = true;
+	zassert_equal(ts_net_session_poll(250), TS_NET_CONNECTED, "open 成功");
+	zassert_true(open_grace_seen, "成功路 open 体内 grace 同样置位");
+	zassert_false(ts_wdt_grace_active(TS_WDT_NET), "成功路 feed 同样清窗");
 }
 
 ZTEST_SUITE(framework_net, NULL, NULL, NULL, NULL, NULL);

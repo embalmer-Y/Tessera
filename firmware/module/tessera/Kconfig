@@ -497,6 +497,17 @@ config TS_NET_TELEM_INTERVAL_MS
 	help
 	  Source: DEC-27. Consumed by telemetry merge (M3a.2).
 
+config TS_NET_OPEN_BUDGET_MS
+	int "Blocking open() watchdog grace budget in ms"
+	default 15000
+	help
+	  Source: DEC-64(1) (R1 reconnect hardening, 2026-10-17). Session open
+	  to a dead router (TCP connect SYN/ARP timeout + TLS handshake +
+	  session declarations) can block longer than the NET feed period;
+	  the grace window suppresses overdue patrol while the budget lasts
+	  and expires back to fail-safe. Observed single-attempt failure time
+	  2-5s; 15000ms = ~3x margin. Core clamps any grace at 60s.
+
 config TS_NET_LEASE_TTL_MS
 	int "Control lease TTL in ms (lazy expiry on access)"
 	default 10000

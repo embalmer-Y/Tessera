@@ -1,4 +1,4 @@
-# LLD · ts-core v0.2.2 草案
+# LLD · ts-core v0.2.3 草案
 
 > **状态**：v0.2.2 草案，随 LLD 批次待 owner review。上位：HLD §3.1/§4.4；公共约定见 `LLD-00-common.md`（错误码/线程/上下文）。
 > **职责**：初始化编排（固定顺序）、事件总线、单调时间服务、看门狗框架（喂狗注册表）。
@@ -67,10 +67,12 @@ void ts_evt_publish(const ts_evt_t *e);   /* [thread] 同步分发；[ISR] 投�
 typedef enum { TS_WDT_NET, TS_WDT_APPMGR, TS_WDT_SYWORK, TS_WDT_COUNT } ts_wdt_src_t;
 ts_res_t ts_wdt_register(ts_wdt_src_t src, uint32_t period_ms);  /* init 期 */
 void ts_wdt_feed(ts_wdt_src_t src);                              /* [any] 原子更新 last_feed */
+void ts_wdt_grace(ts_wdt_src_t src, uint32_t budget_ms);         /* [any] 声明式阻塞豁免窗（R1·DEC-64①） */
 ```
 
 - 硬件 WDT：单只，超时 = max(periods)×2 与〔DEC-22：10s〕取小（DEC-27 定值）。
 - 巡检：sysworkq 周期 = 最小 period/2；发现逾期 → 先 `TS_EVT_WDT_WARN`（带 src 与最后 feed 时间）→ `ts_safety_system_fail(TS_FAIL_WDT_<src>)` → 停喂硬 WDT（复位后 noinit 留痕可定位，合同 4）。
+- **豁免窗（grace，R1·DEC-64①，2026-10-17）**：源声明「即将进入**有预算的合法阻塞操作**」（用途 = ts-net open 体：死路由上 TCP connect + TLS 握手可阻塞数秒、超喂狗窗——2026-10-17 真机复位环实证，arm64_rebuild §8）。语义：`grace(src, budget)` 置绝对截止 = now + budget（钳制 60s 上限，防误用扩大失防窗）；巡检在窗内**不判该源逾期**，超窗恢复判逾——预算即「板死等 vs 安全停机」裁决点，真卡死仍 fail-safe 复位。`feed` 清除窗（正常喂狗恢复即清，无残留态）；未注册/未激活源 no-op（**grace 不激活源**——激活 = feed 专属，DEC-48① 语义不变）。无随机性（合同 9）：预算 = Kconfig 常量。
 - native_sim：硬 WDT 用仿真桩（test 构建可注入逾期）。
 
 ## 6. Kconfig（节选）
@@ -97,3 +99,4 @@ void ts_wdt_feed(ts_wdt_src_t src);                              /* [any] 原子
 - v0.2 · 2026-09-20：review-01——事件表补 TS_EVT_INPUT_CHANGED（DR-02）、noinit 依赖 ts-store（DR-17）。
 - v0.2.1 · 2026-09-21：裁决同步——出处标注收敛为 DEC 编号（SC-02）。
 - v0.2.2 · 2026-09-22：M1 实现收敛留痕——① §2"每步执行前后发布"收敛为**完成后单条**（失败步亦观测，golden 稳定）；② §5 estop 事后补发的机制 = 巡检项检测 forced 上升沿后发布（ISR 内不提交工作项——estop 调用图队列禁令的落点），补发时延上界 = 巡检周期。
+- v0.2.3 · 2026-10-17：R1·DEC-64①——§5 增**声明式阻塞豁免窗** `ts_wdt_grace`（窗内巡检不判逾/超窗恢复判逾 fail-safe 保持/feed 清除/60s 钳制/不激活未激活源）+ 测试接缝 `ts_wdt_grace_active`（CONFIG_TS_TEST）。首消费者 = ts-net session open 体。

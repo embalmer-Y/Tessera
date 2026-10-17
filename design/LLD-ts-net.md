@@ -1,4 +1,4 @@
-# LLD · ts-net v0.4.4
+# LLD · ts-net v0.4.5
 
 > **状态**：v0.4.4（2026-10-16 P1-2 · DEC-63①③：**TLS 命令面**——prov 15 对三元组消费：zenoh_open 对 tls/ locator 注入 mTLS 四配置键〔CA/设备证书/私钥 base64 + enable_mtls——tls/ 无三元组 fail-closed 拒建链；名称校验维持 VERIFY_REQUIRED〕+ Kconfig TS_NET_TLS〔依赖 ZENOH_PICO_LINK_TLS——仓携带补丁 ext/zenoh-pico-tls.patch 六文件：Zephyr 集成缺件补齐 + mbedtls 4.x API 迁移 + socket union 别名修复 + MSG_NOSIGNAL + 握手 BIO 心跳〕。**阻断登记〔真机实证〕**：mbedtls 4.1.1 PSA ECDSA 验签拒收服务端 DER 签名〔x509 链 0x08 + CertificateVerify -0x8D=PSA INVALID_SIGNATURE；openssl 同链全绿〕——TLS 会话未达成，全链已点亮至 EncryptedExtensions〔证据 p1_tls_blocker_console.txt〕；修复路径随下批〔上游补丁/版本平移〕）；v0.4.3（2026-10-16 F3 · DEC-62①：**安装闸回执与事件**——activate 过闸 = -13 + {pending,slot} 结构化中间态〔wrap_reply 原样转发〕+ 安装闸事件四态订阅外发〔挂起 = 安全类 QoS，extra {"slot","entry"}〕）；v0.4.2（2026-10-16 K3 真机定案：**回执编码双缺陷根治**——① trust-get data 漏发 "keys" 键名〔map(2) 单对+裸数组 = 畸形 CBOR〕② wrap_reply 空 data 零字节值〔handler 内部失败路径，如验签拒〕——严格消费方（agent cbor2）EOF 一踩即中，真机 E2E 首次实 parse 拦下；on_query 增 [q] 后缀/长度观测行）；v0.4.1（2026-10-15 EC2 · **信任命令实现**——sys/trust-update〔gated+租约；CMD_TABLE_MAX 22〕+ trust-get + TS_EVT_TRUST_UPDATED 订阅十类〔安全类 QoS，extra {"ver"}〕）；v0.4（2026-10-15 EC1 · Q-43/DEC-60：**信任表命令面设计**——sys/trust-update〔gated+租约+COSE 现有效集签名+严格 N+1〕+ sys/trust-get〔未门控〕+ TS_EVT_TRUST_UPDATED 订阅十类）；v0.3.11（2026-10-14 CG5-B：**宿主资源推送命令面**——sys/fs-begin/chunk/commit〔gated+租约+随包 needs.resources 前缀白名单+sha256 读回校验〕）；v0.3.10（2026-10-14 CG3 · Q-41②：**租约本地席位降级视图实现**——held_by/acquire 视词语义 + acquire 回执 local_active 装饰 + TS_EVT_ARB_CHANGED 订阅外发〔八类〕+ get-audit 审计 src 维度）。上位：HLD §3.5 + HLD-contract-v2 §2-§4；公共约定 `LLD-00-common.md`。
 > **职责**：zenoh-pico 会话管理、命名空间构造、命令-回执分发、遥测/事件发布、心跳监视（断链判定）、控制租约（DEC-41）。
@@ -31,6 +31,7 @@ src/net/
 - TLS：`Z_FEATURE_LINK_TLS` 显式开启〔DEC-20〕；证书/密钥只读自安全参数分区（合同 10）。
 - 会话状态：DOWN/CONNECTED；迁移发布 `TS_EVT_NET_LINK_UP/DOWN`（观测用；**安全语义以 linkmon 为准**，避免双源）。
 - **传输健康定义（v0.3 定稿，已实现于 DEC-40 批）**：`is_up` = zenoh-pico 会话任务活性自省 `zp_read_task_is_running() && zp_lease_task_is_running()`（探测"会话对象在而任务已死"的半死态；NeuroLink 实证手法；上游接口标 deprecated 仅指任务无需手动启动，活性探测语义有效）。
+- **open 阻塞体喂狗豁免（R1·DEC-64①，2026-10-17）**：`session_poll` 于 `transport->open()` 前 `ts_wdt_grace(TS_WDT_NET, CONFIG_TS_NET_OPEN_BUDGET_MS)`、返回后 `ts_wdt_feed`（成败同路——续喂 + 清窗）。缺口实证（2026-10-17 真机复位环，arm64_rebuild §8）：死路由上单次 open 阻塞（TCP connect SYN/ARP 超时 + TLS 握手 + 会话/queryable/订阅声明）> NET 喂狗窗（2s）——**退避表只护调用间隔、tick 顶喂狗只护调用间隙，均护不住调用体本身**；grace 预算过期恢复判逾 = 真卡死仍 fail-safe。握手段 BIO 心跳钩（DEC-63①）保留：窗内续喂（feed 清窗后重新起算）+ 窗外独立防线。
 
 ## 3. 命名空间构造（keyspace.c）
 
@@ -129,6 +130,7 @@ int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>
 | CONFIG_TS_NET_PUBQ_DEPTH | 8 | 发布缓冲 |
 | CONFIG_TS_NET_LEASE_TTL_MS | 10000 | 租约 TTL（DEC-41：≈断链窗口×1.5+余量） |
 | CONFIG_TS_NET_IDEM_CACHE | 4 | 幂等回执缓存深度（DEC-40） |
+| CONFIG_TS_NET_OPEN_BUDGET_MS | 15000 | open 阻塞体喂狗豁免预算（R1·DEC-64①；真机观测单次失败 2-5s ×~3 裕度；core 钳制上限 60s） |
 
 ## 8. 测试要点
 
@@ -144,6 +146,7 @@ int ts_net_key_av  (char *buf, size_t n, uint16_t app_id);    /* …/av/<app_id>
 - DEC-20/22/26/27/30/40/41/42 已裁；v1 请求弃用期随下一 fw semver 次+1 收敛。
 
 ## 修订记录
+- v0.4.5 · 2026-10-17：**R1（DEC-64①）断链重连健壮化**——§2 增 open 阻塞体喂狗豁免接线（ts_wdt_grace 预算 + feed 清窗，成败同路）；§7 增 CONFIG_TS_NET_OPEN_BUDGET_MS（15000）；用例 framework.net test_17（grace 置位/清除成败双路）；core 侧 grace 机制见 LLD-ts-core v0.2.3 §5。
 - v0.4.4 · 2026-10-16：P1-2（DEC-63）TLS 命令面（glue 注入 + TS_NET_TLS 门控 + 补丁）；设计事实：zenohd 1.10.1（rustls）TLS1.3-only；真机阻断 = mbedtls 4.1.1 PSA ECDSA DER 验签（定位与已修上游缺口五项见 LLD 注记 + 证据）。
 
 - v0.4.1 · 2026-10-15：**EC2（信任命令实现）**——§4.3 两命令落地（trust-update gated+租约 + trust-get）+ §5 TRUST_UPDATED 事件外发（安全类 QoS，extra {"ver"}）+ 订阅十类；framework.net 增构建面裁剪断言（无 TS_STORE_TRUST = trust-* NOTFOUND）。Agent 侧 deploy.trust_get/trust_update（LLD-A06 v0.3.1 落地）+ agent 用例 ×2。

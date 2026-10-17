@@ -145,6 +145,37 @@ ZTEST(framework_core, test_wdt_math_and_failover)
 	ts_ch_state_t st;
 	zassert_equal(ts_safety_channel_state("wdt_probe", &st), TS_OK);
 	zassert_equal(st, TS_ST_SAFE_FAULT, "system fail → SAFE_FAULT");
+
+	/* R1·DEC-64①：豁免窗数学——窗内不判逾/超窗恢复判逾/feed 清除/
+	 * budget=0 no-op/60s 钳制/不激活未激活源 */
+	ts_wdt_feed(TS_WDT_NET); /* 基线 1451 */
+	virt_now = 1600;         /* elapsed=149 > period=100：无窗必逾 */
+	ts_wdt_grace(TS_WDT_NET, 400);
+	zassert_true(ts_wdt_grace_active(TS_WDT_NET), "grace window set");
+	zassert_equal(ts_wdt_patrol_once(), TS_WDT_COUNT, "窗内不判逾");
+	virt_now = 2001; /* deadline=2000 已过 */
+	zassert_false(ts_wdt_grace_active(TS_WDT_NET), "窗过期查询为假");
+	zassert_equal(ts_wdt_patrol_once(), TS_WDT_NET, "超窗恢复判逾（fail-safe 保持）");
+	ts_wdt_feed(TS_WDT_NET); /* 基线 2001 + 清窗 */
+	virt_now = 2150;
+	ts_wdt_grace(TS_WDT_NET, 0);
+	zassert_false(ts_wdt_grace_active(TS_WDT_NET), "budget=0 no-op");
+	zassert_equal(ts_wdt_patrol_once(), TS_WDT_NET, "zero-budget 不设窗：照常判逾");
+	ts_wdt_feed(TS_WDT_NET); /* 基线 2150 */
+	virt_now = 2151;
+	ts_wdt_grace(TS_WDT_NET, 100000); /* 超 60s 上限 → 钳制生效 */
+	zassert_true(ts_wdt_grace_active(TS_WDT_NET), "钳制后窗在位");
+	virt_now = 62150; /* 钳制 deadline = 2151+60000=62151：窗内最后一点 */
+	zassert_equal(ts_wdt_patrol_once(), TS_WDT_COUNT, "钳制窗仍生效");
+	virt_now = 62151; /* == deadline：窗闭（窗域 [now, deadline)）→ 判逾 */
+	zassert_equal(ts_wdt_patrol_once(), TS_WDT_NET, "钳制窗超时恢复判逾");
+	ts_wdt_feed(TS_WDT_NET); /* 基线 62152 */
+	virt_now = 63000;
+	ts_wdt_deactivate(TS_WDT_NET);
+	ts_wdt_grace(TS_WDT_NET, 400);
+	virt_now = 63501; /* 若 grace 误激活源：deadline 63400 已超 → 逾期可见 */
+	zassert_equal(ts_wdt_patrol_once(), TS_WDT_COUNT,
+		      "grace 不激活未激活源（DEC-48① 语义不变）");
 	ts_time_test_bind(NULL);
 }
 

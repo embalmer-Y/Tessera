@@ -326,3 +326,5 @@
 - 2026-10-16 · **P1-3/P1-4 批登记**：ts_power_set/ts_power_get（natives——ts-power 层 wasm 暴露 + Agent 白名单/约定镜像）；counter ✂️（裁剪清账——零消费者实证，HLD §9 对照表首例日落）。消费：plan §11g P1-3/P1-4。
 
 - 2026-10-16 · **P1-2 TLS 批登记（DEC-63）**：zenoh-pico-tls.patch（仓携带补丁——六文件：config.h 宏守卫/Kconfig ZENOH_PICO_LINK_TLS/CMake 特性行+mbedtls 链接/zephyr.h _tls_sock 分立槽/tls_stream.c 4.x 迁移 + BIO 心跳弱钩 z_tls_handshake_progress_hook）；TS_NET_TLS（Kconfig 门控）；TS_PROV_TLS_CA_MAX/CERT_MAX/KEY_MAX（768/768/256——EC P-256 DER 实测 + 余量）；ts_prov_tls_t + ts_store_prov_tls()（独立只读面）；prov 15 对（tls_ca/tls_cert/tls_key）；ts_rd_bstr_len（变长 bstr）；flash_prov --lconf/--tls-ca/cert/key + PKCS8 设备私钥形态；gen_tls_certs.sh（tools/board）；zenohd TLS 并存口 9956（transport/link/tls/* 配置键）。证据 p1_tls_blocker_console.txt（阻断定位）。
+
+- 2026-10-17 · **V0.10.0 R1 断链重连健壮化批登记（DEC-64）**：ts_wdt_grace/ts_wdt_grace_active（core 声明式阻塞豁免窗 + 测试接缝——LLD-ts-core v0.2.3 §5）；TS_WDT_GRACE_CAP_MS（60s 钳制内部常量）；TS_NET_OPEN_BUDGET_MS（Kconfig 15000——open 阻塞体喂狗豁免预算）；test_17_open_grace_wiring（framework.net 接线用例）。消费：plan §11h R1、arm64_rebuild §8。
