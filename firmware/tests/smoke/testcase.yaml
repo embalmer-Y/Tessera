@@ -8,5 +8,6 @@ tests:
     # nucleo_h743zi = 目标板（构建验证，build-only 用）。
     platform_allow:
       - native_sim
+      - native_sim/native/64
       - qemu_cortex_m3
       - nucleo_h743zi

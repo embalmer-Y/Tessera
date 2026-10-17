@@ -1,0 +1,64 @@
+# ARM aarch64 重建机首跑证据（arm64_rebuild_20261017.txt）· 2026-10-17
+# 机器：Radxa Cubie A7A · aarch64 · Debian 13 (trixie) · 8 核 / 5.8G / 59G
+# 内核：6.6.98-5-aw2511（HZ=250——文件时间戳粗粒度 4ms）
+
+## 1. 板链路（esptool 5.4.0 @ /dev/ttyACM0 = WCH CH343 1a86:55d3 "USB Single Serial"）
+esptool v5.4.0 … Connected to ESP32-S3 on /dev/ttyACM0:
+Chip type: ESP32-S3 (QFN56) (revision v0.2)  Features: Wi-Fi, BT 5 (LE), Dual Core + LP Core, 240MHz, Embedded PSRAM 8MB (AP_3v3)
+MAC: fc:01:2c:cf:ca:98
+Manufacturer: 68  Device: 4018  Detected flash size: 16MB   ← boya 16MB（与 dev-env v2.28 真硅勘误一致）
+Hard resetting via RTS pin...   ← RTS 复位链路正常
+
+## 2. zenohd（官方 standalone aarch64 二进制）
+zenohd v1.10.1 built with rustc 1.97.1  —  --listen tcp/0.0.0.0:9955 冒烟：LISTEN 0.0.0.0:9955 + 干净退出
+本机 LAN IP = 192.168.2.101（与实验室 192.168.2.91 同段）
+
+## 3. clang 18 wasm 链（trixie deb 用户态解包，Debian clang 18.1.8 = CI 精确对齐）
+clang --target=wasm32 -O2 -nostdlib -ffreestanding -fno-builtin -Wl,--no-entry -Wl,--allow-undefined -Wl,--strip-all
+  -o wasmtest.wasm wasmtest.c  → WASM BUILD OK（wasm-ld-18 在位）
+
+## 4. Agent / repo 回归（agent-venv，Python 3.13.5）
+agent pytest:  204 passed, 2 skipped in 14.34s          ruff: All checks passed!
+repo pytest (firmware/tests/pytest):  5 passed in 0.42s（总单 §11④ 写 2——套件已扩至 5，实测对齐）
+sync_check: skill 同步检查 OK（源文档与 SOURCES.lock 一致）
+说明：agent 204+2s 含本会话一处测试修复（HZ=250 内核 mtime 粒度——test_edit_stale_after_external_change
+补 time.sleep(0.02)，见提交 2 的 agent/tests/test_creation_workspace.py）。
+
+## 5. twister @ native_sim/native/64（aarch64 首跑口径；host 工具链）
+V1e（natives.c 守卫修复 + WAMR /64 = X86_64 目标）：
+  14 of 16 executed test configurations passed (87.50%) … 0 errored, with no warnings in 666.97 seconds
+  95 of 113 executed test cases passed (84.07%), 16 blocked, 2 failed
+  失败 = framework.app（rc=-11）/ framework.threads（rc=-11）——见 §7 已知缺陷
+V1d 对照（WAMR /64 = X86_32 旧映射）：107 passed / 6 failed——静默错路径（写不落地），测试断言超时暴露
+前置修复（V1c→V1d 之间）：natives.c 守卫结构修正——此前 9/16 套件
+  『native_power_get defined but not used [-Werror=unused-function]』构建失败
+  = GitHub CI 同步连红实证（api runs: 1394a8c/5a8b9f3/5cc02d4/44eea20 均 failure @ native-build/twister 全量）
+
+## 6. 板级构建（验证②）
+west build -p always -b dnesp32s3b/esp32s3/procpu firmware/tests/atkbench（占位 WiFi 凭据，仅构建验证）
+  → rc=0，5m38s，zephyr.bin 1216036 B @ ~/project/builds/ak_arm_smoke
+  （SDK xtensa-esp32s3 aarch64 工具链 + WAMR XTENSA 映射 + zenoh-pico TLS 补丁 + blobs 全 71 件 sha256 校验过）
+
+## 7. 已知缺陷登记：native_sim/native/64 的 wasm APP 执行路径（WAMR 64 位目标域）
+症状：framework.app / framework.threads 全部「完整运行 wasm APP→GPIO 事件」用例失败。
+X86_64（及 AARCH64）目标：APP 线程首个 native 调用即 SIGSEGV（rc=-11，twister 16 blocked）。
+X86_32 目标（旧映射）：不崩但 APP 写静默不落地（wait_gpio 6s 超时，APP 自身日志行正常）。
+gdb 回溯（两目标完全同签名，垃圾指针为同一常数 0xaa0803f0a9467bfd）：
+  #0 ts_app_rt_ctx (r=0xaa0803f0a9467bfd) runtime.c:94        ← exec_env user_data 槽 = 陈旧垃圾
+  #1 ctx_of(env) natives.c:33
+  #2 native_gpio_write natives.c:40
+  #3 wasm_runtime_invoke_native wasm_runtime_common.c:6155   ← WAMR 通用 invoke 路径
+     （该函数按 BUILD_TARGET 分支：X86_32 = 参数紧排 / 其余 = 8 字节对齐双字排布——
+       X86_32 模型在 64 位 ARM 宿主上结构性不成立）
+域定性：WAMR 2.4.5 通用 invoke-native × 64 位目标 × aarch64 宿主——32 位 CI 口径不受影响；
+根治路径候选（后续专项）：a) /64 改用 AARCH64 目标 + 对应架构 invoke thunk（AARCH64 目标实测亦崩，须先解
+  exec_env user_data 槽污染——疑 INVOKE_NATIVE_GENERAL 路径 64 位布局缺陷）；b) 上游 issue；
+  c) APP 线程 exec_env 改 spawn_exec_env 专槽（WAMR 单线程-单 env 纪律——app 主线程现直接复用 r->env）。
+本会话定版：CMake /64 映射 = X86_64（诚实崩溃优于静默错）；twister /64 通过线 = 14/16 套件。
+
+## 8. 网络通道实测（对比基准 2026-10-17）
+github 直连（release CDN/git 大传输）：20-44KB/s 级且间歇断连（blobs 连续 RemoteDisconnected）
+ghfast.top 镜像：git ~1.5-3MB/s；blob/release 资产可用（blobs 71 件全经此通道 + sha256 全过）
+LAN 代理 192.168.2.90:7890：基准 551KB/s（与 ghfast 同量级）；30 分钟后代理不可达（connect timeout）——
+  代理为 owner 侧 FlClash，稳定性不如 ghfast 直连镜像，git/资产大传输主通道定版 = ghfast
+pypi 直连大文件慢（cmake 30MB wheel 卡 7min+）→ 清华镜像秒级

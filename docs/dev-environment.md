@@ -246,7 +246,37 @@ sudo usermod -aG dialout emb   # 重新登录生效
 - 凭据重配：`TS_WIFI_SSID/TS_WIFI_PASSWORD`、`ANTHROPIC_BASE_URL/ANTHROPIC_API_KEY`、`agent/config.toml`（迁移包）。
 - 迁移包处置确认后执行 Windows 侧清除（migration-x86.md §6 owner 决定项）。
 
+## 10. aarch64 ARM 重建机（Radxa Cubie A7A——2026-10-17 起第二台现役机）
+
+> 机器事实与全量实测值以 `docs/env-rebuild-checklist.md` §12 + `docs/evidence/arm64_rebuild_20261017.txt`
+> 为权威（本节只登记与 x86 §9 的差异域）。owner 已全权授权（sudo 可用，密码口头提供）。
+
+- **机器**：Radxa Cubie A7A · aarch64 · Debian 13 (trixie) · 8 核 / 5.8G / 59G · 内核 6.6.98（HZ=250）。
+  目录布局与 §9.1 相同（`~/project/{Tessera,zephyrproject,deps,logs,builds,agent-venv}` + `~/zephyr-sdk-1.0.1`）。
+- **网络**：github 直连 20-44KB/s 且断连——`url."https://ghfast.top/https://github.com/".insteadOf`
+  （全局，~1.5-3MB/s）+ pip 清华镜像；LAN 代理 192.168.2.90:7890 仅小请求域（大传输不稳且时在时不在）。
+  west blobs 在同款网络下恒败——按 checklist §3 的 ghfast 脚本补齐（71 件 sha256 全过实录）。
+- **工具链**：SDK 1.0.1 aarch64 + xtensa-esp32s3（gnu/ 布局）；clang 18.1.8 走 trixie deb 用户态解包
+  （checklist §7 路线 C，wrapper 入 `~/.local/bin`）；twister 口径 = `-p native_sim/native/64` +
+  `ZEPHYR_TOOLCHAIN_VARIANT=host`（multilib 32 位在 aarch64 不可行）。
+- **twister /64 通过线 = 14/16 套件**：framework.app / framework.threads = **WAMR 64 位目标域
+  已知缺陷**——APP 线程首个 native 调用 exec_env user_data 槽污染（垃圾指针常数复现；
+  X86_32 目标 = 静默不落地 / 64 位目标 = SIGSEGV；gdb 栈 + WAMR `wasm_runtime_invoke_native`
+  BUILD_TARGET 分支证据在档 evidence §7）——32 位 CI 口径不受影响，根治随专项。
+- **内核坑**：HZ=250 → 文件时间戳粗粒度 4ms——mtime_ns+size 指纹类「外部改动检测」在同 tick
+  内不可分（agent 测试已加 sleep 入仓；教训 40 同域）。
+- **板**：DNESP32S3B（atk）@ `/dev/ttyACM0` = CH343 三功能口（教训 38 定式沿用）；
+  esptool flash-id 实测 boya 16MB（v2.28 勘误二次实证）。dialout 组已加（重登录生效；
+  当次会话 `sudo chmod 666` 即用）。
+- **待办**：WiFi / LLM 凭据重配（env.sh 凭据区）→ 板级冒烟 ⑥⑦ 随收。
+
 ## 修订记录
+- v2.29 · 2026-10-17：**§10 新立——aarch64 ARM 重建机（Radxa Cubie A7A）现役**：ghfast 主通道
+  定版 + twister /64 口径（14/16，WAMR 64 位目标域已知缺陷在档）+ clang 18.1.8 deb 解包路线 +
+  HZ=250 时间戳坑 + CH343 板链路 boya 16MB 二次实证；同批 natives.c 守卫结构修复（CI 五连红根因：
+  msg/power native 定义无守卫而表项误嵌 TS_HAL_AV 块——TS_HAL_AV=n 配置全数 -Werror 编译失败）+
+  15 套件 platform_allow 补 /64 + CMake /64 WAMR 目标映射（X86_64——诚实崩溃口径）+
+  agent test_edit_stale tick 修复；全量证据 docs/evidence/arm64_rebuild_20261017.txt。
 - v2.28 · 2026-10-17：**外设三路失败破案 + 板态复原 + 四项事实纠偏**（证据 periph_restore_console.txt）。① 外设 es8311/SD/LCD 同败根因定性 = **板态域**（I2C0 总线锁死疑 + SD 卡旧介质态），**非配置回归**（同族配置 boot 全绿证伪）、**非接触不良**（owner 复核：SD 重格 + 板载焊接）；SKIP_PERIPH 旗标降级用途保留。② **教训 38 修正**：uart0/CH343 打印路**可用**（uart0 console 全量 boot log 实证）——「ACM1 恒 0B」误归因（疑 CH343 端口自断连〔内核日志 13:41/13:42 两次 disconnect〕+ 下载电路毛刺域）；console/烧录口解耦成立：**CH343 = console + esptool 烧录 + EN 复位三功能**（USJ 独占期结束）。③ **flash 真硅二次勘误**：bootloader 实报 `detected chip: boya` + `Detected size(16384k) larger than header(8192k)` + esptool JEDEC 0x68:0x4018 = **boya 16MB**（v2.25「gd 8MB」翻案；8MB 布局兼容续用——分区全 <8MB）。④ **新教训 39（prov 覆盖陷阱）**：镜像 load prov 失败 → prov-write-test 兜底以编译内测试 blob（tcp/9955）**静默覆盖已烧 TLS prov**——表症 = mTLS 注入行消失 + zenoh 9955 恒 -102；纪律：真 prov 烧录置于镜像定型之后（编排末步），或 loader fail 静默 burn 行为登记待裁决。⑤ **USJ 宿主枚举闩死登记**：hub 端口 1-7.2 无设备声明（ROM 下载态亦不枚举；authorized 翻转 + uhubctl 电源周期均不复活）——线缆/板侧域，owner 重插 USJ 线缆即判；期间 CH343 三功能替补不阻塞。⑥ CH343 持有器定式：pyserial 打开后 **DTR/RTS 双 deassert**（asserted 态经下载电路可打毛刺）；pkill 自匹配第 6-7 复发（**fuser /dev/ttyACM0** 按端口定位替代）。
 - v2.27 · 2026-10-17：P1-2 TLS **全链真机点亮**（CONNECTED loc=tls + 经 TLS 部署判据——证据 p1_tls_e2e_console.txt）——根因修正：前「架构域 ECDSA」诊断推翻（板上判别机 rc=0），真因 = 双重内存耗尽（堆 16K 握手不足 + 池不足 -80）；§5 增教训 38（console 路由假停滞/内存耗尽伪装/会话陈旧单向化）；atkbench overlay 固化 console=USJ + 8MB 真硅；SKIP_PERIPH_FAIL 旗标（外设物理失联降级——es8311/SD/LCD 疑重插后接触不良待 owner 复查）。
 - v2.25 · 2026-10-17：P1-2 续批——**/tmp 清洗事故与板启动阻断登记**：① 系统级 /tmp 清理将 ak_build（K1 起增量构建目录——含使板可引导的未知仓外配置态）、串口持有器脚本、console 留痕、zenohd TLS 实例日志全部清除；② 重建全新构建目录后**任何镜像（含 F3-1 期提交源）均于 PSRAM 初始化后停滞**（已排除：probe 代码/flash 频率 40M/镜像头 8MB 修正/分区表 0x8000 内容/源提交回退——根因未解，疑增量目录曾携带关键仓外配置）；③ **真硅事实入仓**：atk 板载 flash = gd 8MB（esptool 实测；板文件 16M 声明失实——K1 文档「16MB flash」勘误），board conf/overlay 已定 8MB；④ **宿主判别机结论（重大）**：native_sim + 同 mbedtls/PSA 配置 + 同证书 → **x509 链校验全过（rc=0）**——板侧 ECDSA 验签失败定性为**架构/构建特定**（xtensa 工具链或板全配置域），非纯配置错误；⑤ 板现双口全哑（最后双偏移刷写后）——**需 owner 物理断电重启**（USB 重插）后复测。判别机源 /tmp/tlstest2（易失，如需固化再入仓）。

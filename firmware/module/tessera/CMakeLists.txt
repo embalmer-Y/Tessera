@@ -146,7 +146,16 @@ if(CONFIG_TS_APP_WAMR)
   # 目标架构按板映射（板级移植批）：native_sim = X86_32（32 位基线）；
   # xiao_esp32s3 = XTENSA（LX7）。新板须显式登记映射，防默认静默错配。
   if(BOARD STREQUAL "native_sim")
-    set(WAMR_BUILD_TARGET "X86_32")
+    # 64 位变体（native_sim/native/64——ARM 机 twister 口径）：宿主字长目标，
+    # 按宿主处理器选（native 工具链 = 宿主本机编译）。32 位基线维持 X86_32。
+    if(CONFIG_64BIT OR BOARD_QUALIFIERS MATCHES "64")
+      # 64 位变体统一 X86_64 字长语义（fast 解释器 = 可移植 C，target 仅取
+      # 字长/ABI 元数据；AARCH64 目标会走 WAMR 平台层特定分支——native_sim
+      # 宿主线程模型下 SIGSEGV，ARM 机实测登记）
+      set(WAMR_BUILD_TARGET "X86_64")
+    else()
+      set(WAMR_BUILD_TARGET "X86_32")
+    endif()
     # 通用 C 版 invokeNative：ia32 汇编缺 .note.GNU-stack（可执行栈警告被
     # Zephyr --fatal-warnings 升级为链接错误）；C 版零补丁且 x86 传参可靠。
     set(WAMR_BUILD_INVOKE_NATIVE_GENERAL 1)
