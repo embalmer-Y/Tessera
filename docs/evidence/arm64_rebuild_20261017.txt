@@ -56,7 +56,37 @@ gdb 回溯（两目标完全同签名，垃圾指针为同一常数 0xaa0803f0a9
   c) APP 线程 exec_env 改 spawn_exec_env 专槽（WAMR 单线程-单 env 纪律——app 主线程现直接复用 r->env）。
 本会话定版：CMake /64 映射 = X86_64（诚实崩溃优于静默错）；twister /64 通过线 = 14/16 套件。
 
-## 8. 网络通道实测（对比基准 2026-10-17）
+## 8. 「接入 ARM 机后随机重启」破案与处置（2026-10-17 11:31-11:43，owner 报障触发）
+
+现象：板接入 ARM 机后随机时间重启。console 监听（教训 38 纪律 holder，DTR/RTS 双 deassert）抓到完整循环：
+
+  boot(~45s bench 自检) → WiFi rc=0 → net 起 → mTLS 注入 → zenoh_open rc=-102
+  loc=tls/192.168.2.91:9956（**prov 指向 x86 时代死路由**）→ 无退避立即重试再注入
+  → NET 域喂狗饿死 → 巡检 WDT_WARN → ts_safety_system_fail(TS_FAIL_WDT(net))
+  → noinit 留痕 reason=0x00020000 → 受控停机 → rst:0xc (RTC_SW_CPU_RST)
+  → 周期 ~50s 复位循环
+
+判别排除：宿主域无罪——无进程持口（ModemManager/brltty inactive）、USB autosuspend=off、
+内核 USB 枚举仅插拔一次、复位原因非 BROWNOUT 非 POWERON 非 EN 脉冲。
+域定性：**固件健壮性缺陷（F1 家族新形态）+ 环境错配叠加**——prov 所指路由器随 x86 销毁死亡；
+TLS 重连路径无退避且在握手段不喂 NET 狗（x86 时代路由常活未暴露；无路由器场景从未设防）。
+
+处置（重 provision，不动镜像——WiFi 凭据保持板上现值）：
+  ① tools/board/gen_tls_certs.sh ~/project/tls 192.168.2.101（旧链随 x86 不可恢复，重签；
+     SAN = ARM 机 IP）
+  ② zenohd TLS mTLS 双监听 9956/9957（本机常驻）
+  ③ fuser -k 清隐残留持有进程（TaskStop 只杀外层 shell 的现实重现）→
+     esptool erase_region 0x5f0000 0x1000（教训 33；prov 分区 4KB @0x5f0000）→
+     flash_prov --node akn --cube akc --router tls/192.168.2.101:9956
+     --pub0 ts-test-root.pub --lconf 1 --tls-{ca,cert,key} 新链 DER（教训 39 末步）
+结果：**CONNECTED loc=tls/192.168.2.101:9956 → AK PASS → 连续 233s+ 零复位**
+（对照：旧循环同窗必复位 5-6 次），alive 心跳 net=1 每 10s，路由器侧 TLS 会话建立。
+
+登记（后续专项候选）：无路由器场景应降级 fail-safe 常驻而非复位循环——
+  TLS 重连加退避 + 握手段喂狗（或 WDT 窗口豁免），固件健壮性批次处置。
+注：zenohd TLS 实例随本会话存活；持久化（systemd 用户单元）待 owner 点向。
+
+## 9. 网络通道实测（对比基准 2026-10-17）
 github 直连（release CDN/git 大传输）：20-44KB/s 级且间歇断连（blobs 连续 RemoteDisconnected）
 ghfast.top 镜像：git ~1.5-3MB/s；blob/release 资产可用（blobs 71 件全经此通道 + sha256 全过）
 LAN 代理 192.168.2.90:7890：基准 551KB/s（与 ghfast 同量级）；30 分钟后代理不可达（connect timeout）——
