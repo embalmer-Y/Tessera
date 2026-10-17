@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 import pytest
@@ -115,6 +116,7 @@ def test_edit_stale_after_external_change(env):
     ws, tools, ro = env
     tools.ws_write("s.c", "int x = 1;\n")
     tools.ws_read("s.c")
+    time.sleep(0.02)  # 外部改动须跨文件时间戳粒度 tick（HZ=250 内核粗时钟 4ms）
     (ws.project_dir / "s.c").write_text("int x = 2;\n", encoding="utf-8")
     assert _err_code(tools.ws_edit, "s.c", "int x = 2;", "int x = 3;") == TA_E_WORKSPACE_STALE
 

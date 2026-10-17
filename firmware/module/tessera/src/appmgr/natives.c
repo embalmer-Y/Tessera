@@ -340,7 +340,9 @@ static int32_t native_thread_join(wasm_exec_env_t env, uint32_t ctx_opaque,
 
 
 /* P1-1（HLD §3.4）：APP 间消息——框架路由唯一互访通道（DEC-04）。
- * 发送授权 = msg:send:<target> 名单（perm 层）；接收被动取件。 */
+ * 发送授权 = msg:send:<target> 名单（perm 层）；接收被动取件。
+ * 面 = TS_NET（APP 间消息走 appmgr 队列，不依赖 av 面）。 */
+#ifdef CONFIG_TS_NET
 static int32_t native_msg_send(wasm_exec_env_t env, uint32_t ctx_opaque,
 			       uint32_t target_off, uint32_t target_len,
 			       uint32_t data_off, uint32_t len)
@@ -389,11 +391,13 @@ static int32_t native_msg_recv(wasm_exec_env_t env, uint32_t ctx_opaque,
 
 	return (r == TS_OK) ? (int32_t)len : (int32_t)r;
 }
-
+#endif /* CONFIG_TS_NET */
 
 /* P1-3（HLD §3.6 · DEC-03/合同 7）：受控供电槽 native 面——ts-power 层
  * 全链（perm power:set:slot + 预算联动 POWER_BUDGET + 唯一写路径 commit）
- * 的 wasm 暴露；get = safety readback（en 返回值 0/1，ma 出参）。 */
+ * 的 wasm 暴露；get = safety readback（en 返回值 0/1，ma 出参）。
+ * 面 = TS_POWER（与 av/net 面正交）。 */
+#ifdef CONFIG_TS_POWER
 static int32_t native_power_set(wasm_exec_env_t env, uint32_t ctx_opaque,
 				uint32_t slot, uint32_t on, uint32_t ma)
 {
@@ -427,6 +431,7 @@ static int32_t native_power_get(wasm_exec_env_t env, uint32_t ctx_opaque,
 	*out = rb.pwr.ma;
 	return rb.pwr.en ? 1 : 0;
 }
+#endif /* CONFIG_TS_POWER */
 
 static NativeSymbol ts_native_syms[] = {
 	{"ts_gpio_write", native_gpio_write, "(iii)i", NULL},
@@ -450,11 +455,15 @@ static NativeSymbol ts_native_syms[] = {
 	{"ts_av_write", native_av_write, "(iii)i", NULL}, /* K2：av:write 输出面 */
 #ifdef CONFIG_TS_NET
 	{"ts_net_publish", native_net_publish, "(iiiiii)i", NULL},
+#endif
+#endif
+#ifdef CONFIG_TS_NET
 	{"ts_msg_send", native_msg_send, "(iiiiii)i", NULL}, /* P1-1：msg:send 名单授权 */
 	{"ts_msg_recv", native_msg_recv, "(iiiii)i", NULL},
+#endif
+#ifdef CONFIG_TS_POWER
 	{"ts_power_set", native_power_set, "(iiii)i", NULL}, /* P1-3：power:set:slot 权限 + 预算联动 */
 	{"ts_power_get", native_power_get, "(iiii)i", NULL},
-#endif
 #endif
 #ifdef CONFIG_TS_APP_THREADS
 	{"ts_thread_start", native_thread_start, "(iiii)i", NULL},
