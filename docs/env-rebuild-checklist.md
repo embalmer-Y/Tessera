@@ -207,6 +207,7 @@ python3 -m venv ~/project/agent-venv
   §11① aarch64 通过线 14/16（WAMR 64 位目标域已知缺陷——app/threads，证据
   arm64_rebuild_20261017.txt）+ ④ repo pytest 5。同批修复 twister 套件 platform_allow 缺 /64
   （15 文件）+ natives.c 守卫结构（CI 五连红根因）+ CMake /64 WAMR 目标映射。
+- v1.2 · 2026-10-17：R4 批——⑦ 行补板型感知窗参数化口径（atkbench --window 90 实测）。
 - v1.0 · 2026-10-17：fw-v0.9.0 环境审查批建立（x86_64 实测 + aarch64 核对）；
   同批修复 tools/board 登记失实链（.gitignore `/tools/` 整目录忽略根因 +
   16 个会话驱动入仓——tools/board/README.md）。

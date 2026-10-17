@@ -330,3 +330,5 @@
 - 2026-10-17 · **V0.10.0 R1 断链重连健壮化批登记（DEC-64）**：ts_wdt_grace/ts_wdt_grace_active（core 声明式阻塞豁免窗 + 测试接缝——LLD-ts-core v0.2.3 §5）；TS_WDT_GRACE_CAP_MS（60s 钳制内部常量）；TS_NET_OPEN_BUDGET_MS（Kconfig 15000——open 阻塞体喂狗豁免预算）；test_17_open_grace_wiring（framework.net 接线用例）。消费：plan §11h R1、arm64_rebuild §8。
 
 - 2026-10-17 · **V0.10.0 R2 TLS 单向化批登记（DEC-64②）**：NET_CONTEXT_RCVTIMEO（Zephyr Kconfig——TS_NET_ZENOH select，pico SO_RCVTIMEO 轮询设计硬性前提）；NET_MAX_CONTEXTS 12→4（atkbench 板级——RCVTIMEO 静态面 140B 溢出实证）；r2_tls_oneway_root_cause.txt（复现/TCP 解剖/根因链/黑洞 A/B 判据）。消费：plan §11h R2、一四二④ 根因闭合。
+
+- 2026-10-17 · **V0.10.0 R4 健壮性小项批登记（DEC-64③）**：nvd_demo.py 参数化面（--window/--node/--cube/--port + 仓库根路径派生）；zenohd-tls.service（systemd 用户单元—— linger 常驻/失败自启/`\"` 转义语义）；checklist ⑦ 板型口径行。消费：plan §11h R4。

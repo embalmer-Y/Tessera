@@ -275,7 +275,7 @@
 |---|------|------|------|------|
 | R1 ✅ | 断链重连健壮化 | **已交付**（根因 = 退避表只护调用间隔、tick 顶喂狗只护间隙，**护不住 open 调用体**——死路由 TCP connect+TLS 握手阻塞 > NET 喂狗窗 2s → 巡检中途判逾 → system_fail 复位环〔arm64_rebuild §8 真机实证〕。修复 = **声明式 WDT 豁免窗**：core 增 `ts_wdt_grace(src, budget)`（窗内巡检不判逾/超窗恢复判逾 fail-safe 保持/feed 清除/60s 钳制/不激活源）+ session_poll open 前后接线（grace → open → feed 成败同路）+ CONFIG_TS_NET_OPEN_BUDGET_MS 15000（观测单次失败 2-5s ×~3 裕度）；握手段 BIO 心跳钩（DEC-63①）保留为独立防线。用例 core grace 数学六断言组 + net test_17 接线双路；LLD-ts-core v0.2.3/LLD-ts-net v0.4.5） | ~0.5 单元 | DEC-64① |
 | R2 ✅ | TLS 会话陈旧根因 | **已交付**（根因 = zenoh-pico 单 executor 线程协作模型 + Zephyr 默认 RCVTIMEO=n 使 SO_RCVTIMEO 静默无效 → recv 永久阻塞钉死 executor → lease 任务饿死 → 入向断流判死与自动重连永不执行；router 侧被我方 z_put 心跳喂活 = 双侧互盲。修复 = TS_NET_ZENOH select NET_CONTEXT_RCVTIMEO + atkbench NET_MAX_CONTEXTS 12→4；真机黑洞判定 ≤15s 自愈（端口切换零复位）vs 修复前 25min+ 僵尸。一四二④/NVD v5/x86 同象全归因。证据 r2_tls_oneway_root_cause.txt；LLD-ts-net v0.4.6） | ~1 单元 | DEC-64② |
-| R4 | 健壮性小项 | nvd_demo 板型感知窗参数化（atkbench boot ~50s 硬编码 90s 判据窗）；zenohd TLS systemd 用户单元持久化（现随会话存活——owner 点向项） | ~0.5 单元 | 环境/工具面 |
+| R4 ✅ | 健壮性小项 | **已交付**（nvd_demo.py 板型感知参数化——--window/--node/--cube/--port + 路径仓库根派生去 /home/emb 硬编码〔atk 口径 --window 90 实测入 checklist ⑦〕；zenohd-tls.service systemd 用户单元入仓并实机启用——linger 常驻 + 失败自启，`\"` 转义保留 zenohd JSON 引号实测过；路由器进程切换时板自动重连再证 R1+R2 链） | ~0.5 单元 | DEC-64③ |
 | R3 | WAMR /64 仿真缺陷 | native_sim/native/64 下 AARCH64/X86_64 目标 SIGSEGV（exec_env user_data 垃圾指针，gdb 定证——framework.app/threads 两套件 known-fail；E 证据 §7）——invoke-native 路径 root cause（WAMR 上游对照 / 我方 64 位 argv 装配二分） | 1-2 单元 | native_sim 仿真域，不涉真机 |
 
 ## 12. 执行纪律（v1.70 增补质量优先条款）
@@ -288,6 +288,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.109 · 2026-10-17：**R4 健壮性小项 ✅（DEC-64③）**——nvd_demo 板型感知参数化（checklist ⑦ 对齐）+ zenohd-tls systemd 用户单元（入仓 + 实机启用 + linger）；§11h R4 收口。
 - v1.108 · 2026-10-17：**R2 TLS 会话单向化根因定案 + 修复 ✅（DEC-64②）**——RCVTIMEO 静默无效 → pico 单 executor 被读任务钉死 → lease 饿死；select 修复 + 真机黑洞判定 ≤15s 自愈；§11h R2 收口。
 - v1.107 · 2026-10-17：**V0.10.0「健壮性收口批」立项 + R1 交付（DEC-64——owner 泛指令「按照你的推荐开发顺序进行开发」按建议序 R1→R2→R4→R3）**。R1 断链重连健壮化 ✅：根因 = 死路由 open 调用体阻塞（TCP connect+TLS 握手）超 NET 喂狗窗、退避表与 tick 顶喂狗均护不住调用体（arm64_rebuild §8 复位环实证）；修复 = core 声明式 WDT 豁免窗 ts_wdt_grace（窗内不判逾/超窗恢复 fail-safe/feed 清除/60s 钳制）+ session_poll open 接线 + TS_NET_OPEN_BUDGET_MS 15000；LLD-ts-core v0.2.3/LLD-ts-net v0.4.5；§11h 新立（R2 TLS 会话陈旧/R4 小项/R3 WAMR /64）。
 - v1.106 · 2026-10-17：**fw-v0.9.0 tag 打点推送（基线 5a8b9f3，附注式）——形态批 F3 + 清欠批 P1 + P1-2 TLS 合版正式收口**。同批环境审查（owner：环境将销毁、多机含 ARM 重建）：**tools/board 登记失实链结案**（.gitignore `/tools/` 整目录忽略 = b1a31e4/5cc02d4 两处「入仓」机械性失实根因；16 会话驱动 + gen_tls_certs.sh/ota_client.py 真实入仓 + tools/board/README.md）；**新立 docs/env-rebuild-checklist.md**（重建唯一总单：x86_64 实测 + aarch64 推定⚠待回填 + 分层验证七步）；migration-x86 §3/§5 更正；README 计数对齐（twister 113/agent 204）。回归：py_compile 19/bash -n/sync_check/pristine 构建（前批）全绿。
