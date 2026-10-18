@@ -54,11 +54,25 @@ def _cmd(svc: ZenohService, node: str, cube: str, op: str, rid: str,
          **env: Any) -> keys.Reply:
     # 偶发空回执重试（K3 真机实证：同进程内 status 通/trust-get 空的组合
     # 竞态、隔离复测同 query 恒 44B 正常回执——PC 侧会话竞态域，重试即过；
-    # 超时类 TaError 不在此吞〔上层语义各自处理〕，仅空载荷重试 3 次）
+    # 仅空载荷重试 3 次，间隔 0.5s）。
+    #
+    # 超时跨自愈窗重试 ×2（R5-V · DEC-65；R2 族）：部署突发可触发板侧 TCP
+    # 单向僵（上游 Zephyr 原生 TCP 乱序域），zenoh-pico 租期判死 + 自动重连
+    # ≤15s 自愈（R2 修复）——单次 10s 查询恰在自愈窗内超时 = 部署误败。
+    # Timeout 类回执间隔 8s 重试 2 次（verify 幂等安全；activate 重试落
+    # E_BUSY 可见不腐蚀）。其余语义不变。
     payload = b""
-    for _ in range(3):
-        _, payload = svc.query_one(keys.key_sys(node, cube, op),
-                                   keys.envelope(op, rid, **env))
+    timeout_retries = 2
+    for _ in range(5):
+        try:
+            _, payload = svc.query_one(keys.key_sys(node, cube, op),
+                                       keys.envelope(op, rid, **env))
+        except TaError as e:
+            if timeout_retries > 0 and (e.retryable or "Timeout" in str(e)):
+                timeout_retries -= 1
+                time.sleep(8.0)
+                continue
+            raise
         if payload:
             break
         time.sleep(0.5)

@@ -391,10 +391,16 @@ static bool zenoh_is_up(void)
 		return false;
 	}
 #if defined(Z_FEATURE_MULTI_THREAD) && Z_FEATURE_MULTI_THREAD == 1
-	/* 传输健康定义（LLD §2 定稿）：会话在而读写/租期任务已死 = 半死态 →
-	 * 判 DOWN（session_poll 走 close+重连）。上游自省接口（标注 deprecated
-	 * 仅指任务不再需手动启动，活性探测语义仍有效）。 */
-	return zp_read_task_is_running(z_loan(zs)) && zp_lease_task_is_running(z_loan(zs));
+	/* 传输健康三判据（LLD §2 R5-V 修订）。①② 执行器任务活性——1.10.1
+	 * 执行器模型下两个 zp_*_is_running 均退化为「后台执行器线程存活」：
+	 * 租期/读 fut 判死退出（AUTO_RECONNECT=0 不再生重开 fut）后线程照常
+	 * 轮转，单看任务活性 is_up 恒真 = 永久僵尸（2026-10-18 真机实证：部署
+	 * 突发击链后 30min+ 无重连，板 ping 通而 zenoh 全哑）。③ 传输态本体
+	 * ——全部死法（租期判死/读任务失败/半开由租期兜底）在一个租期内汇入
+	 * _state=CLOSED，pico 补丁加 zp_transport_is_open 访问器作真信号。 */
+	return zp_read_task_is_running(z_loan(zs)) &&
+	       zp_lease_task_is_running(z_loan(zs)) &&
+	       zp_transport_is_open(z_loan(zs));
 #else
 	return true; /* 单线程构建退化：opened 即活（无后台任务可自省） */
 #endif

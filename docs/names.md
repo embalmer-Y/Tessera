@@ -340,3 +340,5 @@
 - 2026-10-18 · **V0.11.0 R5 设计批登记（DEC-65）**：LLD-ts-interact.md（新 LLD——单 UART 三合一/ts 命令集 v1 七条/TS_INTERACT 门控）；tsi 判据行前缀（`[tsi] <cmd> rc=`）。消费：owner 2026-10-18 泛指令、plan §11h R5-U。
 
 - 2026-10-18 · **V0.11.0 R5-I 批登记（DEC-65）**：src/interact/ts_interact.c/.h（薄命令层——ts_interact_confirm/reject/arb/estop_clear/log_level 核心面 + SHELL 门控命令表）；framework.interact 套件（testcase 3 用例 + INTERACT DONE 判据行）；TS_INTERACT/TS_INTERACT_LOG_LEVEL（Kconfig）；r5_interact_console.txt（真机证据）；[tsi] 判据行族；build_prov12 栈越界缺陷根治（cap 契约 + pb 256——app/interact 两套件同修）。消费：plan §11h R5-I、DEC-65。
+
+- 2026-10-18 · **V0.11.0 R5-V 僵尸自愈收口登记（DEC-65）**：zp_transport_is_open（pico 补丁新访问器——api.c 定义 + primitives.h 声明，传输态本体 liveness，补丁六→八 hunk pristine 可重放）；is_up 三判据（执行器任务活性 ×2 + 传输态——1.10.1 执行器模型 zp_*_task_is_running 语义漂移根因）；NET_CONTEXT_SNDTIMEO（TS_NET_ZENOH select + tcp_zephyr.c SO_SNDTIMEO 对称补丁）；serial_capture.py（单读者抓取——复位+抓取同进程纪律）；r5v_zombie_heal_console.txt（僵尸破案 + 路由器重启注入自愈判决 + NVD 复验）。消费：plan §11h R5-V、LLD-ts-net v0.4.7。

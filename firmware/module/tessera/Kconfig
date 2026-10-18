@@ -607,6 +607,7 @@ config TS_NET_ZENOH
 	depends on TS_NET && ZENOH_PICO
 	default n
 	select NET_CONTEXT_RCVTIMEO
+	select NET_CONTEXT_SNDTIMEO
 	help
 	  Requires zenoh-pico Zephyr module in ZEPHYR_EXTRA_MODULES. Link-level
 	  liveness refinement (keepalive) lands with M3a.2.

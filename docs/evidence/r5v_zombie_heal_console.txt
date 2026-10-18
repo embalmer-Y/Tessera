@@ -1,0 +1,77 @@
+R5-V · AUTO_RECONNECT=0 僵尸态破案 + is_up 三判据修复 · 真机判决记录
+=====================================================================
+日期：2026-10-18（一四七续） · 机型：Radxa Cubie A7A（aarch64 重建机）
+板：ATK DNESP32-S3B（akn/akc，192.168.2.67 ← esptool MAC fc:01:2c:cf:ca:98 实证）
+路由器：zenohd-tls systemd 用户单元（9956 mTLS 板侧 / 9957 plain agent 侧，19h+ 常驻）
+
+## 1. 缺陷现场（12:13 发现）
+
+稳定镜像（HEAD 239542b + pico 补丁 AUTO_RECONNECT=0 + SO_SNDTIMEO，console=USJ）：
+  部署探针 get-info/lease/app-begin 全过 → app-chunk（1454B 单块）无回执
+  （agent 重试 3×10s + 8s 间隔全超时，~46s）→ 此后板 zenoh 全哑：
+    - r2_query NO-REPLY（超时无回执）
+    - ss -tn sport=:9956 零连接（板从路由器消失）
+    - ping 192.168.2.67 8ms 通（WiFi/网络栈活）
+    - 串口无复位 ROM 行（板未复位）
+  → **永久僵尸 ≥30min，零自愈**。路由器侧唯一痕迹：
+    WARN ... Didn't receive final reply for query south:0:peer/... Timeout(10s)
+
+## 2. 根因（代码级链）
+
+zenoh.c zenoh_is_up() = zp_read_task_is_running && zp_lease_task_is_running。
+1.10.1 执行器模型下两 API 均退化为「后台执行器线程存活」：
+  api.c 2530/2547: 两函数同返回 _z_background_executor_is_running(&zs->_runtime)。
+租期判死路径（transport/unicast/lease.c _zp_unicast_failed_result）：
+  AUTO_RECONNECT=0 → _z_transport_clear（_state=CLOSED）→ 返回 ready = fut 完成
+  = 租期任务退出——但执行器线程继续轮转 → is_running 恒真 → is_up 恒真
+  → session_poll（CONNECTED 分支）永不触发 close+重连。
+死法覆盖：租期判死/读任务失败均汇入 _state=CLOSED；TCP 半开（EOF 空转）由
+租期任务在一租期内兜底判死（_received 恒假）→ 三判据之传输态覆盖全部死法。
+R2 时代（AUTO_RECONNECT=1）pico 自愈 ≤15s 掩盖本缺陷；F7 破案关闭
+AUTO_RECONNECT（EXCCAUSE 28 悬垂 fut 崩溃）后暴露——重连所有权本设计归
+glue session_poll，但其判死信号源失效。
+
+## 3. 修复（三判据）
+
+- pico 补丁（ext/zenoh-pico-tls.patch 六→八 hunk，pristine dry-run 可重放）：
+  + src/api/api.c 末尾 zp_transport_is_open()（_type != NONE && _state == OPEN）
+  + include/zenoh-pico/api/primitives.h 声明（include guard 内）
+- glue zenoh.c zenoh_is_up()：执行器任务活性两判据 && 传输态第三判据
+- Kconfig TS_NET_ZENOH select NET_CONTEXT_SNDTIMEO（对称 RCVTIMEO；
+  tcp_zephyr.c SO_SNDTIMEO 补丁同批——下行僵时 send 有界，执行器保轮转）
+
+## 4. 真机判决（修复后镜像，console=uart0 诊断形态——单变量，无 shell/log）
+
+[4a] 自愈判决（路由器重启注入断链）：
+  12:48:08 systemctl --user restart zenohd-tls → 板侧 console（诊断串口）：
+    [  99.85s] [ts-net] zenoh_open: z_open rc=-102 loc=tls/192.168.2.101:9956
+    [ts-net] tls: mTLS 注入 ca=399B cert=390B key=138B（名称校验 ON）
+    [ 104.85s] [ts-net] zenoh_open: CONNECTED loc=tls/192.168.2.101:9956
+    AK6 app running app_id=com.example.cube.nvd slot=1 t=23622
+    AK PASS
+  = 判死→重连（一次退避重试后成功），**零复位**（app 运行跨断链不受扰，
+  uptime 连续），恢复 ≤~26s（租期判死 10s + backoff + 握手）；对比修复前 =
+  永久僵尸。首试 rc=-102 为路由器进程重启瞬间的可重试失败，退避表按设计吸收。
+[4b] 部署全链：修复像上部署探针 PASS（lease 0.8s → upload 1454/1454B →
+  verify PASS → activate confirmed slot=0 → lease released，全程 ~2.2s）。
+[4c] NVD 复验（chip_id 复位后自 flash 装载）：
+    [app1/l0] nvd tick cnt=01 ... cnt=10
+    [app1/l0] NVD DONE ticks=10        ← 复位后 12.1s
+    [ 13.08s] [ts-net] zenoh_open: CONNECTED loc=tls/192.168.2.101:9956
+    AK6 app running app_id=com.example.cube.nvd slot=0 t=11568
+    AK PASS
+[4d] 稳定部署连续性：console=uart0 诊断像 6/6 部署全过（首跑含被动完整
+  NVD 链：部署→暖复位→自 flash 装载→NVD DONE ticks=10 全程入档）。
+
+## 5. 过程事实与教训
+
+- 同内容 USJ-console 稳定像 12:13 死、uart0-console 诊断像 12:32 起 6/6 过：
+  击链触发器保持环境间歇域（昨日 R5 路由像 WiFi ENOMEM 链、今日 USJ 像击链
+  ——R5 路由恢复 + DRAM 重平后于 R5 路由形态下复验）。本修复保证：任何
+  击链不再永久化，board ≤~26s 自愈。
+- 串口非独占：esptool/pyserial/第二读者可同时 open 同一 ttyACM → 数据
+  三分（NVD DONE 行一度丢失）——单读者纪律升级为「复位+抓取同进程」或
+  时序互斥；run_reset/chip_id 二者 chip_id 实测可靠（run_reset 对 CH343
+  电平序不动作，RTS 裸脉冲 = BOOT 长按而非复位——console2 log
+  "0（BOOT 长按本地路）" 实证）。
+- 板 IP 确证 = 192.168.2.67（esptool MAC 与 ip neigh 对表）。
