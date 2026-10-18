@@ -332,3 +332,7 @@
 - 2026-10-17 · **V0.10.0 R2 TLS 单向化批登记（DEC-64②）**：NET_CONTEXT_RCVTIMEO（Zephyr Kconfig——TS_NET_ZENOH select，pico SO_RCVTIMEO 轮询设计硬性前提）；NET_MAX_CONTEXTS 12→4（atkbench 板级——RCVTIMEO 静态面 140B 溢出实证）；r2_tls_oneway_root_cause.txt（复现/TCP 解剖/根因链/黑洞 A/B 判据）。消费：plan §11h R2、一四二④ 根因闭合。
 
 - 2026-10-17 · **V0.10.0 R4 健壮性小项批登记（DEC-64③）**：nvd_demo.py 参数化面（--window/--node/--cube/--port + 仓库根路径派生）；zenohd-tls.service（systemd 用户单元—— linger 常驻/失败自启/`\"` 转义语义）；checklist ⑦ 板型口径行。消费：plan §11h R4。
+
+- 2026-10-18 · **R5 UART 交互终端需求登记（owner）**：R5（plan §11h——无外设板本地交互源：F3 confirm/reject + CG3 席位 + F2 本地清除的 UART 终端载体；设计批门③未排期）。消费：owner 2026-10-18 指令。
+
+- 2026-10-18 · **V0.10.0 R3 批登记（DEC-64④）**：WAMR /64 invokeNative 根治（GENERAL C thunk × 寄存器分类路径契约错配——INVOKE_NATIVE_GENERAL=0 + 宿主映射 AARCH64/X86_64 + -Wa,--noexecstack）；垃圾常数 0xaa0803f0a9467bfd 归因闭合。消费：plan §11h R3、arm64_rebuild §7。

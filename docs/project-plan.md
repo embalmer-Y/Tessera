@@ -276,7 +276,8 @@
 | R1 ✅ | 断链重连健壮化 | **已交付**（根因 = 退避表只护调用间隔、tick 顶喂狗只护间隙，**护不住 open 调用体**——死路由 TCP connect+TLS 握手阻塞 > NET 喂狗窗 2s → 巡检中途判逾 → system_fail 复位环〔arm64_rebuild §8 真机实证〕。修复 = **声明式 WDT 豁免窗**：core 增 `ts_wdt_grace(src, budget)`（窗内巡检不判逾/超窗恢复判逾 fail-safe 保持/feed 清除/60s 钳制/不激活源）+ session_poll open 前后接线（grace → open → feed 成败同路）+ CONFIG_TS_NET_OPEN_BUDGET_MS 15000（观测单次失败 2-5s ×~3 裕度）；握手段 BIO 心跳钩（DEC-63①）保留为独立防线。用例 core grace 数学六断言组 + net test_17 接线双路；LLD-ts-core v0.2.3/LLD-ts-net v0.4.5） | ~0.5 单元 | DEC-64① |
 | R2 ✅ | TLS 会话陈旧根因 | **已交付**（根因 = zenoh-pico 单 executor 线程协作模型 + Zephyr 默认 RCVTIMEO=n 使 SO_RCVTIMEO 静默无效 → recv 永久阻塞钉死 executor → lease 任务饿死 → 入向断流判死与自动重连永不执行；router 侧被我方 z_put 心跳喂活 = 双侧互盲。修复 = TS_NET_ZENOH select NET_CONTEXT_RCVTIMEO + atkbench NET_MAX_CONTEXTS 12→4；真机黑洞判定 ≤15s 自愈（端口切换零复位）vs 修复前 25min+ 僵尸。一四二④/NVD v5/x86 同象全归因。证据 r2_tls_oneway_root_cause.txt；LLD-ts-net v0.4.6） | ~1 单元 | DEC-64② |
 | R4 ✅ | 健壮性小项 | **已交付**（nvd_demo.py 板型感知参数化——--window/--node/--cube/--port + 路径仓库根派生去 /home/emb 硬编码〔atk 口径 --window 90 实测入 checklist ⑦〕；zenohd-tls.service systemd 用户单元入仓并实机启用——linger 常驻 + 失败自启，`\"` 转义保留 zenohd JSON 引号实测过；路由器进程切换时板自动重连再证 R1+R2 链） | ~0.5 单元 | DEC-64③ |
-| R3 | WAMR /64 仿真缺陷 | native_sim/native/64 下 AARCH64/X86_64 目标 SIGSEGV（exec_env user_data 垃圾指针，gdb 定证——framework.app/threads 两套件 known-fail；E 证据 §7）——invoke-native 路径 root cause（WAMR 上游对照 / 我方 64 位 argv 装配二分） | 1-2 单元 | native_sim 仿真域，不涉真机 |
+| R5 ◐ | UART 交互终端（owner 需求 2026-10-18 登记） | **需求已登记未排期**（owner：板子要像安卓机器——屏幕/音频/按键非必然存在，**板卡最常见的是 UART**；为板卡添加类 linux 终端的交互 UART 终端。消费点 = 无外设形态板的**本地交互源**：F3 安装闸 confirm/reject（现预设 BOOT 手势+LCD）、CG3 arb 席位本地切换、F2 estop 本地清除——同一 pending/arb 挂点换终端载体；形态候选 = Zephyr shell @ uart + ts 命令集（权限面与手势同源）。**设计批门③随排期呈递**（安全语义：终端=物理在场代理，与 BOOT 键同信任级） | 1-1.5 单元 | owner 点向排期后开工 |
+| R3 ✅ | WAMR /64 仿真缺陷 | **已交付**（root cause = GENERAL C thunk 契约错配：我方为 ia32 汇编 GNU-stack 设 `INVOKE_NATIVE_GENERAL=1`，其契约「argc 个连续 u32 字」仅匹配 32 位 branch A 线性布局；64 位目标编译寄存器分类路径〔fps/ints/stacks 三桶，exec_env 64 位进 ints[0]，小签名 n_stacks=0〕→ GENERAL 收 argc=0 零参数调用 native → exec_env 形参 = 寄存器残留 → user_data 常数垃圾 0xaa0803f0a9467bfd → SIGSEGV；X86_32 目标 ARM 机「静默不落地」同闭合〔branch A 单字 exec_env 零扩展丢高位〕；「AARCH64 目标亦崩」系同携带 GENERAL 所致非目标本身。修复 = /64 按宿主处理器映射 AARCH64/X86_64 + 真实架构汇编 thunk + GENERAL=0 + `--noexecstack`；32 位 x86 CI 口径不变。**twister /64 = 16/16 套件 114/114 用例首次全绿**） | ~0.5 单元 | DEC-64④ |
 
 ## 12. 执行纪律（v1.70 增补质量优先条款）
 
@@ -288,6 +289,8 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.111 · 2026-10-18：**R3 WAMR /64 仿真缺陷根治 ✅（DEC-64④）**——GENERAL C thunk × 64 位寄存器分类路径契约错配定案；/64 按宿主映射 AARCH64/X86_64 + 架构汇编 thunk；twister /64 首次 16/16（114/114）全绿；§11h V0.10.0 批 R1-R4 全收口（R5 UART 终端已登记待排期）。
+- v1.110 · 2026-10-18：**R5 需求登记（owner 指令）**——UART 交互终端（无外设板本地交互源：F3 安装闸/CG3 席位/F2 本地清除挂点，类 linux 终端形态）；未排期，设计批门③随点向呈递。
 - v1.109 · 2026-10-17：**R4 健壮性小项 ✅（DEC-64③）**——nvd_demo 板型感知参数化（checklist ⑦ 对齐）+ zenohd-tls systemd 用户单元（入仓 + 实机启用 + linger）；§11h R4 收口。
 - v1.108 · 2026-10-17：**R2 TLS 会话单向化根因定案 + 修复 ✅（DEC-64②）**——RCVTIMEO 静默无效 → pico 单 executor 被读任务钉死 → lease 饿死；select 修复 + 真机黑洞判定 ≤15s 自愈；§11h R2 收口。
 - v1.107 · 2026-10-17：**V0.10.0「健壮性收口批」立项 + R1 交付（DEC-64——owner 泛指令「按照你的推荐开发顺序进行开发」按建议序 R1→R2→R4→R3）**。R1 断链重连健壮化 ✅：根因 = 死路由 open 调用体阻塞（TCP connect+TLS 握手）超 NET 喂狗窗、退避表与 tick 顶喂狗均护不住调用体（arm64_rebuild §8 复位环实证）；修复 = core 声明式 WDT 豁免窗 ts_wdt_grace（窗内不判逾/超窗恢复 fail-safe/feed 清除/60s 钳制）+ session_poll open 接线 + TS_NET_OPEN_BUDGET_MS 15000；LLD-ts-core v0.2.3/LLD-ts-net v0.4.5；§11h 新立（R2 TLS 会话陈旧/R4 小项/R3 WAMR /64）。

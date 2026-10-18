@@ -149,16 +149,27 @@ if(CONFIG_TS_APP_WAMR)
     # 64 位变体（native_sim/native/64——ARM 机 twister 口径）：宿主字长目标，
     # 按宿主处理器选（native 工具链 = 宿主本机编译）。32 位基线维持 X86_32。
     if(CONFIG_64BIT OR BOARD_QUALIFIERS MATCHES "64")
-      # 64 位变体统一 X86_64 字长语义（fast 解释器 = 可移植 C，target 仅取
-      # 字长/ABI 元数据；AARCH64 目标会走 WAMR 平台层特定分支——native_sim
-      # 宿主线程模型下 SIGSEGV，ARM 机实测登记）
-      set(WAMR_BUILD_TARGET "X86_64")
+      # R3（DEC-64④）根治：此前 /64 统一 X86_64 + GENERAL C thunk（诚实崩
+      # 溃映射）——根因 = GENERAL thunk 契约是「argc 个连续 u32 字」（32 位
+      # branch A 线性布局），而 64 位目标编译寄存器分类路径（fps/ints/stacks
+      # 三桶，exec_env 64 位值进 ints[0]，小签名 n_stacks=0）→ GENERAL 收
+      # argc=0 零参数调用 native → exec_env 形参 = 寄存器残留 → user_data
+      # = 常数垃圾 0xaa0803f0a9467bfd → SIGSEGV（arm64_rebuild §7 活标本）。
+      # 修复 = 64 位走真实架构汇编 thunk（寄存器分类布局的正牌消费者）：
+      # 目标随宿主处理器映射；GENERAL=0。
+      if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)")
+        set(WAMR_BUILD_TARGET "AARCH64")
+      else()
+        set(WAMR_BUILD_TARGET "X86_64")
+      endif()
+      set(WAMR_BUILD_INVOKE_NATIVE_GENERAL 0)
     else()
       set(WAMR_BUILD_TARGET "X86_32")
+      # 通用 C 版 invokeNative：ia32 汇编缺 .note.GNU-stack（可执行栈警告被
+      # Zephyr --fatal-warnings 升级为链接错误）；C 版零补丁且 32 位布局
+      # （branch A 线性字数组）与其契约匹配——x86 CI 口径维持。
+      set(WAMR_BUILD_INVOKE_NATIVE_GENERAL 1)
     endif()
-    # 通用 C 版 invokeNative：ia32 汇编缺 .note.GNU-stack（可执行栈警告被
-    # Zephyr --fatal-warnings 升级为链接错误）；C 版零补丁且 x86 传参可靠。
-    set(WAMR_BUILD_INVOKE_NATIVE_GENERAL 1)
   elseif(BOARD STREQUAL "xiao_esp32s3")
     set(WAMR_BUILD_TARGET "XTENSA")
     # xtensa 用 WAMR 官方汇编 invokeNative（WAMR cmake 对 XTENSA 的既定
@@ -219,9 +230,10 @@ if(CONFIG_TS_APP_WAMR)
   zephyr_library_sources(${WAMR_RUNTIME_LIB_SOURCE})
   zephyr_library_sources(src/appmgr/wamr_compat.c)
   zephyr_library_compile_options(-w)
-  # xtensa invokeNative 汇编缺 .note.GNU-stack → 汇编期补注记
+  # xtensa/64 位 invokeNative 汇编缺 .note.GNU-stack → 汇编期补注记
   # （否则 Zephyr --fatal-warnings 链接失败；对 C 对象无副作用）。
-  if(BOARD STREQUAL "xiao_esp32s3" OR BOARD STREQUAL "dnesp32s3b")
+  if(BOARD STREQUAL "xiao_esp32s3" OR BOARD STREQUAL "dnesp32s3b"
+     OR (BOARD STREQUAL "native_sim" AND WAMR_BUILD_INVOKE_NATIVE_GENERAL EQUAL 0))
     zephyr_library_compile_options(-Wa,--noexecstack)
   endif()
   # 消费面（app/测试）include 传播：runtime_lib.cmake 内部为目录级

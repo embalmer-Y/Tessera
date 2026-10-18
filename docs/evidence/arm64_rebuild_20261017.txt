@@ -124,3 +124,12 @@ ghfast.top 镜像：git ~1.5-3MB/s；blob/release 资产可用（blobs 71 件全
 LAN 代理 192.168.2.90:7890：基准 551KB/s（与 ghfast 同量级）；30 分钟后代理不可达（connect timeout）——
   代理为 owner 侧 FlClash，稳定性不如 ghfast 直连镜像，git/资产大传输主通道定版 = ghfast
 pypi 直连大文件慢（cmake 30MB wheel 卡 7min+）→ 清华镜像秒级
+
+## 11. §7 缺陷根治追记（2026-10-18，DEC-64④/R3）
+root cause = GENERAL C invokeNative thunk × 64 位寄存器分类路径契约错配
+（GENERAL=1 为 ia32 汇编 GNU-stack 规避所设；64 位 branch C 的 fps/ints/stacks
+三桶布局下小签名 n_stacks=0 → GENERAL switch(argc) 收 0 → 零参数调用 native →
+exec_env 形参 = 寄存器残留 = 常数垃圾）。修复 = /64 按宿主映射 AARCH64/X86_64 +
+真实架构汇编 thunk（GENERAL=0 + -Wa,--noexecstack）。
+判据：twister native_sim/native/64 **16/16 套件 114/114 用例首次全绿**
+（framework.app/threads 收口）；32 位 x86 CI 口径不变。详见 DEC-64④。
