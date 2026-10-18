@@ -253,7 +253,7 @@
 
 | 候选 | 内容 | 现状 |
 |------|------|------|
-| D2 计划/进度工具 | LN/任务计划外显（plan/todo 结构化——循环已有内部计划跟踪，此为 MCP 可观测化） | 未做（候选②） |
+| D2 计划/进度工具 ✅ | **已实现（2026-10-18 · DEC-65⑤ 并入 V0.11.0 批）**：Task.progress 结构化进度面 + task_progress MCP 工具（{task_id, state, progress}——app_develop 创作循环事件经 note_loop_progress 单一映射源实时落位：plan 项/轮次/loop_state/evidence 计数；task_status.snapshot 同源携带）+ 用例 4（映射矩阵/未知事件/浅拷贝/MCP 面）——agent 208+2s | — |
 | D4 hooks 拦截面 | MCP 工具调用前/后钩子（诊断自动注入等——2026 四家 CLI 收敛面） | 未做（候选④） |
 | D5 决策链回放器 | 审计流 → 时间线回放（决策溯源 UI） | 未做（候选⑥） |
 | D6 MCP 客户端 | Agent 作为 MCP client 消费外部工具服务器 | 未做（候选⑦——与 A2A 同等"真实消费者出现再启"） |
@@ -292,6 +292,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.117 · 2026-10-18：**D2 计划/进度 MCP 外显 ✅（DEC-65⑤，V0.11.0 批收官单元）**——task_progress 工具 + Task.progress 面 + note_loop_progress 映射；agent 208+2s。
 - v1.116 · 2026-10-18：**R5-V①②③ 全收口 ✅**——DRAM 重平（pico 栈池 16KB 释放）+ R5 接线全上 + F3 终端四判据 ALL PASS + NVD 复验 + 双栈（SHELL/SYSWORKQ）真机定案 + stage_commit 身份提取 + flash_prov 补齐。
 - v1.115 · 2026-10-18：**R5-V 僵尸自愈收口（AUTO_RECONNECT=0 域破案）**——is_up 三判据（zp_transport_is_open pico 访问器）+ SNDTIMEO 对称 + 部署重试；真机四判决（自愈/部署/NVD/6×6 稳定性）入证据；console=uart0 诊断形态定版（app 日志 CH343 可观测）。
 - v1.114 · 2026-10-18：**R5-I 框架面交付 + atkbench 接线回退（DRAM 重平登记批内余项）**——ts-interact 组件/用例全绿（twister 17/17 套件 117 用例零失败）+ 三合一形态真机点亮；WiFi ENOMEM 发现与池三档实验入证据；prov12 栈越界存量缺陷两侧同修。

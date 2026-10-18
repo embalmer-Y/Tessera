@@ -501,6 +501,7 @@ class FirmwareDomainPack(DomainPackBase):
                 log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
                 return await app_chain.app_develop(
                     ctx, spec, key_path, out_dir, wasm_path=wasm_path, log_fn=log,
+                    task=task,  # D2：循环事件 → task.progress（task_progress 面）
                 )
 
             return await spawn("app_develop", args, body)

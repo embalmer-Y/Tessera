@@ -49,6 +49,9 @@ class Task:
     log: deque[str] = field(default_factory=lambda: deque(maxlen=TASK_LOG_RING))
     result: Any = None
     error: dict[str, Any] | None = None
+    # D2（DEC-65⑤）：结构化进度面（运行体经 note_progress 更新——app_develop
+    # 创作循环事件实时映射；只增改已知键，消费面 = task_progress 工具）。
+    progress: dict[str, Any] = field(default_factory=dict)
     log_dropped: int = 0
     _aio: asyncio.Task[None] | None = None
 
@@ -66,6 +69,7 @@ class Task:
             "ttl_s": self.ttl_s,
             "result": self.result,
             "error": self.error,
+            "progress": dict(self.progress),
         }
 
 

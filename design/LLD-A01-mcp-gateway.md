@@ -1,4 +1,4 @@
-# LLD-A01 · MCP 网关（FastMCP 门面）· v0.2 草案
+# LLD-A01 · MCP 网关（FastMCP 门面）· v0.2.1
 
 > **上游**：HLD-agent §2/A01；决策 DEC-34（双层）/DEC-36①②（stateless 纪律/长任务句柄）。事实基线 R5 §2（FastMCP 4.0.5）。
 
@@ -18,7 +18,8 @@
 | sys_get_info | ro | 否 | – → {version, config 概要, providers 状态, 固件工作区状态} | auto |
 | sys_pending_approvals | ro | 否 | – → [{approval_id, tool, args_digest, reason, expires_at}] | auto |
 | sys_approve | ro* | 否 | {approval_id, decision: allow/deny, token} → {result} | auto（自身即审批动作，token 校验见 §4） |
-| task_status | ro | 否 | {task_id} → {state, tool, created_at, ttl, result?, error?} | auto |
+| task_status | ro | 否 | {task_id} → {state, tool, created_at, ttl, result?, error?, progress?} | auto |
+| task_progress | ro | 否 | {task_id} → {state, progress}（D2 · DEC-65⑤：app_develop 创作循环事件→结构化进度〔plan/round/loop_state/evidence_count〕实时映射——note_loop_progress 单一映射源；task_log 事件流的结构化替代面） | auto |
 | task_log | ro | 否 | {task_id, offset?, limit?} → {lines[], truncated} | auto |
 | task_cancel | 写 | 否 | {task_id} → {state} | auto |
 | fw_workspace_status | ro | 否 | – → {branch, commit, dirty, boards[], 测试清单} | auto |
@@ -73,6 +74,8 @@
 - DEC-38（提案 1/2/4/7/10 常量出处）；A02（高层工具的会话驱动）；A03…A06（原子工具实现）；工具面增删 = review 门（DEC-34）。
 
 ## 修订记录
+- v0.2.1 · 2026-10-18：D2（DEC-65⑤）——task_progress 工具 + task_status 增 progress 键（Task.progress 结构化进度面；note_loop_progress 单一映射源，LLD-A07 §3 平台层实现）。
+
 
 - v0.2 · 2026-10-13：**AG1 修订（DEC-57）**——§2.2 app_develop 升级为 A08 循环后端（契约不变）；MCP 面不增 ws_*（面窄 = 安全属性）；参数规则求值指向 A02 §3.1；A09 终端门面共享语义注记。
 - v0.1 · 2026-09-22：初版。

@@ -396,6 +396,7 @@ async def app_develop(
     repair_feedback: str = "",
     model: Any = None,
     log_fn: Callable[[str], None] | None = None,
+    task: Any = None,
 ) -> dict[str, Any]:
     """spec → APP 开发包（双路径，AG6 · DEC-56/57）：
 
@@ -423,10 +424,36 @@ async def app_develop(
     if wasm_path is None:
         return await _app_develop_loop(ctx, spec, key_path, gate, active,
                                        model=model, log=log,
-                                       repair_feedback=repair_feedback)
+                                       repair_feedback=repair_feedback,
+                                       task=task)
     return await _app_develop_single_shot(ctx, spec, key_path, out_dir, wasm_path,
                                           gate, active, model=model, log=log,
                                           repair_feedback=repair_feedback)
+
+
+def note_loop_progress(progress: dict[str, Any], kind: str,
+                       data: dict[str, Any]) -> None:
+    """创作循环事件 → 任务结构化进度（D2 · DEC-65⑤：计划/进度 MCP 外显）。
+
+    只增改已知键（计划覆盖/轮次覆盖/状态覆盖/证据计数累加），不新增顶层
+    形状——task_progress 消费面稳定；非循环事件静默忽略。"""
+    if kind == "state":
+        progress["loop_state"] = data.get("state")
+        if "repair" in data:
+            progress["repairing"] = bool(data.get("repair"))
+    elif kind == "plan":
+        progress["plan"] = list(data.get("items", []))
+    elif kind == "round":
+        progress["round"] = data.get("round")
+        progress["round_budget"] = data.get("budget")
+        progress["last_declared_done"] = bool(data.get("declared_done"))
+    elif kind == "evidence":
+        progress["evidence_count"] = int(progress.get("evidence_count", 0)) + 1
+        progress["last_evidence"] = {"step": data.get("step"),
+                                     "round": data.get("round")}
+    elif kind == "final":
+        progress["loop_state"] = data.get("state")
+        progress["rounds_used"] = data.get("rounds")
 
 
 async def _app_develop_loop(
@@ -439,6 +466,7 @@ async def _app_develop_loop(
     model: Any = None,
     log: Callable[[str], None],
     repair_feedback: str = "",
+    task: Any = None,
 ) -> dict[str, Any]:
     """创作循环后端（HLD-agent v0.2 §2.2；LLD-A08 全链）。"""
     repo = Path(ctx.cfg.workspace_repo)
@@ -459,6 +487,8 @@ async def _app_develop_loop(
 
     def _on_event(kind: str, data: dict[str, Any]) -> None:
         log(f"loop:{kind} {json.dumps(data, ensure_ascii=False)[:200]}")
+        if task is not None:
+            note_loop_progress(task.progress, kind, data)
 
     loop = CreationLoop(
         ws, verifier, runner, spec,

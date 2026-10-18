@@ -220,6 +220,16 @@ def assemble(ctx: AppContext, packs: Sequence[DomainPack]) -> FastMCP:
         return (data)
 
     @mcp.tool
+    @audited("task_progress")
+    async def task_progress(task_id: str) -> dict:
+        """查询长任务结构化进度（D2 · DEC-65⑤：app_develop 创作循环的
+        计划项/轮次/证据计数实时映射——task_log 事件流的结构化替代面；
+        task_status.snapshot 亦同源携带）。"""
+        task = ctx.registry.get(task_id)
+        return {"task_id": task_id, "state": task.state,
+                "progress": dict(task.progress)}
+
+    @mcp.tool
     @audited("task_cancel")
     async def task_cancel(task_id: str) -> dict:
         """取消长任务（协作式：终止子进程组）。"""
