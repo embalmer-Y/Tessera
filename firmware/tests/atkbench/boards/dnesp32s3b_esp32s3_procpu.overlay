@@ -90,7 +90,7 @@
 / {
 	chosen {
 		zephyr,console = &uart0;
-		zephyr,shell-uart = &usb_serial;
+		zephyr,shell-uart = &uart0;
 	};
 };
 

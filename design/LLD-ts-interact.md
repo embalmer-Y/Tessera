@@ -1,7 +1,8 @@
-# LLD · ts-interact v0.1 草案
+# LLD · ts-interact v0.2
 
 > **本文件是什么**：ts-interact（本地交互终端）低层设计——V0.11.0 R5（DEC-65；需求源 = owner 2026-10-18「板卡最常见的是 UART……添加类似 linux 终端的交互 UART 终端」+ 同日扩意「日志/输出/终端同走 UART 一路」）。
 > **权威顺序**：owner 裁决 > FOUNDING_PROMPT > 本文件。
+> **状态**：v0.2（2026-10-18 R5-V 真机批：**单 UART 三合一真机点亮 + F3 终端确认/拒绝四判据 ALL PASS**——`uart:~$` 与日志行同 tty 复用〔1.9s prompt〕；deploy→PENDING→`ts confirm`→暖复位→`[tsi] confirm rc=0 app=… slot=…`→NVD DONE 全链 + `ts reject` 对称槽保留零复位（证据 r5v_verdicts_console.txt）。板级 DRAM 面定案：ZENOH_PICO_THREADS_NUM 4→2（pico 预分配 pthread 栈池 32KB→16KB——执行器单线程设计）+ SHELL_STACK 4096（2048 缺省装不下 confirm 链——EXCCAUSE 0 野跳真机定案）+ SYSTEM_WORKQUEUE_STACK_SIZE 4096（板缺省 1024 于 zenoh 建链窗溢出——SENTINEL 点名）+ STACK_SENTINEL=y。v0.1 设计批（DEC-65 按建议值）形态/信任级/命令集不变）。
 
 ## 1. 定位与形态
 
@@ -55,4 +56,5 @@ DT: zephyr,shell-uart = &uart0
 
 ## 修订记录
 
+- v0.2 · 2026-10-18：R5-V 真机批收口——§1 形态真机实证 + §5 真机判据四条 ALL PASS（confirm 路含 NVD 复验）；板级配置定案（THREADS_NUM 2/SHELL_STACK 4096/SYSWORKQ 4096/SENTINEL）入 §4 注记。
 - v0.1 · 2026-10-18：R5-U 设计批首版（DEC-65 按建议值）。

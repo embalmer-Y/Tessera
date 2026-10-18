@@ -354,11 +354,49 @@ static ts_res_t stage_commit(uint8_t entry, ts_app_info_t *out)
 	 * 的持久化完整性复查）+ 摘要入 meta（boot 快校验对象）。 */
 	tsap_view_t v;
 	uint8_t digest[TSAP_DIGEST_SIZE];
+	/* R5-V③ verdict 行保真：包身份随激活信息面（app_id/app_ver——安装期
+	 * verify 已全 schema 走查，此处仅身份提取：未知键 skip 不复核）。 */
+	char id_app[64] = "";
+	char id_ver[64] = "";
 
 	ts_res_t r = ts_appmgr_check_digest(stage.slot, &v);
 
 	if (r != TS_OK) {
 		return r;
+	}
+	{
+		static uint8_t man_id[512];
+
+		if (v.manifest_len >= 8 && v.manifest_len <= sizeof(man_id) &&
+		    ts_store_slot_read(stage.slot, TSAP_CONTENT_OFF, man_id,
+				       v.manifest_len) == TS_OK) {
+			ts_cbor_rd_t rd;
+			uint32_t pairs;
+
+			ts_cbor_rd_init(&rd, man_id, v.manifest_len);
+			if (ts_cbor_map_open(&rd, &pairs)) {
+				for (uint32_t i = 0; i < pairs; i++) {
+					char key[16];
+
+					if (!ts_cbor_tstr(&rd, key, sizeof(key))) {
+						break;
+					}
+					if (strcmp(key, "app_id") == 0 ||
+					    strcmp(key, "app_ver") == 0) {
+						char val[64];
+
+						if (!ts_cbor_tstr(&rd, val, sizeof(val))) {
+							break;
+						}
+						char *dst = (key[4] == 'i') ? id_app : id_ver;
+
+						strncpy(dst, val, sizeof(id_app) - 1);
+					} else if (!ts_cbor_skip(&rd, 0)) {
+						break;
+					}
+				}
+			}
+		}
 	}
 	if (ts_store_slot_read(stage.slot, TSAP_DIGEST_OFF, digest,
 			       TSAP_DIGEST_SIZE) != TS_OK) {
@@ -404,6 +442,10 @@ static ts_res_t stage_commit(uint8_t entry, ts_app_info_t *out)
 	current_apps[entry].active_slot = stage.slot;
 	current_apps[entry].rollback_count = 0;
 	current_apps[entry].pending_slot = 0xFF;
+	strncpy(current_apps[entry].app_id, id_app,
+		sizeof(current_apps[entry].app_id) - 1);
+	strncpy(current_apps[entry].app_ver, id_ver,
+		sizeof(current_apps[entry].app_ver) - 1);
 	if (out != NULL) {
 		*out = current_apps[entry];
 	}

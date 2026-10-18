@@ -158,8 +158,21 @@ def main() -> int:
     with tempfile.NamedTemporaryFile(suffix=".bin", delete=False) as tf:
         tf.write(blob)
         img = tf.name
+    # esptool ≥5 二进制名无 .py 后缀（ARM 重建机 v5.4.0 实测）——which 解析
+    import shutil
+
+    esptool = shutil.which("esptool.py") or shutil.which("esptool")
+    if esptool is None:
+        print("esptool 不在 PATH（≥5 = `esptool`，旧版 = `esptool.py`）",
+              file=sys.stderr)
+        return 2
+    # 写前擦除 prov 分区 4KB（教训 33：prov 换烧必擦——残留旧尾键被
+    # len 前缀掩盖的风险面；分区尺寸 = 0x1000，bench 布局与生产同）
     subprocess.run(
-        ["esptool.py", "--port", a.port, "write-flash", hex(a.offset), img],
+        [esptool, "--port", a.port, "erase-region", hex(a.offset), "0x1000"],
+        check=True)
+    subprocess.run(
+        [esptool, "--port", a.port, "write-flash", hex(a.offset), img],
         check=True)
     print("written（复位后 prov_load 直读——运行时只读面）")
     return 0

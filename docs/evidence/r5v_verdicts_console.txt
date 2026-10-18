@@ -1,0 +1,83 @@
+R5-V · DRAM 重平 + 单 UART 三合一 + F3 终端确认/拒绝真机判据 + 双栈真机定案
+=============================================================================
+日期：2026-10-18（一四七续） · 板：ATK DNESP32-S3B（akn/akc = 192.168.2.67）
+镜像：atkbench 全 R5 接线（SHELL + SHELL_LOG_BACKEND + LOG IMMEDIATE +
+LOG_PRINTK + CONSOLE=n + TS_INTERACT=y，console/shell-uart = uart0）
+
+## 1. DRAM 重平（R5-V①——map 驱动，一击命中）
+
+map 实证 dram0 静态大头 = zenoh-pico system.c **32768B** = 预分配 pthread
+栈池 `Z_THREADS_NUM=4 × Z_PTHREAD_STACK_SIZE_DEFAULT(=CONFIG_MAIN_STACK_SIZE
+8192)`——而 1.10.1 执行器模型实际只用 **1 线程**（单 executor 轮转三 fut）。
+
+修复 = `CONFIG_ZENOH_PICO_THREADS_NUM=2`（一槽运行一槽备援）→ 释放
+**16384B** 静态 DRAM，覆盖 shell/log 静态面（~4KB 级）后仍富余。
+叠加改动（board conf）：shell/log/interact 接线全上（构建零溢出一次过）。
+
+## 2. 单 UART 三合一真机形态（R5-V②）
+
+boot 判据（/tmp/r5route_boot.log）：
+  [  1.9s] uart:~$（shell prompt——日志行与 prompt 同 tty 复用，Linux
+           串口终端同构；AK alive 与 <err> 行同路可见）
+  [  5.9s] CONNECTED loc=tls/192.168.2.101:9956 + AK PASS
+终端命令面 HIT：
+  ts info    → [tsi] info mode=orchestrated arb=remote pending=no
+               [tsi] info net=down   ← linkmon 合同 3 视图（无编排者心跳
+               = 如实 down；非会话态——设计语义）
+  ts pending → [tsi] pending none
+  ts log inf → [tsi] log inf rc=0
+部署稳定性：**3/3 全过**（昨日同配置阻断位——重平 + is_up 自愈 + SNDTIMEO
++ 部署重试组合清零）。
+
+## 3. F3 终端确认/拒绝真机判据（R5-V③ · DEC-65②）
+
+prov 重烧（flash_prov --lconf 1 + TLS 三元组 + --offset 0x5f0000，同身份）。
+
+### 确认路（deploy → PENDING → `ts confirm` → 暖复位 → APP ACTIVE）
+  [appmgr] activate gated: PENDING slot=0 entry=0 (local confirm, 60000ms fail-closed)
+  [tsi] confirm rc=0 app=com.example.cube.nvd slot=0（暖复位装载）
+  AKP2 install confirmed slot=1（meta 已切换——暖复位装载）
+  [app1/l0] NVD DONE ticks=10        ← NVD 复验同链 PASS
+
+### 拒绝路（deploy → PENDING → `ts reject` → 槽保留不复位）
+  [appmgr] activate gated: PENDING slot=1 entry=0 (local confirm, 60000ms fail-closed)
+  [tsi] reject rc=0
+  AKP3 install rejected slot=0（槽保留可重推）
+  [appmgr] pending install rejected slot=0 entry=0 (cancelled — slot kept, re-push to retry)
+  板存活窗：AK alive net=1 连续、无 rst——零复位 ✓
+
+=== 判据汇总 ===
+  TSI INFO PASS / TSI PENDING-EMPTY PASS / TSI CONFIRM PASS / TSI REJECT PASS
+  === R5-V ALL PASS ===（驱动 ~/project/logs/r5_interact_e2e.py v3——
+  单读者架构；v2 的 ts log off 判别行移除：printk 走 LOG_PRINTK 后同被滤，
+  会静默后续判据行；该判别问题已随 is_up 根因闭合）
+
+## 4. 双栈真机定案（R5-V③ 过程根因——SENTINEL 点名）
+
+(a) **shell 线程栈 2048 缺省不足**：confirm 链（stage_commit 的 meta flash
+    写 + shell_print）溢出——首跑 AKP2 后 FATAL EXCCAUSE 0 野跳（A0=0，
+    返回地址腐蚀）。修复 = CONFIG_SHELL_STACK_SIZE=4096。
+(b) **sysworkq 栈 = 板缺省 1024 不足**：SENTINEL 入栈后 boot+7s（zenoh
+    建链窗）点名 `Stack overflow on sysworkq`——WiFi/DHCP 事件路径；此前
+    无 SENTINEL 即静默腐蚀（同象嫌疑：本次 EXCCAUSE 0 族与历史多次怪崩）。
+    修复 = CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE=4096 + CONFIG_STACK_SENTINEL=y
+    （溢出从静默腐蚀变点名 FATAL——健壮性批主题兑现）。
+
+## 5. 过程事实
+
+- **flash_prov 默认 offset 陷阱**：缺省 0x170000 = bench 布局；ATK 板
+  prov 分区 = 0x5f0000（overlay 实证）。误烧一轮（擦+写 4KB @0x170000
+  = 主固件槽尾部未用区——镜像实际止于 ~0x139xxx，零功能损伤，纯幸运）；
+  正法 = 显式 --offset 0x5f0000。工具同批补齐：esptool ≥5 二进制名解析
+  （无 .py 后缀）+ 写前 erase-region 4KB（教训 33 内建）。
+- write-flash 后的 "Hard resetting via RTS pin..." 对本板不可靠（三次
+  观察未生效）——prov/镜像烧后须 chip_id 或 west flash 级复位保证重启；
+  run_reset 子命令同样不动作（电平序），RTS 裸脉冲 = BOOT 长按（console
+  log "0（BOOT 长按本地路）" 实证）。
+- 串口三读者竞态（esptool + 2×pyserial 同开非独占 ttyACM）曾吞 NVD DONE
+  行——单读者纪律升级为「复位+抓取同进程」（serial_capture.py /
+  r5_interact_e2e.py v3 均单读者）。
+- verdict 行 app_id 缺陷（首跑 `app=` 空）：stage_commit 的 ts_app_info_t
+  此前不带包身份——pkg.c stage_commit 增 staged manifest 身份提取
+  （verify 已全 schema 走查，此处仅 app_id/app_ver 提取 + 未知键 skip）；
+  首版判别键 `key[4]=='d'` 错位（"app_id"[4]='i'）被真机判据行当场拦下。
