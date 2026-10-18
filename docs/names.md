@@ -336,3 +336,5 @@
 - 2026-10-18 · **R5 UART 交互终端需求登记（owner）**：R5（plan §11h——无外设板本地交互源：F3 confirm/reject + CG3 席位 + F2 本地清除的 UART 终端载体；设计批门③未排期）。消费：owner 2026-10-18 指令。
 
 - 2026-10-18 · **V0.10.0 R3 批登记（DEC-64④）**：WAMR /64 invokeNative 根治（GENERAL C thunk × 寄存器分类路径契约错配——INVOKE_NATIVE_GENERAL=0 + 宿主映射 AARCH64/X86_64 + -Wa,--noexecstack）；垃圾常数 0xaa0803f0a9467bfd 归因闭合。消费：plan §11h R3、arm64_rebuild §7。
+
+- 2026-10-18 · **V0.11.0 R5 设计批登记（DEC-65）**：LLD-ts-interact.md（新 LLD——单 UART 三合一/ts 命令集 v1 七条/TS_INTERACT 门控）；tsi 判据行前缀（`[tsi] <cmd> rc=`）。消费：owner 2026-10-18 泛指令、plan §11h R5-U。
