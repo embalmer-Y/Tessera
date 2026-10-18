@@ -748,4 +748,27 @@ config TS_TRUST_TABLE_MAX
 	  Source: Q-43 structural ceiling. Actual worst case is 270B (2 pairs
 	  + ver + 8x32B keys); 512 leaves headroom for future additive keys.
 
+config TS_INTERACT
+	bool "Local UART interaction terminal (ts shell command set)"
+	depends on TS_APPMGR && TS_SAFETY
+	default n
+	help
+	help
+	  Source: DEC-65 (R5, owner directive 2026-10-18). Single UART carries
+	  logs + app output + interactive terminal (Linux serial-console
+	  shape; Zephyr SHELL + SHELL_LOG_BACKEND + LOG_PRINTK). Thin command
+	  layer over existing framework entry points (appmgr pending gate,
+	  safety arb/clear) - no new safety or network face; the shell is a
+	  physical-presence proxy at the same trust level as the BOOT key.
+	  Default n = baseline builds byte-identical. SHELL/LOG are optional
+	  build faces: core logic (twister-testable) compiles without them;
+	  the shell command table is compiled when SHELL is present.
+
+config TS_INTERACT_LOG_LEVEL
+	int "ts-interact module log level (0=off 1=err 2=wrn 3=inf 4=dbg)"
+	depends on TS_INTERACT
+	default 3
+	help
+	  Source: DEC-65 (module default INF; runtime tunable via `ts log`).
+
 endmenu

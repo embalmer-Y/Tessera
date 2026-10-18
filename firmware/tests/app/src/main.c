@@ -924,7 +924,12 @@ ZTEST(framework_app, test_08_activate_while_running)
  * 同序对照——本套件只测 appmgr 闸行为，schema 矩阵在 framework.store） */
 static size_t build_prov12(uint8_t *o, size_t cap, uint8_t lconf)
 {
-	ARG_UNUSED(cap);
+	/* 容量契约（R5 批实测 204B——12 对；此前 ARG_UNUSED(cap) + 调用方
+	 * pb[192] 构成 12B 栈越界写存量缺陷——interact 套件帧布局引爆，两侧
+	 * 套件同修）：不足即拒。 */
+	if (cap < 256) {
+		return 0;
+	}
 	size_t n = 0;
 
 	o[n++] = 0xAC; /* map(12) */
@@ -970,7 +975,7 @@ static ts_res_t stage_full(uint8_t *slot_out)
 
 ZTEST(framework_app, test_14_install_gate)
 {
-	uint8_t pb[192];
+	uint8_t pb[256];
 	size_t pn = build_prov12(pb, sizeof(pb), 1);
 	ts_app_info_t info;
 	ts_appmgr_meta_t meta;

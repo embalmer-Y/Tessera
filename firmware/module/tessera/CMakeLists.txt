@@ -63,6 +63,10 @@ zephyr_library_sources_ifdef(CONFIG_TS_TEST
   src/store/prov_test.c
 )
 
+zephyr_library_sources_ifdef(CONFIG_TS_INTERACT
+  src/interact/ts_interact.c
+)
+
 # v4.5 适配（升级批教训 30③，P4 无线面批扩为模块级）：4.5 移除 legacy 生成
 # 头路径——WAMR 平件 platform_internal.h 裸 include <autoconf.h>（上游
 # 2.4.5）与 zenoh-pico 平台头 zephyr.h 裸 include <version.h>（1.10.1，做

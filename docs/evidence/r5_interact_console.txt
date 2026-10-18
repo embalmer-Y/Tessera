@@ -1,0 +1,45 @@
+R5-I · 交互终端实现批真机证据（2026-10-18，DEC-65 / plan §11h R5-I）
+
+## 1. 单 UART 三合一形态真机点亮 ✅
+
+镜像 = atkbench + CONFIG_TS_INTERACT（shell@uart0 + LOG_PRINTK + immediate log）。
+console（CH343 / by-id 路径）实测输出形态：
+
+  uart:~$ [ts-net] tls: mTLS 注入 ca=399B cert=390B key=138B（名称校验 ON）
+  uart:~$ AK alive t=18526 net=1
+
+shell prompt 与日志行同路复用（prompt 重绘包裹日志行——Linux 串口终端同构）✓
+
+## 2. 终端命令面真机判据 ✅
+
+串口注入（r5_interact_e2e.py，DTR/RTS 纪律）：
+  'ts info'   → [tsi] info mode=orchestrated arb=remote pending=no   HIT
+  'ts pending'→ [tsi] pending none                                   HIT
+  'ts log wrn'→ [tsi] log wrn rc=0                                   HIT
+
+## 3. F3 终端确认/拒绝 E2E —— 受阻登记（两项独立因素）
+
+部署链本身工作（lease → upload 1454/1454B over TLS ✓），但：
+  a) **atkbench DRAM 预算不足（本批核心发现）**：shell/log 静态面 ~3.9KB
+     挤占后，系统池运行期余量不足以覆盖 WiFi TX 突发——部署高压期实测：
+       <err> esp32_wifi_adapter: memory allocation failed
+       <err> esp32_wifi: Failed to send packet: -105
+     → WiFi 发送丢包 → TLS 掉线 → 部署流中断。池回撤实验三档：
+       50048（静态紧贴）/ 56320 / 58368——58368 = TLS 建链实证下限
+       （50048/56320 实测 z_open rc=-80 Z_ENOMEM 循环〔R1 grace 保活，
+       零复位——R1 修复跨场景再证〕）；58368 + shell 面 = WiFi 突发
+       ENOMEM。**净缺口 ≈ 8KB 静态 DRAM，需 map 驱动系统性重平**。
+  b) CH343 USB 重枚举第三次复发（负载期设备掉枚举——hub/线缆域既有登记），
+     console 判据窗中断；by-id 稳定路径仅解决设备号漂移，不掉枚举。
+
+处置：atkbench 接线回退上一稳定态（prj/overlay/board conf 三文件 git
+checkout——板恢复 CONNECTED 0.03s 回执，查询/alive 全绿）；框架面
+（src/interact + tests/interact + Kconfig/CMake 门控）照常交付——
+TS_INTERACT 缺省 n，基线零变化。**重平随 R5-V 续批首项**（候选来源 =
+NET_BUF 36→24 / MAIN_STACK / bench 面裁剪——map 驱动逐项实测）。
+
+## 4. sim 侧用例（framework.interact）✅ 3/3
+
+confirm/reject 域（无 pending E_STATE / 确认 meta 切换 / 拒绝槽保留可重推）
++ arb/estop 域（席位幂等切换 / 锁存释放幂等 / force 后清除迁移出 FAULT）
++ log 级别域（五档 + 域外拒）。

@@ -338,3 +338,5 @@
 - 2026-10-18 · **V0.10.0 R3 批登记（DEC-64④）**：WAMR /64 invokeNative 根治（GENERAL C thunk × 寄存器分类路径契约错配——INVOKE_NATIVE_GENERAL=0 + 宿主映射 AARCH64/X86_64 + -Wa,--noexecstack）；垃圾常数 0xaa0803f0a9467bfd 归因闭合。消费：plan §11h R3、arm64_rebuild §7。
 
 - 2026-10-18 · **V0.11.0 R5 设计批登记（DEC-65）**：LLD-ts-interact.md（新 LLD——单 UART 三合一/ts 命令集 v1 七条/TS_INTERACT 门控）；tsi 判据行前缀（`[tsi] <cmd> rc=`）。消费：owner 2026-10-18 泛指令、plan §11h R5-U。
+
+- 2026-10-18 · **V0.11.0 R5-I 批登记（DEC-65）**：src/interact/ts_interact.c/.h（薄命令层——ts_interact_confirm/reject/arb/estop_clear/log_level 核心面 + SHELL 门控命令表）；framework.interact 套件（testcase 3 用例 + INTERACT DONE 判据行）；TS_INTERACT/TS_INTERACT_LOG_LEVEL（Kconfig）；r5_interact_console.txt（真机证据）；[tsi] 判据行族；build_prov12 栈越界缺陷根治（cap 契约 + pb 256——app/interact 两套件同修）。消费：plan §11h R5-I、DEC-65。

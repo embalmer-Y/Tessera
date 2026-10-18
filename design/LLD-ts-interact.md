@@ -17,7 +17,7 @@
 | `ts confirm` | `ts_appmgr_confirm_pending()` | 安装确认（= BOOT 短按；meta 切换 + 暖复位随调用方约定） |
 | `ts reject` | `ts_appmgr_reject_pending()` | 安装拒绝（= BOOT 长按 ≥2s；槽保留可重推） |
 | `ts arb local/remote` | `ts_safety_set_arb()` | 席位切换（= BOOT 双短按；切换零输出语义不变） |
-| `ts estop clear` | `ts_safety_clear_fault()` | 本地故障清除（= F2 本地路；无 fault = E_STATE 如实拒） |
+| `ts estop clear` | `ts_safety_clear_fault()` | 本地锁存释放（= F2 本地路；框架契约恒 TS_OK 幂等——无 fault = no-op 迁移） |
 | `ts info` | prov/link/arb/pending/app 聚合只读 | 状态一览（模式/席位/链路/挂起/APP 态） |
 | `ts log <off\|err\|wrn\|inf\|dbg>` | log filter | 日志详度调节 |
 
