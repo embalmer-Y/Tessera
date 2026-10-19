@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tessera Agent</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="logo" aria-hidden="true">◆</span>
+    <h1>Tessera Agent</h1>
+    <span id="conn" class="conn" title="推送连接状态">●</span>
+  </div>
+  <details class="launch">
+    <summary>发起 app_develop</summary>
+    <form id="task-form">
+      <textarea id="spec" rows="5" placeholder="需求 spec（四节：背景/需求/判据/约束）…" required></textarea>
+      <div class="row">
+        <input id="key-path" value="agent/keys/dev" title="签名密钥路径">
+        <label class="chk"><input type="checkbox" id="plan-confirm"> 计划确认</label>
+        <button type="submit">发起</button>
+      </div>
+      <p class="err" id="launch-err" hidden></p>
+    </form>
+  </details>
+</header>
+
+<main>
+  <section id="interactions" aria-live="polite">
+    <h2>交互</h2>
+    <p class="muted" id="no-interactions">暂无待应答问询 / 审批</p>
+  </section>
+
+  <section id="progress-sec">
+    <h2>进度</h2>
+    <div id="progress" class="muted">未附着任务</div>
+  </section>
+
+  <section id="stream-sec">
+    <h2>会话流 <span class="muted" id="task-label"></span></h2>
+    <div id="stream-wrap">
+      <pre id="log" aria-live="polite"></pre>
+      <button id="to-bottom" hidden>回底 ↓</button>
+    </div>
+  </section>
+
+  <section id="timeline-sec">
+    <h2>时间线</h2>
+    <p class="muted">随 D5 决策链回放器点亮</p>
+  </section>
+</main>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

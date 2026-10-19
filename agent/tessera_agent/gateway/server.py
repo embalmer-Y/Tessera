@@ -24,8 +24,16 @@ def run_server(cfg: AgentConfig, *, transport: str = "stdio",
       〔HLD §9 既有约束〕；默认绑定 127.0.0.1——外网暴露 = owner 显式
       host 0.0.0.0 + 自担防火墙）。"""
     budget = ContextBudget(cfg.context_window)
-    app = build_app(AppContext(cfg=cfg, budget=budget))
+    ctx = AppContext(cfg=cfg, budget=budget)  # 单实例——SSE 与 MCP 面共享注册表
+    app = build_app(ctx)
     if transport == "http":
-        app.run(transport="http", host=host, port=port)
+        # W1（LLD-A11）：web 渠道组装——/web 静态前端 + /events SSE 推送
+        # （同源同端口；缺省 127.0.0.1——LLD-A10 §2 安全约束）
+        import uvicorn
+
+        from tessera_agent.gateway.web import mount_web
+
+        asgi = mount_web(app.http_app(path="/mcp"), ctx)
+        uvicorn.run(asgi, host=host, port=port)
         return
     app.run()  # FastMCP 默认 stdio

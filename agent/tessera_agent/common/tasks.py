@@ -102,6 +102,12 @@ class TaskRegistry:
         task._aio = asyncio.create_task(runner())
         return task
 
+    def list_tasks(self) -> list[Task]:
+        """按创建序列出全部任务（W1 web 推送面消费——缺省附着一个最新）。
+        进程内注册表（V1 单进程形态——A00 §2）；过期任务照常列出
+        （snapshot 已带终态语义）。"""
+        return sorted(self._tasks.values(), key=lambda t: t.created_at)
+
     def get(self, task_id: str) -> Task:
         task = self._tasks.get(task_id)
         if task is None:

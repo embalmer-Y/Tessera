@@ -1,0 +1,34 @@
+/* 语义 token 层（LLD-A11 §3——gemini-cli semantic-tokens 同型：组件只消费
+ * 角色 token，主题 = token 重映射；深浅色经 prefers-color-scheme）。 */
+:root {
+  --c-bg: #f7f7f5;
+  --c-surface: #ffffff;
+  --c-fg: #1c1c1e;
+  --c-muted: #6e6e73;
+  --c-accent: #0a66c2;
+  --c-ok: #1f7a33;
+  --c-warn: #9a6700;
+  --c-danger: #c0392b;
+  --c-border: #d9d9de;
+  --r-s: 6px;
+  --r-m: 10px;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 16px;
+  --sp-4: 24px;
+  --font-ui: system-ui, "Noto Sans CJK SC", sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "Cascadia Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --c-bg: #16181d;
+    --c-surface: #1f2229;
+    --c-fg: #e8e8ea;
+    --c-muted: #9a9aa2;
+    --c-accent: #58a6ff;
+    --c-ok: #4ec96a;
+    --c-warn: #d9a62e;
+    --c-danger: #f16a5c;
+    --c-border: #34383f;
+  }
+}

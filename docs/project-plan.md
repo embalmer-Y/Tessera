@@ -278,7 +278,7 @@
 | D7 ✅ | 问询双向化 | **已交付（b8aa6a7）**：QuestionBroker（单次应答契约/枚举域 fail-closed/超时取 default）+ sys_pending_questions/sys_answer（无 token 便利面）+ CreationLoop._emit 异步感知（13 调用点，同步回调行为不变）+ app_develop plan_confirm 桥（缺省 False 行为不变；abort = TA_E_POLICY 结构化终止）——用例 7 | ~0.5 | DEC-67① |
 | D4 ✅ | hooks 拦截面 | **已交付（b5c6d84）**：HookChain pre 裁决（config [hooks] 首匹配；prefix* 前缀；deny = TA_E_POLICY 归因 + 审计 hook_denied / observe = _hook 留观标；坏条目跳过；缺省空链行为不变）+ allow-session 审批三维（会话域记住不落盘/deny 不污染/token 先行）——服务端闸 = 管所有渠道真边界；post 观察面余项随 A10 | ~1 | DEC-67①③ |
 | A10/A11 ✅ | MCI 架构 + web 客户端设计批 | **已落稿**：LLD-A10 v0.1（三层模型/归位表/SSE v1 轮询差分策略〔诚实注记〕/Renderer 契约判据行保真/安全边界两派对照/出站寻址预留不实现）+ LLD-A11 v0.1（案 A 形态/四区页面/语义 token 设计语言/判据行着色正则/零供应链面/测试口径） | ~0.5 | DEC-67 |
-| W1 | web 客户端 v1 | 简约好看实现（形态随 Q-48 裁定）；消费 task_progress + 事件流 + D7 问询 + D5 时间线 | ~1.5 | |
+| W1 ✅ | web 客户端 v1 | **已交付（真实 uvicorn 冒烟四探全过）**：agent/web/ 五文件零构建前端（语义 token 深浅色/交互卡置顶/判据行着色零改写/自动滚底暂停）+ gateway/web.py（/web 同源挂载 + /events SSE 轮询差分）+ run_server http 组装（共享 AppContext）+ mcp.js 手写 MCP-over-HTTP 客户端（session 头维持/SSE 帧兼容）——消费 task_progress + D7 问询 + D4 审批（token 内存态）；时间线 tab 随 D5 点亮；pytest 5（挂载/ES 解析/路由/差分帧/SSE 流）+ 人工浏览器验收随 owner | ~1.5 | DEC-67② |
 | D5 | 决策链回放器 | 审计流 → 时间线回放（CLI 子命令 + web 时间线面同源） | ~0.5-1 | |
 | 收口 | V0.12.0 收口 | 回归定格 + tag fw-v0.12.0 | ~0.5 | |
 
@@ -307,6 +307,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.123 · 2026-10-19：**W1 web 客户端 v1 交付 ✅**——纯 Python 零 Node 全链成立（真实 uvicorn 四探冒烟）；web 渠道 = 第三个 MCI 渠道（Terminal/MCP-stdio/MCP-HTTP+web）。
 - v1.122 · 2026-10-19：**DEC-67（Q-48 按建议值裁决）+ D7/D4 交付 + A10/A11 落稿**——问询实体/钩子链/allow-session 进主干（agent 220+2s）；MCI 与 web 客户端设计定稿；W1 实现随续。
 - v1.121 · 2026-10-19：**DEC-66⑥（QwenPaw 重点参照 + pi 待定）**——R11 §7 QwenPaw 源码评审（渠道契约/Renderer/逐工具策略/governance/设计语言四件吸收进 A10/A11）；M1 挂 HOLD；执行序修订 = W1/D7/D4 先行（消解双运行时），harness 决策推迟至 W1 后。
 - v1.120 · 2026-10-19：**DEC-66⑤ 修订（pi make-vs-buy 深评）**——三维判定（替代否决/第二渠道采纳/W1 照旧）+ M1 单元入批；R11 §6 pi 深评（MCP Streamable HTTP 匹配/无 web/OS 边界安全哲学/会话树）。

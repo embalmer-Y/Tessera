@@ -1,4 +1,4 @@
-# LLD-A11 · Web 客户端（W1 · 案 A 纯 Python 零构建链）· v0.1
+# LLD-A11 · Web 客户端（W1 · 案 A 纯 Python 零构建链）· v0.1.1（W1 已实现）
 
 > **本文件是什么**：Tessera Agent Web 客户端低层设计——V0.12.0 A11/W1 单元（DEC-67② 定案：案 A 静态单页；owner「简约好看 + 纯 Python 零 Node」确认）。依据 = R11 §4 选型两案 + §7.3 设计语言方法论。
 > **权威顺序**：owner 裁决 > FOUNDING_PROMPT > 本文件。
@@ -43,4 +43,5 @@
 
 ## 修订记录
 
+- v0.1.1 · 2026-10-19：**W1 实现交付**——agent/web/ 五文件（index.html/tokens.css/app.css/mcp.js/app.js）+ gateway/web.py（mount_web：/web StaticFiles 同源 + /events SSE 轮询差分 v1）+ run_server http 分支组装（共享 AppContext——SSE 与 MCP 面同注册表）；真实 uvicorn 冒烟四探全过（/web 200 html / app.js 200 js / events SSE 首帧 / mcp initialize 应答）；pytest HTTP 层 5 用例（挂载/ES import 解析/路由注册/差分帧语义/SSE 流 + MCP 面不受组装影响）；时间线 tab 预留（随 D5）。
 - v0.1 · 2026-10-19：DEC-67② 定案首稿——案 A 形态/四区页面/设计语言 token 层/判据行保真着色/安全面/测试口径。

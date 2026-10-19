@@ -1,0 +1,83 @@
+/* 布局与组件（只消费 tokens.css 角色 token——LLD-A11 §3 交互语法） */
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--c-bg); color: var(--c-fg);
+  font: 14px/1.55 var(--font-ui);
+}
+header {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--c-surface); border-bottom: 1px solid var(--c-border);
+  padding: var(--sp-2) var(--sp-4);
+}
+.brand { display: flex; align-items: center; gap: var(--sp-2); }
+.logo { color: var(--c-accent); }
+h1 { font-size: 16px; margin: 0; }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+     color: var(--c-muted); margin: 0 0 var(--sp-2); }
+.conn { color: var(--c-muted); }
+.conn.live { color: var(--c-ok); }
+.conn.down { color: var(--c-danger); }
+.muted { color: var(--c-muted); }
+
+.launch { margin-top: var(--sp-2); }
+.launch summary { cursor: pointer; color: var(--c-accent); }
+#task-form textarea, #task-form input, #attach-form input {
+  width: 100%; background: var(--c-bg); color: var(--c-fg);
+  border: 1px solid var(--c-border); border-radius: var(--r-s);
+  padding: var(--sp-2); font: inherit; margin-top: var(--sp-2);
+}
+#task-form .row { display: flex; gap: var(--sp-2); align-items: center; }
+#task-form .row input#key-path { flex: 1; }
+button {
+  background: var(--c-accent); color: #fff; border: 0;
+  border-radius: var(--r-s); padding: var(--sp-1) var(--sp-3);
+  font: inherit; cursor: pointer;
+}
+button:hover { filter: brightness(1.08); }
+.chk { display: flex; align-items: center; gap: var(--sp-1); white-space: nowrap; }
+.err { color: var(--c-danger); margin: var(--sp-1) 0 0; }
+
+main {
+  max-width: 960px; margin: 0 auto;
+  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  display: grid; gap: var(--sp-4);
+}
+section {
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--r-m); padding: var(--sp-3);
+}
+
+/* 交互卡 = 页面唯一强制注意点（置顶 + 强调边——LLD-A11 §3） */
+.card {
+  border: 1px solid var(--c-accent); border-radius: var(--r-m);
+  padding: var(--sp-3); margin-bottom: var(--sp-2);
+}
+.card .actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-2); }
+.card input.token { flex: 1; min-width: 200px; }
+.card.danger { border-color: var(--c-danger); }
+.card .meta { color: var(--c-muted); font-size: 12px; }
+
+/* 会话流：等宽 + 判据行角色色（逐字不改——LLD-A10 §3 判据行保真） */
+#stream-wrap { position: relative; }
+#log {
+  margin: 0; padding: var(--sp-3);
+  background: var(--c-bg); border: 1px solid var(--c-border);
+  border-radius: var(--r-s); height: 46vh; overflow: auto;
+  font: 12px/1.5 var(--font-mono); white-space: pre-wrap; word-break: break-all;
+}
+#log .verdict-ok { color: var(--c-ok); font-weight: 600; }
+#log .verdict-err { color: var(--c-danger); font-weight: 600; }
+#log .verdict-accent { color: var(--c-accent); font-weight: 600; }
+#log .verdict-warn { color: var(--c-warn); }
+#to-bottom {
+  position: absolute; right: var(--sp-3); bottom: var(--sp-3);
+  background: var(--c-surface); color: var(--c-accent);
+  border: 1px solid var(--c-border);
+}
+
+/* 进度 */
+.plan-item { display: flex; gap: var(--sp-2); }
+.plan-item .st-done { color: var(--c-ok); }
+.plan-item .st-pending { color: var(--c-muted); }
+.kv { display: flex; gap: var(--sp-2); flex-wrap: wrap; color: var(--c-muted);
+      font-size: 12px; margin-top: var(--sp-2); }
