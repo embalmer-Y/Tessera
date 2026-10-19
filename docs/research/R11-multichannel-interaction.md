@@ -99,3 +99,43 @@ Channel（渠道） ≡ Transport × Renderer × Interaction
 | 9 | `tool_call` 扩展钩子可授权/修改调用 | pi extensions | pi 侧闸 = 可选第二道；**服务端 gateway 闸（D4）为主边界**——架构注记 |
 | 10 | 会话树 JSONL（id/parentId + 分支摘要） | pi session-format | D5 时间线设计参考（分支语义对我方审计为超集需求，取线性即可） |
 | 11 | 「安全 = OS 边界」哲学 | pi security.md | 与制造门禁哲学的**显式对照**入 LLD-A10：两哲学可分层共存（pi 渠道自由 + 服务端域闸强制） |
+
+## 7. QwenPaw 深评（owner 2026-10-19 指定重点参照；pi 吸收待定）
+
+> agentscope-ai/QwenPaw（前身 CoPaw，阿里 AgentScope 团队）：Python 3.11+，Apache 2.0，1052 文件 / **350k LOC**，提交极活跃（克隆当日仍有提交）。定位 = 个人 AI 助理：多渠道（钉钉/飞书/微信/Discord/Telegram/iMessage/QQ/MQTT/Matrix/Mattermost/OneBot）+ 三层记忆（ReMe）+ 心跳任务 + 技能市场 + Tauri 桌面端。
+
+### 7.1 渠道架构（本批最有价值的参照——MCI 的 Python 成品）
+
+- **契约极小 + 基类厚供给**：`BaseChannel` 必实现仅 ~5 面（`from_config` / `start` / `stop` / `send(to_handle, text, meta)` / `resolve_session_id(sender_id, meta)`——入站→会话路由）；基类内建重机械：消息**防抖合流**（native payload debounce/merge）、**流式分发**（start/delta/end + tracker）、**每渠道 ACL 闸**（`_access_control_gate`）、群提及检测、workspace 注入。新渠道 = 薄子类。
+- **Renderer 独立层**（`channels/renderer.py`）：Message → 渠道可发部件（text/audio/image/file/video/refusal 六类 Content），按渠道 style/capabilities（markdown/emoji/code fence）裁剪——**MCI Renderer 层的成品实现**。
+- **console = 渠道插件**（`channels/console/channel.py`）：本地控制台也是一个 BaseChannel 子类，且自身是 HTTP 客户端（POST /api/console/chat）——**「服务端优先、渠道=客户端」的第三例独立验证**（opencode/QwenPaw/我方 gateway 同构）。
+- **ChannelAddress 统一路由**（`schema.py`）：`kind+id → to_handle`（"discord:ch:123"）——出站寻址归一。
+
+### 7.2 安全面（与 pi 相反的哲学——与我方同向）
+
+- `governance/`：audit / **detectors**（危险命令检测）/ policy / **resource_governor** / tool_registry / tool_adapter——Tool Guard 的服务端实现。
+- `sandbox/`：全 OS 内核沙箱族（bubblewrap/linux/macos/windows appcontainer/elevated）+ runtime_boundary。
+- **MCP 逐工具访问策略**：`app/mcp/schemas.py` 的 MCPAccessPolicy / MCPAccessRule / **MCPToolAccessOverride** / MCPToolDefaultPolicy + 管理 API（routers/mcp.py）——MCP 客户端工具闸的成品参照（对应我方 policy.param_rules 的 MCP 化方向）。
+- 每渠道 ACL（白名单谁可与 agent 说话）。
+
+### 7.3 其他值得吸收
+
+- **design.md = 视觉/交互设计语言文档**（token 优先级/主题继承/排版/间距几何/交互语法——含「MAGNETIC ENABLE RAIL」等模式的 anatomy/行为序列/实现配方/键盘与无障碍/评审标准）——**W1「简约好看」的方法论直接参照**（把设计语言作为仓内权威文档）。
+- heartbeat 任务 / cron 渠道派发（to_handle 映射）/ portability（导入导出）——远期参考。
+
+### 7.4 引入判定
+
+- **作为 MCI 参照物 = 一级**（渠道契约/renderer/逐工具策略/设计语言四件直接吸收进 LLD-A10/A11）。
+- **作为引入物（第二渠道运行时）= 比 pi 更重**：350k LOC 完整助手框架，自带循环/记忆/技能体系与我方核心大面积重叠；Qwen 模型生态倾向（支持 14+ provider 含 Anthropic 兼容，但主场在 QwenPaw-Flash）；引入即运行第二个「助手宇宙」。
+- **pi 吸收待定（owner 裁）**下，两者的共同替代项浮现：**W1 web 客户端先行**（案 A 零新增运行时——消解「Python+Node 双运行时」顾虑），harness 引入决策（pi / QwenPaw / 都不）推迟到 W1 真实体验之后。
+
+### 7.5 吸收对照表增补
+
+| # | 发现 | 来源 | 吸收落点 |
+|---|------|------|----------|
+| 12 | 渠道契约「小必需面（5 方法）+ 基类厚供给」 | QwenPaw BaseChannel | LLD-A10 Channel 协议形态（Frontend Protocol v2 演进模板） |
+| 13 | Renderer 独立层 + 渠道能力裁剪（六类 Content + style/caps） | QwenPaw renderer.py | LLD-A10 Renderer 层（D2 进度/事件 → 渠道部件） |
+| 14 | MCP 逐工具访问策略（Override/DefaultPolicy）+ 管理 API | QwenPaw app/mcp | D4 策略面 + policy.param_rules 的 MCP 化参照 |
+| 15 | governance（detectors/audit/resource_governor） | QwenPaw | D4 hook 检测器语义参照 |
+| 16 | design.md 设计语言文档（token 优先级/交互语法/实现配方/评审标准） | QwenPaw | LLD-A11/W1 方法论——设计语言先于代码 |
+| 17 | console-as-channel（渠道自身也是服务器客户端） | QwenPaw | TerminalFrontend 归位验证（第三例，MCI 论点巩固） |

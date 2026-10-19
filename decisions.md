@@ -1072,6 +1072,8 @@
 
 ⑤ **2026-10-19（续二）修订（owner 问「是否应直接引入 pi agent 而不自研」触发，深评见 R11 §6）**：**三维判定 = 整体替代否决 / pi 作为第二交互渠道采纳 / W1 照旧自研**。批构成增补 **M1 单元**（pi 渠道接入：Node 安装 + `pi mcp add` Streamable HTTP 直连 FastMCP 网关 + toolExposure 配置 + 严格审批双通道演练 + 全链验收——兼为我方 MCP server 面首个真实外部消费者）；D4 价值上升（服务端闸 = 管所有渠道含 pi 的真边界——pi 缺省无逐调用审批）；Q-48 子项①③④不变、② 不变（pi 无 web UI）。可逆性：M1 纯增量渠道，钉版本、config 级接入。
 
+⑥ **2026-10-19（续三）再修订（owner：「代价是同时引入 Python 与 Node；参考 QwenPaw——Python 实现的 Agent，重点参照，pi 吸收待定」）**：QwenPaw 源码评审完成（R11 §7——1052 文件/350k LOC，渠道契约「小必需面+厚基类」/ Renderer 独立层 / MCP 逐工具策略 / governance+全 OS 沙箱 / design.md 设计语言文档）。**处置 = pi 待定维持（M1 单元挂 HOLD）；QwenPaw 定位 = MCI 一级代码参照**（四件吸收进 A10/A11：渠道契约形态/Renderer 层/逐工具策略/设计语言方法论），非引入物（重 350k LOC 助手框架，自带循环/记忆与核心重叠）。**执行序修订 = W1/D7/D4 先行（W1 案 A 零新增运行时——消解双运行时顾虑），harness 引入决策（pi/QwenPaw/都不）推迟至 W1 真实体验后。**
+
 ## Q-48（多渠道交互架构 MCI + Web 客户端——V0.12.0 门③ 呈递停门，2026-10-19；依据 docs/research/R11-multichannel-interaction.md）
 
 **呈递四子项**：
