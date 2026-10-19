@@ -366,3 +366,5 @@
 - 2026-10-19 · **V0.13.0 BV1-R 真机自验登记 + 板级缺陷新登记（验证域首战抓获）**：atk 全链 C1-C5 全 PASS 稳定复现（boya 16MB 身份/CONNECTED/akn-akc/caps slot_pool=2048KB 实测校准入画像）+ xiao 板不在场形态按设计工作；**新缺陷 = 部署分块突发 → esp32_wifi_adapter ENOMEM（R5-I 同象）→ rx_q[0] 栈溢出 FATAL 崩机**（确定性复现——新鲜板态同崩；板侧串口全文实抓；C6 如实 FAIL 不掩蔽——降级分块不作为）；证据 docs/evidence/bv1_atk_console.txt + bv1_c6_crash_console.txt。板级专项候选：R5-I「DRAM 系统性重平」残余 + rx_q 栈面新形态。消费：plan §11h I 表 v1.128。
 
 - 2026-10-19 · **DEC-69 web 渠道产品反馈六点登记（owner）**：界面观感/普通用户文案与受众定位/对话式交互（用户消息入流 + Agent 状态指示）/多端响应式/左侧设置栏/双模式需求输入（开发者全细节含 log；普通模式 = LLM 需求澄清阶段——创作循环前置能力增量，spec 门不变）。落点 = W2 web 渠道重塑（plan §11h A3 范围扩充 + W1 验收 UX 反馈四条），设计批门③待呈递。消费：DEC-69、plan v1.130。
+
+- 2026-10-19 · **V0.13.0 FIX-1 板级部署崩机专项登记（BV1-R C6 破案）**：NET_RX_STACK_SIZE 4096（atkbench——rx_q 线程栈缺省 1500B 被部署突发压穿 = FATAL 根因）；STATIC_TX/SPIRAM heap 两轮否定实验（教训 41——驱动/hal 双层 TX buffer Kconfig 映射存疑，登记上游核实）；prov lconf 1→0 复原（安装闸 F3 残留撤守）；deploy.py chunk 租约瞬断自愈（lease required → force renew 同 idem 重发）；全链 C1-C6 PASS + twister 17/17 + agent 263+2s。教训 41/42 入册 dev-env v2.30。消费：plan §11h FIX-1 行 v1.132、dev-env v2.30。

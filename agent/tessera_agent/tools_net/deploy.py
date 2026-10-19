@@ -245,8 +245,22 @@ def push_app(
             piece = pkg[off:off + chunk_size]
 
             def send(o: int = off, p: bytes = piece) -> dict:
-                return _cmd_ok(svc, node, cube, "app-chunk", rid(f"c{o}"),
-                               offset=o, data=p, idem=idem(f"c{o}"))
+                try:
+                    return _cmd_ok(svc, node, cube, "app-chunk", rid(f"c{o}"),
+                                   offset=o, data=p, idem=idem(f"c{o}"))
+                except CmdError as exc:
+                    # 租约瞬断自愈（BV1 板级专项 2026-10-19）：板侧执行器
+                    # 高压停顿（wifi TX 拥塞窗）> 租约 TTL 时懒过期拒绝
+                    # chunk——force renew 后同 idem 重发（幂等安全）。非租约
+                    # 类拒绝原样上抛。
+                    if "lease required" in str(exc.reply_data):
+                        log("lease 瞬断（板侧高压停顿懒过期）——force renew "
+                            "后同 idem 重发")
+                        renew(force=True)
+                        return _cmd_ok(svc, node, cube, "app-chunk",
+                                       rid(f"c{o}"), offset=o, data=p,
+                                       idem=idem(f"c{o}"))
+                    raise
 
             r = _retry(send, retries=CHUNK_RETRY_MAX, log=log)
             got_hw = int(r.get("high_water", 0))

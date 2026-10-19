@@ -271,6 +271,7 @@ sudo usermod -aG dialout emb   # 重新登录生效
 - **待办**：WiFi / LLM 凭据重配（env.sh 凭据区）→ 板级冒烟 ⑥⑦ 随收。
 
 ## 修订记录
+- v2.30 · 2026-10-19：**板级部署崩机专项修复（BV1-R C6 破案——FIX-1）+ 教训 41/42 入册**。① **根因**：rx_q[0]（net TC RX 线程）栈 = NET_RX_STACK_SIZE **缺省仅 1500B**，部署分块突发压穿 → ZEPHYR FATAL Stack overflow 崩机（atkbench 从未显式配置）。② **修复 = CONFIG_NET_RX_STACK_SIZE=4096**（atkbench prj.conf；dram0 仅 +2.1KB）。③ **两轮否定实验（教训 41——Kconfig help 指引不能替代实测）**：ESP32_WIFI_STATIC_TX_BUFFER（help 称 PSRAM 板应选）在 4.5-rc1 实测两形态均劣化——+ESP_WIFI_HEAP_SPIRAM 时关联活但数据面死（wifi RX DMA 缓冲入 PSRAM → DHCP 数据帧不可达 → 无 IP → z_open -102 循环）；单用时 WiFi 关联直接失败 rc=-134（驱动/hal 双层 TX buffer Kconfig〔ESP32_WIFI_ vs ESP_WIFI_ 前缀〕映射一致性存疑，登记上游核实）。wifi TX 维持 DYNAMIC，ENOMEM 日志噪声缓解随 map 重平专项。④ **prov 安装闸 lconf 1→0 复原**（F3 实验残留挡 activate——flash_prov 既有路径 + pub0=ts-test-root 32B raw + TLS 三元组 + --esp-device 端口纪律）。⑤ **agent 侧租约瞬断自愈**（deploy.py chunk 路径）：「lease required」= 板侧执行器高压停顿 > 租约 TTL（10s）懒过期——force renew 后同 idem 重发（幂等安全）；真机两轮验证。⑥ **教训 42**：CH343 开埠脉动与 DTR/RTS 时序相关——开埠即复位板（本会话 ts info 取证被复位冲洗实证）；证据抓取脚本须显式管理 DTR/RTS 或复用已开连接。⑦ 判决：全链 C1-C6 六项 PASS（196.6s，BV1-R 验收达成）+ C4+C6 两轮连 PASS；twister 17/17（115）+ agent 263+2s 回归无损。证据 bvfix_c6_console.txt。
 - v2.29 · 2026-10-17：**§10 新立——aarch64 ARM 重建机（Radxa Cubie A7A）现役**：ghfast 主通道
   定版 + twister /64 口径（14/16，WAMR 64 位目标域已知缺陷在档）+ clang 18.1.8 deb 解包路线 +
   HZ=250 时间戳坑 + CH343 板链路 boya 16MB 二次实证；同批 natives.c 守卫结构修复（CI 五连红根因：
