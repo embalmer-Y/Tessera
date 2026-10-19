@@ -139,3 +139,71 @@ Channel（渠道） ≡ Transport × Renderer × Interaction
 | 15 | governance（detectors/audit/resource_governor） | QwenPaw | D4 hook 检测器语义参照 |
 | 16 | design.md 设计语言文档（token 优先级/交互语法/实现配方/评审标准） | QwenPaw | LLD-A11/W1 方法论——设计语言先于代码 |
 | 17 | console-as-channel（渠道自身也是服务器客户端） | QwenPaw | TerminalFrontend 归位验证（第三例，MCI 论点巩固） |
+
+## 8. V0.12.0 逐 feature 吸收映射（实现期对照清单——DEC-66⑥ 执行序：D7 → D4 → A10/A11 → W1 → D5）
+
+> 现状资产（全部已在）：FastMCP 网关（stdio/HTTP 双形态）· ApprovalBroker（approval_id + sys_pending_approvals + sys_approve token）· TaskRegistry（task_progress/task_log/事件环）· policy.param_rules · TerminalFrontend（三交互钩子注入式）· 审计留痕。
+
+### 8.1 D7 问询双向化（~0.5 单元；W1/多渠道硬前置）
+
+**要做**：问询升级为 MCP 一等实体——question request ID + 列举面（sys_pending_questions 同型 sys_pending_approvals）+ 应答面 + 事件通知；strict 审批与非阻塞协议化（请求实体先落、渠道异步取答，替代长阻塞调用——pi 式 MCP 客户端 60s 超时域的解法）；TerminalFrontend 三钩子改为消费同一实体（行为不变）。
+
+| 吸收源 | 内容 |
+|---|---|
+| opencode §1.1 | permission/form = 协议一等公民（服务端实体 + ID + list/reply + 事件通知）——**形态验证 + 通知模式** |
+| QwenPaw §7.1 | 每渠道 ACL 闸（谁的请求可触发问询/谁可应答）——多渠道下的问询准入 |
+| codex §1.2 | ReviewDecision 三维（allow-session）——随 D4 门③，D7 协议载体预留 decision 字段 |
+
+### 8.2 D4 hooks 拦截面（~1 单元；拦截/放行语义门③子呈递）
+
+**要做**：网关级工具调用前/后钩子（config 声明：observe/deny/诊断注入）；allow-session 审批维度；危险参数检测器（可选）；审计增强（钩子裁决留痕）。**服务端闸 = 管所有渠道（含未来 pi/QwenPaw）的真边界。**
+
+| 吸收源 | 内容 |
+|---|---|
+| pi §6.1 | extensions 生命周期分类学（tool_call 可授权/修改、before/after provider、input 准备）——钩子挂点清单 |
+| QwenPaw §7.2 | governance 四件（detectors 危险命令检测/audit/resource_governor/tool_registry）+ **MCP 逐工具策略**（MCPToolAccessOverride/DefaultPolicy）——param_rules 的 MCP 化参照 + 检测器语义 |
+| codex §1.2 | ReviewDecision::ApprovedForSession——审批疲劳缓释（会话域记住，不落盘） |
+
+### 8.3 A10 MCI 渠道三层架构 LLD（~0.5 单元；门③ Q-48 裁后落稿）
+
+**要做**：Channel = Transport（stdio/HTTP+Streamable/SSE 推送新增）× Renderer（Terminal 归位/Web 新建）× Interaction（D7/D4/进度三实体）显式化；Frontend Protocol v2；出站寻址归一（ChannelAddress 同型）；事件推送面（替代轮询）。
+
+| 吸收源 | 内容 |
+|---|---|
+| opencode §1.1 | 协议优先单服务器 + SSE 事件总线 + OpenAPI/SDK codegen（多端零漂移）——**主形态** |
+| QwenPaw §7.1 | **契约「小必需面（5 方法）+ 基类厚供给」**（防抖合流/流式分发/ACL/群提及内建）+ ChannelAddress 统一路由（kind:id → to_handle）+ console-as-channel（Terminal 归位验证） |
+| codex §1.2 | EventMsg 版本化 wire（v1/v2 alias）——我方 DEC-42 信封维持 + 事件分类学（turn 生命周期/告警/预算） |
+| pi §6.1 | RPC JSONL 协议族（命令/响应/事件 + 扩展 UI 记录）——串口桥/未来瘦客户端参照 |
+
+### 8.4 A11 + W1 Web 客户端（0.5 + ~1.5 单元；案 A 静态单页零构建链）
+
+**要做**：单 index.html + 原生 ES 模块 + 语义 token CSS；面 = 会话流（判据行保真呈现）+ 审批/问询卡（消费 D7）+ 进度（task_progress + SSE）+ 时间线（消费 D5）；默认绑 127.0.0.1；web 渠道 caps = 全能（markdown/代码高亮/表格）。
+
+| 吸收源 | 内容 |
+|---|---|
+| gemini-cli §1.3 | **semantic-tokens 角色 token 层**（前景/背景/强调/成功/告警/危险 → 主题映射）——「好看」的结构化做法 |
+| QwenPaw §7.3 | **design.md 设计语言文档方法论**（token 优先级/交互语法/实现配方/键盘无障碍/评审标准）——设计语言先于代码 |
+| QwenPaw §7.1 | Renderer 能力裁剪（web = 全能 caps 渠道） |
+| aider §1.4 | **反模式对照**：不做 CLI 包皮/CaptureIO——web = gateway 协议客户端 |
+
+### 8.5 D5 决策链回放器（~0.5-1 单元）
+
+**要做**：审计流（task_log/事件/audit）→ 时间线回放（`tessera-agent replay` CLI 子命令 + W1 时间线面同源数据）；条目类型 = 命令/判据行/审批/问询/状态迁移。
+
+| 吸收源 | 内容 |
+|---|---|
+| pi §6.1 | 会话 JSONL + id/parentId 树（分支/摘要）——取线性子集 + /export HTML 思路 |
+| codex §1.2 | 事件分类学——时间线条目类型设计 |
+
+### 8.6 M1 ⏸ pi 渠道接入（HOLD——DEC-66⑥）
+
+双运行时代价 + pi 待定；候选替代 QwenPaw 接入同 HOLD（350k LOC 更重）。harness 决策推迟至 W1 真实体验后。预案保留于 plan G 表。
+
+### 8.7 明确不吸收（反模式/越界）
+
+| 项 | 来源 | 理由 |
+|---|---|---|
+| UI 包 CLI + CaptureIO 抓文本流 | aider gui.py | 事件无结构、审批 CLI 化、不可多渠道——我方已有协议优先底座 |
+| 「安全 = OS 边界、默认不审批」作为网关姿态 | pi security.md | 制造门禁哲学不容；服务端闸（D4）为主边界 |
+| 多代理编排/通用文件工具面 | 九十六调研 | 维持不做（域网关不越权为通用助手） |
+| 三层记忆/技能市场/心跳助手宇宙 | QwenPaw | 域重叠——我方核心域为设备制造编排 |
