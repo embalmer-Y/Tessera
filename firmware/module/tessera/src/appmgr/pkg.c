@@ -406,7 +406,11 @@ static ts_res_t stage_commit(uint8_t entry, ts_app_info_t *out)
 	 * 替换即停——不同 entry 互不影响；legacy 单实例语义等价）。旧缺陷：
 	 * 翻转 meta 后旧包继续运行 = 撕裂态（deploybench DB4 workaround 时代）。
 	 * 卡死（E_TIMEOUT）：生产照常翻转（群组 WDT + 健康探针处置）；
-	 * TEST 如实失败返回（无复位面）。 */
+	 * TEST 如实失败返回（无复位面）。
+	 * 门控：停旧面在 runtime.c（TS_APP_WAMR 门）——WAMR=n 的 store-only
+	 * 构建无运行 APP 可停（netbench 类最小档；链接期未定义引用 2026-10-19
+	 * MP 基线构建暴露）。 */
+#ifdef CONFIG_TS_APP_WAMR
 	if (ts_appmgr_app_running_id((uint16_t)(entry + 1))) {
 		ts_res_t sr = ts_appmgr_app_stop_id((uint16_t)(entry + 1));
 
@@ -418,6 +422,7 @@ static ts_res_t stage_commit(uint8_t entry, ts_app_info_t *out)
 #endif
 		}
 	}
+#endif /* CONFIG_TS_APP_WAMR */
 	/* 6. meta 原子切换（entry active_slot = staging slot + 摘要随载；
 	 * 新 entry 位 = count 扩展） */
 	ts_appmgr_meta_t meta;

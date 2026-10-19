@@ -1122,3 +1122,9 @@
 **② 最低内存需求基线（系统规格文档）**：Tessera 系统按配置档（最小 net 档 / 标准档 / 全外设档）的 DRAM/PSRAM/FLASH 最低需求——以实测数据推导（atk 全链运行账为第一输入），消费方 = R12 板卡选型 + BV1 验证域画像门。
 
 **执行注记**：落点 = §11h I 表 MP 专项（设计批门③）；atk map 重平（wifi ENOMEM 噪声/UI 栈 91%/堆 -80）= 本专项首个应用案例——待开发项清单呈现时与板级专项合并呈现。owner 或有后续补充，随补随登。
+
+## DEC-71（owner 泛指令开工 MP 专项，2026-10-19：「按照你规划的开发计划进行下一版本的规划和开发」）
+
+**裁定**：按会话建议序开工——**MP 通用内存规划专项（DEC-70）先行**（内存 = 当前最具体风险面），W2 web 渠道重塑设计批随后（DEC-69 六点为需求输入，owner 或有补充），A5/A4/R12/R13 可穿插。泛指令 = 按建议序开工纪律（DEC-59/DEC-65 先例），门③设计批随批呈递不另停门。
+
+**执行注记**：MP = 设计批（LLD-A13）+ 实现批（memory_audit 工具 + MCP/CLI 面）+ 首应用（atk map 重平 + 真机验证）+ 最低内存基线（DEC-70②，docs/memory-baseline.md）随批完成。首日实录：MP 设计接地即抓获两处系统性潜伏缺陷——① WAMR=n + APPMGR=y 组合自 M7（多 APP 激活停旧）起链接断链（pkg.c stage_commit 未门控 runtime.c 符号——netbench 类最小档 4.5-rc1 构建不过）；② netbench/deploybench 双 bench 板级 conf 缺 FIX-1/R5-V③ 同型防御（rx 栈缺省 1500/sysworkq 缺省 1024——memory_audit 规则 R1/R2 首战双 fail 抓获）。均随批修复。

@@ -1,0 +1,70 @@
+Memory Configuration
+
+Name             Origin             Length             Attributes
+FLASH            0x00000000         0x007fff00         r
+iram0_0_seg      0x40374000         0x00065704         xr
+dram0_0_seg      0x3fc88000         0x00061704         rw
+irom0_0_seg      0x42000000         0x02000000         xr
+drom0_0_seg      0x3c000000         0x02000000         r
+ext_dram_seg     0x3c000000         0x02000000         rw
+IDT_LIST         0x3ebfe010         0x00002000         ew
+
+Linker script and memory map
+
+.debug_info     0x00000000   0x1d9a30
+ .debug_info    0x1f4aeb    0x14a9d zephyr/libzephyr.a(init.c.obj)
+
+.dram0.dummy    0x3fc88000     0xf600
+                0x3fc975f4                        . = (ORIGIN (dram0_0_seg) + (MAX (_iram_end, 0x40378000) - 0x40378000))
+ *fill*         0x3fc88000     0xf5f4
+                0x3fc97600                        . = ALIGN (0x10)
+ *fill*         0x3fc975f4        0xc
+
+.dram0.data     0x3fc97600     0x619c load address 0x00013608
+                0x3fc97600                        _data_start = ABSOLUTE (.)
+ .data.s_config
+                0x3fc97608       0xb8 zephyr/libzephyr.a(sleep_modes.c.obj)
+                0x3fc97608                s_config
+
+.dram0.noinit   0x3fc9e3b0    0x27680 load address 0x0001a3b4
+                0x3fc9e3b0                        __dram_noinit_start = ABSOLUTE (.)
+ .noinit.CMAKE_SOURCE_DIR/src/main.c.0
+                0x3fc9e3b0     0x1000 app/libapp.a(main.c.obj)
+                0x3fc9e3b0                _k_thread_stack_deploy_watch_tid
+ .noinit.WEST_TOPDIR/zephyr/subsys/net/ip/net_tc.c.5
+                0x3fca2060     0x1000 zephyr/subsys/net/ip/libsubsys__net__ip.a(net_tc.c.obj)
+                0x3fca2060                rx_stack
+ .noinit.WEST_TOPDIR/zenoh-pico/src/system/zephyr/system.c.0
+                0x3fcaa060     0x4000 modules/zenoh-pico/lib..__zenoh-pico__zephyr.a(system.c.obj)
+                0x3fcaa060                thread_stack_area
+ .noinit.WEST_TOPDIR/zephyr/kernel/system_work_q.c.0
+                0x3fcb0c60     0x1000 zephyr/kernel/libkernel.a(system_work_q.c.obj)
+
+.dram0.bss      0x3fcc5a30    0x23b98 load address 0x0001a3b4
+                0x3fcc5a30                        __bss_start = ABSOLUTE (.)
+ .bss.shell_uartshell_uart_out_buffer
+                0x3fcc5a30      0x200 zephyr/libzephyr.a(shell_uart.c.obj)
+ .bss.lvgl_heap_mem
+                0x3fcc7b08     0x4000 modules/lvgl/libmodules__lvgl.a(lvgl_mem.c.obj)
+                0x3fcc7b08                lvgl_heap_mem
+ .noinit.WEST_TOPDIR/zephyr/kernel/mempool.c.kheap_buf__system_heap
+                0x3fcb2cf8     0xe454 zephyr/kernel/libkernel.a(mempool.c.obj)
+                0x3fcb2cf8                kheap__system_heap
+ .bss._mbedtls_heap
+                0x3fcdb4e1     0x7c00 modules/mbedtls/libmodules__mbedtls.a(zephyr_init.c.obj)
+                0x3fcdb4e1                _mbedtls_heap
+
+.flash.text     0x42000020    0xe01b0 load address 0x00002020
+                0x42000020                        _stext = ABSOLUTE (.)
+ .text.zephyr_init
+                0x42000020      0x120 zephyr/libzephyr.a(init.c.obj)
+
+.flash.rodata   0x3c020000    0x1c9b8 load address 0x00020238
+ .rodata.str1.1
+                0x3c020000      0x473 zephyr/libzephyr.a(fatal.c.obj)
+
+Discarded input sections
+
+ .text          0x00000000        0x0 zephyr/CMakeFiles/zephyr_final.dir/misc/empty_file.c.obj
+ .bss.video_buffer_pool
+                0x00000000   0x200000 zephyr/libzephyr.a(buffer.c.obj)

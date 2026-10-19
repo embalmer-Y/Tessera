@@ -58,6 +58,19 @@ def main(argv: list[str] | None = None) -> int:
                      help="报告 JSON 落盘路径")
     val.add_argument("--json", action="store_true",
                      help="打印 JSON 报告（缺省人读形态）")
+
+    mem = sub.add_parser("memory-audit",
+                         help="构建期内存审计（LLD-A13 · DEC-70；本地只读）")
+    mem.add_argument("--map", required=True, metavar="PATH",
+                     help="GNU ld map（zephyr/zephyr.map；pre0 图亦可）")
+    mem.add_argument("--config", required=True, metavar="PATH",
+                     help="Kconfig 生效值（zephyr/.config）")
+    mem.add_argument("--prj-conf", default=None, metavar="PATH",
+                     help="prj.conf 对照（R0 声明≠生效检测）")
+    mem.add_argument("--out", default=None, metavar="PATH",
+                     help="报告 JSON 落盘路径")
+    mem.add_argument("--json", action="store_true",
+                     help="打印 JSON 报告（缺省人读形态）")
     args = parser.parse_args(argv)
 
     if args.command == "serve":
@@ -73,6 +86,8 @@ def main(argv: list[str] | None = None) -> int:
         return _replay_command(args)
     if args.command == "validate":
         return _validate_command(args)
+    if args.command == "memory-audit":
+        return _memory_audit_command(args)
     parser.print_help()
     return 0
 
@@ -115,6 +130,29 @@ def _validate_command(args) -> int:
                              progress_cb=progress_cb)
     except bv.ProfileError as exc:
         print(f"参数错误：{exc}", file=sys.stderr)
+        return 2
+    if args.out:
+        Path(args.out).write_text(
+            json.dumps(report.to_json(), ensure_ascii=False, indent=2),
+            encoding="utf-8")
+    if args.json:
+        print(json.dumps(report.to_json(), ensure_ascii=False, indent=2))
+    else:
+        print(report.render())
+    return 0 if report.overall == "PASS" else 1
+
+
+def _memory_audit_command(args) -> int:
+    """内存审计 CLI（LLD-A13 §5）。退出码：0 = PASS；1 = WARN/FAIL；
+    2 = 参数/输入错误。本地只读面（无 LLM 无网络）。"""
+    from pathlib import Path
+
+    from tessera_agent.domain import memory_audit as ma
+
+    try:
+        report = ma.audit(args.map, args.config, args.prj_conf)
+    except ma.AuditError as exc:
+        print(f"审计输入错误：{exc}", file=sys.stderr)
         return 2
     if args.out:
         Path(args.out).write_text(

@@ -17,10 +17,11 @@ from typing import Any
 
 import cbor2
 
-from tessera_agent.common.errors import TA_E_TSAP, TaError
+from tessera_agent.common.errors import TA_E_ARGS, TA_E_TSAP, TaError
 from tessera_agent.core.session import PolicyTable
 from tessera_agent.domain import app_chain
 from tessera_agent.domain import board_validation as bv
+from tessera_agent.domain import memory_audit as ma
 from tessera_agent.platform import AppContext, DomainPackBase, MountAPI
 from tessera_agent.tools_diag import classify as diag_cls
 from tessera_agent.tools_diag import simreal_diff as diag_sr
@@ -96,7 +97,7 @@ class FirmwareDomainPack(DomainPackBase):
         "ln_create", "ln_list", "ln_remove", "ln_status", "ln_deploy",
         "ln_estop_clear",
         "app_develop", "app_deploy", "app_compile",
-        "board_validate",
+        "board_validate", "memory_audit",
         "diag_classify", "spec_check", "simreal_diff",
     ])
     skills: list[str] = field(default_factory=lambda: [
@@ -112,6 +113,7 @@ class FirmwareDomainPack(DomainPackBase):
         "app_develop": "confirm",
         "app_deploy": "strict",
         "board_validate": "strict",  # V0.13.0 BV1：复位+部署冒烟=板态写入
+        "memory_audit": "confirm",   # V0.13.0 MP：本地只读分析（LLD-A13）
         "diag_classify": "confirm",
         "spec_check": "confirm",
         "simreal_diff": "confirm",
@@ -593,7 +595,27 @@ class FirmwareDomainPack(DomainPackBase):
 
             return await spawn("board_validate", args, body)
 
-        # ---- diag_*（NV-1 部署后诊断；confirm 类）
+        # ---- memory_audit（V0.13.0 MP · LLD-A13；confirm 类——本地只读）
+        @mcp.tool
+        @audited("memory_audit")
+        async def memory_audit(map_path: str, config_path: str,
+                               prj_conf: str | None = None) -> dict:
+            """构建期内存审计（LLD-A13 · DEC-70）：GNU ld map + Kconfig
+            .config → 三层内存账本（region 占用/保留/余量 + 具名对象 +
+            config 内存意图账）+ 规则目录判定（R0 声明≠生效 / R1-R3 栈
+            下限 / R4-R5 堆压 / R6 区域余量 / R7 STATIC TX 观察）。
+            overall = PASS/WARN/FAIL；prj_conf 可选作 R0 覆盖对照。"""
+            try:
+                report = await asyncio.to_thread(
+                    ma.audit, map_path, config_path, prj_conf)
+            except ma.AuditError as exc:
+                raise TaError(TA_E_ARGS, str(exc),
+                              domain="memory_audit") from exc
+            out = report.to_json()
+            out["report_text"] = report.render()
+            return out
+
+        # ---- diag_*（NV-1 部署后诊断；confirm 类)
         @mcp.tool
         @audited("diag_classify")
         async def diag_classify(serial_text: str,
