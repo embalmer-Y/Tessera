@@ -1,0 +1,51 @@
+BV1-R 板卡验证域真机自验证据（2026-10-19 · V0.13.0）
+=====================================================
+被验板：atk-dnesp32s3b（akn/akc，boya 16MB，CH343 uart0 console）
+驱动：tessera-agent validate atk-dnesp32s3b --out bv1_atk_report.json
+环境：zenohd 1.10.1（tcp/9957 agent 口 + tls/9956 板口 mTLS）
+
+== 判定总览（完整链三轮 + 子集一轮，C1-C5 全 PASS 稳定复现）==
+C1 串口在场      PASS   （by-id 路径 open ok）
+C2 flash 身份    PASS   （chip=ESP32-S3 size=16384KB = boya 16MB 真硅）
+C3 boot/console  PASS   （90s 窗内 CONNECTED loc= 命中）
+C4 zenoh 连通    PASS   （discover=akn/akc + status 全回执）
+C5 caps 消费     PASS   （tiers=[small,large] slot_pool=2048KB ⊇ 期望）
+C6 部署 E2E 冒烟 FAIL   ——真机缺陷（见下），非验证域误报
+
+== 首战抓获：部署高压 rx_q[0] 栈溢出崩机（板级批新登记）==
+签名链（并行串口日志实抓，/tmp/bv1_c6_console.txt 全文）：
+  [q] sys/lease-acquire rlen=105 resp_len=70        （租约过）
+  [q] sys/app-begin rlen=98 resp_len=58             （开槽过）
+  <err> esp32_wifi_adapter: memory allocation failed （WiFi TX 突发 ENOMEM——V0.11.0 R5-I 同象）
+  [q] sys/app-chunk rlen=2142 resp_len=65           （首分块过）
+  <err> esp32_wifi: Failed to send packet: -105 ×2
+  ** FATAL EXCEPTION  EXCCAUSE 63 (zephyr exception)
+  >>> ZEPHYR FATAL ERROR 2: Stack overflow on CPU 0
+  Current thread: 0x3fcc6e58 (rx_q[0])
+  Halting system
+定性：确定性复现（新鲜板态同崩；崩溃步点 lease/begin/chunk 随机）；
+      部署分块突发 → wifi adapter TX ENOMEM → rx_q[0] 栈溢出崩机。
+      R5-I「DRAM 系统性重平」残余族 + rx_q 栈面新形态（ 板级专项待 root cause）。
+处置纪律：BV1-R 如实 FAIL 不掩蔽（降级分块/跳过冒烟 = 掩蔽，不做）；
+      板态 = 崩机后复位自愈（CONNECTED 恢复实测），探针未驻留（部署未达激活）。
+
+== xiao-esp32s3 第二画像复验（板未接线形态）==
+  [C1] FAIL 串口在场 — 画像未配置串口路径（板未接线？）
+  [C2..C6] SKIP（派生——前置 C1 未过，物理域终止）
+  overall=FAIL rc=1 ——验证域按设计工作（板不在场如实报告）
+
+== 完整链人读报告（末轮全文）==
+[bv] C1 PASS (1/6)
+[bv] C2 PASS (2/6)
+[bv] C3 PASS (3/6)
+[bv] C4 PASS (4/6)
+[bv] C5 PASS (5/6)
+[bv] C6 FAIL (6/6)
+Board atk-dnesp32s3b [ATK DNESP32-S3B V1.1（ES8311+SD+LCD；8MB 布局/boya 16MB 真硅）]: FAIL (145.1s)
+  [C1] PASS 串口在场 (4ms) — port open ok
+  [C2] PASS flash 身份 (1800ms) — chip=ESP32-S3 size=16384KB 期望 chip=esp32s3 size=16384KB
+  [C3] PASS boot/console (90192ms) — 就绪判据全命中: CONNECTED loc=
+  [C4] PASS zenoh 连通 (1164ms) — node=akn cube=akc 命令面回执全通
+  [C5] PASS caps 消费 (0ms) — tiers=['small', 'large'] slot_pool=2048KB （期望 ⊇['small'] ≥2048KB）
+  [C6] FAIL 部署 E2E 冒烟 (51889ms) — 部署失败: TaError: query 无回执（超时 10.0s）: tessera/akn/akc/sys/lease-acquire
+        | {'deploy_error': 'TaError: query 无回执（超时 10.0s）: tessera/akn/akc/sys/lease-acquire'}

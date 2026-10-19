@@ -1,0 +1,47 @@
+
+[1;32muart:~$ [m[8D[JAK alive t=106355 net=1
+[1;32muart:~$ [m[8D[JAK alive t=116356 net=1
+[1;32muart:~$ [m[8D[JAK5 net=1
+[1;32muart:~$ [m[8D[JAK alive t=146369 net=1
+[1;32muart:~$ [m[8D[J[q] sys/get-info rlen=58 resp_len=234
+[1;32muart:~$ [m[8D[J[q] sys/get-info rlen=62 resp_len=238
+[1;32muart:~$ [m[8D[J[q] sys/get-link rlen=62 resp_len=85
+[1;32muart:~$ [m[8D[J[q] sys/get-safety rlen=65 resp_len=91
+[1;32muart:~$ [m[8D[J[q] sys/get-app rlen=60 resp_len=235
+[1;32muart:~$ [m[8D[J[q] sys/get-info rlen=57 resp_len=233
+[1;32muart:~$ [m[8D[J[q] sys/lease-acquire rlen=105 resp_len=70
+[1;32muart:~$ [m[8D[J[q] sys/app-begin rlen=98 resp_len=58
+[1;32muart:~$ [m[8D[J[00:02:36.234,000] [1;31m<err> esp32_wifi_adapter: memory allocation failed[0m
+[1;32muart:~$ [m[8D[J[q] sys/app-chunk rlen=2142 resp_len=65
+[1;32muart:~$ [m[8D[JAK alive t=156370 net=1
+[1;32muart:~$ [m[8D[J[00:02:36.564,000] [1;31m<err> esp32_wifi: Failed to send packet: -105[0m
+[1;32muart:~$ [m[8D[J[00:02:36.687,000] [1;31m<err> esp32_wifi: Failed to send packet: -105[0m
+[1;32muart:~$ [m[8D[J[00:02:36.688,000] [1;31m<err> os:  ** FATAL EXCEPTION[0m
+[1;32muart:~$ [m[8D[J[00:02:36.693,000] [1;31m<err> os:  ** CPU 0 EXCCAUSE 63 (zephyr exception)[0m
+[1;32muart:~$ [m[8D[J[00:02:36.702,000] [1;31m<err> os:  **  PC 0x4037941b VADDR 0[0m
+[1;32muart:~$ [m[8D[J[00:02:36.710,000] [1;31m<err> os:  **  PS 0x60f20[0m
+[1;32muart:~$ [m[8D[J[00:02:36.717,000] [1;31m<err> os:  **    (INTLEVEL:0 EXCM: 0 UM:1 RING:0 WOE:1 OWB:15 CALLINC:2)[0m
+[1;32muart:~$ [m[8D[J[00:02:36.728,000] [1;31m<err> os:  **  A0 0x8037b360  SP 0x3fca25f0  A2 0x2  A3 0xfffffd38[0m
+[1;32muart:~$ [m[8D[J[00:02:36.739,000] [1;31m<err> os:  **  A4 0x3fcc293e  A5 0xe0000000  A6 0  A7 0x3fcc292e[0m
+[1;32muart:~$ [m[8D[J[00:02:36.750,000] [1;31m<err> os:  **  A8 0x8037c08e  A9 0x3fca25c0 A10 0 A11 0x3fca27d4[0m
+[1;32muart:~$ [m[8D[J[00:02:36.760,000] [1;31m<err> os:  ** A12 0x3fccfca4 A13 0x3fca27d8 A14 0x3fccd358 A15 0x3fcd5968[0m
+[1;32muart:~$ [m[8D[J[00:02:36.771,000] [1;31m<err> os:  ** LBEG 0x400570e8 LEND 0x400570f3 LCOUNT 0[0m
+[1;32muart:~$ [m[8D[J[00:02:36.781,000] [1;31m<err> os:  ** SAR 0x10[0m
+[1;32muart:~$ [m[8D[J[00:02:36.788,000] [1;31m<err> os:  **  THREADPTR 0x3fca25d0[0m
+[1;32muart:~$ [m[8D[J[00:02:36.796,000] [1;31m<err> os: Backtrace:[0m
+[1;32muart:~$ [m[8D[J[00:02:36.803,000] [1;31m<err> os: 0x40379418:0x3fca25f0[0m
+[1;32muart:~$ [m[8D[J[00:02:36.810,000] [1;31m<err> os: 0x4037b35d:0x3fca2600[0m
+[1;32muart:~$ [m[8D[J[00:02:36.818,000] [1;31m<err> os: 0x4037b76f:0x3fca2620[0m
+[1;32muart:~$ [m[8D[J[00:02:36.825,000] [1;31m<err> os: 0x4037bc69:0x3fca2640[0m
+[1;32muart:~$ [m[8D[J[00:02:36.833,000] [1;31m<err> os: 0x4037a713:0x3fca2660[0m
+[1;32muart:~$ [m[8D[J[00:02:36.841,000] [1;31m<err> os: 0x420317e1:0x3fca2690[0m
+[1;32muart:~$ [m[8D[J[00:02:36.848,000] [1;31m<err> os: 0x42033a29:0x3fca26b0[0m
+[1;32muart:~$ [m[8D[J[00:02:36.856,000] [1;31m<err> os: 0x4202d669:0x3fca2760[0m
+[1;32muart:~$ [m[8D[J[00:02:36.864,000] [1;31m<err> os: 0x4202e1db:0x3fca27a0[0m
+[1;32muart:~$ [m[8D[J[00:02:36.871,000] [1;31m<err> os: 0x42025c7d:0x3fca2810[0m
+[1;32muart:~$ [m[8D[J[00:02:36.879,000] [1;31m<err> os: 0x4202cd6e:0x3fca2830[0m
+[1;32muart:~$ [m[8D[J[00:02:36.887,000] [1;31m<err> os: 0x4201d60d:0x3fca2850[0m
+[1;32muart:~$ [m[8D[J[00:02:36.894,000] [1;31m<err> os: >>> ZEPHYR FATAL ERROR 2: Stack overflow on CPU 0[0m
+[1;32muart:~$ [m[8D[J[00:02:36.904,000] [1;31m<err> os: Current thread: 0x3fcc6e58 (rx_q[0])[0m
+[1;32muart:~$ [m[8D[J[00:02:36.913,000] [1;31m<err> os: Halting system[0m
+[1;32muart:~$ [m

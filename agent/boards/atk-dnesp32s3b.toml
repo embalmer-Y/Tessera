@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: Apache-2.0
+# 板卡画像：正点原子 ATK DNESP32-S3B V1.1（LLD-A12 §2 schema v1）
+# 现役机（Radxa A7A）当前唯一接线板——CH343 = console(uart0 诊断形态)+esptool 三功能。
+[board]
+id = "atk-dnesp32s3b"
+description = "ATK DNESP32-S3B V1.1（ES8311+SD+LCD；8MB 布局/boya 16MB 真硅）"
+
+[serial]
+# by-id 稳定路径纪律（一四六：ttyACM 漂移免疫）；验证期须停持有器（单读者纪律）
+port = "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5909066900-if00"
+baud = 115200
+
+[flash]
+adapter = "esptool"
+chip = "esp32s3"
+size_kb = 16384 # boya 16MB 真硅（bootloader + JEDEC 0x68:0x4018 双证——一四三）
+
+[boot]
+reset = true
+ready_patterns = ["CONNECTED loc="] # zenoh 连通行 = 板就绪正典判据
+timeout_s = 90.0 # atkbench boot ~50s 实测口径 × 裕度
+
+[zenoh]
+expect_discover = true
+cube = "" # 空 = 恰一在线即本板；多板在线时回填固件自报 cube_id
+
+[caps]
+tiers = ["small"] # 最小期望（large 档在档不作为最小判定）
+min_slot_pool_kb = 2048 # BV1-R 实测校准（2026-10-19：caps 自报 slot_pool=2048KB）
+
+[smoke]
+package_path = "agent/demos/D9/demo.d9.linkloss-1.0.0.tsap" # 测试根签名探针包
+pub_path = "agent/demos/D9/test-root.pub"
+criteria = ["d9 init"] # app_init 确定性单行（D9 spec）——部署→激活→APP 真执行最小证据
+window_s = 90.0 # 暖复位后 boot ~50s 实测 × 裕度（NVD v4 教训：窗 << boot 必 miss）
+
+[build]
+enabled = false # C0 构建前级未接入（V0.14.0 P4 判定批形态；true 拒装载）

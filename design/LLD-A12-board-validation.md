@@ -1,8 +1,8 @@
-# LLD-A12 · 板卡验证域（Board Validation Domain）· v0.1
+# LLD-A12 · 板卡验证域（Board Validation Domain）· v0.1.1
 
 > **本文件是什么**：板卡验证域低层设计——V0.13.0 BV1-D 单元（DEC-68① 高优；owner「Agent 端应有能力在面对新板卡时自行进行验证工作」）。
 > **权威顺序**：owner 裁决 > FOUNDING_PROMPT > 本文件。
-> **状态**：v0.1（2026-10-19 立项同批首稿；BV1-I 实现前如有修订走版本序）。
+> **状态**：v0.1.1（2026-10-19 BV1-I 实现批同步修订：§3 C5 补 C4 链路派生 SKIP、C0 明确拒装载不留桩）。
 > **执行注记修订生效**：首任务 = **现役板自验**（atkbench/xiao——先在已知好板上证明验证域本身）；P4 判定批实测 = 第二任务（随 v4.5.0 平移批，DEC-68 注记修订 2026-10-19）。
 
 ## 1. 定位与架构定性
@@ -75,8 +75,10 @@ app_target = ""                     # west -b <board> <app> 目标串
 | C2 | flash 身份 | esptool flash-id：chip == 期望 ∧ size == 期望 | 记 FAIL 继续（身份错 = 镜像/prov 风险，值得看全貌） | — |
 | C3 | boot/console | reset+capture 窗内命中全部 ready_patterns | 记 FAIL 继续（C4 起大概率连败——stop_on_fail 可提前收） | — |
 | C4 | zenoh 连通 | discover 见 node ∧ probe_ops 全回执 | 记 FAIL 继续 | C3 FAIL 时自动 SKIP（链路前置） |
-| C5 | caps 消费 | get-info caps ⊇ 画像期望（tiers 包含 ∧ 槽池 ≥ 下限） | 记 FAIL（能力不达 = 部署预期落空） | 画像无 `[caps]` 节 → SKIP（注记：旧固件/未声明） |
-| C6 | 部署 E2E 冒烟 | deploy 全链 + 判据窗命中 criteria（复用 post_deploy_check 三态） | 记 FAIL | 画像无 `[smoke]` 节 → SKIP；C4 FAIL → SKIP |
+| C5 | caps 消费 | get-info caps ⊇ 画像期望（tiers 包含 ∧ 槽池 ≥ 下限） | 记 FAIL（能力不达 = 部署预期落空） | 画像无 `[caps]` 节 → SKIP（注记：旧固件/未声明）；**C4 非 PASS → 派生 SKIP**（快照不可得——v0.1.1 实现补全） |
+| C6 | 部署 E2E 冒烟 | deploy 全链 + 判据窗命中 criteria（复用 post_deploy_check 三态） | 记 FAIL | 画像无 `[smoke]` 节 → SKIP；C4 非 PASS → SKIP；**判据窗抓取失败（criteria_pass=None）→ 派生 SKIP**（未验证 ≠ 未命中，如实区分——overall=DEGRADED） |
+
+**C0 实现注记（BV1-I）**：画像 `build.enabled=true` **拒装载**（ProfileError，不留桩）——C0 前级（fw_build + 烧录）随 V0.14.0 P4 判定批接入，首消费者到位前不设半成品面。
 
 **SKIP 语义**（periph 三路失败破案纪律——物理失联 ≠ 验证失败）：SKIP 不计入 FAIL，但计入 DEGRADED 判定（见 §4）。C3→C4 的链路 SKIP 是**派生 SKIP**（detail 注明「前置检查未过」），与画像声明的 SKIP（节缺失）区分。
 

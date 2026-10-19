@@ -20,6 +20,7 @@ import cbor2
 from tessera_agent.common.errors import TA_E_TSAP, TaError
 from tessera_agent.core.session import PolicyTable
 from tessera_agent.domain import app_chain
+from tessera_agent.domain import board_validation as bv
 from tessera_agent.platform import AppContext, DomainPackBase, MountAPI
 from tessera_agent.tools_diag import classify as diag_cls
 from tessera_agent.tools_diag import simreal_diff as diag_sr
@@ -95,6 +96,7 @@ class FirmwareDomainPack(DomainPackBase):
         "ln_create", "ln_list", "ln_remove", "ln_status", "ln_deploy",
         "ln_estop_clear",
         "app_develop", "app_deploy", "app_compile",
+        "board_validate",
         "diag_classify", "spec_check", "simreal_diff",
     ])
     skills: list[str] = field(default_factory=lambda: [
@@ -109,6 +111,7 @@ class FirmwareDomainPack(DomainPackBase):
 
         "app_develop": "confirm",
         "app_deploy": "strict",
+        "board_validate": "strict",  # V0.13.0 BV1：复位+部署冒烟=板态写入
         "diag_classify": "confirm",
         "spec_check": "confirm",
         "simreal_diff": "confirm",
@@ -117,8 +120,11 @@ class FirmwareDomainPack(DomainPackBase):
     deployer: Any = field(default_factory=lambda: None)  # 组合根注入 router 配置
 
     async def info_extras(self, ctx: AppContext) -> dict[str, Any]:
+        boards_dir = Path(ctx.cfg.workspace_repo) / "agent" / "boards"
         return {"workspace": await fw.fw_workspace_status(ctx.cfg, ctx.budget),
-                "tools": self.tools}
+                "tools": self.tools,
+                "board_validation": {"profiles": bv.list_profiles(boards_dir),
+                                     "checks": list(bv.CHECK_ORDER)}}
 
     def mount(self, api: MountAPI) -> None:
         ctx, audited, spawn = api.ctx, api.audited, api.spawn
@@ -539,6 +545,53 @@ class FirmwareDomainPack(DomainPackBase):
                 )
 
             return await spawn("app_deploy", args, body)
+
+        # ---- board_validate（V0.13.0 BV1 · LLD-A12；strict 类）
+        @mcp.tool
+        @audited("board_validate")
+        async def board_validate(profile_id: str,
+                                 checks: list[str] | None = None,
+                                 stop_on_fail: bool = False) -> dict:
+            """板卡验证域：画像驱动的确定性检查流水线（串口在场/flash 身份/
+            boot 判据/zenoh 连通/caps 消费/部署 E2E 冒烟 → 结构化报告）。
+            strict：复位 + 部署冒烟探针 = 板态写入（探针包驻留，不自动还原）；
+            spawn 长任务句柄；进度经 task_progress（D2 面）实时外显。"""
+            args = {"profile_id": profile_id, "checks": checks,
+                    "stop_on_fail": stop_on_fail}
+            boards_dir = Path(ctx.cfg.workspace_repo) / "agent" / "boards"
+
+            async def body(task) -> dict:
+                approval = ctx.approvals.request(
+                    "board_validate", args,
+                    reason="strict 类：板卡验证（复位 + 部署冒烟探针——"
+                           "板态写入，探针包驻留）",
+                )
+                task.state = "input_required"
+                try:
+                    await ctx.approvals.wait(approval)
+                finally:
+                    task.state = "working"
+                profile = bv.load_profile(boards_dir / f"{profile_id}.toml")
+
+                def progress_cb(p: dict) -> None:
+                    task.progress.update(p)
+                    ctx.registry.append_log(
+                        task, f"[bv] {p['check']} {p.get('verdict', '…')}"
+                              f" ({p['done']}/{p['total']})")
+
+                transport = bv.LiveTransport(
+                    ctx.cfg, ctx=ctx,
+                    log_fn=lambda s: ctx.registry.append_log(task, s))
+                report = await asyncio.to_thread(
+                    bv.validate, profile, transport, checks=checks,
+                    stop_on_fail=stop_on_fail, progress_cb=progress_cb)
+                task.progress.update({"overall": report.overall,
+                                      "checks_done": len(report.checks)})
+                out = report.to_json()
+                out["report_text"] = report.render()
+                return out
+
+            return await spawn("board_validate", args, body)
 
         # ---- diag_*（NV-1 部署后诊断；confirm 类）
         @mcp.tool

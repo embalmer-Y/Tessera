@@ -301,8 +301,8 @@
 | 序 | 单元 | 内容 | 规模 | 备注 |
 |---|------|------|------|------|
 | BV1-D ✅ | 板卡验证域·设计批 | **已落稿（LLD-A12 v0.1）**：确定性检查流水线定性（板卡验证非 LLM 创作任务——不硬套 CreationLoop；DEC-33 原则面继承：结构化证据/事件审计同源/CheckResult 对齐 VerifyOutcome 同型，如实注记）+ 板卡画像 schema v1（agent/boards/*.toml 七节声明式：serial/flash/boot/zenoh/caps/smoke/build——零凭据；R12 能力目录种子）+ 检查项目录 v1（C0 构建烧录前级〔画像门控缺省关〕→ C1 串口在场 → C2 flash 身份 → C3 boot/console → C4 zenoh 连通 → C5 caps 消费 → C6 部署 E2E 冒烟）+ SKIP 双型（派生 vs 声明）+ overall 三态判定（PASS/FAIL/DEGRADED）+ 板态变更披露合同（C6 探针驻留不自动还原——smoke 节即显式授权；C1-C5 只读或可逆）+ MCP board_validate（strict+spawn+D2 progress）/ CLI validate 双面 + FakeBoard 测试口径 + v2 方向登记（自动修复轮=P4 判定批形态/LLM 诊断留缝） | ~0.5 | DEC-68①；全部组合既有面（tools_diag capture/classify + tools_net deploy/ZenohService + tools_fw） |
-| BV1-I | 板卡验证域·实现批 | BoardValidator 运行器 + 板卡画像装载（atkbench/xiao 两画像入仓）+ 检查项实现 + SKIP 语义（外设物理失联降级先例——periph 三路失败破案纪律）+ FakeBoard 注入测试（全检查矩阵 sim 级） | ~1.5 | |
-| BV1-R | 板卡验证域·真机自验 | atkbench 全链自验 PASS（报告双形态证据入仓）+ xiao 第二画像复验——① 的首轮实战，同时即验收 | ~0.5 | |
+| BV1-I ✅ | 板卡验证域·实现批 | **已交付**：domain/board_validation.py（画像 fail-closed 装载〔未知节/键拒——防拼写静默失效〕+ 检查项 C1-C6 全实现 + SKIP 双型/派生链 + overall 三态 + BoardReport JSON/人读双形态）+ 板卡画像两份入仓（agent/boards/ atk〔serial by-id/boya 16MB/C5 实测 2048KB 校准〕+ xiao〔板未接线占位——port 空 = C1 如实 FAIL〕）+ LiveTransport（esptool 5 双形态 chip 解析/仓相对路径解析/C6 部署链 ctx 装配）+ MCP board_validate（strict+spawn+D2 progress）/ CLI validate（退出码三态）——用例 33（FakeTransport 全矩阵：三态 × 派生链 × stop_on_fail × 报告双形态 × LiveTransport 无硬件分支）；agent **262+2s** | ~1.5 | 过程三修：esptool `Chip type:` 形态解析/CLI ctx 漏装配（首跑即暴露）/画像路径 CWD 无关化 |
+| BV1-R ◐ | 板卡验证域·真机自验 | **C1-C5 全 PASS 稳定复现**（串口/boya 16MB 身份/CONNECTED 判据/akn-akc 命令面/caps 2048KB——板健康判定成立）+ xiao 第二画像复验 = 板不在场形态按设计工作（C1 FAIL → 派生 SKIP 链）。**C6 = 真机缺陷阻断——验证域首战抓获**：部署分块突发 → `esp32_wifi_adapter: memory allocation failed`（R5-I 同象）→ **`rx_q[0]` 栈溢出 FATAL 崩机**（板侧串口全文实抓——bv1_c6_crash_console.txt）；确定性复现（新鲜板态同崩，步点 lease/begin/chunk 随机）；**处置纪律 = 如实 FAIL 不掩蔽**（降级分块/跳过冒烟均不做） | ~0.5 | 缺陷入板级专项候选：R5-I「DRAM 系统性重平」残余 + rx_q 栈面新形态——root cause 随板级批（map 驱动重平续作）；证据 bv1_atk_console.txt |
 | A3 | W2 web/SSE 升级 | SSE 轮询差分 → **gateway 内部事件总线直推**（LLD-A10 v1 诚实注记的升级项；D2 进度/D7 问询/D4 审批事件同汇一源）+ W1 多任务视图 + 交互卡打磨（QwenPaw 吸收清单落地） | ~1 | V0.12.0 余项 |
 | A5 | D6 MCP 客户端 | Agent 作为 MCP client 接入外部 MCP server（DEC-12 v1.1「作为 server 通过 MCP A2A 等方式接入其他 AI 应用」的消费侧）：外部工具桥接进本 Agent 面 + **外部工具默认 strict 类**（审批不豁免——不信任面原则）+ 工具名隔离防撞（前缀命名空间）+ config `[mcp_clients]` + 用例 | ~1 | 九十六候选⑦ |
 | A4 | D4b post 观察钩子 | post-call 观察面（调用后结果摘要经 hook 外发——诊断自动注入缝；pre 拦截面已交付） | ~0.5 | D4 余项 |
@@ -335,6 +335,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.128 · 2026-10-19：**BV1-I 实现 ✅ + BV1-R 真机自验 ◐（V0.13.0 BV1 主体收口）**——board_validation.py 全链（33 用例/agent 262+2s）+ 两画像入仓 + MCP/CLI 双面；真机 C1-C5 全 PASS 稳定 + xiao 板不在场形态按设计工作；**C6 = 验证域首战抓获真机缺陷**——部署突发 wifi adapter ENOMEM → rx_q[0] 栈溢出崩机（板侧铁证；确定性复现；如实 FAIL 不掩蔽），板级专项候选登记（R5-I 重平残余族）。
 - v1.127 · 2026-10-19：**BV1-D 板卡验证域设计批 ✅（DEC-68①，V0.13.0 首单元）**——LLD-A12 v0.1 落稿：确定性检查流水线定性（不硬套 CreationLoop，DEC-33 原则面继承如实注记）+ 板卡画像 schema v1（agent/boards/*.toml 七节）+ 检查项目录 C0-C6 + SKIP 双型/DEGRADED 判定 + 板态变更披露合同 + board_validate（strict）/validate CLI 双面 + FakeBoard 测试口径。BV1-I 实现随续。
 - v1.126 · 2026-10-19：**V0.13.0「Agent 自主化批」立项（owner：「v4.5.0 还需等待一周——继续其他部分功能开发，重点放在 Agent」）**——§11h I 表新立：BV1 板卡验证域提前〔DEC-68① 执行注记修订：首任务改现役板自验，P4 判定降第二任务〕+ D6 MCP 客户端（A5）+ V0.12.0 余项（A3 SSE 直推/A4 post 钩子）+ R12/R13 调研并入；执行序 BV1-D → BV1-I → BV1-R → A3 → A5 → A4 → R12 → R13 → 收口（~6.5 单元）；v4.5.0 平移批顺延为 V0.14.0 候选（C 表同步）。
 - v1.125 · 2026-10-19：**DEC-68 通用化三需求登记**——① 自主板卡验证（高优，BV1 板卡验证域；首任务 P4 判定批实测）② 需求驱动板卡选择/硬件设计（R12 调研）③ 结构件 3D 打印设计（R13 调研）；§11h H 表新立。

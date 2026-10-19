@@ -46,6 +46,18 @@ def main(argv: list[str] | None = None) -> int:
     replay.add_argument("--tool", default=None, help="按工具名过滤")
     replay.add_argument("--limit", type=int, default=500, help="尾部截取（缺省 500）")
     replay.add_argument("--json", action="store_true", help="结构化输出（W1 时间线同源）")
+
+    val = sub.add_parser("validate",
+                         help="板卡验证域：画像驱动确定性检查流水线（LLD-A12）")
+    val.add_argument("board_id", help="画像 id（agent/boards/<id>.toml）")
+    val.add_argument("--checks", default=None, metavar="C1,C3",
+                     help="检查子集（缺省全序 C1-C6）")
+    val.add_argument("--stop-on-fail", action="store_true",
+                     help="首个 FAIL 后提前收（余项记派生 SKIP）")
+    val.add_argument("--out", default=None, metavar="PATH",
+                     help="报告 JSON 落盘路径")
+    val.add_argument("--json", action="store_true",
+                     help="打印 JSON 报告（缺省人读形态）")
     args = parser.parse_args(argv)
 
     if args.command == "serve":
@@ -59,8 +71,60 @@ def main(argv: list[str] | None = None) -> int:
         return _run_command(args)
     if args.command == "replay":
         return _replay_command(args)
+    if args.command == "validate":
+        return _validate_command(args)
     parser.print_help()
     return 0
+
+
+def _validate_command(args) -> int:
+    """板卡验证 CLI（LLD-A12 §5）。退出码：0 = PASS；1 = FAIL/DEGRADED；
+    2 = 配置/画像/参数错误。同步阻塞面（检查含串口抓取与部署链）。"""
+    from pathlib import Path
+
+    from tessera_agent.common.config import load_config
+    from tessera_agent.domain import board_validation as bv
+
+    try:
+        cfg = load_config()
+    except Exception as exc:  # noqa: BLE001 —— 启动期配置错误如实报
+        print(f"配置错误：{exc}", file=sys.stderr)
+        return 2
+    path = Path(cfg.workspace_repo) / "agent" / "boards" / f"{args.board_id}.toml"
+    try:
+        profile = bv.load_profile(path)
+        checks = ([c.strip() for c in args.checks.split(",")]
+                  if args.checks else None)
+    except bv.ProfileError as exc:
+        print(f"画像错误：{exc}", file=sys.stderr)
+        return 2
+
+    def progress_cb(p: dict) -> None:
+        print(f"[bv] {p['check']} {p.get('verdict', '…')}"
+              f" ({p['done']}/{p['total']})", file=sys.stderr)
+
+    # C6 部署链须 AppContext（复验/发现/租约）——与 run 门面同款最小装配
+    from tessera_agent.common.limits import ContextBudget
+    from tessera_agent.platform import AppContext
+
+    ctx = AppContext(cfg=cfg, budget=ContextBudget(cfg.context_window))
+    transport = bv.LiveTransport(cfg, ctx=ctx)
+    try:
+        report = bv.validate(profile, transport, checks=checks,
+                             stop_on_fail=args.stop_on_fail,
+                             progress_cb=progress_cb)
+    except bv.ProfileError as exc:
+        print(f"参数错误：{exc}", file=sys.stderr)
+        return 2
+    if args.out:
+        Path(args.out).write_text(
+            json.dumps(report.to_json(), ensure_ascii=False, indent=2),
+            encoding="utf-8")
+    if args.json:
+        print(json.dumps(report.to_json(), ensure_ascii=False, indent=2))
+    else:
+        print(report.render())
+    return 0 if report.overall == "PASS" else 1
 
 
 def _replay_command(args) -> int:

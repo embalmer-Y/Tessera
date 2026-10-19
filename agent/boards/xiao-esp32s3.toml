@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+# 板卡画像：Seeed XIAO ESP32-S3（deploybench 时代载体；ARM 机暂未接线——
+# 一四六：USJ hub 留在 x86 机，接入后回填 serial.port by-id 稳定路径）。
+[board]
+id = "xiao-esp32s3"
+description = "Seeed XIAO ESP32-S3（板级一~九 S3 基线板）"
+
+[serial]
+port = "" # 待接线回填；空 = C1 FAIL（板不在场如实报告——验证域按设计工作）
+baud = 115200
+
+[flash]
+adapter = "esptool"
+chip = "esp32s3"
+size_kb = 8192 # ⚠ XIAO S3 官方 8MB——真硅 JEDEC 实测待 BV1-R 接线后校准
+
+[boot]
+reset = true
+ready_patterns = ["CONNECTED loc="]
+timeout_s = 90.0
+
+[zenoh]
+expect_discover = true
+cube = "" # 多板在线场景（atk 同网）必填自报 cube_id 后方可独立验证
+
+[caps]
+tiers = ["small"]
+min_slot_pool_kb = 128 # deploybench caps 自报口径（CG7 实测）
+
+[smoke]
+package_path = "agent/demos/D9/demo.d9.linkloss-1.0.0.tsap"
+pub_path = "agent/demos/D9/test-root.pub"
+criteria = ["d9 init"]
+window_s = 90.0
+
+[build]
+enabled = false
