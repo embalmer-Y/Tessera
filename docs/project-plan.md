@@ -254,10 +254,10 @@
 | 候选 | 内容 | 现状 |
 |------|------|------|
 | D2 计划/进度工具 ✅ | **已实现（2026-10-18 · DEC-65⑤ 并入 V0.11.0 批）**：Task.progress 结构化进度面 + task_progress MCP 工具（{task_id, state, progress}——app_develop 创作循环事件经 note_loop_progress 单一映射源实时落位：plan 项/轮次/loop_state/evidence 计数；task_status.snapshot 同源携带）+ 用例 4（映射矩阵/未知事件/浅拷贝/MCP 面）——agent 208+2s | — |
-| D4 hooks 拦截面 | MCP 工具调用前/后钩子（诊断自动注入等——2026 四家 CLI 收敛面） | 未做（候选④） |
-| D5 决策链回放器 | 审计流 → 时间线回放（决策溯源 UI） | 未做（候选⑥） |
+| D4 hooks 拦截面 | **V0.12.0 并入（DEC-66①）**——MCP 工具调用前/后钩子（诊断自动注入等）；拦截/放行语义门③子呈递 | V0.12.0 |
+| D5 决策链回放器 | **V0.12.0 并入（DEC-66①）**——审计流 → 时间线回放（web 客户端时间线面同源消费） | V0.12.0 |
 | D6 MCP 客户端 | Agent 作为 MCP client 消费外部工具服务器 | 未做（候选⑦——与 A2A 同等"真实消费者出现再启"） |
-| D7 问询双向化 | 终端门面问询 → MCP 客户端问询透传 | 未做（候选⑧） |
+| D7 问询双向化 | **V0.12.0 并入（DEC-66①，web 客户端硬前置）**——终端门面问询 → MCP 客户端问询透传 | V0.12.0 |
 | ~~多代理/通用文件工具面~~ | — | 调研建议不做（维持） |
 
 ### E. 长期方向（既有登记维持）
@@ -266,6 +266,20 @@
 - A2A/ACP 协议接入（缝保留，真实消费者出现再启）
 - 生产化批（安全认证路径/量产烧录流水线——owner 点向后规划）
 - SMP 多核 APP 并行（维持裁剪：rt[N] 单核已满足语义——需求实据出现再评估）
+
+### G. Agent 协同批 V0.12.0（§11h，2026-10-19 owner 点向「Agent 确实需要升级」+ 多渠道交互新需求——DEC-66；执行序 R11 调研 → D7/D4 → 门③ Q-48 → W1 web 客户端 → D5 → 收口）
+
+> 双轨：① Agent 流程结构收尾（D4/D5/D7——九十六调研缺口清单收口）；② **多渠道交互架构（MCI）**——DEC-35 Frontend 缝演进为显式三层渠道模型（Transport × Renderer × Interaction），Web 客户端为第一新渠道（传输复用 MCP Streamable HTTP；消费 D2 进度面/D5 时间线/D7 问询）。R11 调研批随批执行（克隆 opencode/codex/gemini-cli/aider 代码级学习）。
+
+| 序 | 单元 | 内容 | 规模 | 备注 |
+|---|------|------|------|------|
+| R11 | 开源 Agent 代码调研批 | 克隆学习四项目（opencode 多渠道 client/server 形态 / codex 协议分层+审批 / gemini-cli 渲染主题 / aider 轻量 web），产出 R11-multichannel-interaction.md（架构发现 + 吸收对照表 + Tessera 映射）+ **Q-48 门③呈递**（MCI 三层模型定案 + web 客户端形态/选型） | ~1 单元 | DEC-66③ |
+| D7 | 问询双向化 | 终端门面问询 → MCP 客户端透传（input_required 态 + 问询载荷契约）——web 客户端公共底座 | ~0.5 | |
+| D4 | hooks 拦截面 | MCP 工具调用前/后钩子（config 声明；deny/诊断注入——拦截语义门③子呈递） | ~1 | |
+| A10/A11 | MCI 架构 + web 客户端设计批 | LLD-A10（渠道三层模型——Frontend Protocol v2 归位）+ LLD-A11（web 客户端：会话流/判据行/审批/进度时间线；简约形态）——**门③ Q-48 裁后落稿** | ~0.5 | 门③ |
+| W1 | web 客户端 v1 | 简约好看实现（形态随 Q-48 裁定）；消费 task_progress + 事件流 + D7 问询 + D5 时间线 | ~1.5 | |
+| D5 | 决策链回放器 | 审计流 → 时间线回放（CLI 子命令 + web 时间线面同源） | ~0.5-1 | |
+| 收口 | V0.12.0 收口 | 回归定格 + tag fw-v0.12.0 | ~0.5 | |
 
 ### F. 健壮性收口批 V0.10.0（§11h，2026-10-17 owner 泛指令点向「按照推荐开发顺序进行开发」——DEC-64；执行序 R1 → R2 → R4 → R3）
 
@@ -292,6 +306,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.119 · 2026-10-19：**V0.12.0「Agent 协同批」立项 + 多渠道交互架构需求登记（DEC-66）**——owner 双指令：Agent 升级（D4/D5/D7 并入）+ 交互架构重设计（DEC-35 Frontend 缝 → 三层渠道模型；web 客户端第一新渠道，MCP HTTP 复用）；R11 开源代码调研批随批。
 - v1.118 · 2026-10-19：**文档-实现一致性审查批（owner 指令「code review 对比文档检查不匹配」）**——11 处勘误：checklist/README/HLD §9 过时计数与通过线（14/16→17/17 等）、HLD §9 三行滞后（power/msg_send/TLS 实为 P1 批已交付）、LLD-ts-net「上游零源码补丁」陈旧声明（实为仓携带 9 文件补丁）、LLD-ts-interact Kconfig 依赖表与实现不符、deploy.py 自愈注释事实性修正（pico 自动重连已钉死——glue 重连 ≤26s）、Kconfig 重复 help 行、flash_prov offset 陷阱入 docstring。
 - v1.117 · 2026-10-18：**D2 计划/进度 MCP 外显 ✅（DEC-65⑤，V0.11.0 批收官单元）**——task_progress 工具 + Task.progress 面 + note_loop_progress 映射；agent 208+2s。
 - v1.116 · 2026-10-18：**R5-V①②③ 全收口 ✅**——DRAM 重平（pico 栈池 16KB 释放）+ R5 接线全上 + F3 终端四判据 ALL PASS + NVD 复验 + 双栈（SHELL/SYSWORKQ）真机定案 + stage_commit 身份提取 + flash_prov 补齐。

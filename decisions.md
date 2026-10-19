@@ -1057,3 +1057,29 @@
 ⑤ **内存与工作量**：mbedtls 增量实测重平（握手缓冲优先内部；不足再评估 PSRAM 自定义分配器——上游 mbedTLS Zephyr 集成约束在案）。工作量 ~1 单元（补丁/Kconfig/prov/tooling 0.5 + zenohd TLS 实例 + bench E2E 0.5）。证书生成工具（openssl 脚本 + gen_*_prov 联动）随批入仓。
 
 **停门**：owner 裁 ①-④（尤其 mTLS 双向与 prov 三元组形态）后开工。
+
+## DEC-66（V0.12.0「Agent 协同批」立项 + 多渠道交互架构需求登记，2026-10-19——owner 指令原文要点：「对于 Agent 确实需要进行升级；记录一个需求：之前为 Agent 增加了 CLI 用于直接交互，现在进一步优化交互部分实现，重新设计相关模块、优化架构，做未来多渠道交互的架构设计，让未来方便扩展其他交互方式；现阶段先设计一个简约好看的 web 客户端交互。同时下载其他开源 Agent 或 AI CLI 的代码进行参考学习，结合我们 Agent 使用场景吸收优秀设计」）
+
+**批构成裁决与登记**：
+
+① **Agent 升级批（D4/D5/D7）照案并入 V0.12.0**：D4 hooks 拦截面（涉拦截/放行语义——开工首日门③子呈递）+ D5 决策链回放器 + D7 问询双向化（**web 客户端硬前置**——问询/审批双向流是多渠道交互的公共底座，提前为 web 消费而建）；D6（Agent 作为 MCP client）维持「真实消费者出现再启」不做。
+
+② **新需求登记：多渠道交互架构（MCI，Multi-Channel Interaction）**——现状 = DEC-35 Frontend 缝（Protocol + McpFrontend/TerminalFrontend 两实现共享 compose 根），缺口 = 渠道抽象未显式化（传输/呈现/交互钩子三面耦合在两实现内）。目标形态：**显式三层渠道模型**（Transport〔stdio/HTTP/WS/SSE〕× Renderer〔终端/Web/未来〕× Interaction〔问询/审批/进度事件契约〕），新渠道 = 实现三面即接入，Agent 核心与工具面零改动。**Web 客户端 = 第一新渠道**（简约形态；传输复用既有 MCP Streamable HTTP〔gateway run_server transport=http 已在——HLD §9 解锁项首次真实消费〕；消费面 = task_progress〔D2〕+ 事件流 + D7 问询 + D5 时间线——本批三单元与 web 客户端天然互喂）。
+
+③ **调研学习批（R11）**：代码级克隆学习四参考项目（opencode〔client/server 多渠道形态主角〕/ codex〔协议分层 + 审批模型〕/ gemini-cli〔终端渲染与主题〕/ aider〔轻量 web 交互〕），产出 `docs/research/R11-multichannel-interaction.md`（各项目交互层架构发现 + 吸收设计对照表 + Tessera 映射）。
+
+④ **门③呈递随 R11 批产出**：Q-48（多渠道架构定案 + web 客户端形态/技术选型 + 阶段计划）——呈递后 owner 裁，实现批随后。可逆性：渠道三层为纯增量抽象（既有两 Frontend 实现按新模型归位，行为不变）；web 客户端为纯新增通道（零固件/零 Agent 核心改动）。
+
+## Q-48（多渠道交互架构 MCI + Web 客户端——V0.12.0 门③ 呈递停门，2026-10-19；依据 docs/research/R11-multichannel-interaction.md）
+
+**呈递四子项**：
+
+① **MCI 三层渠道模型定案**：Channel = Transport（stdio/HTTP+Streamable/SSE 推送——前两者已在）× Renderer（Terminal 已有/Web W1 新建）× Interaction（问询/审批/进度——MCP 一等公民化）。DEC-35 Frontend 缝显式化演进，**纯增量归位**（既有两 Frontend 行为不变）；依据 = opencode 协议优先单服务器形态（R11 §1.1）。
+
+② **W1 Web 客户端选型**：**案 A（建议）= 静态单页 + 原生 ES 模块 + 语义 token CSS**（零构建链，ARM 机/CI 零新增；token 层法 = gemini-cli semantic-tokens 同型）；案 B = React/Vite SPA（生态成熟但构建链入仓）。数据面全部现成（task_progress/事件流/审批/D7/D5）。
+
+③ **D4 审批语义扩展子呈递**：sys_approve decision 增 **allow-session**（本会话记住——codex ReviewDecision 同型；降审批疲劳、不落盘、会话域失效）。涉审批语义故随门③。
+
+④ **SSE 推送面**：gateway 增事件流推送端点（替代前端轮询；FastMCP Streamable HTTP 通知形态或独立 SSE——LLD-A10 定）；绑定默认 127.0.0.1 维持。
+
+**停门**：owner 裁 ①-④ 后 LLD-A10/A11 落稿 → W1/D4/D5 实现批开工。
