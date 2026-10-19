@@ -74,6 +74,15 @@ def test_events_route_registered(tmp_path):
     assert "/mcp" in paths
 
 
+def test_web_urls_are_root_absolute(tmp_path):
+    """前端 new URL 首参必须根绝对（"/..."）——/web/ 挂载下相对解析 =
+    /web/mcp（StaticFiles 405）与 /web/events（404），W1 人工验收实抓。"""
+    for name in ("app.js", "mcp.js"):
+        src = (WEB_DIR / name).read_text(encoding="utf-8")
+        for target in re.findall(r'new URL\(\s*"([^"]+)"', src):
+            assert target.startswith("/"), f"{name}: new URL(\"{target}\") 非根绝对"
+
+
 def test_build_frame_diff_semantics(tmp_path):
     """差分帧：无任务 = 单空态帧；日志新行/进度变化/问询出现 各自发帧；
     签名不变不重复发。"""

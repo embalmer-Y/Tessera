@@ -5,7 +5,8 @@ let nextId = 1;
 let sessionId = null;
 
 function mcpUrl() {
-  return new URL("mcp", window.location.href).href;
+  // 绝对路径——/web/ 同源挂载下相对解析会得到 /web/mcp（StaticFiles 405）
+  return new URL("/mcp", window.location.origin).href;
 }
 
 async function rpc(method, params) {

@@ -21,6 +21,13 @@ h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
 
 .launch { margin-top: var(--sp-2); }
 .launch summary { cursor: pointer; color: var(--c-accent); }
+/* 发起区（composer）常驻底部——聊天应用惯例（W1 验收 owner 反馈采纳） */
+footer {
+  position: sticky; bottom: 0; z-index: 2;
+  background: var(--c-surface); border-top: 1px solid var(--c-border);
+  padding: var(--sp-2) var(--sp-4);
+}
+footer .launch { margin-top: 0; }
 #task-form textarea, #task-form input, #attach-form input {
   width: 100%; background: var(--c-bg); color: var(--c-fg);
   border: 1px solid var(--c-border); border-radius: var(--r-s);

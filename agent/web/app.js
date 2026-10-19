@@ -158,7 +158,7 @@ function renderProgress(el, progress, state) {
 
 // ---- SSE 消费 -------------------------------------------------------------
 function connect() {
-  const url = new URL("events", window.location.href);
+  const url = new URL("/events", window.location.origin); // 绝对路径（/web/ 挂载下相对 = /web/events 404）
   if (attachedTaskId) url.searchParams.set("task_id", attachedTaskId);
   const es = new EventSource(url.href);
   const conn = $("conn");
