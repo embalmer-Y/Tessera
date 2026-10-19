@@ -1091,3 +1091,13 @@
 ## DEC-67（Q-48 四子项裁决：按建议值进入实施——owner「很好……开始新版本的开发工作」泛指令，先例 DEC-59/62/63/64/65 同型，2026-10-19）
 
 **① MCI 三层渠道模型定案**：Channel = Transport（stdio/HTTP+Streamable/SSE 推送）× Renderer（Terminal/Web）× Interaction（问询/审批/进度——MCP 一等实体）；Frontend Protocol v2 显式化，TerminalFrontend 按新模型归位、WebFrontend 增列。**② W1 选型 = 案 A**（静态单页 + 原生 ES 模块 + 语义 token CSS；**纯 Python 服务端 + 浏览器原生前端，零 Node 零构建链**——owner「是否可纯 Python」追问确认；静态目录由网关 Starlette 同源挂载；测试 = pytest HTTP 层 + 人工验收；token 层保留案 B 平移退路）。**③ D4 审批语义增 allow-session**（sys_approve decision 三维：allow / allow-session〔会话域记住不落盘〕/ deny——codex ReviewDecision 同型）。**④ SSE 推送面**：gateway 增事件流推送端点（前端零轮询）；HTTP 绑定默认 127.0.0.1 维持。可逆性：全部纯增量，既有行为不变。
+
+## DEC-68（owner 三需求登记，2026-10-19：「1. Agent 端应有能力在面对新板卡时自行进行验证工作（优先级高）；2. Agent 应有应对新需求的能力，按需求进行板卡选择或硬件设计；3. Agent 需能对硬件进行外壳/结构件设计，设计出可直接 3D 打印的结构件，让硬件完成设计预期功能。1 优先级高，2 和 3 暂时只调研」）
+
+**① 自主板卡验证能力（高优，排入实施）**：新板卡面向 Agent 时自行完成验证——落点 = **板卡验证域（Board Validation Domain）**：组合既有面（fw 构建/烧录工具 + 串口抓取/诊断分类 + spec 判据门 + 修复轮）为自治 loop——**DEC-33「域无关循环引擎 + CreationVerifier 插件」设计的第二域应用**（板卡验证 Verifier：build/flash/console 判据/迭代修复 → bring-up 报告产物）。首任务 = **P4 判定批实测**（v4.5.0 平移后：RISC-V 工具链/WAMR 映射/invoke-native thunk/PSRAM/启动链最小链验证，Agent 半自主执行）——与 P4 适配批汇流，一石二鸟。
+
+**② 需求驱动板卡选择/硬件设计（调研）**：能力画像 = 需求 → 能力目录匹配 → 板卡选型/SoC 选型/硬件设计建议。依赖项：① 沉淀的板卡能力目录（caps 生态扩展）+ 外设/资源画像；调研产出 = R 批文档（目录 schema/选型判定链/硬件设计建议的边界——原理图级还是模块级）。
+
+**③ 外壳/结构件 3D 打印设计（调研）**：**多域 DomainPack 北极星（DEC-33 PCB/结构件域）的结构件域首次具体化**。调研产出 = R 批文档（参数化 CAD 路线〔OpenSCAD/CadQuery 类〕/可打印性约束面〔壁厚/公差/悬垂/打印方向/材料〕/与硬件功能需求的耦合方式〔开孔/散热/装配〕/Verifier 形态——可打印性机械检查）。
+
+**执行注记**：② ③ 暂只调研不实施（owner 原文）；① 的实施窗口 = v4.5.0 平移批之后（P4 硬前置），预计 V0.13.0 首单元。可逆性：① 纯增量域（引擎零改动）；② ③ 仅调研文档。

@@ -354,3 +354,5 @@
 - 2026-10-19 · **V0.12.0 W1 web 客户端交付登记（DEC-67②）**：agent/web/（index.html/tokens.css/app.css/mcp.js/app.js——零构建 ES modules 前端；tokens = 语义角色层深浅色；mcp.js = 手写 MCP-over-HTTP 客户端含 mcp-session-id 维持 + SSE 帧兼容解析）；gateway/web.py（WEB_DIR/mount_web/build_frame 差分帧/event_stream SSE 流——TaskRegistry.list_tasks 消费）；run_server http 分支（共享 AppContext 组装——/web + /events + /mcp 同源）；判据行着色正则表（VERDICT_RULES——零改写仅样式）。消费：plan §11h G 表 v1.123、LLD-A10/A11、DEC-67。
 
 - 2026-10-19 · **V0.12.0 D5 决策链回放器交付登记（DEC-67①）**：audit_replay.py（load_timeline/render_timeline——持久审计 JSONL 时间线，条目语义派生 sys_approve=审批/sys_answer=问询，STATE_GLYPH）；replay CLI 子命令（--day/--task-id/--tool/--limit/--json）；sys_timeline（platform.py MCP 工具——W1 时间线 tab 同源）；W1 时间线 tab 点亮（tl-load 按钮加载）。消费：plan §11h G 表 v1.124、DEC-67、R11 §8.5。
+
+- 2026-10-19 · **DEC-68 通用化三需求登记**：BV1（板卡验证域——Board Validation Verifier + 板卡画像面；首任务 P4 判定批实测）；R12（板卡选择/硬件设计调研）；R13（结构件 3D 打印设计调研——DEC-33 结构件域前哨）。消费：plan §11h H 表、DEC-68。
