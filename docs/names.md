@@ -368,3 +368,5 @@
 - 2026-10-19 · **DEC-69 web 渠道产品反馈六点登记（owner）**：界面观感/普通用户文案与受众定位/对话式交互（用户消息入流 + Agent 状态指示）/多端响应式/左侧设置栏/双模式需求输入（开发者全细节含 log；普通模式 = LLM 需求澄清阶段——创作循环前置能力增量，spec 门不变）。落点 = W2 web 渠道重塑（plan §11h A3 范围扩充 + W1 验收 UX 反馈四条），设计批门③待呈递。消费：DEC-69、plan v1.130。
 
 - 2026-10-19 · **V0.13.0 FIX-1 板级部署崩机专项登记（BV1-R C6 破案）**：NET_RX_STACK_SIZE 4096（atkbench——rx_q 线程栈缺省 1500B 被部署突发压穿 = FATAL 根因）；STATIC_TX/SPIRAM heap 两轮否定实验（教训 41——驱动/hal 双层 TX buffer Kconfig 映射存疑，登记上游核实）；prov lconf 1→0 复原（安装闸 F3 残留撤守）；deploy.py chunk 租约瞬断自愈（lease required → force renew 同 idem 重发）；全链 C1-C6 PASS + twister 17/17 + agent 263+2s。教训 41/42 入册 dev-env v2.30。消费：plan §11h FIX-1 行 v1.132、dev-env v2.30。
+
+- 2026-10-19 · **DEC-70 通用内存规划需求登记（owner）**：MP 专项（① 跨芯片构建期内存审计/规划程序——栈/池/堆静态账核对 + 溢出预警 + BV1 画像内存维度；② 最低内存需求基线——按配置档 DRAM/PSRAM/FLASH，实测推导）；atk map 重平合流为首应用。消费：DEC-70、plan §11h MP 行 v1.133。
