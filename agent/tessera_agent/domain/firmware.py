@@ -488,20 +488,24 @@ class FirmwareDomainPack(DomainPackBase):
         @audited("app_develop")
         async def app_develop(spec: str, key_path: str,
                               out_dir: str = "agent/build",
-                              wasm_path: str | None = None) -> dict:
+                              wasm_path: str | None = None,
+                              plan_confirm: bool = False) -> dict:
             """高层链：需求 spec →（LLM：计划/manifest + source_c C 源）→
             manifest 硬校验 + 链内编译（导入白名单/导出面/尺寸/确定性，
             DEC-45）→ TSAP 打包签名 → 复验（confirm 类；长任务句柄）。
             skills 渐进披露注入编排会话；校验/编译错误反馈回路（预算 3）。
-            wasm_path 可选 = 调用方自带产物路径（source_c 缺省时必需）。"""
+            wasm_path 可选 = 调用方自带产物路径（source_c 缺省时必需）。
+            plan_confirm（D7 · DEC-67①）= 计划经问询实体确认（MCP 客户端
+            经 sys_answer 应答 proceed/abort；超时缺省 abort）。"""
             args = {"spec": spec, "key_path": key_path, "out_dir": out_dir,
-                    "wasm_path": wasm_path}
+                    "wasm_path": wasm_path, "plan_confirm": plan_confirm}
 
             async def body(task) -> dict:
                 log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
                 return await app_chain.app_develop(
                     ctx, spec, key_path, out_dir, wasm_path=wasm_path, log_fn=log,
                     task=task,  # D2：循环事件 → task.progress（task_progress 面）
+                    plan_confirm=plan_confirm,  # D7：计划确认经问询实体
                 )
 
             return await spawn("app_develop", args, body)

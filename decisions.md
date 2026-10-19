@@ -1087,3 +1087,7 @@
 ④ **SSE 推送面**：gateway 增事件流推送端点（替代前端轮询；FastMCP Streamable HTTP 通知形态或独立 SSE——LLD-A10 定）；绑定默认 127.0.0.1 维持。
 
 **停门**：owner 裁 ①-④ 后 LLD-A10/A11 落稿 → W1/D4/D5 实现批开工。
+
+## DEC-67（Q-48 四子项裁决：按建议值进入实施——owner「很好……开始新版本的开发工作」泛指令，先例 DEC-59/62/63/64/65 同型，2026-10-19）
+
+**① MCI 三层渠道模型定案**：Channel = Transport（stdio/HTTP+Streamable/SSE 推送）× Renderer（Terminal/Web）× Interaction（问询/审批/进度——MCP 一等实体）；Frontend Protocol v2 显式化，TerminalFrontend 按新模型归位、WebFrontend 增列。**② W1 选型 = 案 A**（静态单页 + 原生 ES 模块 + 语义 token CSS；**纯 Python 服务端 + 浏览器原生前端，零 Node 零构建链**——owner「是否可纯 Python」追问确认；静态目录由网关 Starlette 同源挂载；测试 = pytest HTTP 层 + 人工验收；token 层保留案 B 平移退路）。**③ D4 审批语义增 allow-session**（sys_approve decision 三维：allow / allow-session〔会话域记住不落盘〕/ deny——codex ReviewDecision 同型）。**④ SSE 推送面**：gateway 增事件流推送端点（前端零轮询）；HTTP 绑定默认 127.0.0.1 维持。可逆性：全部纯增量，既有行为不变。

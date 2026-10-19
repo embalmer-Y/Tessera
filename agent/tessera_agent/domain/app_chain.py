@@ -24,7 +24,7 @@ from typing import Annotated, Any
 from pydantic import BaseModel, BeforeValidator
 from pydantic_ai import Agent
 
-from tessera_agent.common.errors import TA_E_ARGS, TA_E_TSAP, TaError
+from tessera_agent.common.errors import TA_E_ARGS, TA_E_POLICY, TA_E_TSAP, TaError
 from tessera_agent.creation.loop import (
     DEFAULT_BUDGET as LOOP_BUDGET,
 )
@@ -397,6 +397,7 @@ async def app_develop(
     model: Any = None,
     log_fn: Callable[[str], None] | None = None,
     task: Any = None,
+    plan_confirm: bool = False,
 ) -> dict[str, Any]:
     """spec → APP 开发包（双路径，AG6 · DEC-56/57）：
 
@@ -425,7 +426,8 @@ async def app_develop(
         return await _app_develop_loop(ctx, spec, key_path, gate, active,
                                        model=model, log=log,
                                        repair_feedback=repair_feedback,
-                                       task=task)
+                                       task=task,
+                                       plan_confirm=plan_confirm)
     return await _app_develop_single_shot(ctx, spec, key_path, out_dir, wasm_path,
                                           gate, active, model=model, log=log,
                                           repair_feedback=repair_feedback)
@@ -467,6 +469,7 @@ async def _app_develop_loop(
     log: Callable[[str], None],
     repair_feedback: str = "",
     task: Any = None,
+    plan_confirm: bool = False,
 ) -> dict[str, Any]:
     """创作循环后端（HLD-agent v0.2 §2.2；LLD-A08 全链）。"""
     repo = Path(ctx.cfg.workspace_repo)
@@ -485,10 +488,28 @@ async def _app_develop_loop(
     runner = PydanticLoopRunner(ctx, ws, model=model, log_fn=log)
     verifier = FirmwareCreationVerifier()
 
-    def _on_event(kind: str, data: dict[str, Any]) -> None:
+    async def _on_event(kind: str, data: dict[str, Any]) -> None:
         log(f"loop:{kind} {json.dumps(data, ensure_ascii=False)[:200]}")
         if task is not None:
             note_loop_progress(task.progress, kind, data)
+        # D7（DEC-67①）：计划确认经问询实体透传（MCP 客户端应答；超时取
+        # default/无 default 异常）。CLI 路径不走此桥（门面终端确认不变）。
+        if kind == "plan" and plan_confirm:
+            q = ctx.questions.ask(
+                "计划确认：是否按该计划开始实施？",
+                ["proceed", "abort"],
+                default="abort",
+                context="app_develop.plan_confirm",
+            )
+            ans = await ctx.questions.wait(q)
+            log(f"plan_confirm: {ans}")
+            if ans != "proceed":
+                raise TaError(
+                    TA_E_POLICY,
+                    "计划被拒绝（plan_confirm=abort）",
+                    domain="app_develop",
+                    detail={"state": "ABORTED", "question_id": q.id},
+                )
 
     loop = CreationLoop(
         ws, verifier, runner, spec,

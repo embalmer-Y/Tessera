@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Protocol
@@ -118,9 +119,14 @@ class CreationLoop:
 
     # ---- 内部 ------------------------------------------------------------
 
-    def _emit(self, kind: str, data: dict[str, Any]) -> None:
+    async def _emit(self, kind: str, data: dict[str, Any]) -> None:
+        """事件回调（D7 · DEC-67①）：回调返回 awaitable 则等待——问询/审批
+        桥接（plan 确认经 QuestionBroker 阻塞应答）需要异步回调；同步回调
+        行为不变。"""
         if self.on_event is not None:
-            self.on_event(kind, data)
+            res = self.on_event(kind, data)
+            if inspect.isawaitable(res):
+                await res
 
     def _pending_plan_lines(self) -> list[str]:
         return [f"- [{it.status}] {it.id}: {it.desc}" for it in self.plan]
@@ -182,9 +188,9 @@ class CreationLoop:
 
     async def run(self) -> LoopResult:
         self.state = PLANNING
-        self._emit("state", {"state": self.state})
+        await self._emit("state", {"state": self.state})
         self.plan = await self.runner.plan(self.spec, self.criteria)
-        self._emit("plan", {"items": [
+        await self._emit("plan", {"items": [
             {"id": p.id, "desc": p.desc, "status": p.status} for p in self.plan
         ]})
 
@@ -200,12 +206,12 @@ class CreationLoop:
         evidence = post_deploy_check 回执的判据/诊断面（调用方序列化）。
         """
         if self.state != PACKAGED:
-            self._emit("final", {"state": self.state, "rounds": self.round,
+            await self._emit("final", {"state": self.state, "rounds": self.round,
                                  "repair_reject": "非 PACKAGED 态不可修复轮"})
             return self._result()
         if self._repairs >= S8_REPAIR_MAX or self.budget_exceeded():
             self.state = FAILED
-            self._emit("final", {"state": self.state, "rounds": self.round,
+            await self._emit("final", {"state": self.state, "rounds": self.round,
                                  "s8_budget": self._repairs})
             return self._result()
         self._repairs += 1
@@ -216,7 +222,7 @@ class CreationLoop:
             + "请据上述真机证据修复工程"
             "（判据行必须逐字出现在运行输出中），完成后照常声明完成。")
         self.state = IMPLEMENTING
-        self._emit("state", {"state": self.state, "repair": self._repairs,
+        await self._emit("state", {"state": self.state, "repair": self._repairs,
                              "reason": reason})
         self._snapshot()
         await self._converge_and_package()
@@ -227,14 +233,14 @@ class CreationLoop:
     async def _converge_and_package(self) -> None:
         """实现⇄验证循环 + 打包（run/repair 共用体；终态落 self.state）。"""
         self.state = IMPLEMENTING
-        self._emit("state", {"state": self.state})
+        await self._emit("state", {"state": self.state})
         self._snapshot()
         self._failure_reason = ""
         while self.round < self.budget:
             prompt = self._assemble_prompt()
             outcome = await self.runner.implement(prompt)
             self.round += 1
-            self._emit("round", {
+            await self._emit("round", {
                 "round": self.round, "budget": self.budget,
                 "declared_done": outcome.declared_done,
                 "summary": outcome.summary,
@@ -244,21 +250,21 @@ class CreationLoop:
             if not outcome.declared_done:
                 continue
             self.state = VERIFYING
-            self._emit("state", {"state": self.state})
+            await self._emit("state", {"state": self.state})
             fails = await self._verify()
             if fails:
                 self.evidence_log.extend(
                     {"round": self.round, **f} for f in fails
                 )
                 for f in fails:
-                    self._emit("evidence", {"step": f["step"],
+                    await self._emit("evidence", {"step": f["step"],
                                             "round": self.round})
                 self.state = IMPLEMENTING
-                self._emit("state", {"state": self.state})
+                await self._emit("state", {"state": self.state})
                 self._snapshot()
                 continue
             self.state = CONVERGED
-            self._emit("state", {"state": self.state})
+            await self._emit("state", {"state": self.state})
             break
         else:
             self._failure_reason = (
@@ -270,7 +276,7 @@ class CreationLoop:
                     self.verifier.package, self.ws, self.key_path)
                 if artifact.ok:
                     self.state = PACKAGED
-                    self._emit("state", {"state": self.state,
+                    await self._emit("state", {"state": self.state,
                                          "package": artifact.package_path})
                 else:
                     self.state = FAILED
@@ -282,7 +288,7 @@ class CreationLoop:
             # 无 key_path：CONVERGED 即终态（打包由外层显式触发——AG6 接线面）
         elif self.state != CONVERGED:
             self.state = FAILED
-        self._emit("final", {"state": self.state, "rounds": self.round})
+        await self._emit("final", {"state": self.state, "rounds": self.round})
 
     def _result(self) -> LoopResult:
         return LoopResult(

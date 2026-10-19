@@ -27,6 +27,7 @@ from tessera_agent.common.limits import ContextBudget
 from tessera_agent.common.tasks import TaskRegistry
 from tessera_agent.core.session import PolicyTable
 from tessera_agent.gateway.approvals import ApprovalBroker
+from tessera_agent.gateway.questions import QuestionBroker
 from tessera_agent.skills import loader as skill_loader
 
 # 来源: DEC-38 #10——限流 30 工具调用/min/客户端
@@ -39,6 +40,7 @@ class AppContext:
     budget: ContextBudget
     registry: TaskRegistry = field(default_factory=TaskRegistry)
     approvals: ApprovalBroker = field(default_factory=ApprovalBroker)
+    questions: QuestionBroker = field(default_factory=QuestionBroker)
     audit: ToolAudit | None = None
     started_at: float = field(default_factory=time.time)
     # tsap_* 产物写白名单根（默认 workspace；测试注入 tmp 根）
@@ -218,6 +220,19 @@ def assemble(ctx: AppContext, packs: Sequence[DomainPack]) -> FastMCP:
         data = ctx.registry.log_slice(task, offset, limit)
         data["task_id"] = task_id
         return (data)
+
+    @mcp.tool
+    @audited("sys_pending_questions")
+    async def sys_pending_questions() -> dict:
+        """列举待应答问询（D7 · DEC-67①：问询 = MCP 一等实体——
+        便利交互面，无 token；答案枚举域内 fail-closed）。"""
+        return {"pending": ctx.questions.list_pending()}
+
+    @mcp.tool
+    @audited("sys_answer")
+    async def sys_answer(question_id: str, answer: str) -> dict:
+        """应答问询（answer 须在 options 域内；已答/不存在 = isError）。"""
+        return (ctx.questions.answer(question_id, answer))
 
     @mcp.tool
     @audited("task_progress")
