@@ -33,7 +33,7 @@ glue session_poll，但其判死信号源失效。
 
 ## 3. 修复（三判据）
 
-- pico 补丁（ext/zenoh-pico-tls.patch 六→八 hunk，pristine dry-run 可重放）：
+- pico 补丁（ext/zenoh-pico-tls.patch 六→九文件，pristine dry-run 可重放；首块 config.h 无 diff --git 头，`grep -c '^diff --git'` 计 8 漏计——审查批勘误）：
   + src/api/api.c 末尾 zp_transport_is_open()（_type != NONE && _state == OPEN）
   + include/zenoh-pico/api/primitives.h 声明（include guard 内）
 - glue zenoh.c zenoh_is_up()：执行器任务活性两判据 && 传输态第三判据

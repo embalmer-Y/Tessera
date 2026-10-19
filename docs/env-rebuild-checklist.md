@@ -162,9 +162,9 @@ python3 -m venv ~/project/agent-venv
 
 | # | 验证 | 命令 | 通过线 |
 |---|---|---|---|
-| ① | twister 回归 | `~/project/zephyrproject/.venv/bin/python zephyr/scripts/twister -p native_sim -T ~/project/Tessera/firmware/tests --extra-args=ZEPHYR_EXTRA_MODULES=…`（aarch64：`-p native_sim/native/64` + `ZEPHYR_TOOLCHAIN_VARIANT=host`——前提 = 套件 platform_allow 已含 /64，2026-10-17 已入仓） | **16/16 套件（113 用例）**；aarch64 /64 实测 = **14/16（95 过 +16 blocked +2 failed）**——app/threads 两套件 = WAMR 64 位目标域已知缺陷（证据 arm64_rebuild_20261017.txt §7）/64 通过线暂记 **14/16** |
+| ① | twister 回归 | `TS_WAMR_DIR=<repo外>/deps/wamr ZEPHYR_EXTRA_MODULES="<repo>/firmware/module/tessera;<ws>/zenoh-pico" ~/project/zephyrproject/.venv/bin/python zephyr/scripts/twister -p native_sim -T ~/project/Tessera/firmware/tests --extra-args=ZEPHYR_TOOLCHAIN_VARIANT=host`（aarch64 现行口径：`-p native_sim/native/64` + `ZEPHYR_TOOLCHAIN_VARIANT=host`——**TS_WAMR_DIR 未设 = 全套件 CMake FATAL「TS_WAMR_DIR not set」**〔2026-10-19 实测复盘〕；32 位 native_sim 口径 = x86 时代基线，ARM 机无 ilp32 multilib 不可跑） | aarch64 /64 现行口径 = **17/17 套件（115 过 + 2 skipped，R3 收口 16/16 后 R5-I interact 并入）**——证据 arm64_rebuild_20261017.txt §7〔历史 14/16 暂记线已随 R3 关闭〕 |
 | ② | 板级构建 | `west build -p always -b dnesp32s3b/esp32s3/procpu ~/project/Tessera/firmware/tests/atkbench -d ~/project/builds/ak -- -DATKBENCH_WIFI_SSID=… -DATKBENCH_WIFI_PASSWORD=…`（§6 环境变量前置） | 零 error 零 DRAM overflow，镜像产出（aarch64 实测 rc=0，5m38s ✅） |
-| ③ | agent 回归 | `cd agent && pytest tests/ -q && ruff check .` | **204 passed +2 skipped** / ruff 干净（aarch64/py3.13 实测 ✅） |
+| ③ | agent 回归 | `cd agent && pytest tests/ -q && ruff check .` | **208 passed +2 skipped** / ruff 干净（aarch64/py3.13 实测 ✅——D2 后口径） |
 | ④ | repo pytest | `firmware/tests/pytest` 下 pytest | 2 passed（2026-10-17 实测 = **5 passed**——套件已扩，以实际为准） |
 | ⑤ | sync_check | agent venv `python -m tessera_agent.skills.sync_check` | 与 SOURCES.lock 一致 ✅ |
 | ⑥ | 板级冒烟（有板时） | tools/board/README.md「典型编排」①-⑥ | CONNECTED loc=tls + AKa0/AK7/AKU1 rc=0（**aarch64 实测 ✅**——含 prov 重指本机路由 + 板稳定） |
@@ -181,7 +181,8 @@ python3 -m venv ~/project/agent-venv
   - **clang**：trixie 走 §7 路线 A/C（apt 有 clang-18 1:18.1.8 精确对齐；无 sudo 时路线 C
     deb 用户态解包实测全通）✅；路线 B 的 LLVM tarball 在 ARM 机未走（非必需）。
   - **native_sim/native/64 twister** ✅ 可跑（`ZEPHYR_TOOLCHAIN_VARIANT=host` + platform_allow
-    /64 已入仓）——通过线 14/16，app/threads 两套件 = WAMR 64 位目标域已知缺陷（§11① 注）。
+    /64 已入仓 + **TS_WAMR_DIR 必设**）——现行通过线 **17/17 套件（115 过 + 2s）**：R3 收口
+    WAMR 64 位目标域缺陷（16/16 · 114/114 首次全绿，2026-10-18）后 R5-I interact 套件并入。
     multilib 32 位口径在 aarch64 不可行（无 ilp32 multilib）——/64 = ARM 机唯一 twister 口径。
   - **agent 依赖 aarch64 wheel 覆盖度** ✅ 全 wheel 直装（py3.13：eclipse-zenoh manylinux_2_28
     aarch64 / cbor2 cp313 aarch64 / pydantic-core / cryptography 全有）；
@@ -207,6 +208,7 @@ python3 -m venv ~/project/agent-venv
   §11① aarch64 通过线 14/16（WAMR 64 位目标域已知缺陷——app/threads，证据
   arm64_rebuild_20261017.txt）+ ④ repo pytest 5。同批修复 twister 套件 platform_allow 缺 /64
   （15 文件）+ natives.c 守卫结构（CI 五连红根因）+ CMake /64 WAMR 目标映射。
+- v1.3 · 2026-10-19：**一致性审查批**——① 行通过线 14/16→17/17（R3/R5-I 两批后未回填，本批勘误）+ 命令补 TS_WAMR_DIR 前置（未设 = 全套件构建 FATAL，实测复盘）+ ③ agent 208；§12 /64 线同步。历史 14/16 线保留于 v1.1 修订记录（当时口径如实）。
 - v1.2 · 2026-10-17：R4 批——⑦ 行补板型感知窗参数化口径（atkbench --window 90 实测）。
 - v1.0 · 2026-10-17：fw-v0.9.0 环境审查批建立（x86_64 实测 + aarch64 核对）；
   同批修复 tools/board 登记失实链（.gitignore `/tools/` 整目录忽略根因 +

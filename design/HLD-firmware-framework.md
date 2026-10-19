@@ -1,4 +1,4 @@
-# HLD · Tessera 固件框架 v0.3
+# HLD · Tessera 固件框架 v0.3.1
 
 > **状态**：v0.2.2（修订至 2026-09-21 §3.4 APP 线程模型；本行由滞后 v0.2 更正——自检 SC-10）。（2026-09-20 经 design review-01 深化：新增 ts-store 模块、输入遥测、sys 命令面、断链恢复语义、关键场景时序、内存预算、V1 裁剪清单——DR-01…17 处置见 `design-review-01.md`）。依流程 §2.4 须 owner 确认后方可进入 impl；配套待裁批次 **Q-03…Q-11**（见 `decisions.md`），本文所有标注〔Q-xx〕处均为未裁默认值/选型，**不得先于裁决进入代码**（军规 2）。
 > **输入**：DEC-01…18（`decisions.md`）、安全与确定性合同（`AGENTS.md` §6）、R1/R2 调研 v0.2（`docs/research/`）。
@@ -225,11 +225,12 @@ Flash（按板可配，DEC-23）：bootloader 64KB ｜ 固件 slot ×2 ｜ APP s
 - v0.2 · 2026-09-20：design review-01 深化——新增 ts-store 模块行、§4.5 关键场景时序、§4.6 内存预算、sys 命令面、输入采集、断链恢复语义、V1 裁剪清单（DR-01…17 处置）。
 - v0.2.1 · 2026-09-21：裁决同步（DEC-19…30）——出处标注收敛、WDT 旧值 5s 修正为 DEC-22 的 10s（SC-02/SC-04）。
 - v0.2.2 · 2026-09-21：owner 问询——§3.4 补 APP 线程模型（Q-13 提案：单线程/禁自建/三层限制）。
+- v0.3.1 · 2026-10-19：**一致性审查批（勘误）**——§9 三行滞后修正（power native/msg_send/TLS——v0.3 制表早于 P1 批交付）+ native_sim 计数对齐 aarch64 /64 现行口径（17 套件）+ 补 ts-interact 行（R5 本文外新增）+ 计划指针 §11g→§11h。
 - v0.3 · 2026-10-16：**实现现状对照批**（owner 指令「按目前实现更新文档」）——§3.3/§3.4/§3.5/§7 增现状注记；新增 §9 设计-实现对照表（含未实现项清单与后续计划指针 plan §11g）。
 
-## 9. 设计-实现对照表（v0.3 · 2026-10-16）
+## 9. 设计-实现对照表（v0.3.1 · 2026-10-19 勘误）
 
-> 逐项对照本文设计与已交付实现；「未实现」项全部有登记出处，后续计划见 plan §11g。
+> 逐项对照本文设计与已交付实现；「未实现」项全部有登记出处，后续计划见 plan §11h。v0.3.1 勘误（2026-10-19 一致性审查）：power/msg_send/TLS 三行滞后于 P1-1/P1-3/P1-2 交付（v0.3 制表早于 P1 批），native_sim 计数对齐现行口径 + 补 ts-interact 行。
 
 | 设计项 | 出处 | 实现状态 |
 |---|---|---|
@@ -237,21 +238,22 @@ Flash（按板可配，DEC-23）：bootloader 64KB ｜ 固件 slot ×2 ｜ APP s
 | ts-safety 三态/唯一写路径/estop ISR/fail-safe | §3.2 | ✅（+ 部署模式/控制源仲裁〔合同 11 级，CG 批〕超出本文） |
 | ts-hal gpio/pwm/adc | §3.3 | ✅ 真机后端（LEDC/ADC 寄存器级验证） |
 | ts-hal counter 类 | §3.3 | ✂️ **裁剪清账**（P1-4 评估 2026-10-16：零消费者实证〔demo/manifest/natives 全库无 counter 面〕；GPIO 沿计数语义已由 input monitor〔DR-02〕近似覆盖；R10 §4 日落纪律第一例——需求实据出现再重开） |
-| ts-hal power → APP native（power_set） | §3.3 | ◐ ts-power 模块已交付（槽/限流/预算），native 未暴露 |
-| ts-msg_send APP 间消息 | §3.4 | ❌ 未实现（多 APP 现以事件广播 + 遥测订阅交互——plan §11g 清欠首选） |
+| ts-hal power → APP native（power_set） | §3.3 | ✅（P1-3 2026-10-16：ts_power_set/get natives + 权限/预算联动/readback——LLD-ts-appmgr v0.9.1） |
+| ts-msg_send APP 间消息 | §3.4 | ✅（P1-1 2026-10-16：msg:send 名单权限〔IR-11 收口〕+ app_id 寻址 + FIFO 背压——LLD-ts-appmgr v0.9 §5d） |
 | 输入监视 input monitor | §3.3 | ✅ 且升级为中断驱动（M5/DR-02，超出本文轮询设计） |
 | ts-appmgr 包格式/验签/回滚/健康探针 | §3.4 | ✅（+ TSAP v2 sha256 摘要、多根信任链〔EC 批〕、隔离拒载——超出本文） |
 | ts-appmgr 双 slot | §3.4 | ✅ 演进为槽池 4×512KB + 多 APP 并行（Q-32/DEC-53，真机双 APP PASS） |
 | ts-appmgr 单线程禁自建 | §3.4 | ✅ 演进：threads 申报制 + 门控真多线程（DEC-55，真机 DT PASS） |
 | WASI 关 / AOT 预留 | §3.4 | ✅ 按裁（DEC-25/31） |
 | ts-net client→router 命名空间/命令/心跳/断链 | §3.5 | ✅ 真机（+ 租约准入 DEC-41/幂等回放 DEC-40/QoS 映射 DEC-42） |
-| ts-net TLS 显式开启 | §3.5 | ❌ 预留未启用（DEC-40 TCP 底线；plan §11g 候选） |
+| ts-net TLS 显式开启 | §3.5 | ✅（P1-2 2026-10-17 真机点亮：mTLS prov 三元组 + 仓携带 pico TLS 补丁——CONNECTED loc=tls + 经 TLS 部署全判据；DEC-63） |
 | sys 命令面 7 条 | §3.5 | ✅ 扩至 22 条（安装链/资源推送/信任/租约/全景） |
 | ts-power 供电槽语义 | §3.6 | ✅（sim 桩 + 真机预算上报） |
 | ts-periph 描述符/插拔 | §3.6 | ✅（+ caps peripherals 自报——F4） |
 | ts-store 分区/meta/prov/noinit | §3.3 表 | ✅（+ kv 乒乓压实/审计 flash 环/信任表乒乓——超出本文） |
 | OTA（MCUmgr 底线） | Q-09 | ✅ 真机全链（v1→上传→swap→v2） |
 | APP 并行走多核 SMP | §3.4 | ◐ 单核 rt[N] 多实例交付；SMP 维持裁剪（语义已满足） |
-| native_sim 全模块可运行 + 重放框架 | §5 | ✅（16 套件 108 用例；simreal_diff 对拍） |
+| native_sim 全模块可运行 + 重放框架 | §5 | ✅（17 套件 117 用例——aarch64 /64 现行口径 115 过 + 2s；simreal_diff 对拍） |
 | 机械检查 | §5 | ✅ 7 项（本文 5 项 + slot 收口 + prov 零写）CI 强制 |
 | 真机板（超出本文 DoD） | §7 | ✅ 双板在线（xiao + dnesp32s3b）——无线部署/音频/SD/信任/资源/large/LN 全真机判据 |
+| ts-interact 本地交互终端（本文外新增——R5/DEC-65，owner 2026-10-18 需求） | — | ✅ 单 UART 三合一真机（日志+输出+shell 同 tty）+ F3 安装闸终端确认/拒绝四判据 ALL PASS + NVD 复验（LLD-ts-interact v0.2；证据 r5v_verdicts_console.txt） |

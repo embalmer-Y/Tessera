@@ -292,6 +292,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.118 · 2026-10-19：**文档-实现一致性审查批（owner 指令「code review 对比文档检查不匹配」）**——11 处勘误：checklist/README/HLD §9 过时计数与通过线（14/16→17/17 等）、HLD §9 三行滞后（power/msg_send/TLS 实为 P1 批已交付）、LLD-ts-net「上游零源码补丁」陈旧声明（实为仓携带 9 文件补丁）、LLD-ts-interact Kconfig 依赖表与实现不符、deploy.py 自愈注释事实性修正（pico 自动重连已钉死——glue 重连 ≤26s）、Kconfig 重复 help 行、flash_prov offset 陷阱入 docstring。
 - v1.117 · 2026-10-18：**D2 计划/进度 MCP 外显 ✅（DEC-65⑤，V0.11.0 批收官单元）**——task_progress 工具 + Task.progress 面 + note_loop_progress 映射；agent 208+2s。
 - v1.116 · 2026-10-18：**R5-V①②③ 全收口 ✅**——DRAM 重平（pico 栈池 16KB 释放）+ R5 接线全上 + F3 终端四判据 ALL PASS + NVD 复验 + 双栈（SHELL/SYSWORKQ）真机定案 + stage_commit 身份提取 + flash_prov 补齐。
 - v1.115 · 2026-10-18：**R5-V 僵尸自愈收口（AUTO_RECONNECT=0 域破案）**——is_up 三判据（zp_transport_is_open pico 访问器）+ SNDTIMEO 对称 + 部署重试；真机四判决（自愈/部署/NVD/6×6 稳定性）入证据；console=uart0 诊断形态定版（app 日志 CH343 可观测）。

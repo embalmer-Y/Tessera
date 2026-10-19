@@ -34,9 +34,9 @@
 | 路径 | 内容 |
 |---|---|
 | `firmware/module/tessera/` | 固件框架源码（ts-* 七模块） |
-| `firmware/tests/` | twister 套件（16 套件 113 用例）+ 板级 bench（netbench/deploybench/otabench/…） |
+| `firmware/tests/` | twister 套件（17 套件 117 用例——aarch64 /64 现行口径：115 过 + 2 skipped）+ 板级 bench（netbench/deploybench/otabench/…） |
 | `firmware/app/` | 生产 app（板级片段：S3 PSRAM/WiFi/分区） |
-| `agent/` | MCP server + 模拟器 + TSAP 工具链 + skills（pytest 204 用例） |
+| `agent/` | MCP server + 模拟器 + TSAP 工具链 + skills（pytest 208 用例 + 2 skipped） |
 | `design/` | HLD + 七模块 LLD（v0.2 已确认） |
 | `tools/board/` | 板级联调工具（E2E 驱动/prov·证书生成/串口持有器/消费端——README 含典型编排） |
 | `docs/` | dev-environment（环境事实源）/ **env-rebuild-checklist（全新机器重建总单，含 ARM Linux）** / project-plan / impl-review 族 |
@@ -68,16 +68,16 @@
 ```bash
 # 固件构建（native_sim）
 cd ~/project/zephyrproject
-west build -p auto -b native_sim ~/project/tessera/firmware/app \
-  -- -DZEPHYR_EXTRA_MODULES=~/project/tessera/firmware/module/tessera
+west build -p auto -b native_sim ~/project/Tessera/firmware/app \
+  -- -DZEPHYR_EXTRA_MODULES=~/project/Tessera/firmware/module/tessera
 
-# 固件回归（twister 16 套件；EXTRA_MODULES 必带；WAMR 源码根经 TS_WAMR_DIR 注入）
+# 固件回归（twister 17 套件；EXTRA_MODULES/TS_WAMR_DIR 必带；aarch64 加 -p native_sim/native/64 + ZEPHYR_TOOLCHAIN_VARIANT=host）
 ~/project/zephyrproject/.venv/bin/python ~/project/zephyrproject/zephyr/scripts/twister \
-  -p native_sim -T ~/project/tessera/firmware/tests \
-  --extra-args=ZEPHYR_EXTRA_MODULES=~/project/tessera/firmware/module/tessera
+  -p native_sim -T ~/project/Tessera/firmware/tests \
+  --extra-args=ZEPHYR_EXTRA_MODULES=~/project/Tessera/firmware/module/tessera
 
 # Agent 回归
-cd ~/project/tessera/agent && python -m pytest tests/ -q && python -m ruff check .
+cd ~/project/Tessera/agent && python -m pytest tests/ -q && python -m ruff check .
 ```
 
 ## Demo 链（真机验证记录）

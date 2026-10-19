@@ -754,7 +754,6 @@ config TS_INTERACT
 	depends on TS_APPMGR && TS_SAFETY
 	default n
 	help
-	help
 	  Source: DEC-65 (R5, owner directive 2026-10-18). Single UART carries
 	  logs + app output + interactive terminal (Linux serial-console
 	  shape; Zephyr SHELL + SHELL_LOG_BACKEND + LOG_PRINTK). Thin command

@@ -57,10 +57,12 @@ def _cmd(svc: ZenohService, node: str, cube: str, op: str, rid: str,
     # 仅空载荷重试 3 次，间隔 0.5s）。
     #
     # 超时跨自愈窗重试 ×2（R5-V · DEC-65；R2 族）：部署突发可触发板侧 TCP
-    # 单向僵（上游 Zephyr 原生 TCP 乱序域），zenoh-pico 租期判死 + 自动重连
-    # ≤15s 自愈（R2 修复）——单次 10s 查询恰在自愈窗内超时 = 部署误败。
-    # Timeout 类回执间隔 8s 重试 2 次（verify 幂等安全；activate 重试落
-    # E_BUSY 可见不腐蚀）。其余语义不变。
+    # 单向僵（上游 Zephyr 原生 TCP 乱序域），板侧自愈 = **glue session_poll
+    # 重连**（pico AUTO_RECONNECT=0 仓钉版——F7 破案；is_up 三判据判死
+    # 〔LLD-ts-net v0.4.7〕→ 租期判死 10s + 退避 + 重握手，真机 ≤~26s，
+    # 证据 r5v_zombie_heal_console.txt）——单次 10s 查询恰落在自愈窗内
+    # 超时 = 部署误败。Timeout 类回执间隔 8s 重试 2 次（verify 幂等安全；
+    # activate 重试落 E_BUSY 可见不腐蚀）。其余语义不变。
     payload = b""
     timeout_retries = 2
     for _ in range(5):

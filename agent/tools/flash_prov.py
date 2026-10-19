@@ -11,7 +11,9 @@ esptool 写入 ts-prov 分区（运行时只读面，合同 10）。
   # standalone 设备 + 远程 estop 清除禁用（CG2/Q-42 schema v2）：
   python flash_prov.py ... --deploy-mode standalone --estop-remote-clear disabled
 
-分区偏移须与板级 DT ts_prov_part 一致（bench 布局 = 0x170000/0x1000）。
+分区偏移须与板级 DT ts_prov_part 一致——**缺省 0x170000 = xiao 时代 bench 布局**；
+ATK DNESP32-S3B（atkbench）实际 = **0x5f0000**（overlay ts_prov_part 实证）——
+误烧落主固件槽尾部未用区（零功能损伤但 prov 不生效，2026-10-19 实测复盘）。
 分区镜像 = u32 cbor_len（小端）| u16 crc16-ccitt（小端）| cbor[]——与
 prov.c 装载器布局一致（CG2 修复：此前直写裸 CBOR，装载器必拒）。
 键序 = prov.c 固定走查序（v,node_id,cube_id,routers,pk0,pk1,cred,pwr_ma,

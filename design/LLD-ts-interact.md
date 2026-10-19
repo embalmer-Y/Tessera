@@ -42,7 +42,7 @@ DT: zephyr,shell-uart = &uart0
 | 项 | 默认 | 说明 |
 |---|---|---|
 | TS_INTERACT | n | 基线构建零变化（无 shell 构建逐字节等价）；atkbench prj 显式 y |
-| 依赖 | — | `depends on TS_APP && TS_SAFETY && SHELL && LOG`（全显式启用，不 select Zephyr 面板） |
+| 依赖 | — | Kconfig `depends on TS_APPMGR && TS_SAFETY`（DEC-65 修订形态——SHELL/LOG 为 **C 内 `#if defined(CONFIG_SHELL)` 构建面**而非 Kconfig 依赖：核心逻辑可无 shell 直测〔framework.interact 同款〕；bench 侧全显式 `=y`，不 select Zephyr 面板） |
 
 ## 5. 测试要点（testing.md 映射）
 
