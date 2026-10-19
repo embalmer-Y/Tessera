@@ -61,6 +61,8 @@ class AgentConfig:
     policy_param_rules: dict[str, dict[str, dict[str, list]]] = field(
         default_factory=dict
     )
+    # D4（DEC-67①）：网关钩子规则（[[hooks]]；gateway.hooks.parse_rules 消费）
+    hooks: list[dict] = field(default_factory=list)
 
 
 def _expand(value: str) -> Path:
@@ -109,4 +111,8 @@ def load_config(path: str | Path | None = None) -> AgentConfig:
             for tool, spec in merged.get("policy", {}).get("param_rules", {}).items()
             if isinstance(spec, dict)
         },
+        hooks=[
+            dict(spec) for spec in merged.get("hooks", [])
+            if isinstance(spec, dict)
+        ],
     )

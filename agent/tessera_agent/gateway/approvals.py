@@ -42,6 +42,9 @@ class Approval:
 class ApprovalBroker:
     def __init__(self) -> None:
         self._pending: dict[str, Approval] = {}
+        # D4（DEC-67③）：allow-session 会话域记住集（进程生命周期、不落盘
+        # ——codex ReviewDecision::ApprovedForSession 同型；审批疲劳缓释）
+        self._session_allowed: set[str] = set()
 
     @staticmethod
     def token_configured() -> bool:
@@ -54,6 +57,9 @@ class ApprovalBroker:
             args_preview=args_preview,
             reason=reason,
         )
+        if tool in self._session_allowed:
+            approval.decision = "allow"  # 会话域已记住——自动放行（零挂起）
+            approval.event.set()
         self._pending[approval.id] = approval
         return approval
 
@@ -86,9 +92,11 @@ class ApprovalBroker:
         if approval is None:
             msg = f"审批请求不存在或已决: {approval_id}"
             raise TaError(TA_E_ARGS, msg, domain="approvals", detail={"approval_id": approval_id})
-        if decision not in ("allow", "deny"):
-            msg = f"decision 必须为 allow/deny: {decision}"
+        if decision not in ("allow", "deny", "allow-session"):
+            msg = "decision 必须为 allow/allow-session/deny: " + str(decision)
             raise TaError(TA_E_ARGS, msg, domain="approvals")
-        approval.decision = decision
+        approval.decision = "allow" if decision == "allow-session" else decision
+        if decision == "allow-session":
+            self._session_allowed.add(approval.tool)
         approval.event.set()
         return {"approval_id": approval_id, "decision": decision}

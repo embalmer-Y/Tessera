@@ -10,6 +10,7 @@ from fastmcp import FastMCP
 
 from tessera_agent.core.session import PolicyParamRules
 from tessera_agent.domain.firmware import FirmwareDomainPack
+from tessera_agent.gateway.hooks import HookChain, parse_rules
 from tessera_agent.platform import AppContext, assemble
 
 
@@ -37,4 +38,6 @@ def build_app(ctx: AppContext) -> FastMCP:
     """装配完整 tessera-agent（V1 单域 = firmware）。"""
     pack = FirmwareDomainPack()
     apply_param_rules(pack, getattr(ctx.cfg, "policy_param_rules", {}))
+    # D4（DEC-67①）：网关钩子链并入（config [hooks]；坏条目跳过不静默生效）
+    ctx.hooks = HookChain(parse_rules(getattr(ctx.cfg, "hooks", None)))
     return assemble(ctx, [pack])

@@ -27,6 +27,7 @@ from tessera_agent.common.limits import ContextBudget
 from tessera_agent.common.tasks import TaskRegistry
 from tessera_agent.core.session import PolicyTable
 from tessera_agent.gateway.approvals import ApprovalBroker
+from tessera_agent.gateway.hooks import HookChain
 from tessera_agent.gateway.questions import QuestionBroker
 from tessera_agent.skills import loader as skill_loader
 
@@ -41,6 +42,8 @@ class AppContext:
     registry: TaskRegistry = field(default_factory=TaskRegistry)
     approvals: ApprovalBroker = field(default_factory=ApprovalBroker)
     questions: QuestionBroker = field(default_factory=QuestionBroker)
+    # D4（DEC-67①）：网关钩子链（compose 并入；缺省空链 = 行为不变）
+    hooks: HookChain = field(default_factory=HookChain)
     audit: ToolAudit | None = None
     started_at: float = field(default_factory=time.time)
     # tsap_* 产物写白名单根（默认 workspace；测试注入 tmp 根）
@@ -139,6 +142,22 @@ def assemble(ctx: AppContext, packs: Sequence[DomainPack]) -> FastMCP:
             async def wrapper(*args, **kwargs):
                 t0 = time.monotonic()
                 limiter.hit()
+                # D4（DEC-67①）：pre 钩子裁决（先于限流后逻辑、先于审批——
+                # deny 恒优先；observe 放行仅留痕于审计 args）
+                verdict = ctx.hooks.pre(tool_name)
+                if verdict is not None and verdict.action == "deny":
+                    exc = TaError(
+                        TA_E_POLICY,
+                        f"钩子拒绝：{tool_name}",
+                        domain="hooks",
+                        detail={"rule_id": verdict.rule.rule_id,
+                                "reason": verdict.reason},
+                    )
+                    ctx.tool_audit().append(
+                        tool=tool_name, args=kwargs, state="hook_denied",
+                        dur_ms=int((time.monotonic() - t0) * 1000),
+                    )
+                    raise ToolError(_ta_payload(exc))
                 state = "ok"
                 try:
                     return await fn(*args, **kwargs)
@@ -146,9 +165,15 @@ def assemble(ctx: AppContext, packs: Sequence[DomainPack]) -> FastMCP:
                     state = "failed"
                     raise ToolError(_ta_payload(exc)) from exc
                 finally:
+                    audit_args = kwargs
+                    if verdict is not None and verdict.action == "observe":
+                        audit_args = {**kwargs, "_hook": {
+                            "rule_id": verdict.rule.rule_id,
+                            "reason": verdict.reason,
+                        }}
                     ctx.tool_audit().append(
                         tool=tool_name,
-                        args=kwargs,
+                        args=audit_args,
                         state=state,
                         dur_ms=int((time.monotonic() - t0) * 1000),
                     )
