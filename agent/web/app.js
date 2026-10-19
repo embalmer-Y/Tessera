@@ -213,10 +213,33 @@ function initLaunchForm() {
   });
 }
 
+// ---- 时间线（D5 决策链回放——sys_timeline 同源） ---------------------------
+function initTimeline() {
+  $("tl-load").addEventListener("click", async () => {
+    const box = $("timeline");
+    box.textContent = "加载中…";
+    try {
+      const tl = await callTool("sys_timeline", { limit: 200 });
+      const lines = [`${tl.total} 条${tl.truncated ? "（已截尾）" : ""} · ${tl.span[0] ?? "—"} → ${tl.span[1] ?? "—"}`];
+      for (const e of tl.entries) {
+        const glyph = e.state === "ok" ? "✓" : e.state === "failed" ? "✗"
+          : e.state === "hook_denied" ? "⛔" : "·";
+        lines.push(`[${e.time}] ${glyph} ${e.tool} (${e.kind}, ${e.dur_ms}ms)` +
+          (e.task_id ? ` task=${e.task_id}` : ""));
+      }
+      box.textContent = lines.join("\n");
+      box.classList.remove("muted");
+    } catch (e) {
+      box.textContent = `加载失败：${e.message}`;
+    }
+  });
+}
+
 // ---- 启动 -----------------------------------------------------------------
 async function main() {
   initStreamUi();
   initLaunchForm();
+  initTimeline();
   try {
     await initialize();
   } catch (e) {

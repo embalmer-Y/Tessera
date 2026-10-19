@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 
 from tessera_agent import __version__
@@ -37,6 +38,14 @@ def main(argv: list[str] | None = None) -> int:
                      help="S8 部署判据窗串口（配 --deploy——判据 miss 自动修复轮）")
     run.add_argument("--deploy", action="store_true",
                      help="收敛后自动部署（app_deploy 链；strict 审批仍拦）")
+
+    replay = sub.add_parser("replay", help="决策链时间线回放（D5 · 审计流只读面）")
+    replay.add_argument("--day", default=None,
+                        help='审计日 YYYYMMDD（缺省 = 今日；"all" = 合并全部）')
+    replay.add_argument("--task-id", default=None, help="按任务句柄过滤")
+    replay.add_argument("--tool", default=None, help="按工具名过滤")
+    replay.add_argument("--limit", type=int, default=500, help="尾部截取（缺省 500）")
+    replay.add_argument("--json", action="store_true", help="结构化输出（W1 时间线同源）")
     args = parser.parse_args(argv)
 
     if args.command == "serve":
@@ -48,7 +57,31 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "run":
         return _run_command(args)
+    if args.command == "replay":
+        return _replay_command(args)
     parser.print_help()
+    return 0
+
+
+def _replay_command(args) -> int:
+    """D5（DEC-67①）：审计流时间线回放（只读；无 LLM 无网络）。"""
+    from pathlib import Path
+
+    from tessera_agent.audit_replay import load_timeline, render_timeline
+    from tessera_agent.common.config import load_config
+
+    try:
+        cfg = load_config()
+    except Exception as exc:  # noqa: BLE001 —— 启动期配置错误如实报
+        print(f"配置错误：{exc}", file=sys.stderr)
+        return 2
+    tl = load_timeline(Path(cfg.audit_dir), day=args.day,
+                       task_id=args.task_id, tool=args.tool,
+                       limit=args.limit)
+    if args.json:
+        print(json.dumps(tl, ensure_ascii=False, indent=2))
+    else:
+        print(render_timeline(tl))
     return 0
 
 

@@ -260,6 +260,20 @@ def assemble(ctx: AppContext, packs: Sequence[DomainPack]) -> FastMCP:
         return (ctx.questions.answer(question_id, answer))
 
     @mcp.tool
+    @audited("sys_timeline")
+    async def sys_timeline(day: str | None = None, task_id: str | None = None,
+                           tool: str | None = None,
+                           limit: int = 200) -> dict:
+        """决策链时间线（D5 · DEC-67①：持久审计流只读回放——W1 时间线 tab
+        同源数据；day=YYYYMMDD 或 "all"）。"""
+        from pathlib import Path
+
+        from tessera_agent.audit_replay import load_timeline
+
+        return load_timeline(Path(ctx.cfg.audit_dir), day=day,
+                             task_id=task_id, tool=tool, limit=limit)
+
+    @mcp.tool
     @audited("task_progress")
     async def task_progress(task_id: str) -> dict:
         """查询长任务结构化进度（D2 · DEC-65⑤：app_develop 创作循环的
