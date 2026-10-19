@@ -275,9 +275,9 @@
 |---|------|------|------|------|
 | R11 ✅ | 开源 Agent 代码调研批 | **已交付（d6a4378 + 续二/续三）**：六项目代码级研读（opencode 协议优先单服务器+SSE 总线+permission/form 协议一等公民〔形态主角〕/ codex protocol crate + EventMsg 版本化 wire + ReviewDecision 三维审批 / gemini-cli semantic-tokens / aider UI 包 CLI 反模式）+ **pi 深评（owner 问 make-vs-buy 触发）**——整体替代否决（域网关/安全哲学/关键路径耦合三理由）/ **pi 第二渠道采纳**（MCP Streamable HTTP 精确匹配） / W1 照旧（pi 无 web）+ Q-48 门③呈递四子项 | ~1 单元 | DEC-66③⑤ |
 | M1 ⏸ | pi 渠道接入 | **HOLD（DEC-66⑥——owner 裁 pi 吸收待定；双运行时代价顾虑）**：ARM 机装 Node + pi（钉版）→ `pi mcp add tessera --url` 直连 FastMCP 网关 → toolExposure 分级 → 严格审批双通道演练 → 验收 = 经 pi 完成 app_develop→deploy 全链。候选替代 = QwenPaw（Python 单运行时——但 350k LOC 助手框架更重，R11 §7.4）——**harness 引入决策推迟至 W1 真实体验后** | ~0.5 | DEC-66⑤⑥ |
-| D7 | 问询双向化 | 终端门面问询 → MCP 客户端透传（input_required 态 + 问询载荷契约）——web 客户端公共底座 | ~0.5 | |
-| D4 | hooks 拦截面 | MCP 工具调用前/后钩子（config 声明；deny/诊断注入——拦截语义门③子呈递） | ~1 | |
-| A10/A11 | MCI 架构 + web 客户端设计批 | LLD-A10（渠道三层模型——Frontend Protocol v2 归位）+ LLD-A11（web 客户端：会话流/判据行/审批/进度时间线；简约形态）——**门③ Q-48 裁后落稿** | ~0.5 | 门③ |
+| D7 ✅ | 问询双向化 | **已交付（b8aa6a7）**：QuestionBroker（单次应答契约/枚举域 fail-closed/超时取 default）+ sys_pending_questions/sys_answer（无 token 便利面）+ CreationLoop._emit 异步感知（13 调用点，同步回调行为不变）+ app_develop plan_confirm 桥（缺省 False 行为不变；abort = TA_E_POLICY 结构化终止）——用例 7 | ~0.5 | DEC-67① |
+| D4 ✅ | hooks 拦截面 | **已交付（b5c6d84）**：HookChain pre 裁决（config [hooks] 首匹配；prefix* 前缀；deny = TA_E_POLICY 归因 + 审计 hook_denied / observe = _hook 留观标；坏条目跳过；缺省空链行为不变）+ allow-session 审批三维（会话域记住不落盘/deny 不污染/token 先行）——服务端闸 = 管所有渠道真边界；post 观察面余项随 A10 | ~1 | DEC-67①③ |
+| A10/A11 ✅ | MCI 架构 + web 客户端设计批 | **已落稿**：LLD-A10 v0.1（三层模型/归位表/SSE v1 轮询差分策略〔诚实注记〕/Renderer 契约判据行保真/安全边界两派对照/出站寻址预留不实现）+ LLD-A11 v0.1（案 A 形态/四区页面/语义 token 设计语言/判据行着色正则/零供应链面/测试口径） | ~0.5 | DEC-67 |
 | W1 | web 客户端 v1 | 简约好看实现（形态随 Q-48 裁定）；消费 task_progress + 事件流 + D7 问询 + D5 时间线 | ~1.5 | |
 | D5 | 决策链回放器 | 审计流 → 时间线回放（CLI 子命令 + web 时间线面同源） | ~0.5-1 | |
 | 收口 | V0.12.0 收口 | 回归定格 + tag fw-v0.12.0 | ~0.5 | |
@@ -307,6 +307,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.122 · 2026-10-19：**DEC-67（Q-48 按建议值裁决）+ D7/D4 交付 + A10/A11 落稿**——问询实体/钩子链/allow-session 进主干（agent 220+2s）；MCI 与 web 客户端设计定稿；W1 实现随续。
 - v1.121 · 2026-10-19：**DEC-66⑥（QwenPaw 重点参照 + pi 待定）**——R11 §7 QwenPaw 源码评审（渠道契约/Renderer/逐工具策略/governance/设计语言四件吸收进 A10/A11）；M1 挂 HOLD；执行序修订 = W1/D7/D4 先行（消解双运行时），harness 决策推迟至 W1 后。
 - v1.120 · 2026-10-19：**DEC-66⑤ 修订（pi make-vs-buy 深评）**——三维判定（替代否决/第二渠道采纳/W1 照旧）+ M1 单元入批；R11 §6 pi 深评（MCP Streamable HTTP 匹配/无 web/OS 边界安全哲学/会话树）。
 - v1.119 · 2026-10-19：**V0.12.0「Agent 协同批」立项 + 多渠道交互架构需求登记（DEC-66）**——owner 双指令：Agent 升级（D4/D5/D7 并入）+ 交互架构重设计（DEC-35 Frontend 缝 → 三层渠道模型；web 客户端第一新渠道，MCP HTTP 复用）；R11 开源代码调研批随批。
