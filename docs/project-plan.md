@@ -300,7 +300,7 @@
 
 | 序 | 单元 | 内容 | 规模 | 备注 |
 |---|------|------|------|------|
-| BV1-D | 板卡验证域·设计批 | LLD-A12：验证域架构（**确定性检查流水线**——板卡验证非 LLM 创作任务，不硬套 CreationLoop；DEC-33 原则〔域插件 + 结构化证据 + 事件/审计面同源〕继承而非引擎复用，如实定性；可选 LLM 诊断阶段复用 PydanticAI runner）+ 板卡画像 schema（toolchain/板型/flash 布局/console 端口/zenoh 期望/caps 预期——声明式清单）+ 检查项目录 v1（串口在场 → flash 身份 → boot/console 判据 → zenoh 连通 → caps 消费 → 部署 E2E 冒烟）+ 报告 schema（per-check 判定/证据/耗时 + 总判定 PASS/FAIL/DEGRADED）+ MCP `board_validate` / CLI `validate` 面 | ~0.5 | DEC-68①；全部组合既有面（tools_diag capture/classify + tools_net deploy/ZenohService + tools_fw） |
+| BV1-D ✅ | 板卡验证域·设计批 | **已落稿（LLD-A12 v0.1）**：确定性检查流水线定性（板卡验证非 LLM 创作任务——不硬套 CreationLoop；DEC-33 原则面继承：结构化证据/事件审计同源/CheckResult 对齐 VerifyOutcome 同型，如实注记）+ 板卡画像 schema v1（agent/boards/*.toml 七节声明式：serial/flash/boot/zenoh/caps/smoke/build——零凭据；R12 能力目录种子）+ 检查项目录 v1（C0 构建烧录前级〔画像门控缺省关〕→ C1 串口在场 → C2 flash 身份 → C3 boot/console → C4 zenoh 连通 → C5 caps 消费 → C6 部署 E2E 冒烟）+ SKIP 双型（派生 vs 声明）+ overall 三态判定（PASS/FAIL/DEGRADED）+ 板态变更披露合同（C6 探针驻留不自动还原——smoke 节即显式授权；C1-C5 只读或可逆）+ MCP board_validate（strict+spawn+D2 progress）/ CLI validate 双面 + FakeBoard 测试口径 + v2 方向登记（自动修复轮=P4 判定批形态/LLM 诊断留缝） | ~0.5 | DEC-68①；全部组合既有面（tools_diag capture/classify + tools_net deploy/ZenohService + tools_fw） |
 | BV1-I | 板卡验证域·实现批 | BoardValidator 运行器 + 板卡画像装载（atkbench/xiao 两画像入仓）+ 检查项实现 + SKIP 语义（外设物理失联降级先例——periph 三路失败破案纪律）+ FakeBoard 注入测试（全检查矩阵 sim 级） | ~1.5 | |
 | BV1-R | 板卡验证域·真机自验 | atkbench 全链自验 PASS（报告双形态证据入仓）+ xiao 第二画像复验——① 的首轮实战，同时即验收 | ~0.5 | |
 | A3 | W2 web/SSE 升级 | SSE 轮询差分 → **gateway 内部事件总线直推**（LLD-A10 v1 诚实注记的升级项；D2 进度/D7 问询/D4 审批事件同汇一源）+ W1 多任务视图 + 交互卡打磨（QwenPaw 吸收清单落地） | ~1 | V0.12.0 余项 |
@@ -335,6 +335,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.127 · 2026-10-19：**BV1-D 板卡验证域设计批 ✅（DEC-68①，V0.13.0 首单元）**——LLD-A12 v0.1 落稿：确定性检查流水线定性（不硬套 CreationLoop，DEC-33 原则面继承如实注记）+ 板卡画像 schema v1（agent/boards/*.toml 七节）+ 检查项目录 C0-C6 + SKIP 双型/DEGRADED 判定 + 板态变更披露合同 + board_validate（strict）/validate CLI 双面 + FakeBoard 测试口径。BV1-I 实现随续。
 - v1.126 · 2026-10-19：**V0.13.0「Agent 自主化批」立项（owner：「v4.5.0 还需等待一周——继续其他部分功能开发，重点放在 Agent」）**——§11h I 表新立：BV1 板卡验证域提前〔DEC-68① 执行注记修订：首任务改现役板自验，P4 判定降第二任务〕+ D6 MCP 客户端（A5）+ V0.12.0 余项（A3 SSE 直推/A4 post 钩子）+ R12/R13 调研并入；执行序 BV1-D → BV1-I → BV1-R → A3 → A5 → A4 → R12 → R13 → 收口（~6.5 单元）；v4.5.0 平移批顺延为 V0.14.0 候选（C 表同步）。
 - v1.125 · 2026-10-19：**DEC-68 通用化三需求登记**——① 自主板卡验证（高优，BV1 板卡验证域；首任务 P4 判定批实测）② 需求驱动板卡选择/硬件设计（R12 调研）③ 结构件 3D 打印设计（R13 调研）；§11h H 表新立。
 - v1.124 · 2026-10-19：**D5 决策链回放器交付 ✅（V0.12.0 批内全部单元 ✅）**——审计流时间线（CLI replay + sys_timeline + W1 tab 同源）；收口随 owner review（回归定格 229+2s）。

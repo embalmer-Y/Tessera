@@ -356,3 +356,7 @@
 - 2026-10-19 · **V0.12.0 D5 决策链回放器交付登记（DEC-67①）**：audit_replay.py（load_timeline/render_timeline——持久审计 JSONL 时间线，条目语义派生 sys_approve=审批/sys_answer=问询，STATE_GLYPH）；replay CLI 子命令（--day/--task-id/--tool/--limit/--json）；sys_timeline（platform.py MCP 工具——W1 时间线 tab 同源）；W1 时间线 tab 点亮（tl-load 按钮加载）。消费：plan §11h G 表 v1.124、DEC-67、R11 §8.5。
 
 - 2026-10-19 · **DEC-68 通用化三需求登记**：BV1（板卡验证域——Board Validation Verifier + 板卡画像面；首任务 P4 判定批实测）；R12（板卡选择/硬件设计调研）；R13（结构件 3D 打印设计调研——DEC-33 结构件域前哨）。消费：plan §11h H 表、DEC-68。
+
+- 2026-10-19 · **V0.13.0「Agent 自主化批」立项登记（owner：「v4.5.0 还需等待一周——重点放在 Agent」+ DEC-68 执行注记修订）**：BV1 提前（首任务改现役板自验 atkbench/xiao，P4 判定降第二任务随 v4.5.0 平移批）；A3（SSE 事件总线直推 + W1 多任务视图）；A5/D6（MCP 客户端——外部工具桥接默认 strict + [mcp_clients]）；A4/D4b（post 观察钩子）；R12/R13 并入调研单元。消费：plan §11h I 表 v1.126、DEC-68 注记修订。
+
+- 2026-10-19 · **V0.13.0 BV1-D 板卡验证域设计批登记（DEC-68①）**：LLD-A12-board-validation.md（v0.1——确定性检查流水线定性〔不硬套 CreationLoop；DEC-33 原则面继承：结构化证据/事件审计同源/VerifyOutcome 同型〕；板卡画像 schema agent/boards/*.toml〔serial/flash/boot/zenoh/caps/smoke/build 七节声明式——R12 能力目录种子〕；检查项目录 v1 = C0 构建/烧录前级 + C1 串口在场 + C2 flash 身份 + C3 boot/console + C4 zenoh 连通 + C5 caps 消费 + C6 部署 E2E 冒烟；SKIP 双型〔派生 vs 声明〕+ DEGRADED 判定；board_validate MCP strict + validate CLI；板态变更披露合同〔C6 探针驻留不自动还原——画像 smoke 节即显式授权〕）。消费：plan §11h I 表、DEC-68①。
