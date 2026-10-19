@@ -1,8 +1,9 @@
-# LLD-A11 · Web 客户端（W1 · 案 A 纯 Python 零构建链）· v0.1.1（W1 已实现）
+# LLD-A11 · Web 客户端（W1 · 案 A 纯 Python 零构建链）· v0.1.2（W1 已实现 + 人工验收修订）
 
 > **本文件是什么**：Tessera Agent Web 客户端低层设计——V0.12.0 A11/W1 单元（DEC-67② 定案：案 A 静态单页；owner「简约好看 + 纯 Python 零 Node」确认）。依据 = R11 §4 选型两案 + §7.3 设计语言方法论。
 > **权威顺序**：owner 裁决 > FOUNDING_PROMPT > 本文件。
-> **状态**：v0.1（2026-10-19 首稿）。
+> **状态**：v0.1.2（2026-10-19 人工验收同步修订——见修订记录；v0.1.1 实现交付）。
+> **下一步**：本形态将被 **W2 web 渠道重塑**（DEC-69 六点 + W1 验收 UX 反馈四条，plan §11h A3）大幅演进——重塑设计批（门③）时本文升版。
 
 ## 1. 形态（案 A）
 
@@ -39,9 +40,12 @@
 
 - post 观察钩子面（D4 余项）随本客户端审计展示需求评估。
 - 时间线 tab 随 D5 点亮。
-- 多任务切换（v1 = 单任务视角，task_id 经 URL 参数）。
+- 多任务切换（v1 = 单任务视角——v1 实际无 task_id URL 参数读取，SSE 未附着时跟最新任务；A3 多任务视图收口）。
+- **W2 重塑需求（DEC-69）**：界面观感/普通用户文案/对话式交互（用户消息入流 + Agent 状态指示）/多端响应式/左侧设置栏/双模式（开发者全细节含 log；普通模式 = LLM 需求澄清阶段——Agent 能力增量）+ W1 验收 UX 反馈四条（计划项打卡/LLM 心跳/时间线过滤尾随/诊断轮询纪律）。
 
 ## 修订记录
+
+- v0.1.2 · 2026-10-19：**人工验收同步修订**——(a) composer（发起区）由 sticky header 移至页面底部 footer（sticky bottom 常驻——owner 反馈采纳，聊天应用惯例）；(b) **前端端点根绝对纪律**：/web/ 同源挂载下 `new URL` 相对解析 = /web/mcp（StaticFiles 405）与 /web/events（404）——人工验收实抓，mcp.js/app.js 改 origin 解析 + test_web 根绝对静态守卫（同类缺陷机械拦截，web 6 用例）；(c) 密钥缺省值落测试根实路径 + spec 占位符更正为 spec 门真实四节名；§2 表布局事实以 agent/web/index.html 现形为准（header 只留品牌 + 连接态，composer 居底）。
 
 - v0.1.1 · 2026-10-19：**W1 实现交付**——agent/web/ 五文件（index.html/tokens.css/app.css/mcp.js/app.js）+ gateway/web.py（mount_web：/web StaticFiles 同源 + /events SSE 轮询差分 v1）+ run_server http 分支组装（共享 AppContext——SSE 与 MCP 面同注册表）；真实 uvicorn 冒烟四探全过（/web 200 html / app.js 200 js / events SSE 首帧 / mcp initialize 应答）；pytest HTTP 层 5 用例（挂载/ES import 解析/路由注册/差分帧语义/SSE 流 + MCP 面不受组装影响）；时间线 tab 预留（随 D5）。
 - v0.1 · 2026-10-19：DEC-67② 定案首稿——案 A 形态/四区页面/设计语言 token 层/判据行保真着色/安全面/测试口径。
