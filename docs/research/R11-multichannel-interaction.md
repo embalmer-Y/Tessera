@@ -68,3 +68,34 @@ Channel（渠道） ≡ Transport × Renderer × Interaction
 - 门③：Q-48 呈递（MCI 三层定案 + web 选型 + D4 审批语义扩展 allow-session）→ owner 裁后 LLD-A10/A11 落稿 → W1 实现。
 - 安全边界：web 客户端 = gateway 新消费者——**审批 token 语义不变**（TESSERA_AGENT_APPROVAL_TOKEN；「持有 token ≠ 主人本人」缺口维持记录不开发）；HTTP 绑定默认 127.0.0.1 维持（外网暴露 = owner 显式 + 自担）。
 - 合同 9/10 不受影响（固件侧零改动）。
+
+## 6. pi（badlogic/pi-mono）深评——make-vs-buy 评估（owner 2026-10-19 问：「是否应直接引入 pi 而不自研」）
+
+> 浅克隆同批（MIT © 2025 Mario Zechner；最后提交 2026-10-18——极活跃；monorepo：agent/ai/chord/codemode/coding-agent/durable/env/evals/**mcp**/telemetry/**tui**）。
+
+### 6.1 实证事实
+
+- **MCP client 一等公民**：stdio + **streamable HTTP**（legacy SSE 明确不支持——我方 FastMCP HTTP = Streamable，形态精确匹配）；`pi mcp add <name> --url …` + bearer/env；`exposure/toolExposure` 逐服务器工具暴露控制；`/mcp` 会话内管理。
+- **自定位 = 「极简可扩展 agent harness」**：有意不带 sub-agents/plan mode；扩展点 = extensions（**生命周期钩子全覆盖**：input/before_agent_start/tool_call〔**可授权或修改工具调用**〕/tool_result/before_provider_request/…）+ skills + prompt templates + themes + packages（npm/git 分发）。
+- **RPC/SDK**：`--mode rpc` = JSONL 子进程协议（命令/响应/事件 + 扩展 UI 记录转发）；SDK = 进程内 TS——两者皆面向「自建 UI」而非自带 UI。
+- **无 web UI**：当前包列表无 web 包（早期 pi-web 已重构掉）——**「引入 pi 即得 web」不成立**；web 仍需自建（在我方 MCP-HTTP 或 pi SDK 之上）。
+- **会话**：JSONL + id/parentId **树结构**（原地分叉 /tree + 分支摘要）；/export HTML/JSONL。
+- **安全哲学（关键差异）**：security.md 原文——「**does not ask for approval before every tool call**」「safety comes from limiting files/credentials/processes/network…**watching the transcript…do not create a security boundary**」= OS 边界哲学，无逐调用审批（`tool_call` 扩展钩子可自建闸，但非缺省形态）。
+- **运行时**：Node/Bun（本 ARM 机现无 Node——引入需装 Node + pi npm 包；pi.dev 安装脚本可钉依赖）。
+
+### 6.2 评估结论（三维判定）
+
+**① 整体替代 tessera-agent = 否决**。理由：(a) 我方 Agent 的差异化在**域网关**而非聊天循环——确定性创作循环（spec 门/计划/ws_* 编辑/verifier 插件/真机部署修复轮）+ 严格审批（token + 审计 + 参数规则）+ 信任链/L5 机械检查 + 多 cube LN，全部与 Python 域代码深耦合；pi 化 = 以 TS 重写数月工作量，换来的通用循环我们**并不缺**（循环本就跑在服务端 app_develop 内）。(b) pi 安全哲学与我方制造级门禁正交（无逐调用审批缺省形态）——替代即降级。(c) 制造关键路径耦合到快迭代第三方 harness——版本漂移风险不可接受。
+
+**② 引入 pi 作为第二交互渠道 = 采纳**。pi `mcp add --url` 直连我方 FastMCP Streamable HTTP 网关 → owner 立得打磨好的日常 TUI（主题/会话树/压缩/多 provider）覆盖**全部域工具**；同时 = 我方 MCP server 面（DEC-12 角色一）**首个真实外部消费者**——MCI「渠道=客户端」论点获实证，D6「真实消费者出现再启」判据被部分触发。成本 ~0.5 单元（装 Node + pi 接入 + 工具暴露配置 + 严格审批双通道演练 + 全链验收）。风险与缓释：版本钉住；严格审批在 pi 侧 = 长阻塞 + 他渠道批 token（**双通道批准 = 更强而非更弱**，如实文档化）；pi 无逐调用审批 = **服务端闸（D4）为真边界**——价值上升。
+
+**③ W1 web 客户端照旧自研**（pi 无 web）；Q-48 案 A（静态单页 + 语义 token）不变。D5 回放器维持自研（我方审计与 pi 会话树是两类证据）。
+
+### 6.3 吸收对照表增补
+
+| # | 发现 | 来源 | 吸收 |
+|---|------|------|------|
+| 8 | MCP client streamable HTTP + 工具暴露控制 | pi mcp.md | M1 单元接入面；toolExposure 分级思路 → 域工具只读面默认放行（param_rules 同向） |
+| 9 | `tool_call` 扩展钩子可授权/修改调用 | pi extensions | pi 侧闸 = 可选第二道；**服务端 gateway 闸（D4）为主边界**——架构注记 |
+| 10 | 会话树 JSONL（id/parentId + 分支摘要） | pi session-format | D5 时间线设计参考（分支语义对我方审计为超集需求，取线性即可） |
+| 11 | 「安全 = OS 边界」哲学 | pi security.md | 与制造门禁哲学的**显式对照**入 LLD-A10：两哲学可分层共存（pi 渠道自由 + 服务端域闸强制） |

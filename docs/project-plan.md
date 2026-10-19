@@ -273,7 +273,8 @@
 
 | 序 | 单元 | 内容 | 规模 | 备注 |
 |---|------|------|------|------|
-| R11 | 开源 Agent 代码调研批 | 克隆学习四项目（opencode 多渠道 client/server 形态 / codex 协议分层+审批 / gemini-cli 渲染主题 / aider 轻量 web），产出 R11-multichannel-interaction.md（架构发现 + 吸收对照表 + Tessera 映射）+ **Q-48 门③呈递**（MCI 三层模型定案 + web 客户端形态/选型） | ~1 单元 | DEC-66③ |
+| R11 ✅ | 开源 Agent 代码调研批 | **已交付（d6a4378 + 续二）**：五项目代码级研读（opencode 协议优先单服务器+SSE 总线+permission/form 协议一等公民〔形态主角〕/ codex protocol crate + EventMsg 版本化 wire + ReviewDecision 三维审批 / gemini-cli semantic-tokens / aider UI 包 CLI 反模式）+ **pi 深评（owner 问 make-vs-buy 触发）**——整体替代否决（域网关/安全哲学/关键路径耦合三理由）/ **pi 第二渠道采纳**（MCP Streamable HTTP 精确匹配） / W1 照旧（pi 无 web）+ Q-48 门③呈递四子项 | ~1 单元 | DEC-66③⑤ |
+| M1 | pi 渠道接入 | ARM 机装 Node + pi（钉版）→ `pi mcp add tessera --url` 直连 FastMCP 网关 → toolExposure 分级（只读面放行/严格面闸）→ 严格审批双通道演练（pi 请求 + 他渠道 sys_approve）→ **验收 = 经 pi 完成 app_develop→deploy 全链** | ~0.5 | DEC-66⑤ |
 | D7 | 问询双向化 | 终端门面问询 → MCP 客户端透传（input_required 态 + 问询载荷契约）——web 客户端公共底座 | ~0.5 | |
 | D4 | hooks 拦截面 | MCP 工具调用前/后钩子（config 声明；deny/诊断注入——拦截语义门③子呈递） | ~1 | |
 | A10/A11 | MCI 架构 + web 客户端设计批 | LLD-A10（渠道三层模型——Frontend Protocol v2 归位）+ LLD-A11（web 客户端：会话流/判据行/审批/进度时间线；简约形态）——**门③ Q-48 裁后落稿** | ~0.5 | 门③ |
@@ -306,6 +307,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.120 · 2026-10-19：**DEC-66⑤ 修订（pi make-vs-buy 深评）**——三维判定（替代否决/第二渠道采纳/W1 照旧）+ M1 单元入批；R11 §6 pi 深评（MCP Streamable HTTP 匹配/无 web/OS 边界安全哲学/会话树）。
 - v1.119 · 2026-10-19：**V0.12.0「Agent 协同批」立项 + 多渠道交互架构需求登记（DEC-66）**——owner 双指令：Agent 升级（D4/D5/D7 并入）+ 交互架构重设计（DEC-35 Frontend 缝 → 三层渠道模型；web 客户端第一新渠道，MCP HTTP 复用）；R11 开源代码调研批随批。
 - v1.118 · 2026-10-19：**文档-实现一致性审查批（owner 指令「code review 对比文档检查不匹配」）**——11 处勘误：checklist/README/HLD §9 过时计数与通过线（14/16→17/17 等）、HLD §9 三行滞后（power/msg_send/TLS 实为 P1 批已交付）、LLD-ts-net「上游零源码补丁」陈旧声明（实为仓携带 9 文件补丁）、LLD-ts-interact Kconfig 依赖表与实现不符、deploy.py 自愈注释事实性修正（pico 自动重连已钉死——glue 重连 ≤26s）、Kconfig 重复 help 行、flash_prov offset 陷阱入 docstring。
 - v1.117 · 2026-10-18：**D2 计划/进度 MCP 外显 ✅（DEC-65⑤，V0.11.0 批收官单元）**——task_progress 工具 + Task.progress 面 + note_loop_progress 映射；agent 208+2s。
