@@ -110,6 +110,8 @@ async def clarify_and_develop(
 
     try:
         note_progress({"loop_state": "clarify"})
+        # W2 验收修复⑤：需求原文入日志（历史回放重建气泡的数据源）
+        log(f"[clarify] 需求：{requirement}")
         # ① 缺口分析
         gap_agent = Agent(m, output_type=GapAnalysis, retries=OUTPUT_RETRIES,
                           system_prompt=_GAP_SYSTEM)
@@ -180,6 +182,7 @@ async def clarify_and_develop(
             ans = await ctx.questions.wait(confirm)
         finally:
             task.state = "working"
+        log(f"[clarify] 确认：{ans}")
         if ans != "proceed":
             raise TaError(
                 TA_E_POLICY, "用户要求重新澄清（restart）",

@@ -115,74 +115,84 @@ function announcePhase(phase, progress) {
 }
 
 // ---- 交互卡（问询 / 审批——D7/D4 实体；置顶区） -----------------------------
+function addQuestionCard(q) {
+  const box = $("interactions");
+  if (box.querySelector(`[data-qid="${q.question_id}"]`)) return;
+  const card = document.createElement("div");
+  card.className = "card";
+  card.dataset.qid = q.question_id;
+  const title = document.createElement("div");
+  title.textContent = plain(q.question);
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  meta.textContent = q.context ? plain(q.context) : "";
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  for (const opt of q.options) {
+    const btn = document.createElement("button");
+    btn.textContent = plain(opt);
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        await callTool("sys_answer", { question_id: q.question_id, answer: opt });
+        card.remove();
+        appendBubble("user", `${plain(q.question)} → ${plain(opt)}`);
+      } catch (e) {
+        btn.disabled = false;
+        appendBubble("agent", `应答失败：${e.message}`, "err");
+      }
+    });
+    actions.appendChild(btn);
+  }
+  card.append(title, meta, actions);
+  box.appendChild(card);
+}
+
+function addApprovalCard(a) {
+  const box = $("interactions");
+  if (box.querySelector(`[data-aid="${a.approval_id}"]`)) return;
+  const card = document.createElement("div");
+  card.className = "card danger";
+  card.dataset.aid = a.approval_id;
+  const title = document.createElement("div");
+  title.textContent = `安全确认：${plain(a.tool)}`;
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  meta.textContent = `${plain(a.reason)} · 剩 ${Math.round(a.expires_in_s ?? 600)}s`;
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  const token = document.createElement("input");
+  token.className = "token";
+  token.type = "password";
+  token.placeholder = "审批 token（不落存储）";
+  actions.appendChild(token);
+  for (const decision of ["allow", "allow-session", "deny"]) {
+    const btn = document.createElement("button");
+    btn.textContent = { allow: "允许", "allow-session": "本次会话允许", deny: "拒绝" }[decision];
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      try {
+        await callTool("sys_approve", {
+          approval_id: a.approval_id, decision, token: token.value,
+        });
+        card.remove();
+        appendBubble("user", `安全确认 ${plain(a.tool)} → ${btn.textContent}`);
+      } catch (e) {
+        btn.disabled = false;
+        appendBubble("agent", `审批失败：${e.message}`, "err");
+      }
+    });
+    actions.appendChild(btn);
+  }
+  card.append(title, meta, actions);
+  box.appendChild(card);
+}
+
 function renderInteractions(questions, approvals) {
   const box = $("interactions");
   box.textContent = "";
-  for (const q of questions ?? []) {
-    const card = document.createElement("div");
-    card.className = "card";
-    const title = document.createElement("div");
-    title.textContent = plain(q.question);
-    const meta = document.createElement("div");
-    meta.className = "meta";
-    meta.textContent = q.context ? plain(q.context) : "";
-    const actions = document.createElement("div");
-    actions.className = "actions";
-    for (const opt of q.options) {
-      const btn = document.createElement("button");
-      btn.textContent = plain(opt);
-      btn.addEventListener("click", async () => {
-        btn.disabled = true;
-        try {
-          await callTool("sys_answer", { question_id: q.question_id, answer: opt });
-          card.remove();
-          appendBubble("user", `${plain(q.question)} → ${plain(opt)}`);
-        } catch (e) {
-          btn.disabled = false;
-          appendBubble("agent", `应答失败：${e.message}`, "err");
-        }
-      });
-      actions.appendChild(btn);
-    }
-    card.append(title, meta, actions);
-    box.appendChild(card);
-  }
-  for (const a of approvals ?? []) {
-    const card = document.createElement("div");
-    card.className = "card danger";
-    const title = document.createElement("div");
-    title.textContent = `安全确认：${plain(a.tool)}`;
-    const meta = document.createElement("div");
-    meta.className = "meta";
-    meta.textContent = `${plain(a.reason)} · 剩 ${Math.round(a.expires_in_s)}s`;
-    const actions = document.createElement("div");
-    actions.className = "actions";
-    const token = document.createElement("input");
-    token.className = "token";
-    token.type = "password";
-    token.placeholder = "审批 token（不落存储）";
-    actions.appendChild(token);
-    for (const decision of ["allow", "allow-session", "deny"]) {
-      const btn = document.createElement("button");
-      btn.textContent = { allow: "允许", "allow-session": "本次会话允许", deny: "拒绝" }[decision];
-      btn.addEventListener("click", async () => {
-        btn.disabled = true;
-        try {
-          await callTool("sys_approve", {
-            approval_id: a.approval_id, decision, token: token.value,
-          });
-          card.remove();
-          appendBubble("user", `安全确认 ${plain(a.tool)} → ${btn.textContent}`);
-        } catch (e) {
-          btn.disabled = false;
-          appendBubble("agent", `审批失败：${e.message}`, "err");
-        }
-      });
-      actions.appendChild(btn);
-    }
-    card.append(title, meta, actions);
-    box.appendChild(card);
-  }
+  for (const q of questions ?? []) addQuestionCard(q);
+  for (const a of approvals ?? []) addApprovalCard(a);
 }
 
 // ---- 任务栏（tasks 帧 + sys_tasks 刷新——多任务视图） ------------------------
@@ -211,6 +221,7 @@ function renderTasks(tasks) {
 }
 
 function attachTask(taskId) {
+  if (taskId === attachedTaskId) return;  // W2 验收修复⑤：重复点击不重连/不重放
   attachedTaskId = taskId;
   $("log").textContent = "";
   renderTasks(railTasks);
@@ -243,11 +254,23 @@ function handleFrame(frame) {
       break;
     case "state": {
       if (frame.task_id) $("task-label").textContent = `· ${frame.task_id}`;
-      // W2 验收修复③：历史回放（刷新/切任务不丢——日志区空时渲染快照 log）
-      if (frame.log?.length && $("log").childElementCount === 0) {
+      // W2 验收修复③⑤：历史回放（刷新/切任务不丢）——对话气泡从
+      // [clarify] 结构行重建 + 全量日志入开发者区
+      if (frame.log?.length && $("log").childElementCount === 0
+          && !$("stream").childElementCount) {
         appendLines(frame.log);
-        appendBubble("agent",
-          `已恢复任务 ${frame.task_id.slice(0, 10)}（${frame.log.length} 条历史日志——开发者模式可查看全文）`);
+        for (const ln of frame.log) {
+          let m;
+          if ((m = ln.match(/^\[clarify\] 需求：([\s\S]*)$/))) {
+            appendBubble("user", m[1]);
+          } else if ((m = ln.match(/^\[clarify\] 问答：([\s\S]*) → ([\s\S]*)$/))) {
+            appendBubble("user", `${m[1]} → ${m[2]}`);
+          } else if ((m = ln.match(/^\[clarify\] 确认：([\s\S]*)$/))) {
+            appendBubble("user", `需求单确认 → ${m[1]}`);
+          } else if ((m = ln.match(/^\[clarify\] 理解：([\s\S]*)$/))) {
+            appendBubble("agent", m[1]);
+          }
+        }
       }
       renderInteractions(frame.questions, frame.approvals);
       renderPhase(frame.phase, frame.progress);
@@ -261,9 +284,20 @@ function handleFrame(frame) {
       renderTasks(frame.tasks);
       break;
     case "questions":
+      // W2 验收修复④：增量直加（事件自带完整数据——不再走 MCP 往返，
+      // 服务重启/会话过期也不影响卡片自动出现）
+      if (frame.opened) {
+        addQuestionCard(frame);
+      } else {
+        $("interactions").querySelector(`[data-qid="${frame.question_id}"]`)?.remove();
+      }
+      break;
     case "approvals":
-      // 增量开关事件 → 拉一次全量 pending（快照面最简——事件频率低）
-      refreshPending();
+      if (frame.opened) {
+        addApprovalCard(frame);
+      } else {
+        $("interactions").querySelector(`[data-aid="${frame.approval_id}"]`)?.remove();
+      }
       break;
     case "resync":
       // 慢消费者重对齐：清空本连接日志（服务端快照将重放）
@@ -272,14 +306,6 @@ function handleFrame(frame) {
     default:
       break;  // 未知帧型忽略（前向兼容）
   }
-}
-
-async function refreshPending() {
-  try {
-    const qs = await callTool("sys_pending_questions", {});
-    const as = await callTool("sys_pending_approvals", {});
-    renderInteractions(qs.pending ?? [], as.pending ?? []);
-  } catch { /* 瞬态——下个对账周期兜底 */ }
 }
 
 // ---- 发起任务（双模式——LLD-A14 §5.2；clarify 域 W2-3 接入） ------------------

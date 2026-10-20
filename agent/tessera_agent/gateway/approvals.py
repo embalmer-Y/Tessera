@@ -77,7 +77,10 @@ class ApprovalBroker:
         if approval.decision != "allow":
             self._publish("approval.requested", approval,
                           reason=approval.reason,
-                          args_preview=args_preview)
+                          args_preview=args_preview,
+                          expires_in_s=max(0, APPROVAL_WAIT_S
+                                           - (time.monotonic()
+                                              - approval.created_at)))
         return approval
 
     async def wait(self, approval: Approval, timeout_s: int = APPROVAL_WAIT_S) -> str:

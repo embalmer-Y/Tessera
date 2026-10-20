@@ -51,7 +51,15 @@ export async function initialize() {
 }
 
 export async function callTool(name, args) {
-  const r = await rpc("tools/call", { name, arguments: args ?? {} });
+  let r;
+  try {
+    r = await rpc("tools/call", { name, arguments: args ?? {} });
+  } catch (e) {
+    // W2 验收修复④：会话失效（服务重启等）→ 重握手一次重试一次——
+    // 不再让整页交互静默失效（问题①实抓的同族根因）
+    await initialize();
+    r = await rpc("tools/call", { name, arguments: args ?? {} });
+  }
   if (r.isError) {
     const text = (r.content ?? []).map((c) => c.text ?? "").join("\n");
     throw new Error(text || `工具 ${name} 失败`);
