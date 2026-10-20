@@ -9,51 +9,77 @@
 </head>
 <body>
 <header>
+  <button id="menu-settings" class="icon-btn" title="设置">☰</button>
   <div class="brand">
     <span class="logo" aria-hidden="true">◆</span>
     <h1>Tessera Agent</h1>
-    <span id="conn" class="conn" title="推送连接状态">●</span>
   </div>
+  <div id="phase" class="phase tone-idle" title="Agent 工作状态">
+    <span class="dot" aria-hidden="true"></span><span id="phase-label">空闲</span>
+  </div>
+  <span id="heartbeat" class="muted"></span>
+  <span id="conn" class="conn" title="推送连接状态">●</span>
 </header>
 
-<main>
-  <section id="interactions" aria-live="polite">
-    <h2>交互</h2>
-    <p class="muted" id="no-interactions">暂无待应答问询 / 审批</p>
-  </section>
+<div id="layout">
+  <aside id="settings" class="drawer" hidden>
+    <h2>设置</h2>
+    <label class="field">主题
+      <select id="set-theme">
+        <option value="auto">跟随系统</option>
+        <option value="light">浅色</option>
+        <option value="dark">深色</option>
+      </select>
+    </label>
+    <label class="field">工作模式
+      <select id="set-mode">
+        <option value="normal">普通模式（对话式，隐藏技术细节）</option>
+        <option value="dev">开发者模式（全细节 + 日志）</option>
+      </select>
+    </label>
+    <label class="field">签名私钥路径
+      <input id="key-path" value="/home/radxa/project/Tessera/agent/tests/fixtures/ts-test-root.key"
+             title="签名私钥路径（本机缺省 = 测试根）">
+    </label>
+    <label class="chk"><input type="checkbox" id="plan-confirm"> 计划确认（生成前先确认计划）</label>
+    <p class="muted about">会话数据不出本机：审批 token 仅内存态，密钥不落存储。</p>
+  </aside>
 
-  <section id="progress-sec">
-    <h2>进度</h2>
-    <div id="progress" class="muted">未附着任务</div>
-  </section>
+  <main id="chat">
+    <section id="interactions" aria-live="polite"></section>
+    <div id="stream"></div>
+    <button id="to-bottom" hidden>回底 ↓</button>
+  </main>
 
-  <section id="stream-sec">
-    <h2>会话流 <span class="muted" id="task-label"></span></h2>
-    <div id="stream-wrap">
-      <pre id="log" aria-live="polite"></pre>
-      <button id="to-bottom" hidden>回底 ↓</button>
-    </div>
-  </section>
-
-  <section id="timeline-sec">
-    <h2>时间线 <button id="tl-load" type="button">加载</button></h2>
-    <pre id="timeline" class="muted">审计流时间线（D5）——点「加载」拉取</pre>
-  </section>
-</main>
+  <aside id="rail">
+    <section id="tasks-sec">
+      <h2>任务</h2>
+      <div id="tasks"><p class="muted">暂无任务</p></div>
+    </section>
+    <section id="timeline-sec">
+      <h2>时间线
+        <select id="tl-filter"><option value="">全部工具</option></select>
+        <label class="chk"><input type="checkbox" id="tl-follow"> 尾随</label>
+        <button id="tl-load" type="button">加载</button>
+      </h2>
+      <pre id="timeline" class="muted">审计流时间线——点「加载」拉取</pre>
+    </section>
+    <section id="log-sec" class="dev-only">
+      <h2>详细日志 <span class="muted" id="task-label"></span></h2>
+      <div id="stream-wrap">
+        <pre id="log" aria-live="polite"></pre>
+      </div>
+    </section>
+  </aside>
+</div>
 
 <footer>
-  <details class="launch" open>
-    <summary>发起 app_develop</summary>
-    <form id="task-form">
-      <textarea id="spec" rows="5" placeholder="需求 spec（四节：【需求】【资源】【判据】【安全声明】——判据节写引号串即机器判据）…" required></textarea>
-      <div class="row">
-        <input id="key-path" value="/home/radxa/project/Tessera/agent/tests/fixtures/ts-test-root.key" title="签名私钥路径（本机缺省 = 测试根）">
-        <label class="chk"><input type="checkbox" id="plan-confirm"> 计划确认</label>
-        <button type="submit">发起</button>
-      </div>
-      <p class="err" id="launch-err" hidden></p>
-    </form>
-  </details>
+  <form id="task-form">
+    <textarea id="spec" rows="2" required
+      placeholder="描述你想让设备做什么…（普通模式会逐项与你确认；切开发者模式可直接填四节需求单）"></textarea>
+    <button type="submit" id="launch">发起</button>
+  </form>
+  <p class="err" id="launch-err" hidden></p>
 </footer>
 
 <script type="module" src="app.js"></script>

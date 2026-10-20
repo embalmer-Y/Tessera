@@ -1,34 +1,78 @@
-/* 语义 token 层（LLD-A11 §3——gemini-cli semantic-tokens 同型：组件只消费
- * 角色 token，主题 = token 重映射；深浅色经 prefers-color-scheme）。 */
+/* 语义 token 层 v2（LLD-A14 §6——gemini-cli semantic-tokens 同型升级：
+ * elevation 三级 + 语义角色 + 动效 token；主题 = token 重映射，
+ * 深浅色 = prefers-color-scheme × 手动覆盖（[data-theme]）。 */
 :root {
-  --c-bg: #f7f7f5;
+  --c-bg: #f6f6f4;
   --c-surface: #ffffff;
+  --c-surface-2: #ececea;
   --c-fg: #1c1c1e;
   --c-muted: #6e6e73;
   --c-accent: #0a66c2;
+  --c-accent-soft: #e3edf7;
   --c-ok: #1f7a33;
+  --c-ok-soft: #e4f2e7;
   --c-warn: #9a6700;
+  --c-warn-soft: #f8ecd4;
   --c-danger: #c0392b;
+  --c-danger-soft: #fae5e2;
   --c-border: #d9d9de;
+  --c-bubble-user: #0a66c2;
+  --c-bubble-user-fg: #ffffff;
+  --c-bubble-agent: #ffffff;
   --r-s: 6px;
   --r-m: 10px;
+  --r-l: 16px;
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 16px;
   --sp-4: 24px;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 6%);
+  --shadow-2: 0 4px 16px rgb(0 0 0 / 10%);
   --font-ui: system-ui, "Noto Sans CJK SC", sans-serif;
   --font-mono: ui-monospace, "JetBrains Mono", "Cascadia Mono", Menlo, monospace;
+  --t-fast: 150ms ease-out;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
-    --c-bg: #16181d;
-    --c-surface: #1f2229;
+  :root:not([data-theme="light"]) {
+    --c-bg: #14161b;
+    --c-surface: #1d2027;
+    --c-surface-2: #262a33;
     --c-fg: #e8e8ea;
     --c-muted: #9a9aa2;
     --c-accent: #58a6ff;
+    --c-accent-soft: #1d2c3d;
     --c-ok: #4ec96a;
+    --c-ok-soft: #1d2f22;
     --c-warn: #d9a62e;
+    --c-warn-soft: #332b16;
     --c-danger: #f16a5c;
+    --c-danger-soft: #3a221f;
     --c-border: #34383f;
+    --c-bubble-user: #2563eb;
+    --c-bubble-user-fg: #ffffff;
+    --c-bubble-agent: #1d2027;
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 40%);
+    --shadow-2: 0 4px 16px rgb(0 0 0 / 50%);
   }
+}
+:root[data-theme="dark"] {
+  --c-bg: #14161b;
+  --c-surface: #1d2027;
+  --c-surface-2: #262a33;
+  --c-fg: #e8e8ea;
+  --c-muted: #9a9aa2;
+  --c-accent: #58a6ff;
+  --c-accent-soft: #1d2c3d;
+  --c-ok: #4ec96a;
+  --c-ok-soft: #1d2f22;
+  --c-warn: #d9a62e;
+  --c-warn-soft: #332b16;
+  --c-danger: #f16a5c;
+  --c-danger-soft: #3a221f;
+  --c-border: #34383f;
+  --c-bubble-user: #2563eb;
+  --c-bubble-user-fg: #ffffff;
+  --c-bubble-agent: #1d2027;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 40%);
+  --shadow-2: 0 4px 16px rgb(0 0 0 / 50%);
 }

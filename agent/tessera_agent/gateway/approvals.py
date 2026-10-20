@@ -40,11 +40,24 @@ class Approval:
 
 
 class ApprovalBroker:
-    def __init__(self) -> None:
+    def __init__(self, bus: Any | None = None) -> None:
         self._pending: dict[str, Approval] = {}
         # D4（DEC-67③）：allow-session 会话域记住集（进程生命周期、不落盘
         # ——codex ReviewDecision::ApprovedForSession 同型；审批疲劳缓释）
         self._session_allowed: set[str] = set()
+        # W2（LLD-A14 §3.2）：可选事件总线——approval.requested/decided 事件
+        self._bus = bus
+
+    def attach_bus(self, bus: Any) -> None:
+        self._bus = bus
+
+    def _publish(self, kind: str, a: Approval, **extra: Any) -> None:
+        if self._bus is None:
+            return
+        try:
+            self._bus.publish(kind, {"approval_id": a.id, "tool": a.tool, **extra})
+        except Exception:  # noqa: BLE001
+            pass
 
     @staticmethod
     def token_configured() -> bool:
@@ -61,6 +74,10 @@ class ApprovalBroker:
             approval.decision = "allow"  # 会话域已记住——自动放行（零挂起）
             approval.event.set()
         self._pending[approval.id] = approval
+        if approval.decision != "allow":
+            self._publish("approval.requested", approval,
+                          reason=approval.reason,
+                          args_preview=args_preview)
         return approval
 
     async def wait(self, approval: Approval, timeout_s: int = APPROVAL_WAIT_S) -> str:
@@ -69,6 +86,8 @@ class ApprovalBroker:
             await asyncio.wait_for(approval.event.wait(), timeout=timeout_s)
         except TimeoutError:
             approval.decision = "deny"
+            self._publish("approval.decided", approval, decision="deny",
+                          expired=True)
         self._pending.pop(approval.id, None)
         if approval.decision != "allow":
             msg = f"审批拒绝/超时: {approval.tool}（{approval.reason}）"
@@ -99,4 +118,6 @@ class ApprovalBroker:
         if decision == "allow-session":
             self._session_allowed.add(approval.tool)
         approval.event.set()
+        self._publish("approval.decided", approval, decision=decision,
+                      expired=False)
         return {"approval_id": approval_id, "decision": decision}

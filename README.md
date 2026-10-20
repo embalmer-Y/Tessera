@@ -36,7 +36,7 @@
 | `firmware/module/tessera/` | 固件框架源码（ts-* 七模块） |
 | `firmware/tests/` | twister 套件（17 套件 117 用例——aarch64 /64 现行口径：115 过 + 2 skipped）+ 板级 bench（netbench/deploybench/otabench/…） |
 | `firmware/app/` | 生产 app（板级片段：S3 PSRAM/WiFi/分区） |
-| `agent/` | MCP server + 模拟器 + TSAP 工具链 + skills + web 渠道（pytest 289 用例 + 2 skipped） |
+| `agent/` | MCP server + 模拟器 + TSAP 工具链 + skills + web 渠道（pytest 302 用例 + 2 skipped） |
 | `design/` | HLD + 七模块 LLD（v0.2 已确认） |
 | `tools/board/` | 板级联调工具（E2E 驱动/prov·证书生成/串口持有器/消费端——README 含典型编排） |
 | `docs/` | dev-environment（环境事实源）/ **env-rebuild-checklist（全新机器重建总单，含 ARM Linux）** / project-plan / impl-review 族 |

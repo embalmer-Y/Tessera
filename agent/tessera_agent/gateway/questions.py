@@ -44,8 +44,21 @@ class Question:
 
 
 class QuestionBroker:
-    def __init__(self) -> None:
+    def __init__(self, bus: Any | None = None) -> None:
         self._pending: dict[str, Question] = {}
+        # W2（LLD-A14 §3.2）：可选事件总线——question.opened/closed 事件
+        self._bus = bus
+
+    def attach_bus(self, bus: Any) -> None:
+        self._bus = bus
+
+    def _publish(self, kind: str, q: Question, **extra: Any) -> None:
+        if self._bus is None:
+            return
+        try:
+            self._bus.publish(kind, {"question_id": q.id, **extra})
+        except Exception:  # noqa: BLE001
+            pass
 
     def ask(self, question: str, options: list[str], *,
             default: str | None = None, context: str | None = None) -> Question:
@@ -62,6 +75,8 @@ class QuestionBroker:
             context=context,
         )
         self._pending[q.id] = q
+        self._publish("question.opened", q, question=q.question,
+                      options=list(options), default=default, context=context)
         return q
 
     async def wait(self, q: Question, timeout_s: int = QUESTION_WAIT_S) -> str:
@@ -70,6 +85,7 @@ class QuestionBroker:
             await asyncio.wait_for(q.event.wait(), timeout=timeout_s)
         except TimeoutError:
             self._pending.pop(q.id, None)
+            self._publish("question.closed", q, answer=None, expired=True)
             if q.default is None:
                 raise TaError(
                     TA_E_TIMEOUT,
@@ -110,4 +126,5 @@ class QuestionBroker:
             )
         q.answer = answer
         q.event.set()
+        self._publish("question.closed", q, answer=answer, expired=False)
         return {"question_id": question_id, "answer": answer}

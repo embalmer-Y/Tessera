@@ -74,16 +74,35 @@ class Task:
 
 
 class TaskRegistry:
-    """进程内任务注册表；create() 立即返回句柄（句柄化纪律，DEC-36②）。"""
+    """进程内任务注册表；create() 立即返回句柄（句柄化纪律，DEC-36②）。
 
-    def __init__(self) -> None:
+    W2（LLD-A14 §3.2）：可选事件总线——接线后发布 task.created/state/log
+    事件；bus=None（缺省）行为逐字节等价（对照组纪律）。"""
+
+    def __init__(self, bus: Any | None = None) -> None:
         self._tasks: dict[str, Task] = {}
         self._lock = asyncio.Lock()
+        self._bus = bus
+
+    def attach_bus(self, bus: Any) -> None:
+        """装配期接线（AppContext.__post_init__ 单一调用点）。"""
+        self._bus = bus
+
+    def _publish(self, kind: str, task: Task, **extra: Any) -> None:
+        if self._bus is None:
+            return
+        try:
+            self._bus.publish(kind, {"task_id": task.id, "tool": task.tool,
+                                     "state": task.state, **extra})
+        except Exception:  # noqa: BLE001
+            pass
 
     async def create(self, tool: str, args: dict[str, Any], body: TaskCallback) -> Task:
         task = Task(id=f"t-{secrets.token_hex(8)}", tool=tool, args_digest=_digest(args))
         async with self._lock:
             self._tasks[task.id] = task
+        self._publish("task.created", task)
+        self._touch(task)
 
         async def runner() -> None:
             try:
@@ -98,6 +117,7 @@ class TaskRegistry:
                     TA_E_INTERNAL, f"{type(exc).__name__}: {exc}", domain=tool
                 ).to_payload()
                 task.state = "failed"
+            self._publish("task.state", task, progress=dict(task.progress))
 
         task._aio = asyncio.create_task(runner())
         return task
@@ -138,6 +158,19 @@ class TaskRegistry:
         if len(task.log) == task.log.maxlen:
             task.log_dropped += 1
         task.log.append(line)
+        self._touch(task)
+        self._publish("task.log", task, lines=[line])
+
+    def note_progress(self, task: Task, patch: dict[str, Any] | None = None) -> None:
+        """进度变更 + 活动触碰 + 总线发布（W2 · LLD-A14 §4.2——调用方
+        经此单一入口更新 progress；patch = None 表示仅触碰/发布）。"""
+        if patch:
+            task.progress.update(patch)
+        self._touch(task)
+        self._publish("task.state", task, progress=dict(task.progress))
+
+    def _touch(self, task: Task) -> None:
+        task.progress["last_activity_ts"] = time.time()
 
     def log_slice(self, task: Task, offset: int = 0, limit: int = 200) -> dict[str, Any]:
         lines = list(task.log)

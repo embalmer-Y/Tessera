@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""W1 web 渠道（LLD-A11 §5 测试口径）：
+"""W2 web 渠道（LLD-A14 §8 测试口径；W1 静态/路由/URL 纪律沿用）：
 
 - /web 静态挂载（index/app.js 可达 + Content-Type + ES import 路径全存在）
-- /events 路由注册 + SSE 帧语义（build_frame 差分：日志新行/状态签名变化）
+- /events v2：EventBus 直推（快照首帧/task.created 任务帧/Last-Event-ID 续传）
+- phase 派发表（11 态单源）
 - MCP 面不受组装影响（build_app 照常挂 sys_ping）"""
 
 from __future__ import annotations
@@ -14,7 +15,14 @@ from pathlib import Path
 
 import httpx
 
-from tessera_agent.gateway.web import WEB_DIR, build_frame, event_stream, mount_web
+from tessera_agent.common.events import EventBus
+from tessera_agent.gateway.web import (
+    WEB_DIR,
+    _event_frame,
+    derive_phase,
+    event_stream,
+    mount_web,
+)
 
 PKG_ROOT = Path(__file__).resolve().parent.parent
 
@@ -83,63 +91,132 @@ def test_web_urls_are_root_absolute(tmp_path):
             assert target.startswith("/"), f"{name}: new URL(\"{target}\") 非根绝对"
 
 
-def test_build_frame_diff_semantics(tmp_path):
-    """差分帧：无任务 = 单空态帧；日志新行/进度变化/问询出现 各自发帧；
-    签名不变不重复发。"""
-    async def main():
-        ctx, _ = _ctx(tmp_path)
-        cursor = {"log_idx": 0, "sig": ""}
-        # 无任务：首帧空态，此后静默
-        assert build_frame(ctx, cursor, None)[0]["kind"] == "state"
-        assert build_frame(ctx, cursor, None) == []
+# ---- phase 派发表（11 态单源——LLD-A14 §4.2） ------------------------------
 
-        task = await ctx.registry.create("app_develop", {}, lambda t: {"ok": True})
-        task.log.append("AK0 start")
-        task.log.append("[tsi] info rc=0")
-        task.progress["loop_state"] = "PLANNING"
-        frames = build_frame(ctx, cursor, task.id)
-        kinds = [f["kind"] for f in frames]
-        assert "task_log" in kinds and "state" in kinds
-        log_frame = next(f for f in frames if f["kind"] == "task_log")
-        assert log_frame["lines"] == ["AK0 start", "[tsi] info rc=0"]
-        # 无变化 = 静默
-        assert build_frame(ctx, cursor, task.id) == []
-        # 进度变化 → 状态帧
-        task.progress["loop_state"] = "IMPLEMENTING"
-        frames2 = build_frame(ctx, cursor, task.id)
-        assert [f["kind"] for f in frames2] == ["state"]
-        assert frames2[0]["progress"]["loop_state"] == "IMPLEMENTING"
-        # 问询出现 → 状态帧（pending 快照入帧）
-        ctx.questions.ask("继续？", ["proceed", "abort"], default="abort")
-        frames3 = build_frame(ctx, cursor, task.id)
-        st = next(f for f in frames3 if f["kind"] == "state")
-        assert st["questions"][0]["question_id"].startswith("q-")
-        # 审批出现 → 状态帧
-        ctx.approvals.request("app_deploy", {}, reason="strict")
-        frames4 = build_frame(ctx, cursor, task.id)
-        st4 = next(f for f in frames4 if f["kind"] == "state")
-        assert st4["approvals"][0]["tool"] == "app_deploy"
-
-    asyncio.run(main())
+def test_derive_phase_priority():
+    assert derive_phase(None, {}, [], []) == "idle"
+    # 等待人最高优先
+    assert derive_phase("working", {}, [{}], []) == "awaiting_confirm"
+    assert derive_phase("working", {}, [], [{}]) == "awaiting_approval"
+    # 终态
+    assert derive_phase("completed", {}, [], []) == "done"
+    assert derive_phase("failed", {}, [], []) == "failed"
+    # 循环阶段（repairing 优先于 implementing）
+    assert derive_phase("working", {"loop_state": "implementing",
+                                    "repairing": True}, [], []) == "repairing"
+    assert derive_phase("working", {"loop_state": "PLANNING"}, [], []) \
+        in ("planning", "implementing")
+    # working 无循环信息 = 部署/执行域
+    assert derive_phase("working", {}, [], []) == "deploying"
 
 
-def test_event_stream_yields_frames(tmp_path):
-    """SSE 字节流：帧 = data: JSON 形态；stop_after 注入收口（测试面）。"""
+# ---- /events v2：直推 + 快照 + 续传 -----------------------------------------
+
+def _frames(chunk: bytes) -> list[dict]:
+    """SSE chunk → JSON 帧列表（id: 前缀行跳过）。"""
+    out = []
+    for line in chunk.decode("utf-8").splitlines():
+        if line.startswith("data: "):
+            out.append(json.loads(line[6:]))
+    return out
+
+
+def test_event_stream_snapshot_first(tmp_path):
+    """SSE v2 首两帧 = 快照 + 任务列表（data: JSON 形态）。"""
     async def main():
         ctx, _ = _ctx(tmp_path)
         await ctx.registry.create("app_develop", {}, lambda t: {"ok": True})
         out = []
-        async for chunk in event_stream(ctx, None, stop_after=1):
+        async for chunk in event_stream(ctx, None, stop_after=2):
             out.append(chunk)
-        assert out and out[0].startswith("data: ")
-        frame = json.loads(out[0][6:].strip())
-        assert frame["kind"] in ("state", "task_log")
+        assert len(out) == 2
+        snap = _frames(out[0])[0]
+        assert snap["kind"] == "state" and "phase" in snap
+        tasks = _frames(out[1])[0]
+        assert tasks["kind"] == "tasks" and tasks["tasks"][0]["tool"] == "app_develop"
 
     asyncio.run(main())
 
 
+def test_event_stream_pushes_bus_events(tmp_path):
+    """总线事件直推：日志行经 task.log 事件成帧（v1 轮询差分删除）。"""
+    async def main():
+        ctx, _ = _ctx(tmp_path)
+        task = await ctx.registry.create("app_develop", {},
+                                         lambda t: {"ok": True})
+        out = []
+
+        async def consume():
+            async for chunk in event_stream(ctx, task.id, stop_after=4):
+                out.append(chunk)
+
+        consumer = asyncio.create_task(consume())
+        await asyncio.sleep(0.2)          # 快照/任务帧先落
+        ctx.registry.append_log(task, "[tsi] info rc=0")
+        ctx.registry.note_progress(task, {"loop_state": "IMPLEMENTING"})
+        await asyncio.wait_for(consumer, timeout=5)
+        frames = [f for c in out for f in _frames(c)]
+        kinds = [f["kind"] for f in frames]
+        assert "task_log" in kinds and "state" in kinds
+        log_frame = next(f for f in frames if f["kind"] == "task_log")
+        assert log_frame["lines"] == ["[tsi] info rc=0"]
+        st = next(f for f in frames if f["kind"] == "state"
+                  and f.get("progress", {}).get("loop_state") == "IMPLEMENTING")
+        assert st["progress"]["loop_state"] == "IMPLEMENTING"
+
+    asyncio.run(main())
+
+
+def test_event_frame_question_approval_mapping(tmp_path):
+    """/events 事件映射：问答/审批开关事件成帧；resync → 快照。"""
+    async def main():
+        ctx, _ = _ctx(tmp_path)
+        bus = ctx.events
+        q = ctx.questions.ask("继续？", ["proceed", "abort"], default="abort")
+        evs = bus.replay(0)
+        frames = [_event_frame(ctx, None, e) for e in evs]
+        opened = next(f for f in frames if f and f["kind"] == "questions"
+                      and f.get("opened"))
+        assert opened["question_id"] == q.id
+        ctx.questions.answer(q.id, "proceed")
+        evs = bus.replay(evs[-1].seq)
+        closed = next(f for f in [_event_frame(ctx, None, e) for e in evs]
+                      if f and f["kind"] == "questions" and not f.get("opened"))
+        assert closed["answer"] == "proceed"
+        # resync → 快照
+        snap = _event_frame(ctx, None, EventBus().publish("resync", {}))
+        assert snap["kind"] == "state"
+
+    asyncio.run(main())
+
+
+def test_registry_question_approval_bus_zero_change_without_bus(
+        tmp_path, monkeypatch):
+    """对照组（LLD-A14 §3.2 纪律）：bus=None 缺省构造 = 行为逐字节等价
+    （问答/审批/日志全功能可用，仅无事件）。"""
+
+    from tessera_agent.common.tasks import TaskRegistry
+    from tessera_agent.gateway.approvals import APPROVAL_TOKEN_ENV, ApprovalBroker
+    from tessera_agent.gateway.questions import QuestionBroker
+
+    monkeypatch.setenv(APPROVAL_TOKEN_ENV, "tok")
+    reg = TaskRegistry()       # bus 缺省 None
+    qb = QuestionBroker()
+    ab = ApprovalBroker()
+    assert reg._bus is None and qb._bus is None and ab._bus is None
+    q = qb.ask("Q?", ["a", "b"], default="a")
+    assert qb.answer(q.id, "a")["answer"] == "a"
+    a = ab.request("t", {}, reason="r")
+    ab.decide(a.id, "deny", token="tok")
+    assert a.decision == "deny"
+    task = asyncio.run(reg.create("x", {}, lambda t: 1))
+    reg.append_log(task, "line")
+    reg.note_progress(task, {"k": 1})
+    assert task.progress["k"] == 1 and "last_activity_ts" in task.progress
+
+
 def test_mcp_surface_unaffected(tmp_path):
-    """组装不破坏 MCP 面：sys_ping 经 build_app 照常应答（FastMCP Client 直连）。"""
+    """组装不破坏 MCP 面：sys_ping/sys_tasks 经 build_app 照常应答。"""
     from fastmcp import Client
 
     async def main():
@@ -148,7 +225,9 @@ def test_mcp_surface_unaffected(tmp_path):
             r = await c.call_tool("sys_ping", {})
             data = r.data if hasattr(r, "data") else r
             assert data["pong"] is True
-            # 钩子链缺省空 = 行为不变（D4 缺省链已在 ctx）
+            r2 = await c.call_tool("sys_tasks", {})
+            d2 = r2.data if hasattr(r2, "data") else r2
+            assert d2["total"] == 0
             assert list(ctx.hooks.rules) == []
 
     asyncio.run(main())

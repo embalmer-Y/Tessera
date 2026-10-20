@@ -492,6 +492,8 @@ async def _app_develop_loop(
         log(f"loop:{kind} {json.dumps(data, ensure_ascii=False)[:200]}")
         if task is not None:
             note_loop_progress(task.progress, kind, data)
+            # W2（LLD-A14 §4.2）：活动触碰 + 总线发布（registry 单一入口）
+            ctx.registry.note_progress(task)
         # D7（DEC-67①）：计划确认经问询实体透传（MCP 客户端应答；超时取
         # default/无 default 异常）。CLI 路径不走此桥（门面终端确认不变）。
         if kind == "plan" and plan_confirm:

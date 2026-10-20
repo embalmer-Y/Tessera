@@ -1128,3 +1128,9 @@
 **裁定**：按会话建议序开工——**MP 通用内存规划专项（DEC-70）先行**（内存 = 当前最具体风险面），W2 web 渠道重塑设计批随后（DEC-69 六点为需求输入，owner 或有补充），A5/A4/R12/R13 可穿插。泛指令 = 按建议序开工纪律（DEC-59/DEC-65 先例），门③设计批随批呈递不另停门。
 
 **执行注记**：MP = 设计批（LLD-A13）+ 实现批（memory_audit 工具 + MCP/CLI 面）+ 首应用（atk map 重平 + 真机验证）+ 最低内存基线（DEC-70②，docs/memory-baseline.md）随批完成。首日实录：MP 设计接地即抓获两处系统性潜伏缺陷——① WAMR=n + APPMGR=y 组合自 M7（多 APP 激活停旧）起链接断链（pkg.c stage_commit 未门控 runtime.c 符号——netbench 类最小档 4.5-rc1 构建不过）；② netbench/deploybench 双 bench 板级 conf 缺 FIX-1/R5-V③ 同型防御（rx 栈缺省 1500/sysworkq 缺省 1024——memory_audit 规则 R1/R2 首战双 fail 抓获）。均随批修复。
+
+## DEC-72（owner 泛指令裁 W2-D 门③ + 开工，2026-10-19：「我已经完成review，请你开始执行开发工作」）
+
+**裁定**：W2-D 设计批（LLD-A14 v0.1）过门③——**规模重估 ~5 单元认可**（W2-1 基建 ~1 / W2-2 呈现层 ~1.5 / W2-3 双模式 ~1.5 / W2-4 收口 ~0.5），按建议序 W2-1 → W2-2 → W2-3 → W2-4 执行（泛指令按建议纪律，先例 DEC-59/65/71 同型）。设计批提交 6b76d88 随令推送。
+
+**执行注记**：纯 Agent 侧批，固件零改动；服务端闸/审批 token/审计同源/判据行保真合同/spec 门四红线不动。批内回归 = agent 全量 + twister 17/17 + ruff + L5 + sync（军规 10）。

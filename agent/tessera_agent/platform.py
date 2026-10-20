@@ -23,6 +23,7 @@ from tessera_agent import __version__
 from tessera_agent.common.audit import ToolAudit
 from tessera_agent.common.config import AgentConfig
 from tessera_agent.common.errors import TA_E_POLICY, TaError
+from tessera_agent.common.events import EventBus
 from tessera_agent.common.limits import ContextBudget
 from tessera_agent.common.tasks import TaskRegistry
 from tessera_agent.core.session import PolicyTable
@@ -48,6 +49,13 @@ class AppContext:
     started_at: float = field(default_factory=time.time)
     # tsap_* 产物写白名单根（默认 workspace；测试注入 tmp 根）
     write_roots: list[str] | None = None
+    # W2（LLD-A14 §3）：进程内事件总线——registry/brokers 装配期接线
+    events: EventBus = field(default_factory=EventBus)
+
+    def __post_init__(self) -> None:
+        self.registry.attach_bus(self.events)
+        self.approvals.attach_bus(self.events)
+        self.questions.attach_bus(self.events)
 
     def tool_audit(self) -> ToolAudit:
         return self.audit if self.audit is not None else ToolAudit(self.cfg.audit_dir)
@@ -252,6 +260,15 @@ def assemble(ctx: AppContext, packs: Sequence[DomainPack]) -> FastMCP:
         """列举待应答问询（D7 · DEC-67①：问询 = MCP 一等实体——
         便利交互面，无 token；答案枚举域内 fail-closed）。"""
         return {"pending": ctx.questions.list_pending()}
+
+    @mcp.tool
+    @audited("sys_tasks")
+    async def sys_tasks() -> dict:
+        """任务列表快照（W2 · LLD-A14 §4.6：多任务视图数据源——
+        进程内注册表全部任务（含终态/过期），创建序。"""
+        tasks = [{"task_id": t.id, "tool": t.tool, "state": t.state,
+                  "created_at": t.created_at} for t in ctx.registry.list_tasks()]
+        return {"tasks": tasks, "total": len(tasks)}
 
     @mcp.tool
     @audited("sys_answer")

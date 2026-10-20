@@ -97,6 +97,7 @@ class FirmwareDomainPack(DomainPackBase):
         "ln_create", "ln_list", "ln_remove", "ln_status", "ln_deploy",
         "ln_estop_clear",
         "app_develop", "app_deploy", "app_compile",
+        "app_clarify",
         "board_validate", "memory_audit",
         "diag_classify", "spec_check", "simreal_diff",
     ])
@@ -111,6 +112,7 @@ class FirmwareDomainPack(DomainPackBase):
         "ln_deploy": "strict",  # DEC-54①：组部署 = N 成员写操作
 
         "app_develop": "confirm",
+        "app_clarify": "confirm",  # W2（DEC-69⑥）：普通模式需求澄清（LLM 轮）
         "app_deploy": "strict",
         "board_validate": "strict",  # V0.13.0 BV1：复位+部署冒烟=板态写入
         "memory_audit": "confirm",   # V0.13.0 MP：本地只读分析（LLD-A13）
@@ -518,6 +520,27 @@ class FirmwareDomainPack(DomainPackBase):
 
             return await spawn("app_develop", args, body)
 
+        # ---- app_clarify（W2 · LLD-A14 §5——DEC-69⑥ 普通模式；confirm 类）
+        @mcp.tool
+        @audited("app_clarify")
+        async def app_clarify(requirement: str, key_path: str,
+                              out_dir: str = "agent/build") -> dict:
+            """普通模式需求澄清（DEC-69⑥ · LLD-A14 §5.1）：粗糙需求 →
+            缺口分析 → 澄清问询卡（≤3 轮/≤8 问，sys_answer 应答）→ spec
+            合成 → spec_check 门（不变）→ 确认后同任务交棒 app_develop。
+            长任务句柄；restart = 结构化中止（可重新发起）。"""
+            args = {"requirement": requirement, "key_path": key_path,
+                    "out_dir": out_dir}
+
+            async def body(task) -> dict:
+                log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
+                from tessera_agent.domain.clarify import clarify_and_develop
+
+                return await clarify_and_develop(
+                    ctx, requirement, task, key_path, out_dir, log=log)
+
+            return await spawn("app_clarify", args, body)
+
         @mcp.tool
         @audited("app_deploy")
         async def app_deploy(package_path: str, pub_key_path: str,
@@ -576,7 +599,8 @@ class FirmwareDomainPack(DomainPackBase):
                 profile = bv.load_profile(boards_dir / f"{profile_id}.toml")
 
                 def progress_cb(p: dict) -> None:
-                    task.progress.update(p)
+                    # W2：进度经 registry 单一入口（活动触碰 + 总线发布）
+                    ctx.registry.note_progress(task, p)
                     ctx.registry.append_log(
                         task, f"[bv] {p['check']} {p.get('verdict', '…')}"
                               f" ({p['done']}/{p['total']})")
@@ -587,8 +611,8 @@ class FirmwareDomainPack(DomainPackBase):
                 report = await asyncio.to_thread(
                     bv.validate, profile, transport, checks=checks,
                     stop_on_fail=stop_on_fail, progress_cb=progress_cb)
-                task.progress.update({"overall": report.overall,
-                                      "checks_done": len(report.checks)})
+                ctx.registry.note_progress(task, {"overall": report.overall,
+                                                  "checks_done": len(report.checks)})
                 out = report.to_json()
                 out["report_text"] = report.render()
                 return out

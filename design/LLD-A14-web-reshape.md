@@ -1,8 +1,8 @@
-# LLD-A14 · W2 web 渠道重塑 · v0.1
+# LLD-A14 · W2 web 渠道重塑 · v0.2
 
 > **本文件是什么**：W2 web 渠道重塑低层设计——V0.13.0 A3 单元设计批（DEC-69 六点产品反馈 + W1 人工验收 UX 反馈四条 + SSE 直推 + 多任务视图；owner「开始进行W2 web重塑设计」点向）。
 > **权威顺序**：owner 裁决 > FOUNDING_PROMPT > 本文件。
-> **状态**：v0.1（2026-10-19 设计批落稿，**门③呈递待 owner**——批内含规模重估，裁后开工）。
+> **状态**：v0.2（2026-10-19 实现批同步修订——W2-1..4 全单元落地〔DEC-72 门③过裁〕：EventBus+钩子+sys_tasks+phase 派发实装于 common/events.py·common/tasks.py·gateway/*·platform.py；前端五文件重构；clarify 域 + app_clarify 实装；agent 302+2s 全绿）。v0.1 设计批（门③呈递）。
 
 ## 1. 定位与输入
 
