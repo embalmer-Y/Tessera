@@ -1,0 +1,902 @@
+~$ [m[8D[JAKF1 bench 合成 force akpwm（estop 面演示触发）
+[1;32muart:~$ [m[8D[JAKF2 force rc=0（通道入 SAFE_FAULT）
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTEDart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[JAK alive t=157938 net=1
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[JAK alive t=167939 net=1
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[JAK alive t=177947 net=1
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[JAK alive t=187952 net=1
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[JAK alive t=197953 net=1
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[app1/l1] LED WRITE REJECTED
+[1;32muart:~$ [m[8D[J[app1/l1] 心跳正常
+[1;32muart:~$ [m[8D[J[app1/l1] HEARTBEAT OK
+[1;32muart:~$ [m[8D[J[app1/l1] LED BLINK ON 100MS
+[1;32muart:~$ [m[8D[J[app1/l1] 周期 10s 间隔
+[1;32muart:~$ [m[8D[J[hal] log rate limit: dropping (cap 20/s)
+[1;32muart:~$ [m
+== W2 验收真机部署判据记录（2026-10-20） ==
+包：tessera.demo.heartbeat-0.1.0.tsap（t-a9383073， clarify 合成）
+部署：tsap_verify PASS → 2474B slot0 → 板侧真验签 PASS → activate confirmed
+判据窗：criteria_pass = True（「心跳正常」/「HEARTBEAT OK」10s 周期命中）
+【如实缺陷】owner 目视：LED 未闪烁 ✓ 属实——
+串口 168 对「LED BLINK ON 100MS / LED WRITE REJECTED」成对出现：
+ts_gpio_write 全部被固件拒绝（fail-safe 回熄灭态），LED 从未点亮。
+根因：atkbench overlay zephyr,user 缺 io-gpios 绑定 → ts_drv_gpio_init
+-ENODEV → akled 通道（gpio 实例 0）无物理引脚；板载 LED（LEDB=IO4）
+实际在 PWM 通道（akpwm）上，而 app manifest caps 只申请了 gpio:write:0。
+定性 = A16 硬件画像缺口实锤：LLM 假设「gpio 实例 0 = 板载 LED」无任何
+事实支撑（引脚级硬件事实不在创作链路），编译门/判据门均不拦此类失配。

@@ -1,0 +1,87 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x18 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fc97600,len:0x6dac
+load:0x40374000,len:0x135e4
+load:0x50000000,len:0x24
+SHA-256 comparison failed:
+Calculated: b917160b0cc2fe78fe209298519546213f2bca815188a2a935b2133e9847314c
+Expected: 00000000005c0000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4037e698
+I (soc_init): ESP Simple boot
+I (soc_init): compile t�ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x18 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fc97600,len:0x6dac
+load:0x40374000,len:0x135e4
+load:0x50000000,len:0x24
+SHA-256 comparison failed:
+Calculated: b917160b0cc2fe78fe209298519546213f2bca815188a2a935b2133e9847314c
+Expected: 00000000005c0000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4037e698
+I (soc_init): ESP Simple boot
+I (soc_init): compile time Oct 19 2026 17:43:17
+W (soc_init): Unicore bootloader
+I (soc_init): chip revision: v0.2
+I (flash_init): Boot SPI Speed : 80MHz
+I (flash_init): SPI Mode       : DIO
+I (flash_init): SPI Flash Size : 8MB
+I (boot): DRAM	: lma=00000020h vma=3fc97600h size=06dach ( 28076)
+I (boot): IRAM	: lma=00006dd4h vma=40374000h size=135e4h ( 79332)
+I (boot): RTC_DATA	: lma=0001a3c0h vma=50000000h size=00024h (    36)
+I (boot): IROM	: lma=00020000h vma=42000000h size=f0450h (984144)
+I (boot): DROM	: lma=00120000h vma=3c100000h size=1d104h (119044)
+I (boot): libc heap size 0 kB.
+I (cache): Instruction cache: size 16KB, 8Ways, cache line size 32Byte
+I (spi_flash): detected chip: boya
+I (spi_flash): flash io: dio
+W (spi_flash): Detected size(16384k) larger than the size in the binary image header(8192k). Using the size in the binary image header.
+I (octal_psram): vendor id    : 0x0d (AP)
+I (octal_psram): dev id       : 0x02 (generation 3)
+I (octal_psram): density      : 0x03 (64 Mbit)
+I (octal_psram): good-die     : 0x01 (Pass)
+I (octal_psram): Latency      : 0x01 (Fixed)
+I (octal_psram): VCC          : 0x01 (3V)
+I (octal_psram): SRF          : 0x01 (Fast Refresh)
+I (octal_psram): BurstType    : 0x01 (Hybrid Wrap)
+I (octal_psram): BurstLen     : 0x01 (32 Byte)
+I (octal_psram): Readlatency  : 0x02 (10 cycles@Fixed)
+I (octal_psram): DriveStrength: 0x00 (1/1)
+I (esp_psram): Found 8MB PSRAM device
+I (esp_psram): Speed: 40MHz
+I (esp_psram): SPI SRAM memory test OK
+[m
+[1;32muart:~$ [m[8D[J*** Booting Zephyr OS build v4.5.0-rc1 ***
+[1;32muart:~$ [m[8D[JAK0 atkbench start
+[1;32muart:~$ [m[8D[JAK1 wifi_connect rc=0
+[1;32muart:~$ [m[8D[J[es8311] init: fs=16000 bclk=1024000 slot=32bit ring=4x1280B addr=0x18
+[1;32muart:~$ [m[8D[JAKa0 es8311 init rc=0
+[1;32muart:~$ [m[8D[JAKa1 capture 8 frames peak=0（>32 = ADC 链活）
+[1;32muart:~$ [m[8D[JAKa1 frame head:[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J 00[1;32muart:~$ [m[8D[J
+[1;32muart:~$ [m[8D[J[es8311] diag: bck=48/100 ws=50/100 sdi=100/100 r01=bf r02=10 r17=00
+[1;32muart:~$ [m[8D[J[es8311] regs: tx_conf=0808b204 tx_clkm=24000004 tx_div=081c201e conf1=7f7fe39f
+[1;32muart:~$ [m[8D[JAKa2 playback skipped（默认静音——ATKBENCH_AUDIO_PLAY=1 启用）
+[1;32muart:~$ [m[8D[JAK AUDIO PASS（record-only，peak=0）
+[1;32muart:~$ [m[8D[JAKw associated t=9644
+[1;32muart:~$ [m[8D[JAK2 prov load=0 burn=0（0=OK/-8=空）
+[1;32muart:~$ [m[8D[JAK9 peripherals 注册 rc=0（caps 自报面）
+[1;32muart:~$ [m[8D[J[00:00:09.690,000] [0m<inf> sd: Maximum SD clock is under 25MHz, using clock of 20000000Hz[0m
+[1;32muart:~$ [m[8D[J[00:00:09.695,000] [1;31m<err> fs: failed to create directory (-17)[0m
+[1;32muart:~$ [m[8D[JAK7 SD mounted（/SD:/res 就绪）
+[1;32muart:~$ [m[8D[JAK8 本地交互源就绪（BOOT 短按=席位 长按=estop 演示链）
+[1;32muart:~$ [m[8D[JAKU1 LCD+LVGL init rc=0（0=OK——屏应显示开机画面）
+[1;32muart:~$ [m[8D[J[ts-net] init prov_load=0 node=akn cube=akc
+[1;32muart:~$ [m[8D[J[appmgr] load buf: psram 262144B
+[1;32muart:~$ [m[8D[J[appmgr] wamr pool heap: buf=0x3c160070 size=524288 (psram/smh)
+[1;32muart:~$ [m[8D[J[ts-net] tls: mTLS 注入 ca=399B cert=390B key=138B（名称校验 ON）
+[1;32muart:~$ [m[8D[J[00:00:10.571,000] [1;31m<err> os: tid 0x3fcc67f8 is in use![0m
+[1;32muart:~$ [m[8D[J[ts-net] zenoh_open: CONNECTED loc=tls/192.168.2.101:9956
+[1;32muart:~$ [m[8D[JAK3 deploy target ready slot=1 t=10661（等待 Agent 部署）
+[1;32muart:~$ [m[8D[J[app1/l0] d9 init
+[1;32muart:~$ [m
