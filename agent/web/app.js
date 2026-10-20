@@ -291,7 +291,10 @@ async function initLaunchForm() {
       let handle;
       if (mode() === "normal") {
         appendBubble("user", plain(text));
-        handle = await callTool("app_clarify", { requirement: text });
+        handle = await callTool("app_clarify", {
+          requirement: text,
+          key_path: $("key-path").value || null,
+        });
         if (handle.task_id) {
           attachedTaskId = handle.task_id;
           appendBubble("agent", "需求澄清已开始——请回答上方问询卡。");

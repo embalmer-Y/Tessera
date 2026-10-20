@@ -523,21 +523,28 @@ class FirmwareDomainPack(DomainPackBase):
         # ---- app_clarify（W2 · LLD-A14 §5——DEC-69⑥ 普通模式；confirm 类）
         @mcp.tool
         @audited("app_clarify")
-        async def app_clarify(requirement: str, key_path: str,
+        async def app_clarify(requirement: str,
+                              key_path: str | None = None,
                               out_dir: str = "agent/build") -> dict:
             """普通模式需求澄清（DEC-69⑥ · LLD-A14 §5.1）：粗糙需求 →
             缺口分析 → 澄清问询卡（≤3 轮/≤8 问，sys_answer 应答）→ spec
             合成 → spec_check 门（不变）→ 确认后同任务交棒 app_develop。
-            长任务句柄；restart = 结构化中止（可重新发起）。"""
+            长任务句柄；restart = 结构化中止（可重新发起）。
+            key_path 缺省 = agent/keys/*.key 首个（普通模式无需懂私钥）。"""
             args = {"requirement": requirement, "key_path": key_path,
                     "out_dir": out_dir}
 
             async def body(task) -> dict:
                 log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
-                from tessera_agent.domain.clarify import clarify_and_develop
+                from tessera_agent.domain.clarify import (
+                    clarify_and_develop,
+                    resolve_key_path,
+                )
 
+                # W2 验收修复：普通模式不要求用户懂私钥——缺省发现
+                kp = resolve_key_path(ctx, key_path)
                 return await clarify_and_develop(
-                    ctx, requirement, task, key_path, out_dir, log=log)
+                    ctx, requirement, task, kp, out_dir, log=log)
 
             return await spawn("app_clarify", args, body)
 

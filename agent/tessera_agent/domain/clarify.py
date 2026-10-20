@@ -65,6 +65,24 @@ class SpecDraft(BaseModel):
     spec: str
 
 
+
+def resolve_key_path(ctx: Any, key_path: str | None) -> str:
+    """私钥缺省发现（普通模式不应要求用户懂私钥——DEC-69⑥；CLI 同款
+    规则：缺省查 <workspace>/agent/keys/*.key 首个；找不到 = 结构化错）。"""
+    if key_path:
+        return key_path
+    from pathlib import Path
+
+    keys_dir = Path(ctx.cfg.workspace_repo) / "agent" / "keys"
+    cands = sorted(keys_dir.glob("*.key")) if keys_dir.is_dir() else []
+    if cands:
+        return str(cands[0])
+    raise TaError(
+        TA_E_POLICY,
+        "未找到签名私钥（设置抽屉「签名私钥路径」或 agent/keys/*.key）",
+        domain="clarify", detail={"state": "KEY_NOT_FOUND"})
+
+
 async def clarify_and_develop(
     ctx: Any,
     requirement: str,
