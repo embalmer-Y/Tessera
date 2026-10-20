@@ -79,6 +79,9 @@ h1 { font-size: 16px; margin: 0; font-weight: 650; }
 }
 
 /* ---- 会话流（气泡） --------------------------------------------------------- */
+#stream {
+  display: flex; flex-direction: column; gap: var(--sp-2);
+}
 .bubble {
   max-width: 86%; border-radius: var(--r-l); padding: 8px 14px;
   box-shadow: var(--shadow-1); animation: rise var(--t-fast);

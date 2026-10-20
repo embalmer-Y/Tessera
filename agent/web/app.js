@@ -51,8 +51,9 @@ function appendBubble(role, text, tone) {
   const body = document.createElement("span");
   body.textContent = text;
   div.append(who, body);
-  const inter = $("interactions");
-  chat.insertBefore(div, inter.nextSibling);
+  // W2 验收修复②：气泡追加到流末尾（原 insertBefore 栈顶插入 = 会话倒序
+  // 实录）——时序 = 文档序，问询卡仍置顶于 #interactions。
+  $("stream").appendChild(div);
   if (stick) chat.scrollTop = chat.scrollHeight;
   else $("to-bottom").hidden = false;
 }
