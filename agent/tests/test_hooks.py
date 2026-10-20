@@ -158,3 +158,61 @@ def test_gateway_observe_hook(tmp_path):
         assert "巡检" in hook_mark  # args_preview 值 = repr 截断（留观标入审计）
 
     asyncio.run(main())
+
+
+# ---- A4 · D4b post 观察面（LLD-A15 §4） --------------------------------------
+
+def test_post_rule_parsing():
+    """post 仅 observe（deny 解析期拒收）；pre 语义不变。"""
+    rules = parse_rules([
+        {"when": "post", "match_tool": "app_deploy", "action": "observe",
+         "reason": "部署观察"},
+        {"when": "post", "match_tool": "x", "action": "deny"},   # 拒收
+        {"when": "pre", "match_tool": "y", "action": "deny"},    # pre 不变
+    ])
+    assert [(r.when, r.action) for r in rules] == [("post", "observe"),
+                                                   ("pre", "deny")]
+
+
+def test_post_matching_and_summary():
+    chain = HookChain(parse_rules([
+        {"when": "post", "match_tool": "deploy_*", "action": "observe"},
+    ]))
+    hits = chain.post("deploy_push_app", {"tool": "deploy_push_app"})
+    assert len(hits) == 1 and hits[0].rule.rule_id == "h0"
+    assert chain.post("sys_ping", {}) == []
+    s = HookChain.summarize("t", 12, "ok", {"big": "x" * 1000})
+    assert s["dur_ms"] == 12 and len(s["result_preview"]) == 400
+
+
+def test_gateway_post_hook_publishes_event(tmp_path):
+    """网关集成：post 规则命中 → 工具调用后 hook.post 事件入总线。"""
+    async def main():
+        from tessera_agent.common.config import AgentConfig
+        from tessera_agent.common.limits import ContextBudget
+        from tessera_agent.gateway.compose import build_app
+        from tessera_agent.platform import AppContext
+
+        cfg = AgentConfig(
+            workspace_repo=PKG_ROOT.parent, west_workspace=PKG_ROOT.parent,
+            west_venv_python=PKG_ROOT.parent / "agent" / "nofake",
+            audit_dir=tmp_path / "audit", default_model="ollama:test",
+            context_window=32_000, router_locator="tcp/127.0.0.1:7447",
+            hooks=[{"when": "post", "match_tool": "sys_ping",
+                    "action": "observe", "reason": "ping 观察"}])
+        ctx = AppContext(cfg=cfg, budget=ContextBudget(32_000))
+        app = build_app(ctx)
+        sub = await ctx.events.subscribe()
+        from fastmcp import Client
+
+        async with Client(app) as c:
+            r = await c.call_tool("sys_ping", {})
+            assert (r.data if hasattr(r, "data") else r)["pong"] is True
+        ev = await asyncio.wait_for(sub.__anext__(), timeout=3)
+        assert ev.kind == "hook.post"
+        assert ev.data["tool"] == "sys_ping"
+        assert ev.data["rule_id"] == "h0"
+        assert ev.data["state"] == "ok" and "pong" in ev.data["result_preview"]
+        sub.close()
+
+    asyncio.run(main())

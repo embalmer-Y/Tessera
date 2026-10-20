@@ -63,6 +63,9 @@ class AgentConfig:
     )
     # D4（DEC-67①）：网关钩子规则（[[hooks]]；gateway.hooks.parse_rules 消费）
     hooks: list[dict] = field(default_factory=list)
+    # A5（DEC-12 v1.1 双角色消费侧 · 九十六候选⑦）：外部 MCP server 接入
+    # （[mcp_clients]；gateway.mcp_clients 消费——工具默认 strict 不豁免）
+    mcp_clients: dict[str, dict[str, Any]] = field(default_factory=dict)
 
 
 def _expand(value: str) -> Path:
@@ -115,4 +118,9 @@ def load_config(path: str | Path | None = None) -> AgentConfig:
             dict(spec) for spec in merged.get("hooks", [])
             if isinstance(spec, dict)
         ],
+        mcp_clients={
+            name: dict(spec)
+            for name, spec in merged.get("mcp_clients", {}).items()
+            if isinstance(spec, dict)
+        },
     )

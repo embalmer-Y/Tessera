@@ -167,12 +167,15 @@ def assemble(ctx: AppContext, packs: Sequence[DomainPack]) -> FastMCP:
                     )
                     raise ToolError(_ta_payload(exc))
                 state = "ok"
+                result: Any = None
                 try:
-                    return await fn(*args, **kwargs)
+                    result = await fn(*args, **kwargs)
+                    return result
                 except TaError as exc:
                     state = "failed"
                     raise ToolError(_ta_payload(exc)) from exc
                 finally:
+                    dur = int((time.monotonic() - t0) * 1000)
                     audit_args = kwargs
                     if verdict is not None and verdict.action == "observe":
                         audit_args = {**kwargs, "_hook": {
@@ -183,8 +186,19 @@ def assemble(ctx: AppContext, packs: Sequence[DomainPack]) -> FastMCP:
                         tool=tool_name,
                         args=audit_args,
                         state=state,
-                        dur_ms=int((time.monotonic() - t0) * 1000),
+                        dur_ms=dur,
                     )
+                    # D4b/A4（LLD-A15 §4）：post 观察面——结果摘要经钩子
+                    # 外发（事件总线 hook.post；observe-only，永不反噬调用）
+                    try:
+                        summary = HookChain.summarize(tool_name, dur, state,
+                                                      result)
+                        for v in ctx.hooks.post(tool_name, summary):
+                            ctx.events.publish("hook.post", {
+                                "rule_id": v.rule.rule_id,
+                                "reason": v.reason, **summary})
+                    except Exception:  # noqa: BLE001
+                        pass
 
             return wrapper
 

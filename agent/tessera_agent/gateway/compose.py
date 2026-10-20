@@ -35,9 +35,15 @@ def apply_param_rules(pack: FirmwareDomainPack, rules: dict) -> int:
 
 
 def build_app(ctx: AppContext) -> FastMCP:
-    """装配完整 tessera-agent（V1 单域 = firmware）。"""
+    """装配完整 tessera-agent（V1 单域 = firmware；A5 = config 驱动桥接包）。"""
     pack = FirmwareDomainPack()
     apply_param_rules(pack, getattr(ctx.cfg, "policy_param_rules", {}))
     # D4（DEC-67①）：网关钩子链并入（config [hooks]；坏条目跳过不静默生效）
     ctx.hooks = HookChain(parse_rules(getattr(ctx.cfg, "hooks", None)))
-    return assemble(ctx, [pack])
+    packs = [pack]
+    # A5（DEC-12 v1.1 消费侧）：[mcp_clients] 非空 → 外部 MCP 桥接包注册
+    if getattr(ctx.cfg, "mcp_clients", None):
+        from tessera_agent.gateway.mcp_clients import MCPClientDomainPack
+
+        packs.append(MCPClientDomainPack(ctx.cfg.mcp_clients))
+    return assemble(ctx, packs)
