@@ -75,7 +75,7 @@ def build_snapshot(ctx: Any, task_id: str | None) -> dict[str, Any]:
         task = tasks[-1]
     questions = ctx.questions.list_pending()
     approvals = ctx.approvals.list_pending()
-    return {
+    snap = {
         "kind": "state",
         "task_id": task.id if task else None,
         "state": task.state if task else None,
@@ -86,6 +86,12 @@ def build_snapshot(ctx: Any, task_id: str | None) -> dict[str, Any]:
         "questions": questions,
         "approvals": approvals,
     }
+    if task is not None:
+        # W2 验收修复③：连接/切换任务 = 历史日志回放（进程内环形缓冲，
+        # ≤1000 行——刷新/切任务不丢会话；跨进程持久化 = v2 登记不实现）
+        sl = ctx.registry.log_slice(task, 0, 1000)
+        snap["log"] = sl["lines"]
+    return snap
 
 
 async def event_stream(ctx: Any, task_id: str | None,

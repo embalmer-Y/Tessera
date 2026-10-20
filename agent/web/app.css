@@ -44,8 +44,13 @@ h1 { font-size: 16px; margin: 0; font-weight: 650; }
 /* ---- 三栏布局 ------------------------------------------------------------- */
 #layout {
   flex: 1; display: grid; min-height: 0;
-  grid-template-columns: 240px minmax(0, 1fr) 300px;
+  grid-template-columns: 260px minmax(0, 1fr) 300px;
 }
+#history {
+  border-right: 1px solid var(--c-border); background: var(--c-surface);
+  overflow-y: auto; padding: var(--sp-3);
+}
+#history h2 { font-size: 13px; margin: 0 0 var(--sp-1); }
 #chat {
   position: relative; overflow-y: auto; padding: var(--sp-3);
   display: flex; flex-direction: column; gap: var(--sp-2);
@@ -66,17 +71,17 @@ h1 { font-size: 16px; margin: 0; font-weight: 650; }
 
 /* ---- 设置抽屉 -------------------------------------------------------------- */
 #settings {
-  border-right: 1px solid var(--c-border); background: var(--c-surface);
-  padding: var(--sp-3); overflow-y: auto;
+  position: absolute; z-index: 20; top: 52px; left: 0; bottom: 0;
+  width: 280px; background: var(--c-surface); border-right: 1px solid var(--c-border);
+  padding: var(--sp-3); overflow-y: auto; box-shadow: var(--shadow-2);
 }
+#settings[hidden] { display: none; }
 #settings h2 { font-size: 14px; margin-top: 0; }
 .field { display: block; font-size: 13px; margin-bottom: var(--sp-3); }
 .field select, .field input { display: block; width: 100%; margin-top: 4px; }
 .chk { display: flex; gap: 6px; align-items: center; font-size: 13px; margin: var(--sp-2) 0; }
 .about { border-top: 1px dashed var(--c-border); padding-top: var(--sp-2); }
-@media (min-width: 1024px) {
-  #settings[hidden] { display: block; }  /* 桌面常驻；hidden 仅移动端抽屉语义 */
-}
+
 
 /* ---- 会话流（气泡） --------------------------------------------------------- */
 #stream {
@@ -157,14 +162,14 @@ footer {
 
 /* ---- 响应式三档（LLD-A14 §4.5：≥1024 三栏 / 768-1023 两栏 / <768 单栏） ------ */
 @media (max-width: 1023px) {
-  #layout { grid-template-columns: minmax(0, 1fr) 260px; }
-  #settings { position: absolute; z-index: 20; top: 52px; left: 0; bottom: 0;
-              width: 260px; box-shadow: var(--shadow-2); }
-  #settings[hidden] { display: none; }
+  #layout { grid-template-columns: 200px minmax(0, 1fr) 260px; }
 }
 @media (max-width: 767px) {
   #layout { grid-template-columns: minmax(0, 1fr); }
-  #rail { display: none; }
+  #rail, #history { display: none; }
+  #history.open {
+    display: block; position: fixed; inset: 52px 0 0 0; z-index: 19;
+  }
   #rail.open {
     display: flex; position: fixed; inset: 52px 0 0 0; z-index: 19;
     border-left: none;

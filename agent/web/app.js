@@ -243,6 +243,12 @@ function handleFrame(frame) {
       break;
     case "state": {
       if (frame.task_id) $("task-label").textContent = `· ${frame.task_id}`;
+      // W2 验收修复③：历史回放（刷新/切任务不丢——日志区空时渲染快照 log）
+      if (frame.log?.length && $("log").childElementCount === 0) {
+        appendLines(frame.log);
+        appendBubble("agent",
+          `已恢复任务 ${frame.task_id.slice(0, 10)}（${frame.log.length} 条历史日志——开发者模式可查看全文）`);
+      }
       renderInteractions(frame.questions, frame.approvals);
       renderPhase(frame.phase, frame.progress);
       announcePhase(frame.phase, frame.progress);
@@ -398,6 +404,9 @@ function initSettings() {
   $("menu-settings").addEventListener("click", () => {
     const s = $("settings");
     s.hidden = !s.hidden;
+  });
+  $("menu-history").addEventListener("click", () => {
+    $("history").classList.toggle("open");
   });
   apply();
 }

@@ -19,6 +19,7 @@ from tessera_agent.common.events import EventBus
 from tessera_agent.gateway.web import (
     WEB_DIR,
     _event_frame,
+    build_snapshot,
     derive_phase,
     event_stream,
     mount_web,
@@ -229,5 +230,21 @@ def test_mcp_surface_unaffected(tmp_path):
             d2 = r2.data if hasattr(r2, "data") else r2
             assert d2["total"] == 0
             assert list(ctx.hooks.rules) == []
+
+    asyncio.run(main())
+
+
+def test_snapshot_carries_log_replay(tmp_path):
+    """W2 验收修复③：快照帧携带历史日志（刷新/切任务不丢会话）。"""
+    async def main():
+        ctx, _ = _ctx(tmp_path)
+        task = await ctx.registry.create("app_develop", {}, lambda t: {"ok": True})
+        ctx.registry.append_log(task, "line-one")
+        ctx.registry.append_log(task, "line-two")
+        snap = build_snapshot(ctx, task.id)
+        assert snap["log"] == ["line-one", "line-two"]
+        # 无任务态（独立 ctx，无回退对象）无 log 键
+        ctx2, _ = _ctx(tmp_path / "c2")
+        assert "log" not in build_snapshot(ctx2, None)
 
     asyncio.run(main())

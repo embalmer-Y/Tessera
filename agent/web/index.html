@@ -9,6 +9,7 @@
 </head>
 <body>
 <header>
+  <button id="menu-history" class="icon-btn" title="历史任务">❮</button>
   <button id="menu-settings" class="icon-btn" title="设置">☰</button>
   <div class="brand">
     <span class="logo" aria-hidden="true">◆</span>
@@ -22,6 +23,11 @@
 </header>
 
 <div id="layout">
+  <aside id="history">
+    <h2>历史任务</h2>
+    <div id="tasks"><p class="muted">暂无任务</p></div>
+  </aside>
+
   <aside id="settings" class="drawer" hidden>
     <h2>设置</h2>
     <label class="field">主题
@@ -52,10 +58,6 @@
   </main>
 
   <aside id="rail">
-    <section id="tasks-sec">
-      <h2>任务</h2>
-      <div id="tasks"><p class="muted">暂无任务</p></div>
-    </section>
     <section id="timeline-sec">
       <h2>时间线
         <select id="tl-filter"><option value="">全部工具</option></select>
