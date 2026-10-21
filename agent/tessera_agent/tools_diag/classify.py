@@ -10,7 +10,9 @@
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
+from typing import Any
 
 # ---- 类别（判据链按优先级从高到低；同文本多类命中时取链首）----
 
@@ -101,6 +103,26 @@ class DiagResult:
 
 def _match_pass(lines: list[str], pass_patterns: list[str]) -> bool:
     return any(p and p in ln for ln in lines for p in pass_patterns)
+
+
+# HW-4 ④⑤（LLD-A16 §7.4/§7.5）：硬件写拒回执扫描——固件 fail-safe 回执的
+# app 侧正典形态（ts_gpio_write 等被拒 → app 打 `<TOKEN> WRITE REJECTED`，
+# W2 验收 LED 缺陷 168 对实证）。判据行命中而写拒存在 = soft-pass/hard-invalid。
+_HW_REJECT_RE = re.compile(r"(\S+)\s+WRITE\s+REJECTED", re.IGNORECASE)
+
+
+def scan_hardware_rejections(text: str) -> list[dict[str, Any]]:
+    """窗口文本硬件写拒聚类：[{token, count, first_line}]（无 = 空列）。"""
+    counts: dict[str, int] = {}
+    first: dict[str, str] = {}
+    for ln in text.splitlines():
+        m = _HW_REJECT_RE.search(ln)
+        if m:
+            token = m.group(1)
+            counts[token] = counts.get(token, 0) + 1
+            first.setdefault(token, ln.strip())
+    return [{"token": t, "count": n, "first_line": first[t]}
+            for t, n in sorted(counts.items(), key=lambda kv: -kv[1])]
 
 
 def _first_match(lines: list[str], keys: tuple[str, ...]) -> str | None:

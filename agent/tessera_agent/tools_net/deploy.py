@@ -379,8 +379,27 @@ def post_deploy_check(
                               pass_patterns=pass_patterns or [])
     out["diag"] = {"category": r.category, "summary": r.summary,
                    "repair_hint": r.repair_hint, "evidence": r.evidence}
+    # HW-4 ④⑤（LLD-A16 §7.4/§7.5）：硬件写拒扫描 + 判据硬件感知——判据行
+    # 命中但窗内存在 `<TOKEN> WRITE REJECTED` = soft-pass/hard-invalid，
+    # criteria_pass 降级 False（物理动作未发生，日志行是假象）；扫描结果
+    # 随回执进修复轮证据链（S8 criteria_pass=False → repair 零改动消费）。
+    from tessera_agent.tools_diag.classify import scan_hardware_rejections
+    rejections = scan_hardware_rejections(text)
+    out["hardware"] = {"rejections": rejections}
     if pass_patterns is not None:
-        out["criteria_pass"] = r.category == "pass"
+        matched = r.category == "pass"
+        if matched and rejections:
+            toks = ", ".join(f"{x['token']}×{x['count']}"
+                             for x in rejections)
+            out["diag"]["repair_hint"] = (
+                "硬件写被拒（" + toks + "）——判据行为日志假象，物理动作"
+                "未发生；请核对申请通道与目标板卡物理绑定（画像 [hardware]"
+                " 事实节），改用有绑定的通道或修订 caps 后重新生成")
+            out["diag"]["evidence"] = list(out["diag"]["evidence"]) + [
+                x["first_line"] for x in rejections[:5]]
+            out["criteria_pass"] = False
+        else:
+            out["criteria_pass"] = matched
         out["pass_patterns"] = pass_patterns
     return out
 

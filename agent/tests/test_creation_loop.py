@@ -255,6 +255,42 @@ def test_compile_project_c_gates(tmp_path):
     assert "app_init" in str(ei.value.detail)
 
 
+def test_caps_natives_consistency_led_signature(tmp_path):
+    """HW-4 ③'（LLD-A16 §7.3a）：LED 缺陷签名回归——源码调 ts_gpio_write
+    而 manifest 只申报 log → face_check 拒（声明-调用不一致）；申报 gpio
+    后过；log 豁免（TEST 语义自动授予——runtime.c IR-16）不误伤既有工程。"""
+    from tessera_agent.domain.firmware_creation import caps_natives_violations
+
+    viol = caps_natives_violations(
+        {"ts_gpio_write", "ts_log_write"}, ["log:write:0"])
+    assert len(viol) == 1 and "gpio:*" in viol[0]
+    assert caps_natives_violations(
+        {"ts_gpio_write", "ts_log_write"}, ["log:write:0", "gpio:write:0"]) == []
+    assert caps_natives_violations({"ts_time_ms", "ts_net_publish"}, []) == []
+    assert caps_natives_violations(
+        {"ts_msg_send"}, ["msg:send:com.example.other"]) == []
+
+
+def test_firmware_verifier_face_check_rejects_undeclared_native(tmp_path):
+    ws = _project_ws(tmp_path)
+    project = ws.load_project()
+    project["files"] = sorted(set(project["files"]) | {"led.c"})
+    project["exports"] = list(project["exports"]) + ["led_blink"]
+    project["manifest"]["exports"] = list(project["manifest"]["exports"]) + [
+        "led_blink"]
+    (ws.project_dir / "led.c").write_text(
+        "extern int ts_gpio_write(int ctx, int inst, int v);\n"
+        "int led_blink(void) { return ts_gpio_write(0, 0, 1); }\n",
+        encoding="utf-8")
+    ws.save_project(project)
+    verifier = FirmwareCreationVerifier()
+    assert verifier.compile(ws).ok
+    f = verifier.face_check(ws)
+    assert f.ok is False
+    assert "声明-调用不一致" in f.detail
+    assert "gpio:*" in f.detail
+
+
 def test_firmware_verifier_full_chain(tmp_path):
     ws = _project_ws(tmp_path)
     verifier = FirmwareCreationVerifier()

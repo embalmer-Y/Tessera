@@ -39,6 +39,10 @@ _DEFAULTS: dict[str, dict[str, Any]] = {
     "policy": {
         "param_rules": {},
     },
+    # HW-2（DEC-73① · LLD-A16 §2）：联网搜索 provider（缺省 tavily keyless）
+    "web_search": {
+        "provider": "tavily",
+    },
 }
 
 
@@ -66,6 +70,10 @@ class AgentConfig:
     # A5（DEC-12 v1.1 双角色消费侧 · 九十六候选⑦）：外部 MCP server 接入
     # （[mcp_clients]；gateway.mcp_clients 消费——工具默认 strict 不豁免）
     mcp_clients: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # HW（DEC-73 · LLD-A16）：目标板卡画像 id（[agent] board_profile；空 =
+    # 不绑定——HW-4 面按「画像无事实」跳过）；web_search provider 名
+    board_profile: str = ""
+    web_search_provider: str = "tavily"
 
 
 def _expand(value: str) -> Path:
@@ -123,4 +131,7 @@ def load_config(path: str | Path | None = None) -> AgentConfig:
             for name, spec in merged.get("mcp_clients", {}).items()
             if isinstance(spec, dict)
         },
+        board_profile=str(merged["agent"].get("board_profile", "")),
+        web_search_provider=str(
+            merged.get("web_search", {}).get("provider", "tavily")),
     )

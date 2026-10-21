@@ -418,6 +418,15 @@ async def app_develop(
         msg = f"spec 质量门未过：{'；'.join(gate.errors)}"
         raise TaError(TA_E_ARGS, msg, domain="app_develop",
                       detail={"errors": gate.errors})
+    # HW-4 ②（LLD-A16 §7.2）：直填 spec 无【目标硬件】段且配置绑定画像 →
+    # 自动追加硬件事实段（可用通道/实例/禁假设纪律注入创作链——LLM 不再
+    # 凭空假设「gpio 0 = 板载 LED」）；未配置/无事实 = 原样（不静默改判）。
+    from tessera_agent.domain import hardware as hwdom
+    profile = hwdom.load_bound_profile(ctx.cfg)
+    if profile is not None and "【目标硬件】" not in spec:
+        brief = hwdom.hardware_facts_brief(profile)
+        spec = hwdom.append_hw_section(spec, brief)
+        log(f"hardware facts 注入: {brief[:160]}")
     skills = skill_loader.load_skills()
     active = [s.name for s in skills]
     log(f"skills active: {active}")

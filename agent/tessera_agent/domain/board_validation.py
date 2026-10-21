@@ -65,8 +65,13 @@ _ALLOWED: dict[str, set[str]] = {
     "caps": {"tiers", "min_slot_pool_kb"},
     "smoke": {"package_path", "pub_path", "criteria", "window_s"},
     "build": {"enabled", "app_target"},
+    # HW-4（LLD-A16 §7.1 · v1.1 加性）：引脚级硬件事实（选入节）
+    "hardware": {"zephyr_board", "soc", "ram_kb", "psram_kb", "notes", "pin"},
 }
 _REQUIRED_SECTIONS = ("board", "serial", "flash", "boot", "zenoh")
+
+#: HW-4 物理通道域（与 caps class 同空间；逻辑域 power/fs/log/kv/msg/sys 不核对）
+HW_PHYSICAL_DOMAINS = ("gpio", "pwm", "adc", "av")
 
 
 @dataclass(frozen=True)
@@ -116,6 +121,38 @@ class BuildSpec:
 
 
 @dataclass(frozen=True)
+class HardwarePin:
+    """引脚级硬件事实（HW-4 · LLD-A16 §7.1）——source 必填（R12「每字段
+    机械可校验来源」延伸：无来源的引脚声明拒装载）。"""
+
+    name: str
+    domain: str
+    instance: int
+    source: str
+    desc: str = ""
+
+
+@dataclass(frozen=True)
+class HardwareSpec:
+    zephyr_board: str = ""
+    soc: str = ""
+    ram_kb: int = 0
+    psram_kb: int = 0
+    notes: str = ""
+    pins: tuple[HardwarePin, ...] = ()
+
+    def bound(self, domain: str, instance: int) -> HardwarePin | None:
+        """通道域×实例是否有物理绑定（门与判据感知的唯一真相源）。"""
+        for p in self.pins:
+            if p.domain == domain and p.instance == instance:
+                return p
+        return None
+
+    def domain_pins(self, domain: str) -> tuple[HardwarePin, ...]:
+        return tuple(p for p in self.pins if p.domain == domain)
+
+
+@dataclass(frozen=True)
 class BoardProfile:
     """板卡期望的声明式清单（验证域可移植单元；R12 能力目录种子）。"""
 
@@ -128,6 +165,7 @@ class BoardProfile:
     caps: CapsSpec | None = None
     smoke: SmokeSpec | None = None
     build: BuildSpec = field(default_factory=BuildSpec)
+    hardware: HardwareSpec | None = None  # 选入节；None = 画像无事实（HW-4 面跳过）
     path: str = ""
 
 
@@ -178,6 +216,38 @@ def load_profile(path: str | Path) -> BoardProfile:
                            "P4 判定批；当前拒装载不留桩）")
     caps_raw = raw.get("caps")
     smoke_raw = raw.get("smoke")
+    hw_raw = raw.get("hardware")
+    hardware = None
+    if hw_raw is not None:
+        pins: list[HardwarePin] = []
+        for i, pin in enumerate(hw_raw.get("pin", [])):
+            unknown = set(pin) - {"name", "domain", "instance", "desc", "source"}
+            if unknown:
+                raise ProfileError(
+                    f"[hardware.pin[{i}]] 未知键 {sorted(unknown)}（fail-closed）")
+            for key in ("name", "domain", "instance", "source"):
+                if key not in pin:
+                    raise ProfileError(f"[hardware.pin[{i}]] 缺必需键 {key}")
+            if str(pin["domain"]) not in HW_PHYSICAL_DOMAINS:
+                raise ProfileError(
+                    f"[hardware.pin[{i}]] domain 须为物理域 "
+                    f"{HW_PHYSICAL_DOMAINS}，当前 {pin['domain']!r}")
+            if not str(pin["source"]).strip():
+                raise ProfileError(
+                    f"[hardware.pin[{i}]] source 必填（R12 来源纪律——无来源"
+                    "的引脚声明拒装载）")
+            pins.append(HardwarePin(
+                name=str(pin["name"]), domain=str(pin["domain"]),
+                instance=int(pin["instance"]), source=str(pin["source"]),
+                desc=str(pin.get("desc", ""))))
+        hardware = HardwareSpec(
+            zephyr_board=str(hw_raw.get("zephyr_board", "")),
+            soc=str(hw_raw.get("soc", "")),
+            ram_kb=int(hw_raw.get("ram_kb", 0)),
+            psram_kb=int(hw_raw.get("psram_kb", 0)),
+            notes=str(hw_raw.get("notes", "")),
+            pins=tuple(pins),
+        )
     return BoardProfile(
         id=board_id,
         description=str(raw["board"].get("description", "")),
@@ -200,6 +270,7 @@ def load_profile(path: str | Path) -> BoardProfile:
             window_s=float(smoke_raw.get("window_s", 90.0)),
         ),
         build=build,
+        hardware=hardware,
         path=str(p),
     )
 

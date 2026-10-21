@@ -1,8 +1,8 @@
-# LLD-A16 · 硬件定向与新板接入域 · v0.2
+# LLD-A16 · 硬件定向与新板接入域 · v0.3
 
-> **本文件是什么**：clarify 硬件定向流程 + 联网选型调研 + 新板适配路径设计——owner 2026-10-19 指令（DEC-73）+ 三条门③裁决修订（①搜索参考 QwenPaw 实现；②流程重写 = 需求分析先行、问询是否有板、查 Zephyr 收录、未收录请提供原理图、能力不满足则外接或换板；③新板适配 = DEC-68① BV 域延伸）。
+> **本文件是什么**：clarify 硬件定向流程 + 联网选型调研 + 新板适配路径设计——owner 2026-10-19 指令（DEC-73）+ 三条门③裁决修订（①搜索参考 QwenPaw 实现；②流程重写 = 需求分析先行、问询是否有板、查 Zephyr 收录、未收录请提供原理图、能力不满足则外接或换板；③新板适配 = DEC-68① BV 域延伸）+ **v0.3 = HW-4 五面扩充**（owner 2026-10-21「应该在Agent层面全面进行优化」——W2 验收 LED 缺陷的创作链硬件事实缺口全链根治，plan v1.141）。
 > **权威顺序**：owner 裁决 > FOUNDING_PROMPT > 本文件。
-> **状态**：v0.2（2026-10-19 按 owner 三裁决重写；v0.1 的「在线板默认绑定」提案废弃）。
+> **状态**：v0.3（2026-10-21 HW-4 五面扩充；v0.2 的 §1-§6 不变，HW-1/2/3 按 §1-§3 实现）。
 
 ## 1. 硬件定向流程（裁决②重写——需求分析先行，不作任何假设）
 
@@ -76,6 +76,106 @@ BV2 细设计（含 Zephyr 收录检索面/移植件模板化/判据自动化程
 | HW-1 | 硬件定向流程（①-④ 全分支 + 问询卡接线 + 画像 [hardware] 节 + 能力核对） | ~1 |
 | HW-2 | web_search 面（provider ABC + Tavily keyless + 工厂 + MCP 独立面） | ~0.5 |
 | HW-3 | 联网选型调研路径（调研 agent + 机械预筛 + Zephyr 收录列） | ~0.5 |
+| HW-4 | Agent 级硬件事实全面优化（§7 五面——v0.3 扩充） | ~1 |
 | BV2-D | 新板适配域设计批（§4 独立门③） | ~0.5（另立） |
 
-HW 合计 ~2 单元；BV2 实现另估（依赖 HW-D 定稿）。
+HW 合计 ~2.5 单元；BV2 实现另估（依赖 HW-D 定稿）。
+
+## 7. HW-4 · Agent 级硬件事实全面优化（v0.3——owner 2026-10-21 扩令；门③随批呈递）
+
+> **缺口实证**（W2 人工验收 · LED 缺陷）：用户需求「LED 闪烁」→ LLM 生成 caps
+> `gpio:write:0` 并在源码注释写「gpio 实例 0 = 板载 LED」——**零事实支撑的假设**；
+> atkbench overlay 该通道无物理引脚（板载 LED=IO4 在 PWM 通道）→ 运行期
+> `LED WRITE REJECTED` 168 对（fail-safe 回熄灭）；**编译门（语法/导入面）与判据门
+> （日志行出现即 pass）双双不拦**——「soft-pass（判据行命中）/hard-invalid（物理动作
+> 未发生）」失配缺口。治理 = Agent 层五面，全部机械可判、零 LLM 轮次。
+
+### 7.1 画像引脚级事实节（画像 schema v1 → v1.1 加性）
+
+`[hardware]` 选入节（opt-in，缺省缺 = 全部 HW-4 面按「画像无事实」跳过——旧画像
+零重写兼容，不静默改判）：
+
+```toml
+[hardware]
+zephyr_board = "dnesp32s3b_esp32s3"  # CONFIG_BOARD 自报匹配键（S0 在线辨认辅助）
+soc = "esp32s3"
+ram_kb = 512
+psram_kb = 8192
+
+[[hardware.pin]]
+name = "LEDB"            # 板载事实名（需求↔事实的连接词）
+domain = "pwm"           # 通道域（gpio|pwm|adc|av——与 caps class 同空间）
+instance = 0             # 通道实例
+desc = "板载用户 LED（IO4，高有效）"
+source = "原理图 LEDB=IO4 + atkbench overlay ledc0 channel0@0 + w2_hb 实测"  # 必填
+```
+
+纪律：`pin.source` **必填**（R12「每字段机械可校验来源」延伸——无来源的引脚声明
+拒装载）；`domain ∈ {gpio,pwm,adc,av}`（物理域——power/fs/log/kv/msg/sys 逻辑域
+不在此列，门不核对）。
+
+### 7.2 创作链硬件事实注入
+
+- clarify 路（HW-1 S0 ④）：定向产物 = spec 增**【目标硬件】段**（spec_gate 认作可选
+  节——缺省不阻塞，旧 spec 兼容）；内容 = 绑定画像的事实摘要 / 选型记录（推定态）/
+  BV2 工单 / 「未指定」如实注记。
+- 开发者模式直填 spec 路：`app_develop` 入口按配置 `[agent] board_profile` 解析画像，
+  自动追加同构【目标硬件】段（内容含「可用通道/实例全列 + 无物理绑定通道禁用」）。
+- 消费面：CreationLoop 每轮提示 spec 全文入【需求】槽（截 2000 字）+ 单发路径全文
+  传递——注入即达 LLM，**不改循环引擎**。
+
+### 7.3 caps×画像机械核对门（装前拒——soft-pass 缺口的第一道机械补位）
+
+- 位置：`deploy_push_app` / `app_deploy` MCP 面，**审批请求之前**（EC3「坏包审批前
+  拦截」同型——不浪费审批轮次）。
+- 规则：manifest caps 展开实例集合，对每个物理域实例查画像 pins——**无绑定 →
+  TA_E_POLICY 装前拒**（detail 携带违规 cap 与画像可用面）。门生效条件 = 配置
+  `board_profile` 非空且画像含 [hardware]；缺一 = 跳过（如实 log，不静默改判——
+  旧画像/未配置域零扰动）。
+- 判定语义：caps 申请「gpio:write:0」而画像 gpio 域无任何 pin = 拒；申请 pwm:0 而
+  画像 pwm 域只绑了实例 0 = 过——**以画像事实为唯一物理真相源**。
+
+### 7.4 caps⇔natives 声明-调用一致性门（v0.3 实现期补——LED 缺陷第一层）
+
+**实证修正**（真包解剖 `tessera.demo.heartbeat-0.1.0.tsap`）：缺陷包 manifest
+caps 只有 `log:write:0`——app 源码调 `ts_gpio_write` 却**未申报 gpio cap**；
+固件 TEST 语义自动授予仅覆盖 log:write:0（appmgr/runtime.c IR-16 延续性），
+gpio 不在授予面 → 权限层运行期拒（TS_E_PERM）。通道无物理引脚（§7.1 实证）
+为**第二层**独立缺陷——纵然申报，atkbench 该通道 -ENODEV 仍拒。
+
+机械补位 = `FirmwareCreationVerifier.face_check` 增**导入面 ⇔ caps 声明一致性**
+（包装前拦截，修复轮结构化证据）：native→cap 前缀映射表（gpio/pwm/adc/av/fs/
+kv/msg/power 全核；log 豁免 = TEST 语义，生产语义批收紧时同步撤；net_publish/
+time_ms 豁免 = 数值面外）。
+
+### 7.5 判据硬件感知（soft-pass 缺口的第二道机械补位）
+
+`post_deploy_check` 抓窗后增**硬件回执扫描**：console 文本中 `<TOKEN> WRITE REJECTED`
+族（固件 fail-safe 回执正典形态——ts_gpio_write 等被拒时 app 侧行）→
+`out["hardware"]["rejections"]`（token 聚类 + 计数 + 画像绑定状态注记）。判据判定
+升级：**判据行命中但窗内存在硬件写拒 → criteria_pass = False**（repair_hint =
+「硬件写被拒——判据行为日志假象，物理动作未发生」），修复轮自动获得证据（S8 既有
+criteria_pass=False → repair 链，零改动消费）。
+
+### 7.6 部署后硬件回执诊断回喂
+
+7.4 的扫描结果即诊断面：`rejections` 列表进 `out["hardware"]`，随 post_check /
+判据 miss 证据链回喂修复轮（D3/hook.post 同源）；画像绑定状态入注记（「LEDB 类
+token 在画像无 GPIO 绑定——疑似 PWM 通道（[hardware.pin] LEDDB…）」）——修复轮
+LLM 拿到的是**事实**而非猜测。
+
+### 7.7 测试策略（HW-4）
+
+- 画像 [hardware] 装载矩阵（全字段/缺 source 拒/未知域拒/缺省节跳过）；
+- 门矩阵：gpio 申请×无绑定=拒 / pwm:0×绑定 0=过 / 逻辑域豁免 / 未配置 board_profile
+  跳过 / 审批前拦截次序；
+- 回执扫描：`LED WRITE REJECTED` 168 对样本形态聚类 / 判据命中+写拒 → False /
+  纯判据 miss 不受扰 / 无写拒不降级；
+- 注入：app_develop 直填 spec 自动追加【目标硬件】/ clarify 路段落合成 / 旧 spec 兼容。
+
+## 8. v0.3 不改变的红线
+
+- spec 四节门（NV-2）不变——【目标硬件】为可选节，缺省不阻塞；
+- 部署链验签/租约/分块/激活全不变——门在审批前，纯 Agent 侧；
+- bus/事件/审批语义不变；画像旧节零改动（v1.1 加性——fail-closed 白名单扩一项）。
+

@@ -16,9 +16,10 @@ import re
 from dataclasses import dataclass, field
 
 #: 四节模板标记（**任意位置**命中即开新节——行首/行中/单行拼接 spec 均可；
-#: NV-6 首用实证：单行拼接 spec 的行首约定过苛）
+#: NV-6 首用实证：单行拼接 spec 的行首约定过苛）。
+#: 目标硬件 = HW-4 可选节（LLD-A16 §7.2——缺省不阻塞，旧 spec 兼容）
 SECTIONS = ("需求", "资源", "判据", "安全声明")
-_SEC_SPLIT_RE = re.compile(r"【(需求|资源|判据|安全声明)】")
+_SEC_SPLIT_RE = re.compile(r"【(需求|资源|判据|安全声明|目标硬件)】")
 
 #: 【判据】节引号串提取（ASCII 双引号 + 中文引号；串内禁换行）
 _QUOTED_RE = re.compile(r'["“]([^"”\n]{3,120})["”]')
@@ -123,3 +124,13 @@ def check_spec(spec: str) -> SpecGateResult:
 
     res.ok = not res.errors
     return res
+
+
+def extract_caps(spec: str) -> list[str]:
+    """【资源】节 caps 列表提取（HW-4 能力核对消费面——spec 即单一事实源；
+    未声明/文法外条目不在此滤——质量门职责在 check_spec）。"""
+    resrc = _split_sections(spec).get("资源", "")
+    m = _CAPS_LIST_RE.search(resrc)
+    if not m:
+        return []
+    return re.findall(r'"([^"]+)"', m.group(1))

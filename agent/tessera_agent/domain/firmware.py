@@ -17,7 +17,12 @@ from typing import Any
 
 import cbor2
 
-from tessera_agent.common.errors import TA_E_ARGS, TA_E_TSAP, TaError
+from tessera_agent.common.errors import (
+    TA_E_ARGS,
+    TA_E_POLICY,
+    TA_E_TSAP,
+    TaError,
+)
 from tessera_agent.core.session import PolicyTable
 from tessera_agent.domain import app_chain
 from tessera_agent.domain import board_validation as bv
@@ -64,6 +69,36 @@ def install_permission_brief(package_path: str) -> str:
             f"threads={s['threads']} wasm={s['wasm_bytes']}B")
 
 
+def hardware_gate(ctx: AppContext, package_path: str) -> dict | None:
+    """HW-4 ③ caps×画像机械核对门（LLD-A16 §7.3——装前拒，审批前拦截，
+    EC3「坏包审批前拦截」同型——不浪费审批轮次）。
+
+    生效条件 = 配置 board_profile 绑定画像且画像含 [hardware] 事实节；
+    缺一 = 跳过（返回 None——旧画像/未配置域零扰动，不静默改判）。
+    违规（申请的物理通道实例画像无绑定）= TA_E_POLICY，detail 携带违规
+    cap 全列与画像可用面——LLM 修复轮拿到事实而非猜测。"""
+    from tessera_agent.domain import hardware as hwdom
+
+    profile = hwdom.load_bound_profile(ctx.cfg)
+    if profile is None or profile.hardware is None:
+        return None
+    caps = tsap_tools.manifest_summary(package_path)["caps"]
+    violations = hwdom.check_caps_against_profile(caps, profile)
+    if not violations:
+        return {"gated": True, "profile": profile.id, "violations": []}
+    avail = [f"{p.domain}:{p.instance}（{p.name}）"
+             for p in profile.hardware.pins] or ["（无物理绑定通道——物理域"
+                                                  " caps 一律拒）"]
+    raise TaError(
+        TA_E_POLICY,
+        "硬件事实门装前拒：caps 申请的通道在目标板画像无物理绑定 "
+        f"({', '.join(sorted(set(violations)))})——画像可用："
+        f"{'; '.join(avail)}（board={profile.id}；LLD-A16 §7.3）",
+        domain="deploy",
+        detail={"state": "HW_GATE_REJECTED", "violations": sorted(set(violations)),
+                "board": profile.id})
+
+
 def validate_tsap_manifest(package_path: str) -> None:
     """产物校验器：TSAP 容器 manifest 段结构校验（TsapManifest v1）。"""
     p = Path(package_path)
@@ -98,7 +133,7 @@ class FirmwareDomainPack(DomainPackBase):
         "ln_estop_clear",
         "app_develop", "app_deploy", "app_compile",
         "app_clarify",
-        "board_validate", "memory_audit",
+        "board_validate", "memory_audit", "web_search",
         "diag_classify", "spec_check", "simreal_diff",
     ])
     skills: list[str] = field(default_factory=lambda: [
@@ -116,6 +151,7 @@ class FirmwareDomainPack(DomainPackBase):
         "app_deploy": "strict",
         "board_validate": "strict",  # V0.13.0 BV1：复位+部署冒烟=板态写入
         "memory_audit": "confirm",   # V0.13.0 MP：本地只读分析（LLD-A13）
+        "web_search": "confirm",     # HW-2（DEC-73①·LLD-A16 §2）：出站联网
         "diag_classify": "confirm",
         "spec_check": "confirm",
         "simreal_diff": "confirm",
@@ -444,6 +480,10 @@ class FirmwareDomainPack(DomainPackBase):
 
             async def body(task) -> dict:
                 log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
+                # HW-4 ③：硬件事实门（装前拒——先于审批，坏包不浪费审批轮）
+                gate = hardware_gate(ctx, package_path)
+                if gate:
+                    log(f"hardware gate PASS: board={gate['profile']}")
                 # EC3（Q-40③）：审批请求携带包权限面（坏包审批前拦截）
                 brief = install_permission_brief(package_path)
                 log(f"install permissions: {brief}")
@@ -559,6 +599,10 @@ class FirmwareDomainPack(DomainPackBase):
 
             async def body(task) -> dict:
                 log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
+                # HW-4 ③：硬件事实门（装前拒——先于审批）
+                gate = hardware_gate(ctx, package_path)
+                if gate:
+                    log(f"hardware gate PASS: board={gate['profile']}")
                 # EC3（Q-40③）：审批请求携带包权限面（坏包审批前拦截）
                 brief = install_permission_brief(package_path)
                 log(f"install permissions: {brief}")
@@ -577,6 +621,25 @@ class FirmwareDomainPack(DomainPackBase):
                 )
 
             return await spawn("app_deploy", args, body)
+
+        # ---- web_search（HW-2 · LLD-A16 §2——DEC-73①；confirm 类：出站联网）
+        @mcp.tool
+        @audited("web_search")
+        async def web_search(query: str, max_results: int = 5) -> dict:
+            """联网搜索（Tavily keyless 缺省——免 key 可用；TAVILY_API_KEY
+            时 Bearer 优先 + 401/429/432 自动回退）。查询词过凭据打码
+            （sk-/Bearer/password=/长 hex → [REDACTED]）；查询与结果全量审计。
+            选型调研（HW-3）内嵌消费同 provider；A5 桥接自备 server 走
+            [mcp_clients] 另行扩展（不经此面）。"""
+            from tessera_agent.gateway.websearch import get_search_provider
+
+            try:
+                prov = get_search_provider(ctx.cfg)
+                results = await prov.search(query, max_results=max_results)
+                return {"provider": prov.name, "results": results}
+            except Exception as exc:  # noqa: BLE001 —— 结构化故障不裸抛
+                return {"provider_error": f"{type(exc).__name__}: {exc}",
+                        "results": []}
 
         # ---- board_validate（V0.13.0 BV1 · LLD-A12；strict 类）
         @mcp.tool

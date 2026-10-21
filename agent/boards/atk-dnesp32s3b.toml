@@ -36,3 +36,19 @@ window_s = 90.0 # 暖复位后 boot ~50s 实测 × 裕度（NVD v4 教训：窗 
 
 [build]
 enabled = false # C0 构建前级未接入（V0.14.0 P4 判定批形态；true 拒装载）
+
+# HW-4（LLD-A16 §7.1 · v1.1 加性）：引脚级硬件事实——创作链/部署门/判据
+# 感知的唯一物理真相源。每 pin.source 必填（R12 来源纪律）。
+[hardware]
+zephyr_board = "dnesp32s3b_esp32s3" # CONFIG_BOARD 自报匹配键（S0 在线辨认辅助）
+soc = "esp32s3"
+ram_kb = 512
+psram_kb = 8192 # SMH 4MB 在用（K5）；总 8MB
+notes = "gpio 域无板载绑定（atkbench overlay zephyr,user 无 io-gpios——akled 通道 -ENODEV；板载 LED 在 PWM 域）。BOOT 键 IO0 为固件本地手势源，不经 ts 通道表。"
+
+[[hardware.pin]]
+name = "LEDB"
+domain = "pwm"
+instance = 0
+desc = "板载用户 LED（IO4，经 PWM 通道驱动）"
+source = "原理图 LEDB=IO4 + atkbench overlay ledc0 channel0@0 + w2_hb_live_console.txt 168 对 LED WRITE REJECTED 实测（2026-10-20 验收）"

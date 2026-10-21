@@ -34,6 +34,34 @@ from tessera_agent.tools_tsap.wasm_build import (
 
 SimFn = Callable[[Workspace, dict[str, Any]], VerifyOutcome]
 
+# HW-4 ③'（LLD-A16 §7.3a · owner 2026-10-21 扩令）：源码导入 ⇔ manifest caps
+# 声明一致性——LED 缺陷第一层（app 调 ts_gpio_write 但 manifest 只申报
+# log → 权限层运行期拒，168 对 WRITE REJECTED）的机械补位：包装前 face
+# 检查即拦，修复轮拿到结构化证据而非猜测。豁免（如实注记）：
+# - ts_log_write：TEST 语义自动授予 log:write:0（appmgr/runtime.c IR-16
+#   延续性）——生产语义批收紧时本豁免同步撤；
+# - ts_net_publish/ts_time_ms：net 域与时间源不属 caps 数值面。
+_NATIVE_CAP_MAP = {
+    "ts_gpio_write": "gpio:", "ts_gpio_read": "gpio:",
+    "ts_pwm_set": "pwm:", "ts_adc_read": "adc:",
+    "ts_av_capture": "av:",
+    "ts_fs_read": "fs:", "ts_fs_write": "fs:",
+    "ts_fs_list": "fs:", "ts_fs_delete": "fs:",
+    "ts_kv_save": "kv:", "ts_kv_load": "kv:",
+    "ts_msg_send": "msg:", "ts_msg_recv": "msg:",
+    "ts_power_set": "power:", "ts_power_get": "power:",
+}
+
+
+def caps_natives_violations(imports: set[str], caps: list[str]) -> list[str]:
+    """导入面 ⇔ caps 声明一致性核对（零 LLM 机械面）。返回违规描述列表。"""
+    out: list[str] = []
+    for imp in sorted(imports):
+        need = _NATIVE_CAP_MAP.get(imp)
+        if need and not any(c.startswith(need) for c in caps):
+            out.append(f"{imp} 需要 caps 声明 {need}*（当前 caps={caps}）")
+    return out
+
 
 def _from_ta_error(exc: TaError) -> VerifyOutcome:
     detail = exc.message
@@ -95,6 +123,17 @@ class FirmwareCreationVerifier:
                 ok=False,
                 detail=f"导入面越权（natives 白名单外）: {bad}",
                 facts={"imports": sorted(imports)},
+            )
+        # HW-4 ③'：声明-调用一致性（调了 native 未申报 cap = 运行期权限
+        # 拒——包装前拦截，LED 缺陷第一层的机械补位）
+        caps = list(((ws.load_project().get("manifest") or {})
+                     .get("caps")) or [])
+        viol = caps_natives_violations(imports, caps)
+        if viol:
+            return VerifyOutcome(
+                ok=False,
+                detail="声明-调用不一致（caps 缺申报）:\n- " + "\n- ".join(viol),
+                facts={"imports": sorted(imports), "caps": caps},
             )
         size = wasm.stat().st_size
         if size > DEFAULT_MAX_BYTES:
