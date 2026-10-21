@@ -1,0 +1,53 @@
+# docs/evidence/p4w2_console.txt · P4-W2 判据链（V0.14.0 P4 联网批收口）
+# 板：ESP32-P4-WIFI6-DEV-KIT（P4 v3.1 eco6 + C6 伴芯 SDIO）｜串口 CH343 5B90122202
+# 镜像：p4bench + p4net.conf（TS_NET/zenoh + esp_hosted_mcu 新驱动 + POSIX pthread + 堆 48KB）
+# prov：p4-dev / cube-p4 / tcp/192.168.2.101:9957 / pub0=fixture 测试根（offset 0x7e0000）
+# 判据：CONNECTED 多 boot 复现 + 部署链三段 PASS + 探针 WASM RV32 装载运行 × 多次
+# 凭据：构建期 /tmp cmake 文件注入（600）——证据无凭据面
+
+== 入网链（每次 boot 复现）==
+P4W2 WIFI UP
+P4W2 wifi_connect rc=0
+P4W2 DHCP OK ip=192.168.2.29 gw=192.168.2.1
+P4B3 boot: prov from flash node=p4-dev
+[ts-net] init prov_load=0 node=p4-dev cube=cube-p4
+[ts-net] zenoh_open: CONNECTED loc=tcp/192.168.2.101:9957
+
+== 驱动协商实证（buf-config TLV——教训 32⑤ 拼图位）==
+[00:00:01.281] esp_hosted_mcu_core: coprocessor priv event 34
+[00:00:01.281] esp_hosted_mcu_core: coprocessor SDIO e2h mode 1   ← STREAM 识别（C6 旧固件原生兼容）
+[00:00:01.284] esp_hosted_mcu_core: coprocessor firmware v3.0.9
+
+== 部署链三段（deploy_push_app → P4）==
+[agent] install permissions: APP demo.p4w.probe v1.0.0 tier=small caps=[log:write:0] ...
+[agent] tsap_verify PASS（host 复验）
+[agent] upload → slot 0（total=1812B）；verify PASS: facts={'manifest_len': 138, 'wasm_len': 706, 'cose_off': 892}
+[agent] activate confirmed: slot=0（get-app confirmed=true）
+HW-4 门：caps×画像——P4 画像 [hardware] 在位引脚未采：物理域申请装前拒；探针 log-only 通过 ✓
+（教训链：自造测试钥签名被 TEST 板如实拒 status=-9 TS_E_INVALID_SIG——板侧 sm 指纹
+ pk0=f084a4e5 = 编译内固定测试根〔verify.c test_root_pub / fixtures/ts-test-root〕；
+ 改用 fixture 根签包后 verify PASS——信任链按设计工作）
+
+== 探针 WASM RV32 装载运行（多次复现）==
+[app1/l3] P4W2 PROBE INIT
+P4B5 app active: id=demo.p4w.probe ver=1.0.0 slot=0
+
+== BV1 board_validate p4-wifi6（C1-C6）==
+[C1] PASS 串口在场 — port open ok
+[C2] PASS flash 身份 — chip=ESP32-P4 size=16384KB（期望 esp32p4/16384KB）
+[C3] PASS boot/console — 就绪判据全命中: CONNECTED loc=
+[C4] PASS zenoh 连通 — node=p4-dev cube=cube-p4 命令面回执全通
+[C5] PASS caps 消费 — tiers=['small'] slot_pool=64KB（期望 ⊇['small'] ≥64KB）
+[C6] FAIL 判据 miss（如实不掩蔽——见残余登记）
+
+== 残余缺陷（P4 板级专项 FIX-2 候选——FIX-1 先例同位）==
+探针 meta 下板复位循环（~15-20s 周期；探针 INIT 后板自复位，meta 交替 probe/P4B；
+P4B meta 下板稳如磐石 90s+ 零复位）。疑似健康回退族（B2 批 rollback_count 链）或
+bench-vs-app 互扰（pb_verify 线程 app_evt 写判据对非 P4B app 必 FAIL）——root cause
+随板级专项。C6 判据已加激活后无条件暖复位（CG7 正典语义）+ 探针周期判据行（盲区免疫）。
+
+== 附：构建三坑（p4net 面入册）==
+zenoh-pico Zephyr 平台需 POSIX pthread 族（POSIX_API/THREAD_THREADS_MAX）；
+系统堆 4096 缺省 = z_open rc=-78（_Z_ERR_SYSTEM_OUT_OF_MEMORY）→ 48KB
+（sram0_0_seg 余量实测推算：131072 溢出 79968B）；
+protoc + PROTOBUF_PROTOC_EXECUTABLE 显式传参（esp_hosted_mcu nanopb RPC 生成）。

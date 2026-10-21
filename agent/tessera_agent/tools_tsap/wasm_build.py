@@ -372,11 +372,17 @@ def compile_app_c(
     wasm_path = real / "app.wasm"
     wasm2_path = real / "app.wasm.check"
     thr_flags = CLANG_FLAGS_THREADS if int(threads) > 1 else []
+    # exports：required_exports → 逐符号 -Wl,--export=（与 compile_project_c
+    # 同语义——V0.14.0 P4-W2 探针链实证：此前单文件路径从不传导出旗标，
+    # required_exports 面恒缺 = 存量潜伏缺陷；None 时行为不变）
+    export_flags = list(required_exports) if required_exports else None
     with _dir_lock(real):  # IR2-10：同 out_dir 串行（防交叉污染）
         c_path.write_text(source_c, encoding="utf-8")
-        _run_clang(c_path, wasm_path, timeout_s, thr_flags + tier_flags)
+        _run_clang_files([c_path], wasm_path, timeout_s,
+                         thr_flags + tier_flags, exports=export_flags)
         # 确定性自证：同源重编译逐字节比对（R5；不一致 = 环境泄漏）
-        _run_clang(c_path, wasm2_path, timeout_s, thr_flags + tier_flags)
+        _run_clang_files([c_path], wasm2_path, timeout_s,
+                         thr_flags + tier_flags, exports=export_flags)
         deterministic = wasm_path.read_bytes() == wasm2_path.read_bytes()
         wasm2_path.unlink()
     if not deterministic:

@@ -18,6 +18,82 @@
 #include <ts/store.h>
 #include <ts/tsap.h>
 #include "../../../module/tessera/src/net/internal.h" /* ts_cbor_* 构造助手 */
+
+#ifdef P4BENCH_NET
+/* P4-W2（V0.14.0）网络面：WiFi STA（esp_hosted_mcu 新驱动）+ DHCPv4。
+ * atkbench 同型（main 前置联网——zenoh glue 自举时链路已备）；凭据经
+ * CMake 凭据文件编入（仓外纪律）。判据行：P4W2 WIFI UP / P4W2 DHCP OK。
+ * 失败不 abort——继续走框架流（zenoh 面如实离线，日志可辨）。 */
+#include <zephyr/net/net_if.h>
+#include <zephyr/net/net_event.h>
+#include <zephyr/net/wifi_mgmt.h>
+#include <zephyr/net/dhcpv4.h>
+
+#ifndef P4BENCH_WIFI_SSID
+#define P4BENCH_WIFI_SSID ""
+#endif
+
+static struct net_mgmt_event_callback p4b_ip_cb;
+static struct k_sem p4b_ip_sem;
+
+static void p4b_ip_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt,
+			   struct net_if *iface)
+{
+	ARG_UNUSED(cb);
+	ARG_UNUSED(iface);
+	if (mgmt == NET_EVENT_IPV4_ADDR_ADD) {
+		k_sem_give(&p4b_ip_sem);
+	}
+}
+
+static void p4b_net_up(void)
+{
+	struct net_if *iface = net_if_get_default();
+
+	for (int s = 0; s < 100 && !iface; s++) { /* 驱动 netif 注册等待 */
+		k_sleep(K_MSEC(100));
+		iface = net_if_get_default();
+	}
+	if (!iface) {
+		printk("P4W2 WIFI FAIL no netif（无网形态继续）\n");
+		return;
+	}
+	printk("P4W2 WIFI UP\n");
+
+	k_sem_init(&p4b_ip_sem, 0, 1);
+	net_mgmt_init_event_callback(&p4b_ip_cb, p4b_ip_handler,
+				     NET_EVENT_IPV4_ADDR_ADD);
+	net_mgmt_add_event_callback(&p4b_ip_cb);
+
+	static const uint8_t ssid[] = P4BENCH_WIFI_SSID;
+	static const uint8_t psk[] = P4BENCH_WIFI_PASSWORD;
+
+	struct wifi_connect_req_params cnx = {
+		.ssid = ssid,
+		.ssid_length = sizeof(ssid) - 1,
+		.psk = psk,
+		.psk_length = sizeof(psk) - 1,
+		.security = WIFI_SECURITY_TYPE_PSK,
+		.channel = WIFI_CHANNEL_ANY,
+		.band = WIFI_FREQ_BAND_2_4_GHZ,
+		.mfp = WIFI_MFP_OPTIONAL,
+	};
+	int rc = net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &cnx, sizeof(cnx));
+	printk("P4W2 wifi_connect rc=%d\n", rc);
+
+	if (k_sem_take(&p4b_ip_sem, K_SECONDS(40)) == 0 && iface->config.ip.ipv4) {
+		char ip[NET_IPV4_ADDR_LEN];
+
+		net_addr_ntop(AF_INET,
+			      &iface->config.ip.ipv4->unicast[0].ipv4.address.in_addr,
+			      ip, sizeof(ip));
+		printk("P4W2 DHCP OK ip=%s\n", ip);
+	} else {
+		printk("P4W2 DHCP FAIL（40s 无址——继续，zenoh 面将离线重试）\n");
+	}
+}
+#endif /* P4BENCH_NET */
+
 #include "p4bench_pkg.h" /* TSAP v2 包（gen_p4b_pkg.py 机械生成，测试根签名 */
 
 /* ---- sim 通道（框架.app 同款：唯一写路径 → driver_dispatch → sim 记录）-- */
@@ -190,6 +266,10 @@ K_THREAD_DEFINE(pb_verify_tid, 2048, pb_verify, NULL, NULL, NULL, 12, 0, 1000);
 int main(void)
 {
 	printk("P4B0 persistbench\n");
+
+#ifdef P4BENCH_NET
+	p4b_net_up(); /* P4-W2：联网先行（zenoh glue 自举时链路已备） */
+#endif
 
 	ts_res_t lr = ts_store_prov_load();
 

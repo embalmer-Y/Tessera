@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: Apache-2.0
+# 板卡画像：微雪 ESP32-P4-WIFI6-DEV-KIT（V0.14.0 P4 联网批现役板——
+# esp32s3 已移除 2026-10-21；LLD-A12 §2 schema v1 + HW-4 [hardware] v1.1）
+[board]
+id = "p4-wifi6"
+description = "Waveshare ESP32-P4-WIFI6-DEV-KIT（P4 v3.1 + C6 伴芯 SDIO；GD 16MB）"
+
+[serial]
+# by-id 稳定路径纪律（教训 31③：CH343 COM 口 = console(uart0)+esptool 同口）
+port = "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B90122202-if00"
+baud = 115200
+
+[flash]
+adapter = "esptool"
+chip = "esp32p4"
+size_kb = 16384 # GD 16MB（JEDEC c8:4018——P4-W1 flash-id 实测；esptool RTS 自动复位链可用）
+
+[boot]
+reset = true
+ready_patterns = ["CONNECTED loc="] # zenoh 连通行 = 板就绪正典判据
+timeout_s = 90.0 # P4 boot ~2s + wifi ~5s 实测 × 裕度
+
+[zenoh]
+expect_discover = true
+cube = "" # 空 = 恰一在线即本板（现役单板）
+
+[caps]
+tiers = ["small"]
+min_slot_pool_kb = 64 # get-info 自报实测（2026-10-21：slot_pool=64KB）
+
+[smoke]
+package_path = "agent/demos/P4W/p4w.probe-1.0.0.tsap" # 探针根签名 log-only 包（HW-4 门语义与引脚未采期自洽）
+pub_path = "agent/demos/P4W/test-root.pub"
+criteria = ["P4W2 PROBE INIT", "P4W2 PROBE ALIVE"] # 任一命中即过（INIT 确定性单行 + ALIVE 周期行——复位盲区免疫）
+window_s = 90.0
+
+# HW-4（LLD-A16 §7.1）：硬件事实。引脚级 pin 条目**暂缺**——p4bench 通道表
+# 为 sim 表（P4B 系判据），板载外设→ts 通道映射待原理图/实测采集后补
+# （补条目时 source 必填，R12 纪律）；[hardware] 在位使 HW-4 caps×画像门
+# 生效：物理域 caps 申请将被装前拒（log 域豁免——探针包通过）。
+[hardware]
+zephyr_board = "esp32p4_wifi6_dev_kit" # get-info 自报实测（2026-10-21）
+soc = "esp32p4" # P4 v3.1 eco6（esptool 实测）
+ram_kb = 768 # HP SRAM 规格（乐鑫 datasheet；heap 实际预算见 p4net.conf 48KB）
+psram_kb = 32768 # 32MB（kit 布局；P4-NRW32）
+notes = "C6 伴芯经 SDIO（sdhc1 4-bit@40MHz + reset GPIO1_22——树内 board dts）；wifi = 树内新代 esp_hosted_mcu 驱动（P4-W1/W2 实测全绿）。物理引脚事实未采——物理域 caps 装前拒如实生效。"

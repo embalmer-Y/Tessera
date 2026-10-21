@@ -301,3 +301,22 @@ def test_power_natives_face_ok(tmp_path):
     )
     out = compile_app_c(src, str(tmp_path / "o"), [str(tmp_path)])
     assert set(out["imports"]) == {"ts_power_set", "ts_power_get"}
+
+
+def test_compile_app_c_required_exports_reachable(tmp_path):
+    """V0.14.0 P4-W2 实证修复：compile_app_c 此前从不把 required_exports
+    传给 clang（-Wl,--export= 从未生效——单文件路径导出面恒缺，存量潜伏
+    缺陷）。修复后导出面逐符号可达。"""
+    from tessera_agent.tools_tsap.wasm_build import compile_app_c
+
+    src = (
+        "int health_ping(void) { return 0; }\n"
+        "int app_init(int ctx) { return 0; }\n"
+        "int app_tick(int ctx) { (void)ctx; return 0; }\n"
+        "int app_evt(int v) { return v; }\n"
+    )
+    out = compile_app_c(src, str(tmp_path), [str(tmp_path)],
+                        required_exports=["health_ping", "app_init",
+                                          "app_tick", "app_evt"])
+    assert {"health_ping", "app_init", "app_tick", "app_evt"} <= set(out["exports"])
+    assert out["deterministic"] is True

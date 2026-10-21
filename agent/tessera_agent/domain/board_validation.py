@@ -505,7 +505,19 @@ class LiveTransport:
             out["deploy"] = {k: d.get(k) for k in
                              ("node", "cube", "app_id", "slot")}
         except Exception as exc:  # noqa: BLE001
-            return False, {"deploy_error": f"{type(exc).__name__}: {exc}"}
+            return False, {"deploy_error": f"{type(exc).__name__}: {exc}"
+                                          f"（安装链失败）"}
+        # V0.14.0 P4-W2 实证语义修订：激活后**无条件暖复位**（CG7 正典
+        # 语义「激活暖复位 ACTIVE」——同 app 重部署场景 state 已 ACTIVE
+        # 但跑的是旧内容，条件复位会漏；自 flash 装载 = 最强合同）。热
+        # 切换板行为并入正典（atk 窗 90s 实测覆盖 boot）。复位 = RTS
+        # 脉冲（教训 42 DTR/RTS 显式管理）。
+        try:
+            self._log("[c6] 激活完成——暖复位走自 flash 装载（CG7 语义）")
+            self._serial_reset(serial_port)
+            out["post_reset"] = True
+        except Exception as exc:  # noqa: BLE001
+            out["reset_error"] = f"{type(exc).__name__}: {exc}"
         try:
             with ZenohService(self._locator) as svc:
                 out["post"] = net_deploy.post_deploy_check(
@@ -514,6 +526,19 @@ class LiveTransport:
         except Exception as exc:  # noqa: BLE001
             out["post_error"] = f"{type(exc).__name__}: {exc}"
         return True, out
+
+    def _serial_reset(self, port: str, baud: int = 115200) -> None:
+        """RTS 脉冲复位（pyserial；DTR 保持低——教训 42 时序纪律）。"""
+        import time as _t
+
+        import serial  # noqa: PLC0415 —— 方法内惰性（CLI 面不强制 pyserial）
+
+        ser = serial.Serial(port, baud, timeout=1)
+        ser.dtr = False
+        ser.rts = True
+        _t.sleep(0.1)
+        ser.rts = False
+        ser.close()
 
 
 # ---- 检查项（C1-C6；依赖链 = LLD-A12 §3 表 + §4.1 派生 SKIP 规则）--------------

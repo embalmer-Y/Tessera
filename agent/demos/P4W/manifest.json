@@ -1,0 +1,16 @@
+{
+ "app_id": "demo.p4w.probe",
+ "app_ver": "1.0.0",
+ "min_fw_ver": "1.0.0",
+ "caps": [
+  "log:write:0"
+ ],
+ "stack_kb": "8",
+ "heap_kb": "4",
+ "exports": [
+  "health_ping",
+  "app_init",
+  "app_tick",
+  "app_evt"
+ ]
+}
