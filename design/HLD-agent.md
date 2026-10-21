@@ -1,6 +1,6 @@
-# HLD · Tessera Agent（AI 开发 Agent）· v0.2.2
+# HLD · Tessera Agent（AI 开发 Agent）· v0.2.3
 
-> **状态**：v0.2 深度修订（2026-10-13，DEC-56/57 通用域解放批：双角色 + 智能内化 + 质量优先条款——本文按「不允许最简实现」标准重写架构层）。输入：DEC-11/12 v1.1、DEC-56/57、Q-38 全 A、R6（agent-cli-research-01 映射）+ R7（工程链事实）。
+> **状态**：v0.2.3 深度修订（2026-10-21，V0.13.0 收口——V0.12「Agent 协同批」与 V0.13「Agent 自主化批」全部架构面入册：MCI 多渠道交互层 / web 渠道 / 事件总线 / 问询审批双向化 / BV1 板卡验证域 / MP 内存审计 / clarify 双模式 / 硬件定向与硬件事实域）。v0.2 深度修订（2026-10-13，DEC-56/57）为基座；输入：DEC-11/12 v1.1、DEC-56/57、Q-38 全 A、DEC-65/66/67/68/69/70/71/72/73、R6/R7。
 > **输入（承继已裁）**：DEC-33（多域北极星）/DEC-34/35/36/37/38（原 v0.1 决策链全部维持）。
 > **固件侧合同**（既有约束）：TSAP v2、zenoh 命名空间、prov CBOR、sys 命令面、native_sim、安全与确定性合同（AGENTS.md §6）。
 
@@ -13,20 +13,24 @@ Tessera Agent = PC 侧（Linux）**全 Python 单进程程序**，**双角色**�
 
 **北极星（DEC-33）**：平台层与域工具解耦，未来接入 PCB/结构件等域 agent；**v0.2 新增的第三条结构原则**：创作循环引擎域无关（验证器为域插件——§2.2 A08），使"复杂工程创作"能力本身成为可被未来域复用的平台资产。
 
-## 1. 系统上下文（v0.2：三门面同根）
+## 1. 系统上下文（v0.2.3：MCI 三层四渠道同根）
 
 ```text
-人（终端）──TerminalFrontend(A09)──┐                    ┌── zenoh ──▶ 设备/zenohd
-                                  ├─▶ compose 根（AppContext：│             （设备——形态不限）
-外部 AI CLI ──MCP 门面(A01)──────┘   cfg/budget/audit/  │
-                                     tasks/policy/skills）┴── 子进程 ──▶ west/clang/twister/pytest
-                                     │                                    （只读白名单+审计）
-                                     ├── A02 会话编排（PydanticAI 循环）
+人（终端）──TerminalFrontend(A09)──┐                      ┌── zenoh ──▶ 设备/zenohd
+人（浏览器）──web 渠道(A11+W2)────┤                      │             （设备——形态不限）
+外部 AI CLI ──MCP 门面(A01)──────┼─▶ compose 根（AppContext：│
+外部 harness ──pi 渠道（M1 HOLD）─┘   cfg/budget/audit/    │
+                                     tasks/policy/skills/events）┴── 子进程 ──▶ west/clang/twister/pytest
+                                     │                                      （只读白名单+审计）
+                                     ├── A02 会话编排（PydanticAI 循环；clarify 双模式前置域）
                                      ├── A08 创作工作区（循环引擎+工作区+快照）
-                                     └── 域工具（固件 DomainPack：fw/sim/tsap/deploy/ln/app_*）
+                                     ├── A10 MCI 交互层（EventBus 直推 /events v2——快照+Last-Event-ID 续传）
+                                     └── 域工具（固件 DomainPack：fw/sim/tsap/deploy/ln/app_*/bv1/mp/hw 面）
 ```
 
-**三条铁律**：①三门面共享同一 compose 根（同一审计流/任务注册表/审批闸——不是三套系统）；②创作面放宽、**交付门不撤**（§5.2 清单）；③工作区永不入仓（gitignore 常设）。
+**MCI 三层（DEC-66 · LLD-A10）**：Transport（stdio/HTTP——FastMCP 既有）/ Interaction（ApprovalBroker/QuestionBroker/Task.progress + **EventBus 直推**）/ Renderer（各渠道呈现——web 呈现层见 LLD-A14）。**四渠道 = 同一 compose 根的四个客户端**；服务端闸 = 管所有渠道的真边界（D4 hooks 拦截面）。
+
+**四条铁律**：①全渠道共享同一 compose 根（同一审计流/任务注册表/审批闸/事件总线——不是多套系统）；②创作面放宽、**交付门不撤**（§5.2 清单）；③工作区永不入仓（gitignore 常设）；④**判据行保真合同**（W2）：普通模式文案层为叠加摘要，日志区逐字原文且开发者模式全显——判据呈现零改写。
 
 ## 2. 分层架构与模块清单（v0.2 增 A08/A09）
 
@@ -36,11 +40,14 @@ Tessera Agent = PC 侧（Linux）**全 Python 单进程程序**，**双角色**�
 │ A09 terminal-facade：交互式终端（进度/问询/审批/汇报/resume） │
 ├─ 会话编排层（平台层，与传输解耦）──────────────────────┤
 │ A02 agent-core：会话编排/审批闸/结构化产物/审计导出           │
-│ A08 creation-workspace：循环引擎/工作区/域验证器接口/会话快照  │  ← v0.2 新增
+│ A08 creation-workspace：循环引擎/工作区/域验证器接口/会话快照  │
 │ A07 skills+platform：skill loader + DomainPack 接口 + 预留   │
+│ A10 mci-channels：EventBus 直推 + /events v2 + 状态灯派生单源  │  ← V0.12 新增
+├─ 交互域（Agent 能力增量——创作循环前置/配套）────────────┤
+│ clarify 双模式域 / BV1 板卡验证域 / MP 内存审计域 / HW 硬件定向+事实域 │  ← V0.12/13
 ├─ 域工具层（固件域 = 第一个 DomainPack）────────────────┤
 │ A03 fw-tools / A04 sim-harness / A05 tsap-tools / A06 deploy-net │
-│ ＋FirmwareCreationVerifier（A08 验证器的固件域实现）          │  ← v0.2 新增
+│ ＋FirmwareCreationVerifier（A08 验证器的固件域实现）          │
 ├─ 公共 ──────────────────────────────────────────────┐
 │ A00 common：错误模型/任务模型/审计/配置/子进程纪律            │
 └──────────────────────────────────────────────────────┘
@@ -53,12 +60,17 @@ Tessera Agent = PC 侧（Linux）**全 Python 单进程程序**，**双角色**�
 | A02 agent-core | SessionOrchestrator、PydanticAI Agent 构造、审批闸、结构化产物校验、提供者配置 | LLD-A02（修订） |
 | A03…A06 | 原职责不变（fw/sim/tsap/deploy 工具族） | LLD-A03…06 |
 | A07 skills+platform | skill loader、DomainPack 接口、A2A/ACP 接入缝 | LLD-A07 |
+| **A10 mci-channels** | **EventBus**（common/events.py——线程安全 publish/每订阅者队列慢消费者 resync/环形缓冲 Last-Event-ID 重放）+ registry/brokers 发布钩子（bus=None = 现行为逐字节等价）+ gateway/web.py（/events v2：快照首帧+直推+续传+15s 心跳+10s 对账兜底；derive_phase 11 态单源）+ gateway/hooks.py（D4 pre deny/observe + post observe——服务端闸管全渠道）+ gateway/mcp_clients.py（A5 外部 MCP server 桥接——strict 双闸） | LLD-A10/A14/A15 |
+| **web 渠道（A11+W2）** | 零 Node 纯 Python 前端（agent/web/ 五文件）+ 双模式（clarify 普通模式）+ 历史任务栏 + ZCode 式任务切换 + 判据行保真文案层 | LLD-A11/A14 |
+| **交互域（V0.12/13）** | domain/clarify.py（需求澄清五步 + **HW S0 硬件定向槽**）/ domain/board_validation.py（BV1 画像 C1-C6 检查流水线）/ domain/memory_audit.py（MP 三层账本 R0-R7）/ domain/hardware.py（HW 硬件事实域：caps×画像机械门/声明-调用一致性/Zephyr 收录检索/选型预筛） | LLD-A12/A13/A14/A16 |
 | **A08 creation-workspace** | **创作循环引擎**（状态机/轮次预算/计划跟踪/证据回喂）、**工作区模型**（roots/工程清单）、**scoped 编辑工具**（ws_read/write/edit/list）、**域验证器接口**（`CreationVerifier` 协议）、**会话快照与 resume** | **LLD-A08（新）** |
 | **A09 terminal-facade** | 终端门面：需求输入→循环驱动→进度渲染→问询/审批交互→结果汇报；`--resume/--yes/--json` | **LLD-A09（新）** |
 
 ### 2.1 MCP 工具面（双层；v0.2 增量 = app_develop 升级，不加新 MCP 工具）
 
 原子层 33 个维持（sys/task/fw/sim/tsap/deploy/ln/diag/spec_check/simreal_diff）；高层 `app_develop` **升级为循环后端**（入参不变，内部走 A08；返回任务句柄，循环过程经 task_log 观测）——外层 AI CLI（ZCode 等）自带文件工具，无需 MCP 暴露 ws_*（**MCP 面维持窄**是安全属性，不是能力缺失；终端门面与循环内部才是创作面）。`app_deploy/tsap_*` 语义不变。
+
+**v0.2.3 工具面增量（V0.12/V0.13 全批）**：`app_clarify`（confirm——普通模式澄清+交棒）/ `task_progress`（D2 结构化进度）/ `sys_pending_questions`+`sys_answer`（D7 问询双向化）/ `sys_approve`（D4 allow/allow-session/deny 三维）/ `sys_timeline`+CLI replay（D5 决策链回放）/ `sys_tasks`（W2 多任务）/ `board_validate`（BV1，strict）/ `memory_audit`（MP，confirm）/ `web_search`（HW-2，confirm——Tavily keyless 出站面）。服务端闸语义全渠道一致；A5 桥接面 `x_<server>_list/_call` 按配置注册（外部工具默认 strict 双闸）。
 
 ### 2.2 创作循环（A08 核心——域无关引擎 + 域插件）
 
@@ -105,7 +117,11 @@ class CreationVerifier(Protocol):
 - **S2' 循环开发（替换 S2）**：`app_develop(spec)`〔MCP 或终端〕→ spec_check 门 → A08 建工作区 → PLANNING（计划呈现/确认）→ IMPLEMENTING（ws_* 编辑）⇄ VERIFYING（verifier.compile/simulate，证据自动回喂）→ CONVERGED → face_check + package（双编译一致+签名）→ 句柄返回，产物路径+审计 ID。
 - **S6 终端独立会话**：`tessera-agent run "需求"` → A09 全程交互（§2.3）→ 终报。
 - **S7 断点续跑**：进程重启 → `--resume` → 快照重建（计划/文件/预算）→ 从最近未完轮次继续。
-- **S8 部署后诊断自动再入**（循环闭环延伸）：S5 部署判据 miss → diag_classify 证据 → 作为修复轮次回注 A08（预算内）——R6 §2「repair 从外环手动转为内环自动」。
+- **S8 部署后诊断自动再入**（循环闭环延伸）：S5 部署判据 miss → diag_classify 证据 → 作为修复轮次回注 A08（预算内）——R6 §2「repair 从外环手动转为内环自动」。**v0.2.3 增量**：判据硬件感知（HW-4）——抓窗 `<TOKEN> WRITE REJECTED` 聚类 → 判据行命中而硬件写拒 = criteria_pass False（soft-pass/hard-invalid 机械降级）+ 回执证据入修复轮。
+- **S9 普通模式澄清（W2-3）**：粗糙需求 → app_clarify → 缺口分析 → **S0 硬件定向槽（HW-1：mention 绑定/Zephyr 收录检查〔收录=BV2 工单/未收录=原理图协作〕/联网选型〔HW-3 机械预筛〕/暂不指定）** → 澄清轮 ≤3 → spec 合成（【目标硬件】段=定向产物）→ spec 门 → confirm 交棒 app_develop 同任务句柄；restart = 结构化中止。
+- **S10 板卡验证（BV1）**：board_validate 画像 → C1-C6 流水线（SKIP 双型/overall 三态）→ 结构化报告；C6 阻断 = 板级专项候选（FIX-1 先例：如实 FAIL 不掩蔽）。
+- **S11 硬件事实门链（HW-4）**：包装（face_check 声明-调用一致性——调 native 未申报 cap 拦）→ 部署（caps×画像机械门——物理通道无绑定装前拒，审批前拦截）→ 运行（判据硬件感知 + 回执诊断回喂）——三层全机械、LLM 拿事实不拿猜测。
+- **S12 事件直推（W2-1）**：compose 根 EventBus ← registry/brokers 发布钩子 → /events v2（快照+直推+Last-Event-ID 续传+resync）→ web 状态灯 11 态/问询审批卡增量直加/活动心跳。
 
 ## 5. 安全与豁免链（Agent 无豁免；v0.2 重划创作/交付边界）
 
@@ -122,6 +138,14 @@ class CreationVerifier(Protocol):
 
 ### 5.3 审批参数规则（Q-38⑤）
 PolicyTable 条目可选 `allow`/`deny` 参数规则（如 `deploy_push_app: {cube: [xiao-1]}`），求值序 = deny 规则 → allow 规则 → 类别策略 → broker；规则只可收紧（DEC-38 语义平移）；配置 = config（人工维护，不学习）。
+
+### 5.4 v0.2.3 安全面增量（V0.12/V0.13）
+- **服务端闸**（D4）：hooks 拦截面在 compose 根——pre deny = TA_E_POLICY 归因 + 审计 hook_denied；post 仅 observe（拒收解析期）。**全渠道同闸**（web/pi/CLI 无例外）；allow-session = 会话域记住集（进程生命周期不落盘）。
+- **问询双向化**（D7）：QuestionBroker 单次应答契约 + 枚举域 fail-closed（answer 不在 options 拒）+ 超时取 default（无 default 超时异常）。
+- **外部工具不信任面**（A5）：x_<server>_call 默认 strict 双闸（工具体审批 args 预览 + PolicyTable）；server 名净化防撞。
+- **硬件事实三层门**（HW-4）：face_check 声明-调用一致性（包装前）→ caps×画像机械门（审批前装前拒）→ 判据硬件感知（运行期降级）——机械判定零 LLM，豁免面如实注记（log=TEST 语义 IR-16；net=数值面外）。
+- **出站联网面**（HW-2）：web_search confirm 类 + 查询词凭据打码（sk-/Bearer/password=/长 hex → REDACTED）+ 查询/结果全量审计。
+- **web 渠道红线**（W2）：服务端闸/审批 token（内存态不落存储）/审计同源/判据行保真——四红线不因渠道新增而松动。
 
 ## 6. 多域预留与北极星（维持 + v0.2 兑现）
 
@@ -142,6 +166,8 @@ PolicyTable 条目可选 `allow`/`deny` 参数规则（如 `deploy_push_app: {cu
 | AG7 | 复杂 APP 实测（真 LLM） | 多文件工程真 LLM 收敛 demo（≥3 文件/含状态机/kv）+ **large 档数值数据采集**（Q-39 数值补呈输入）| AG4/5/6 | 真机判据命中 + 数值报告 |
 | AG8 | 收口 | 回归定格 + 文档同步 + tag fw-v0.6.0 | AG7 | 三连全绿 + 板级回归 |
 
+**v0.2.3 现状注记（2026-10-21 · V0.12.0/V0.13.0 全部交付）**：V0.12.0（R11 调研 → D7 问询双向化 → D4 hooks → A10/A11 设计 → W1 web 客户端 → D5 回放器 → tag fw-v0.12.0）；V0.13.0（BV1 板卡验证域 D/I/R + FIX-1 板级崩机专项 + MP 内存规划〔LLD-A13：memory_audit R0-R7 + 最低内存基线〕+ W2 web 渠道重塑〔LLD-A14：EventBus/呈现层/双模式/收口 + 五缺陷验收修复 + 真机部署验证 + LED 缺陷如实记录〕+ A5 MCP 客户端 + A4 post 钩子 + R12/R13 调研 + HW 域〔LLD-A16：HW-1 定向槽/HW-2 web_search/HW-3 选型/HW-4 硬件事实五面+一〕+ BV2-D 设计〔LLD-A17 门③呈递〕→ tag fw-v0.13.0）。后续候选：BV2 实现（LLD-A17 门③三决策点待裁）/ pi 渠道（M1 HOLD——待 web 真实体验后决策）。
+
 ## 8. 测试策略（v0.2 增量）
 
 - A08：状态机全转移矩阵/预算耗尽/证据回喂内容断言/快照往返一致性（杀进程实测）/roots 逃逸矩阵。
@@ -151,7 +177,7 @@ PolicyTable 条目可选 `allow`/`deny` 参数规则（如 `deploy_push_app: {cu
 
 ## 9. V1 范围裁剪清单（v0.2）
 
-不做：ACP/A2A 实现（缝保留；A09 已证明缝有效）/多域 DomainPack（Verifier 接口预留）/对话级回放（任务级快照已覆盖 resume 语义）/多客户端并发创作（单任务单工作区；锁 = task registry 既有）/MCP 面暴露 ws_*（安全属性）。维持：上下文压缩（DEC-38）、HTTP 门面。
+不做：ACP/A2A 实现（缝保留；A09/A11 已证明缝有效）/多域 DomainPack 实现（Verifier 接口预留——BV1/MP/HW 已按域内确定性流水线定性落地，非 LLM 创作域不硬套 CreationLoop）/对话级回放（任务级快照 + W2 历史任务栏已覆盖；跨进程持久化 = v2——审计 JSONL 为持久事实源）/多客户端并发创作（单任务单工作区）/MCP 面暴露 ws_*（安全属性）/BV2 适配实现（LLD-A17 设计已落稿，门③三决策点待裁）/pi 渠道（M1 HOLD）。维持：上下文压缩（DEC-38）、HTTP 门面、A5 每调用连接（连接池 = v2）。
 
 ## 10. 未决依赖与呈递
 
@@ -166,3 +192,4 @@ PolicyTable 条目可选 `allow`/`deny` 参数规则（如 `deploy_push_app: {cu
 - v0.2 · 2026-10-13：**DEC-56/57 深度修订**——双角色定稿（A09 终端门面 = Frontend 第二实现）；新增 A08 创作工作区（域无关循环引擎 + CreationVerifier 域插件 + 工作区模型 + 会话快照）；§5.2 创作/交付边界（交付门清单一条不撤）；S2'/S6-S8 场景；AG1-8 里程碑（fw-v0.6.0）。质量优先条款（DEC-57）贯彻：循环引擎域无关/快照原子写/审批两门面同源。
 - v0.1.1 · 2026-09-22：Q-19 → DEC-38 同步（§9 裁剪清单）。
 - v0.1 · 2026-09-22：初版。
+- v0.2.3 · 2026-10-21：**V0.13.0 收口深修**——V0.12（D2/D4/D5/D7/W1/MCI：A10 层 + web 渠道 + 问询审批双向化 + 回放器）与 V0.13（BV1/MP/W2/A5/A4/HW/BV2-D）全部架构面入册：§1 MCI 三层四渠道同根 + 四铁律（+判据行保真）/§2 A10 行 + 交互域行 + 工具面九增/§4 S9-S12 四场景 + S8 硬件感知增量/§5 §5.4 安全面六增/§7 现状注记/§9 裁剪清单更新。v0.2.2 停于 V0.6.0 时代之债清偿。
