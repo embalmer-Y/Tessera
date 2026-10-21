@@ -1,0 +1,85 @@
+# docs/evidence/p4w1_console.txt · P4-W1 判据链（V0.14.0 P4 联网批）
+# 板：ESP32-P4-WIFI6-DEV-KIT（Waveshare；P4 v3.1 eco6 + C6 伴芯 SDIO）
+# 串口：CH343 by-id usb-1a86_USB_Single_Serial_5B90122202（115200；esptool RTS 自动复位链实测可用）
+# 镜像：firmware/tests/p4wifibench（新代 esp_hosted_mcu 驱动——树内 drivers/misc/esp_hosted_mcu + drivers/wifi/esp_hosted_mcu）
+# C6 固件：**未重烧**（仍为 2026-10-10 旧批 v3.0.9 + STREAM 强制）——新 transport buf-config 协商原生兼容
+# 判据：CONNECT/DHCP/UDP 全绿 × 两次 boot（shell kernel reboot cold 复跑复验）；ICMP 3/3 0% loss
+# 注：console 缺 kernel banner/驱动 LOG 窗口（冷重启 console 重初始化间隙——如实登记）；
+#     判定链以 app 判据行 + host 侧独立对拍日志为准（双源一致）。
+# 凭据纪律：构建期 /tmp conf 注入（600），证据无凭据面。
+
+== 第一捕获窗（烧录后 75s，/tmp/p4w1_console.log 节选判据行）==
+P4W1 CONNECT OK
+P4W1 DHCP OK ip=192.168.2.29 gw=192.168.2.1
+P4W1 UDP RTT OK seq=0..4（连续 5 发）
+P4W1 ALIVE t=30s connected=1 addr=1 seq=5
+P4W1 ALIVE t=60s connected=1 addr=1 seq=5
+
+== 第二捕获窗（shell kernel reboot cold 复跑 + ICMP 腿）==
+uart:~$ P4W1 ALIVE t=180s connected=1 addr=1 seq=5
+uart:~$ ESP-ROM:esp32p4-eco6-20251011
+Build:Oct 11 2025
+rst:0x1 (POWERON),boot:0x30f (SPI_FAST_FLASH_BOOT)
+SPI mode:DIO, clock div:1
+load:0x4ff20000,len:0x14474
+load:0x50108000,len:0x24
+SHA-256 comparison failed:
+Calculated: 649e30fbfe465593d7786cfd353556cf42ea9dc0316901cb5c72c1389dbc1edf
+Expected: 00000000209b0000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4ff20504
+I (soc_init): ESP Simple boot
+I (soc_init): compile time Oct 21 2026 14:28:46
+W (soc_init): Unicore bootloader
+I (soc_init): chip revision: v3.1
+I (flash_init): SPI Speed      : 80MHz
+I (flash_init): SPI Mode       : DIO
+I (flash_init): SPI Flash Size : 16MB
+I (boot): DRAM	: lma=00002020h vma=4ff20000h size=14474h ( 83060)
+I (boot): RTC_IRAM	: lma=0001649ch vma=50108000h size=00024h (    36)
+I (boot): DROM	: lma=00020000h vma=40030000h size=0f414h ( 62484)
+I (boot): IROM	: lma=00030000h vma=40000000h size=2d3e0h (185312)
+I (boot): libc heap size 480 kB.
+I (spi_flash): detected chip: gd
+I (spi_flash): flash io: dio
+
+uart:~$ P4W1 CONNECT OK
+uart:~$ P4W1 DHCP OK ip=192.168.2.29 gw=192.168.2.1
+uart:~$ P4W1 UDP RTT OK seq=0
+uart:~$ P4W1 UDP RTT OK seq=1
+uart:~$ P4W1 UDP RTT OK seq=2
+uart:~$ P4W1 UDP RTT OK seq=3
+uart:~$ P4W1 UDP RTT OK seq=4
+uart:~$ P4W1 ALIVE t=30s connected=1 addr=1 seq=5
+uart:~$ net ping -c 3 -i 1000 192.168.2.1
+PING 192.168.2.1
+28 bytes from 192.168.2.1 to 192.168.2.29: icmp_seq=1 ttl=64 time=5.04 ms
+28 bytes from 192.168.2.1 to 192.168.2.29: icmp_seq=2 ttl=64 time=12.07 ms
+28 bytes from 192.168.2.1 to 192.168.2.29: icmp_seq=3 ttl=64 time=19.07 ms
+--- ping statistics ---
+uart:~$ 3 packets transmitted, 3 received, 0% packet loss
+uart:~$ rtt min/avg/max = 5.04/12.06/19.07 ms
+uart:~$ uart:~$ P4W1 ALIVE t=60s connected=1 addr=1 seq=5
+uart:~$ 
+
+== host 侧 UDP 回声器独立对拍（tools/board/p4w_udp_echo.py @ 192.168.2.101:9999）==
+udp echo listening on 0.0.0.0:9999
+14:29:58 <- 192.168.2.29:58253 b'P4W1 UDP 0'
+14:30:00 <- 192.168.2.29:58253 b'P4W1 UDP 1'
+14:30:02 <- 192.168.2.29:58253 b'P4W1 UDP 2'
+14:30:09 <- 192.168.2.29:42583 b'P4W1 UDP 0'
+14:30:11 <- 192.168.2.29:42583 b'P4W1 UDP 1'
+14:30:13 <- 192.168.2.29:42583 b'P4W1 UDP 2'
+14:30:15 <- 192.168.2.29:42583 b'P4W1 UDP 3'
+14:30:17 <- 192.168.2.29:42583 b'P4W1 UDP 4'
+14:31:52 <- 192.168.2.29:63102 b'P4W1 UDP 0'
+14:31:54 <- 192.168.2.29:63102 b'P4W1 UDP 1'
+14:31:56 <- 192.168.2.29:63102 b'P4W1 UDP 2'
+14:31:58 <- 192.168.2.29:63102 b'P4W1 UDP 3'
+14:32:00 <- 192.168.2.29:63102 b'P4W1 UDP 4'
+14:35:02 <- 192.168.2.29:65019 b'P4W1 UDP 0'
+14:35:04 <- 192.168.2.29:65019 b'P4W1 UDP 1'
+14:35:06 <- 192.168.2.29:65019 b'P4W1 UDP 2'
+14:35:08 <- 192.168.2.29:65019 b'P4W1 UDP 3'
+14:35:10 <- 192.168.2.29:65019 b'P4W1 UDP 4'
+
