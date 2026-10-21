@@ -28,6 +28,8 @@
 | python3 + python3-venv + python3-pip | ✅ | ✅ | 3.12 起可 用；3.14 已实证（x86 机 3.14.4） |
 | git、file、xz-utils、curl | ✅ | ✅ | 基础 |
 | **clang-18 / lld-18**（可选路线 A） | noble 源缺旧版时走 §7 路线 B | **✅ apt 直装（noble universe 有 clang-18）——ARM 机推荐路线 A** ⚠ | wasm APP 交叉编译（18.1 系对齐 CI） |
+| **riscv64-zephyr-elf 工具链** | x86 时代经 setup.sh 装（教训 31②） | **✅ `~/zephyr-sdk-1.0.1/setup.sh -t riscv64-zephyr-elf`（经代理 ~148MB，4m46s 实测——V0.14.0 P4 批）** | esp32p4/c6/c3 RV32 目标（P4-W0 实测 gcc 14.3.0） |
+| **protoc + python protobuf** | 不需要（S3 era） | **✅ P4 esp-hosted-mcu 驱动（nanopb）构建面必需**：① protoc 静态二进制 `~/project/tools/protoc/bin/protoc`（GitHub release `protoc-29.3-linux-aarch_64.zip`——资产名下划线 aarch_64）；② 系统 python3 user 级 `pip3 install --user --break-system-packages protobuf`（nanopb 插件 `protoc-gen-nanopb` shebang = env python3）；③ 构建传 `-DPROTOBUF_PROTOC_EXECUTABLE=~/project/tools/protoc/bin/protoc` | V0.14.0 P4-W0 实测（esp_hosted_mcu RPC proto 生成） |
 | libserialport 等板包 | 不需要 | 不需要 | pyserial 自带 |
 
 网络通道（按需）：代理环境下 git 走
