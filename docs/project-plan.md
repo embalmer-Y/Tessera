@@ -312,6 +312,19 @@
 | R13 ✅ | 结构件设计调研——**已交付（docs/research/R13-structural-design.md v0.1）** | 域定性（LLM 生成 + 机械 Verifier——DEC-33 插件第三域形态，CreationLoop 主体零改动）+ CAD 路线对比（**CadQuery 倾向**——Python 生态同构/ws_* 工具面复用；OpenSCAD 留参照）+ 可打印性检查目录 v0 七条（壁厚/悬垂/桥接/公差/流形/行程/薄壁——网格级机械检查零 LLM）+ 功能耦合（`[physical]` 画像节 fail-closed/散热规则化/实物判据=唯一人工环节如实登记）+ Verifier 形态（compile/check/package 三步同构）+ 缺口路线（OCP 沙箱策略随立项） | ~0.5（实测合批） | DEC-68③ 调研 |
 | 收口 | V0.13.0 收口 | 回归定格 + 文档对齐（「外部计数文档对齐」checklist 项首跑 + **HLD-agent v0.2.3 深度修订**——v0.2.2 停在 V0.6.0 时代，V0.12〔D2/D4/D5/D7/W1/MCI〕与 V0.13〔BV1 域〕面未入 HLD）+ tag fw-v0.13.0 | ~0.5 | 批合计原估 ~6.5 单元——A3 扩为 W2 重塑后待设计批重估 |
 
+### I2. 硬件定向批 HW + 新板适配 BV2（§11h，2026-10-19 DEC-73 立案 + HW-D 设计批过门③；2026-10-21 owner 扩令「应该在Agent层面全面进行优化」——HW-4 新登记）
+
+> 定位 = Agent 硬件事实能力：定向（哪块板）→ 选型（联网调研）→ 适配（新板接入）→ **事实（创作链引脚级硬件事实全面优化——W2 验收 LED 缺陷实证的创作链软肋）**。设计底稿 = LLD-A16 v0.2（门③已过）；HW-4 扩充随开工时 LLD-A16 v0.3 补呈门③。
+
+| 序 | 单元 | 内容 | 规模 | 备注 |
+|---|------|------|------|------|
+| HW-D ✅ | 硬件定向·设计批 | **已落稿（LLD-A16 v0.2，DEC-73 三裁决门③过）**：硬件定向流程（需求分析先行〔不预设硬件〕→ 问询「是否有现成板卡」三路〔目录内选——在线发现仅辨认辅助 / 其他板卡→Zephyr 收录检查——收录=BV2 适配接入、未收录=请客户提供原理图人机协作移植 / 没有→联网选型调研〕→ 需求×能力核对不满足→外接硬件或更换板卡问询）；web_search 工具面（QwenPaw 同款 Tavily keyless 匿名模式——`X-Tavily-Access-Mode: keyless` 免 key + env key 升级 + 401/429/432 自动回退；SearchProvider ABC + 工厂未知值 raise 不静默路由；弃 ddgs）+ 查询词凭据过滤 + 审计全量；选型调研路径（LLM 结构化候选 ≤5 + 内存基线机械预筛 + 推定态标注——采购+BV1 前为推定态诚实边界） | ~0.5 | DEC-73；W2 验收实证缺口触发（板卡事实不在创作提示） |
+| HW-1 | 硬件定向流程实现 | clarify 前置 S0 槽四分支落码（画像 `[hardware].board_target` 映射 + get-info board=CONFIG_BOARD 自报消费 + 问询卡接线）+ 未提硬件默认提醒 | ~0.5 | LLD-A16 v0.2 §S0 |
+| HW-2 | web_search 工具面实现 | SearchProvider ABC + TavilyProvider keyless/Bearer 双模 + 三态回退 + 工厂 raise + MCP `web_search`（confirm）+ 凭据过滤 + 审计 | ~0.5 | LLD-A16 v0.2 §web |
+| HW-3 | 联网选型调研路径实现 | S0c 调研 agent（结构化候选 ≤5 + memory-baseline 机械预筛 + 推定态标注）+ 问询卡呈现候选确认 | ~0.5 | LLD-A16 v0.2 §S0c |
+| HW-4 | **Agent 级硬件事实全面优化**（owner 2026-10-21 扩令「应该在Agent层面全面进行优化」——LED 缺陷记为待开发项） | LED 缺陷（串口 168 对 LED BLINK ON/LED WRITE REJECTED——LLM 假设 gpio0=板载 LED 零事实支撑；编译门/判据门双盲区）全链根治于 Agent 层：① 板卡画像**引脚级事实节**（板载 LED/按键/外设→通道域×实例映射，每字段机械可校验来源〔DTS/原理图/实测判据行〕——R12 纪律延伸；atk 补 LEDB=IO4∈akpwm 实证）；② 创作链硬件事实注入（app_develop 提示携带目标板可用通道/实例/约束面）；③ **caps×画像机械核对门**（manifest 申请通道实例画像无物理绑定→装前拒——soft-pass/hard-invalid 缺口机械补位）；④ 判据生成硬件感知（S8 判据行引用通道须过物理存在性核对）；⑤ 部署后硬件回执诊断（WRITE REJECTED 族聚类→自动诊断回喂修复轮——D3/hook.post 同源消费）。设计扩充 = LLD-A16 v0.3 门③补呈随开工 | ~1 | owner 扩令；W2 验收 LED 缺陷实证；快改方案（重生成 app 加 pwm cap）废弃——治理根因不做单点演示修补 |
+| BV2-D | 新板卡适配域·设计批 | DEC-68① BV 域从验证延伸到移植（P4 playbook Agent 化）：收录板生成接入件〔分区 overlay/conf/WAMR 映射〕+ BV1 判据链 bring-up + 画像入目录；未收录板原理图人机协作出移植清单 | ~0.5 | 门③另呈（独立批） |
+
 ### F. 健壮性收口批 V0.10.0（§11h，2026-10-17 owner 泛指令点向「按照推荐开发顺序进行开发」——DEC-64；执行序 R1 → R2 → R4 → R3）
 
 > 来源：ARM 重建会话（一四五）三项登记固件健壮性缺陷 + TLS 会话陈旧观察项；owner 按建议序点向开工。定位 = 无路由器/长失联场景 fail-safe 常驻（降级而非复位循环）与 ARM 机新暴露域收口。
@@ -337,6 +350,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.141 · 2026-10-21：**HW-4「Agent 级硬件事实全面优化」登记（owner 扩令：「应该在Agent层面全面进行优化」——LED 缺陷记为待开发项）**——§11h 新立 I2 表收拢 HW 批（HW-D ✅ LLD-A16 v0.2 门③过 + HW-1 定向流程/HW-2 web_search 面/HW-3 选型路径各 ~0.5 待实现 + BV2-D ~0.5 门③另呈）。**HW-4 = LED 缺陷（168 对 LED BLINK ON/LED WRITE REJECTED——LLM 假设 gpio0=板载 LED 零事实支撑，编译门/判据门双盲区）全链根治于 Agent 层五面**：画像引脚级事实节〔R12 来源纪律延伸，atk 补 LEDB=IO4∈akpwm 实证〕/ 创作链硬件事实注入 / caps×画像机械核对门〔装前拒——soft-pass/hard-invalid 缺口补位〕/ 判据生成硬件感知 / 部署后硬件回执诊断回喂；~1 单元，LLD-A16 v0.3 门③补呈随开工；**快改方案（重生成 app 加 pwm cap 演示向）废弃——治理根因不做单点演示修补**。
 - v1.140 · 2026-10-19：**DEC-73 三裁决 + LLD-A16 v0.2 重写 ✅（门③修订过——HW 实现解锁）**——① 搜索改 QwenPaw 同款（Tavily keyless 匿名模式源码级核实——X-Tavily-Access-Mode: keyless 免 key + env key 升级 + 三态回退；弃 ddgs）；② 流程重写（需求分析先行 → 问询是否有板 → Zephyr 收录检查〔收录=BV2 接入/未收录=请客户提供原理图〕→ 能力不满足外接或换板；在线板默认绑定提案废弃——仅作辨认辅助）；③ 新板适配 = BV2 域独立批（P4 playbook Agent 化，门③另呈）。HW ~2 单元实现解锁（HW-1 流程/HW-2 web_search/HW-3 选型路径）+ BV2-D ~0.5。
 - v1.139 · 2026-10-19：**DEC-73 硬件定向需求登记 + HW-D 设计批 ✅（LLD-A16 v0.1 门③呈递；W2 验收进行中）**——W2 验收实证缺口（板卡事实不在创作提示）触发：① 调研批（板卡身份链协议层已在——get-info board=CONFIG_BOARD + caps.peripherals 无人消费；联网搜索三路径——ddgs 零凭据/Tavily key/A5 桥接；R12 判定链 = 落地消费）；② 设计（clarify 前置硬件定向槽 S0 四分支：需求提及→目录绑定 / 目录外如实 / 未提及→在线发现确认〔get-info board 自报〕/ 不清楚→联网选型调研〔web_search 工具 + LLM 结构化候选 + 内存基线机械预筛 + 推定态标注〕）；③ 规模 ~2 单元（HW-1 硬件槽/HW-2 web_search 面/HW-3 调研路径）——门③三决策点呈递（provider 缺省/在线默认绑定/目录外通用面合成）。
 - v1.138 · 2026-10-19：**R12/R13 调研单元交付 ✅（DEC-68②③——V0.13.0 批内最后两单元实现面收口，余 = 收口 tag）**——R12 板卡选型调研（BV1 画像=目录种子 + `[hardware]` schema v0 + 判定链五步〔内存基线=MP 硬门消费；确定性流水线定性〕+ 模块级建议边界）；R13 结构件调研（CadQuery 倾向 + 可打印性检查目录 v0 七条机械可判 + StructuralVerifier=DEC-33 插件第三域形态 + `[physical]` fail-closed）。均调研产出不实施（DEC-68 原文）。plan v1.138/names/AGENTS 续十五补登。
