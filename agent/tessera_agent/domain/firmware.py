@@ -25,6 +25,7 @@ from tessera_agent.common.errors import (
 )
 from tessera_agent.core.session import PolicyTable
 from tessera_agent.domain import app_chain
+from tessera_agent.domain import board_adapt as ba
 from tessera_agent.domain import board_validation as bv
 from tessera_agent.domain import memory_audit as ma
 from tessera_agent.platform import AppContext, DomainPackBase, MountAPI
@@ -133,7 +134,7 @@ class FirmwareDomainPack(DomainPackBase):
         "ln_estop_clear",
         "app_develop", "app_deploy", "app_compile",
         "app_clarify",
-        "board_validate", "memory_audit", "web_search",
+        "board_validate", "memory_audit", "web_search", "board_adapt",
         "diag_classify", "spec_check", "simreal_diff",
     ])
     skills: list[str] = field(default_factory=lambda: [
@@ -150,6 +151,7 @@ class FirmwareDomainPack(DomainPackBase):
         "app_clarify": "confirm",  # W2（DEC-69⑥）：普通模式需求澄清（LLM 轮）
         "app_deploy": "strict",
         "board_validate": "strict",  # V0.13.0 BV1：复位+部署冒烟=板态写入
+        "board_adapt": "strict",  # V0.15.0 BV2（DEC-74）：写 adapt 工作区
         "memory_audit": "confirm",   # V0.13.0 MP：本地只读分析（LLD-A13）
         "web_search": "confirm",     # HW-2（DEC-73①·LLD-A16 §2）：出站联网
         "diag_classify": "confirm",
@@ -688,6 +690,53 @@ class FirmwareDomainPack(DomainPackBase):
                 return out
 
             return await spawn("board_validate", args, body)
+
+        # ---- board_adapt（V0.15.0 BV2 · LLD-A17 · DEC-74；strict 类）
+        @mcp.tool
+        @audited("board_adapt")
+        async def board_adapt(mode: str, hint: str,
+                              flash_kb: int = 0,
+                              arch: str = "",
+                              target: str = "",
+                              schematic: dict | None = None) -> dict:
+            """新板卡适配域（BV2）：收录板路 = Zephyr 板定义定位 → ts 五分区
+            布局（8MB 保守兼容模板族）→ 接入件五件套生成 → C0 预检 →
+            agent/adapt/<board>/ 工作区（产物非源码——owner review 后人工
+            入树/入目录，DEC-74①）；未收录板路 = 原理图协作移植清单（逐项
+            待确认态，未确认不进构建）。strict：写 adapt 工作区。"""
+            args = {"mode": mode, "hint": hint, "flash_kb": flash_kb,
+                    "arch": arch, "target": target}
+
+            async def body(task) -> dict:
+                approval = ctx.approvals.request(
+                    "board_adapt", args,
+                    reason="strict 类：新板适配（写入 agent/adapt/ 工作区——"
+                           "产物不入固件树/画像目录）",
+                )
+                task.state = "input_required"
+                try:
+                    await ctx.approvals.wait(approval)
+                finally:
+                    task.state = "working"
+                adapt_root = (Path(ctx.cfg.workspace_repo) / "agent"
+                              / "adapt")
+                ctx.registry.append_log(task, f"[ba] mode={mode} hint={hint}")
+                if mode == "schematic":
+                    return ba.migration_checklist(hint, schematic)
+                if flash_kb <= 0:
+                    raise TaError(TA_E_ARGS,
+                                  "收录板路须 flash_kb（布局模板族键）",
+                                  domain="board_adapt")
+                rep = await asyncio.to_thread(
+                    ba.adapt_included_board, hint, flash_kb,
+                    Path(ctx.cfg.west_workspace), adapt_root,
+                    arch=arch or None, target=target or None)
+                ctx.registry.note_progress(task, {
+                    "board": rep["board"], "c0": rep["c0_preflight"]["ok"],
+                    "artifacts": rep["artifacts_dir"]})
+                return rep
+
+            return await spawn("board_adapt", args, body)
 
         # ---- memory_audit（V0.13.0 MP · LLD-A13；confirm 类——本地只读）
         @mcp.tool

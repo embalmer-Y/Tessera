@@ -1,6 +1,6 @@
-# HLD · Tessera Agent（AI 开发 Agent）· v0.2.3
+# HLD · Tessera Agent（AI 开发 Agent）· v0.2.4
 
-> **状态**：v0.2.3 深度修订（2026-10-21，V0.13.0 收口——V0.12「Agent 协同批」与 V0.13「Agent 自主化批」全部架构面入册：MCI 多渠道交互层 / web 渠道 / 事件总线 / 问询审批双向化 / BV1 板卡验证域 / MP 内存审计 / clarify 双模式 / 硬件定向与硬件事实域）。v0.2 深度修订（2026-10-13，DEC-56/57）为基座；输入：DEC-11/12 v1.1、DEC-56/57、Q-38 全 A、DEC-65/66/67/68/69/70/71/72/73、R6/R7。
+> **状态**：v0.2.4 增量修订（2026-10-22，V0.15.0——BV2-I 入册：board_adapt 工具面 + FIX-2/FIX-1 板级专项现状 + v4.5.0 平移候选重排）。v0.2.3 深度修订（2026-10-21，V0.13.0 收口——V0.12「Agent 协同批」与 V0.13「Agent 自主化批」全部架构面入册：MCI 多渠道交互层 / web 渠道 / 事件总线 / 问询审批双向化 / BV1 板卡验证域 / MP 内存审计 / clarify 双模式 / 硬件定向与硬件事实域）。v0.2 深度修订（2026-10-13，DEC-56/57）为基座；输入：DEC-11/12 v1.1、DEC-56/57、Q-38 全 A、DEC-65/66/67/68/69/70/71/72/73、R6/R7。
 > **输入（承继已裁）**：DEC-33（多域北极星）/DEC-34/35/36/37/38（原 v0.1 决策链全部维持）。
 > **固件侧合同**（既有约束）：TSAP v2、zenoh 命名空间、prov CBOR、sys 命令面、native_sim、安全与确定性合同（AGENTS.md §6）。
 
@@ -70,7 +70,7 @@ Tessera Agent = PC 侧（Linux）**全 Python 单进程程序**，**双角色**�
 
 原子层 33 个维持（sys/task/fw/sim/tsap/deploy/ln/diag/spec_check/simreal_diff）；高层 `app_develop` **升级为循环后端**（入参不变，内部走 A08；返回任务句柄，循环过程经 task_log 观测）——外层 AI CLI（ZCode 等）自带文件工具，无需 MCP 暴露 ws_*（**MCP 面维持窄**是安全属性，不是能力缺失；终端门面与循环内部才是创作面）。`app_deploy/tsap_*` 语义不变。
 
-**v0.2.3 工具面增量（V0.12/V0.13 全批）**：`app_clarify`（confirm——普通模式澄清+交棒）/ `task_progress`（D2 结构化进度）/ `sys_pending_questions`+`sys_answer`（D7 问询双向化）/ `sys_approve`（D4 allow/allow-session/deny 三维）/ `sys_timeline`+CLI replay（D5 决策链回放）/ `sys_tasks`（W2 多任务）/ `board_validate`（BV1，strict）/ `memory_audit`（MP，confirm）/ `web_search`（HW-2，confirm——Tavily keyless 出站面）。服务端闸语义全渠道一致；A5 桥接面 `x_<server>_list/_call` 按配置注册（外部工具默认 strict 双闸）。
+**v0.2.3 工具面增量（V0.12/V0.13 全批）**：`app_clarify`（confirm——普通模式澄清+交棒）/ `task_progress`（D2 结构化进度）/ `sys_pending_questions`+`sys_answer`（D7 问询双向化）/ `sys_approve`（D4 allow/allow-session/deny 三维）/ `sys_timeline`+CLI replay（D5 决策链回放）/ `sys_tasks`（W2 多任务）/ `board_validate`（BV1，strict）/ `memory_audit`（MP，confirm）/ `web_search`（HW-2，confirm——Tavily keyless 出站面）/ `board_adapt`（BV2，strict——V0.15.0·LLD-A17·DEC-74：收录板接入件五件套生成〔agent/adapt/ 工作区——产物非源码〕+ 未收录板移植清单待确认态；画像入目录 = owner review 闸〔install_profile 未批准恒拒〕）。服务端闸语义全渠道一致；A5 桥接面 `x_<server>_list/_call` 按配置注册（外部工具默认 strict 双闸）。
 
 ### 2.2 创作循环（A08 核心——域无关引擎 + 域插件）
 
@@ -166,7 +166,7 @@ PolicyTable 条目可选 `allow`/`deny` 参数规则（如 `deploy_push_app: {cu
 | AG7 | 复杂 APP 实测（真 LLM） | 多文件工程真 LLM 收敛 demo（≥3 文件/含状态机/kv）+ **large 档数值数据采集**（Q-39 数值补呈输入）| AG4/5/6 | 真机判据命中 + 数值报告 |
 | AG8 | 收口 | 回归定格 + 文档同步 + tag fw-v0.6.0 | AG7 | 三连全绿 + 板级回归 |
 
-**v0.2.3 现状注记（2026-10-21 · V0.12.0/V0.13.0 全部交付）**：V0.12.0（R11 调研 → D7 问询双向化 → D4 hooks → A10/A11 设计 → W1 web 客户端 → D5 回放器 → tag fw-v0.12.0）；V0.13.0（BV1 板卡验证域 D/I/R + FIX-1 板级崩机专项 + MP 内存规划〔LLD-A13：memory_audit R0-R7 + 最低内存基线〕+ W2 web 渠道重塑〔LLD-A14：EventBus/呈现层/双模式/收口 + 五缺陷验收修复 + 真机部署验证 + LED 缺陷如实记录〕+ A5 MCP 客户端 + A4 post 钩子 + R12/R13 调研 + HW 域〔LLD-A16：HW-1 定向槽/HW-2 web_search/HW-3 选型/HW-4 硬件事实五面+一〕+ BV2-D 设计〔LLD-A17 门③呈递〕→ tag fw-v0.13.0）。后续候选：BV2 实现（LLD-A17 门③三决策点待裁）/ pi 渠道（M1 HOLD——待 web 真实体验后决策）。
+**v0.2.3 现状注记（2026-10-21 · V0.12.0/V0.13.0 全部交付）**：V0.12.0（R11 调研 → D7 问询双向化 → D4 hooks → A10/A11 设计 → W1 web 客户端 → D5 回放器 → tag fw-v0.12.0）；V0.13.0（BV1 板卡验证域 D/I/R + FIX-1 板级崩机专项 + MP 内存规划〔LLD-A13：memory_audit R0-R7 + 最低内存基线〕+ W2 web 渠道重塑〔LLD-A14：EventBus/呈现层/双模式/收口 + 五缺陷验收修复 + 真机部署验证 + LED 缺陷如实记录〕+ A5 MCP 客户端 + A4 post 钩子 + R12/R13 调研 + HW 域〔LLD-A16：HW-1 定向槽/HW-2 web_search/HW-3 选型/HW-4 硬件事实五面+一〕+ BV2-D 设计〔LLD-A17 门③呈递〕→ tag fw-v0.13.0）。V0.15.0（FIX-2 板级专项：WAMR argc 契约复位循环根治 + P4 C1-C6 首次全绿；BV2-I：LLD-A17 §2/§3 实现——DEC-74 门③按建议值）→ 后续候选：v4.5.0 正式版平移（V0.16.0 候选，上游 ~10-26）/ pi 渠道（M1 HOLD——待 web 真实体验后决策）。
 
 ## 8. 测试策略（v0.2 增量）
 
@@ -192,4 +192,5 @@ PolicyTable 条目可选 `allow`/`deny` 参数规则（如 `deploy_push_app: {cu
 - v0.2 · 2026-10-13：**DEC-56/57 深度修订**——双角色定稿（A09 终端门面 = Frontend 第二实现）；新增 A08 创作工作区（域无关循环引擎 + CreationVerifier 域插件 + 工作区模型 + 会话快照）；§5.2 创作/交付边界（交付门清单一条不撤）；S2'/S6-S8 场景；AG1-8 里程碑（fw-v0.6.0）。质量优先条款（DEC-57）贯彻：循环引擎域无关/快照原子写/审批两门面同源。
 - v0.1.1 · 2026-09-22：Q-19 → DEC-38 同步（§9 裁剪清单）。
 - v0.1 · 2026-09-22：初版。
+- v0.2.4 · 2026-10-22：**V0.15.0 增量**——§2.1 工具面 +board_adapt（BV2 strict；DEC-74 三裁决）/§7 现状注记（FIX-2 根治 + P4 C1-C6 全绿 + BV2-I 交付 + v4.5.0 → V0.16.0 候选）。
 - v0.2.3 · 2026-10-21：**V0.13.0 收口深修**——V0.12（D2/D4/D5/D7/W1/MCI：A10 层 + web 渠道 + 问询审批双向化 + 回放器）与 V0.13（BV1/MP/W2/A5/A4/HW/BV2-D）全部架构面入册：§1 MCI 三层四渠道同根 + 四铁律（+判据行保真）/§2 A10 行 + 交互域行 + 工具面九增/§4 S9-S12 四场景 + S8 硬件感知增量/§5 §5.4 安全面六增/§7 现状注记/§9 裁剪清单更新。v0.2.2 停于 V0.6.0 时代之债清偿。
