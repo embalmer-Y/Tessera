@@ -111,3 +111,32 @@ def test_criteria_without_serial_unverified() -> None:
     out = post_deploy_check(FakeSvcOK(), "n", "c", pass_patterns=["APP DONE"])
     assert out["healthy"] is True
     assert out["criteria_pass"] is None
+
+
+# ---- FIX-2：reset_before_capture——单端口会话复位+抓取（BV1 C6 专用）----------
+
+
+def test_reset_flag_routes_to_reset_and_capture(monkeypatch) -> None:
+    """True = reset_and_capture 单会话；False = capture_window（原路径不扰）。"""
+    import tessera_agent.tools_diag.capture as cap
+
+    calls: dict[str, int] = {"reset": 0, "window": 0}
+
+    monkeypatch.setattr(cap, "reset_and_capture",
+                        lambda p, s, *, baud=115200:
+                        calls.__setitem__("reset", calls["reset"] + 1)
+                        or "P4W2 PROBE INIT\n")
+    monkeypatch.setattr(cap, "capture_window",
+                        lambda p, s, *, baud=115200:
+                        calls.__setitem__("window", calls["window"] + 1)
+                        or "P4W2 PROBE INIT\n")
+    out = post_deploy_check(FakeSvcOK(), "n", "c", serial_port="/dev/x",
+                            pass_patterns=["PROBE INIT"],
+                            reset_before_capture=True)
+    assert out["criteria_pass"] is True
+    assert calls == {"reset": 1, "window": 0}
+
+    out2 = post_deploy_check(FakeSvcOK(), "n", "c", serial_port="/dev/x",
+                             pass_patterns=["PROBE INIT"])
+    assert out2["criteria_pass"] is True
+    assert calls == {"reset": 1, "window": 1}  # 缺省路径零变化

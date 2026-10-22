@@ -1,0 +1,63 @@
+# docs/evidence/fix2_p4_probe_console.txt · FIX-2 板级专项收口（V0.15.0）
+# 板：ESP32-P4-WIFI6-DEV-KIT（p4bench + p4net.conf）｜串口 CH343 5B90122202
+# 症状（V0.14.0 p4w2_console.txt 残余登记）：探针 meta 在位时板 ~15-20s 复位循环、
+#   meta 交替 probe/bench；bench meta 稳如磐石。C6 判据 miss（not_active）。
+# 凭据扫描：本文件无凭据面。
+
+== 破案路径（meta flash 真值 + 板载插桩）==
+1. meta 分区直读（0x7e1000，双副本乒乓 4096B stride；REC_HDR = seq u32|len u16|
+   crc16 u16；记录 = ver2/count1/entry{active_slot,rollback,gen,ver,digest32}）：
+   copy0 seq15 bench(slot1, rb=1)；部署激活后 copy1 seq20 probe(slot0, rb=0)——
+   激活写inactive副本，单读 copy0 会误判「meta 未变」（快照纪律：双副本同读）。
+2. 插桩实抓（决定性时间线，11:38:54 窗）：
+   [app1/l3] P4W2 PROBE INIT                    ← 探针装载运行
+   [appdbg] e0 tick TRAP: Exception: invalid argument count 0,
+            must be no smaller than 1           ← 每个 tick 必陷
+   [appdbg] health FAIL e0 fails=9 ret=0        ← 健康链连锁败（残留异常）
+   [appdbg] WDT overdue src=1 last_feed=7383    ← APPMGR 喂狗停
+   rst:0xc (SW_CPU_RESET) + 下次 boot [wdt] reason=0x00020001（noinit 归因）
+
+== 根因（三连缺陷，同根）==
+A. call0() 以 argc=0 调 wasm_runtime_call_wasm。WAMR 契约
+   （wasm_interp_classic.c:7397）：argc < function->param_cell_num 即拒——
+   约定签名 app_tick(int ctx)（1 cell）必陷；无参 fixture tick（app_tick(void)，
+   param_cell_num=0，tests/app/appw 同款）恒过——故 sim 套件/bench 全绿、
+   带参 tick 的 app 必死（V0.4 起存量，首例带参 tick 的 app = P4 探针）。
+B. WAMR 实例异常位跨调用存活（wasm_call_function 以异常位判成败）——一次 trap
+   毒化后续全部调用（health_ping 实际执行成功亦被判败）。
+C. health_probe 不设指令配额（继承上次调用余量）+ 同 argc=0 面。
+D. 闭环：tick 每陷 → health_fails 累积（tick 败亦计入）→ 3 败健康回退 →
+   meta 翻槽（TS_TEST 构建静默无打印不复位）→ app 线程退出 → APPMGR 无人喂 →
+   巡检 system_fail(TS_FAIL_WDT(1)) → task_wdt 复位。「meta 交替」= 每次 C6
+   重跑重新激活探针；bench 包（无参 tick）健康恒过 → bench meta 稳定。
+
+== 修复（firmware/module/tessera/src/appmgr/runtime.c，23+/15-）==
+1. call0 撤除，tick 经 call1 带 ctx（argc=1 ≥ 任意 ≤1 参 cell 数；WAMR 对
+   无参形态钳制不扰——bench 回归零变化）；ctx 语义与 init 对齐。
+2. call1 失败即 wasm_runtime_clear_exception（毒化破除）。
+3. health_probe：显式设 INSTR_TICK 配额 + argc=1 带 ctx + 失败清异常；
+   返回值经 argv[0] 回传语义保持。
+
+== 顺带修复（agent 抓取面——C6 假 FAIL 第二根因）==
+post_deploy_check 增 reset_before_capture（缺省 False 行为不变）；
+BV1 deploy_smoke 弃「_serial_reset 关口 → capture_window 再开」两段式，改单端口
+会话 reset_and_capture——CH343 快速关/开竞态下抓取窗零字节（no_verdict 假 FAIL，
+真机实测复现；_serial_reset 方法撤除）。
+
+== 修复验证（板上）==
+[12:19:48] [app1/l3] P4W2 PROBE INIT
+[12:19:48] [app1/l3] P4W2 PROBE ALIVE t=11s      ← 首次打印（原必陷路径）
+[appdbg] e0 n=25 tick=4 fail=0 evt=1 …（tick 连跳、fail 恒 0、零复位零回退）
+P4B5 app active: id=demo.p4w.probe ver=1.0.0 slot=1（槽乒乓按设计）
+bench 同固件回归：P4B PASS（无参 tick 钳制不扰）
+BV1 C4+C6：C4 PASS + C6 PASS「部署+判据命中: (PROBE INIT, PROBE ALIVE)」
+—— P4 板 C1-C6 全链首次全绿（93.3s）。
+
+== 附：P4 烧录布局事实（破砖记录）==
+P4 ROM 直接从 0x2000 简单引导 app（CONFIG_BOOTLOADER_OFFSET_IN_FLASH=0x2000；
+ROM load:0x4ff20000 段即证）——0x0 无 bootloader。west flash（esp32 runner）=
+单产物 write_flash 0x2000 zephyr.bin；误 `write_flash 0 zephyr.bin` = 0x2000 处
+真 app 被镜像中段字节覆盖 → ROM "invalid header: 0x028777b3"（该值即镜像
+0x2000 偏移内容）→ HP WDT boot 循环。恢复 = erase_region 0 0x2000 +
+write_flash 0x2000 zephyr.bin；ts 分区（0x7e0000+）在写窗外无损。
+教训：esptool write_flash 偏移必须 0x2000（勿想当然 0x0）。

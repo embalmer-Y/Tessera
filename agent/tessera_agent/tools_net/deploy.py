@@ -336,6 +336,7 @@ def post_deploy_check(
     window_s: float = 8.0,
     app_id_expect: str | None = None,
     pass_patterns: list[str] | None = None,
+    reset_before_capture: bool = False,
 ) -> dict[str, Any]:
     """部署后健康检查 + 失败自动诊断（G 批 D3 · CLI 调研批候选③；
     P1-5 S8 增判据面）。
@@ -352,6 +353,12 @@ def post_deploy_check(
     回执增 {criteria_pass, pass_patterns}；判据 miss = criteria_pass
     False + diag（S8 修复轮回喂证据）。抓取失败 = criteria_pass None
     （不掩蔽主判定——如实区分「未验证」与「未命中」）。
+
+    FIX-2 增 reset_before_capture（BV1 C6 暖复位语义专用）：True =
+    复用 reset_and_capture（单端口会话内 RTS 复位 + 抓取）——C6 原
+    「_serial_reset 关口 → capture_window 再开」两段式在 CH343 快速
+    关/开竞态下窗口零字节（no_verdict 假 FAIL，真机实测复现）。缺省
+    False = 既有调用方（S8 修复轮/CLI 部署后判据）行为逐字节不变。
     """
     g = _cmd_ok(svc, node, cube, "get-app", f"pc-{cube}")
     healthy = int(g.get("state", -1)) == 3 and (
@@ -368,7 +375,10 @@ def post_deploy_check(
     from tessera_agent.tools_diag import classify as diag_cls
 
     try:
-        text = diag_capture.capture_window(serial_port, window_s)
+        if reset_before_capture:
+            text = diag_capture.reset_and_capture(serial_port, window_s)
+        else:
+            text = diag_capture.capture_window(serial_port, window_s)
     except Exception as exc:  # noqa: BLE001 —— 抓取失败不掩蔽主判定
         out["diag_error"] = f"{type(exc).__name__}: {exc}"
         if pass_patterns is not None:

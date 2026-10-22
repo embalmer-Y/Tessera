@@ -281,24 +281,20 @@ static void mbs_init_once(void)
 
 /* ---- APP 线程主循环 -------------------------------------------------------- */
 
-static bool call0(struct ts_app_rt *r, wasm_function_inst_t fn)
-{
-	uint32_t argv[1] = {0};
-
-	/* DEC-48③（Q-28③A）：每次调用前设指令配额——超限抛
-	 * "instruction limit exceeded" → 返回 false → 既有健康失败/回滚路径
-	 * （无 abort、无持锁死锁面）。tick/evt/health 共用 TICK 预算。 */
-	wasm_runtime_set_instruction_count_limit(r->env, CONFIG_TS_APP_INSTR_TICK);
-	return wasm_runtime_call_wasm(r->env, fn, 0, argv);
-}
-
 static bool call1(struct ts_app_rt *r, wasm_function_inst_t fn, uint32_t arg,
 		  uint32_t *ret)
 {
 	uint32_t argv[1] = {arg};
 
+	/* DEC-48③（Q-28③A）：每次调用前设指令配额——超限抛
+	 * "instruction limit exceeded" → 返回 false → 既有健康失败/回滚路径
+	 * （无 abort、无持锁死锁面）。tick/evt/health 共用 TICK 预算。 */
 	wasm_runtime_set_instruction_count_limit(r->env, CONFIG_TS_APP_INSTR_TICK);
 	if (!wasm_runtime_call_wasm(r->env, fn, 1, argv)) {
+		/* FIX-2：WAMR 实例异常位跨调用存活（wasm_call_function 以
+		 * 异常位判成败）——一陷毒化后续全部调用（health 连锁败）。
+		 * 失败即清，下次调用不受前次残留影响。 */
+		wasm_runtime_clear_exception(r->inst);
 		return false;
 	}
 	if (ret != NULL) {
@@ -309,10 +305,17 @@ static bool call1(struct ts_app_rt *r, wasm_function_inst_t fn, uint32_t arg,
 
 static void health_probe(struct ts_app_rt *r)
 {
-	uint32_t ret = 0;
+	uint32_t argv[1] = {r->app_id};
+	bool ok;
 
-	/* 健康语义：调用成功且返回 0（异常或非零 = 失败一次） */
-	if (!wasm_runtime_call_wasm(r->env, r->fn_health, 0, &ret) || ret != 0) {
+	/* 健康语义：调用成功且返回 0（异常或非零 = 失败一次）。
+	 * FIX-2 三修：显式设 TICK 配额（原继承上次调用余量）+ argc=1 带 ctx
+	 * （argc=0 对带参 health 必陷 "invalid argument count"；WAMR 对无参
+	 * 形态钳制不扰）+ 失败清残留异常（call1 同律）。 */
+	wasm_runtime_set_instruction_count_limit(r->env, CONFIG_TS_APP_INSTR_TICK);
+	ok = wasm_runtime_call_wasm(r->env, r->fn_health, 1, argv);
+	if (!ok || argv[0] != 0) { /* 返回值经 argv[0] 回传（WAMR 约定） */
+		wasm_runtime_clear_exception(r->inst);
 		r->health_fails++;
 		if (r->health_fails >= CONFIG_TS_APP_HEALTH_FAILS) {
 			r->health_failed = true;
@@ -371,7 +374,12 @@ static void app_thread_entry(void *p1, void *p2, void *p3)
 		    (now - last_tick) >= CONFIG_TS_APP_TICK_MS) {
 			last_tick = now;
 			r->tick_count++;
-			if (!call0(r, r->fn_tick)) {
+			/* FIX-2：tick 经 call1 带 ctx（约定 app_tick(int ctx)
+			 * 与 init 同型；argc=1 ≥ 任意 ≤1 参 cell 数——原 call0
+			 * argc=0 对带参 tick 必陷 "invalid argument count 0,
+			 * must be no smaller than 1"（P4 探针复位循环根因）；
+			 * 无参 fixture tick（app_tick(void)）被 WAMR 钳制不扰） */
+			if (!call1(r, r->fn_tick, r->app_id, NULL)) {
 				r->health_fails++;
 			}
 		}
