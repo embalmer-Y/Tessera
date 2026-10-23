@@ -372,6 +372,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.152 · 2026-10-23：**DEC-77 硬件域两项登记（owner 指令）**：① C6 stock 重烧任务剔除（owner 实机确认无问题——与我方 V0.14.0 buf-config TLV × STREAM 原生兼容实测双证闭合；IO9+RST 法降纯档案）；② **轮烧工作流**（硬件域事实）：主机单 USB 口不能双板同接——第二块板可通电驻网，烧录/串口检查走 USB 轮流窗口、测试/部署全程走 WiFi（zenoh 与串口解耦）；**BV2 真板实战 + 多真机 LN 复验由挂起转可执行**（板身份首烧窗口 flash-id 实测定）；BV1 判据面适配注记（C1-C3 串口面限 USB 窗口、C4-C6 网络面随时）。
 - v1.151 · 2026-10-23：**DEC-76 渠道裁撤登记（owner 指令）**：pi 渠道（M1）正式取消（非 HOLD，终态裁撤——DEC-66⑤ 第二渠道采纳废止）；**Node.js 永不引入 = 项目硬边界**（web 案 A 零 Node 升格永久约束）；渠道定格四渠道（Terminal/stdio/MCP-HTTP/web），harness 槽位保留为架构预留。G 表 M1 ✂️、HLD-agent §1/§7/§9 同步。
 - v1.150 · 2026-10-23：**DEC-75 版本节奏纪律登记（owner 指令）+ V0.15.0 推送**：minor 版（0.X.0）= 功能版本，须累积 ~5-8 个 feature 方可收口；issue fix 只走 patch（0.0.X）随修随发；存量版本号不回溯重编（0.13.0/0.14.0/0.15.0 维持原号）。V0.15.0 三笔 + 登记笔随 owner review 完成令推送（main + tag fw-v0.15.0）。后续批规划按 feature 计数排批；v4.5.0 平移批归属（捆绑 feature 或 patch）随批呈递认定。
 - v1.149 · 2026-10-22：**SOURCES.lock 漂移复发登记（dc62682 CI agent-checks 红——4f83586 同类第二复发）+ 提交消息勘误**：dc62682（V0.14.0 收口笔）触碰 AGENTS/plan 等 skill 源文档但 SOURCES.lock 未随更新（tessera-safety/workflow 源哈希漂移）——本地全绿通过是因为 sync 在最终文档编辑**之前**执行，且 docs-only 尾改未复跑 skills 用例；该笔消息「sync 全绿」与事实不符（如实勘误）。**远端实况**：dc62682 的 ci 双 workflow = native-build/l5/repo 三绿 + agent-checks 唯一红（test_sync_check_clean_on_repo）；修复已随本地 V0.15.0 线（HEAD sync 绿）——push 后 HEAD 复绿，dc62682 历史红为常态不可变。**教训升级（4f83586 教训第 2 复发）**：sync 校验必须在**提交前最后一刻**执行（任何后续 touch 文档的编辑——包括提交消息撰写期的 AGENTS 追加——都令前次 sync 失效）；收口检查单将 sync 从「批内一项」升级为「commit 前最后一步」。
