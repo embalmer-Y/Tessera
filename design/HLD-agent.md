@@ -19,7 +19,7 @@ Tessera Agent = PC 侧（Linux）**全 Python 单进程程序**，**双角色**�
 人（终端）──TerminalFrontend(A09)──┐                      ┌── zenoh ──▶ 设备/zenohd
 人（浏览器）──web 渠道(A11+W2)────┤                      │             （设备——形态不限）
 外部 AI CLI ──MCP 门面(A01)──────┼─▶ compose 根（AppContext：│
-外部 harness ──pi 渠道（M1 HOLD）─┘   cfg/budget/audit/    │
+外部 harness（预留槽——DEC-76：Node 永不引入）─┘   cfg/budget/audit/    │
                                      tasks/policy/skills/events）┴── 子进程 ──▶ west/clang/twister/pytest
                                      │                                      （只读白名单+审计）
                                      ├── A02 会话编排（PydanticAI 循环；clarify 双模式前置域）
@@ -166,7 +166,7 @@ PolicyTable 条目可选 `allow`/`deny` 参数规则（如 `deploy_push_app: {cu
 | AG7 | 复杂 APP 实测（真 LLM） | 多文件工程真 LLM 收敛 demo（≥3 文件/含状态机/kv）+ **large 档数值数据采集**（Q-39 数值补呈输入）| AG4/5/6 | 真机判据命中 + 数值报告 |
 | AG8 | 收口 | 回归定格 + 文档同步 + tag fw-v0.6.0 | AG7 | 三连全绿 + 板级回归 |
 
-**v0.2.3 现状注记（2026-10-21 · V0.12.0/V0.13.0 全部交付）**：V0.12.0（R11 调研 → D7 问询双向化 → D4 hooks → A10/A11 设计 → W1 web 客户端 → D5 回放器 → tag fw-v0.12.0）；V0.13.0（BV1 板卡验证域 D/I/R + FIX-1 板级崩机专项 + MP 内存规划〔LLD-A13：memory_audit R0-R7 + 最低内存基线〕+ W2 web 渠道重塑〔LLD-A14：EventBus/呈现层/双模式/收口 + 五缺陷验收修复 + 真机部署验证 + LED 缺陷如实记录〕+ A5 MCP 客户端 + A4 post 钩子 + R12/R13 调研 + HW 域〔LLD-A16：HW-1 定向槽/HW-2 web_search/HW-3 选型/HW-4 硬件事实五面+一〕+ BV2-D 设计〔LLD-A17 门③呈递〕→ tag fw-v0.13.0）。V0.15.0（FIX-2 板级专项：WAMR argc 契约复位循环根治 + P4 C1-C6 首次全绿；BV2-I：LLD-A17 §2/§3 实现——DEC-74 门③按建议值）→ 后续候选：v4.5.0 正式版平移（V0.16.0 候选，上游 ~10-26）/ pi 渠道（M1 HOLD——待 web 真实体验后决策）。
+**v0.2.3 现状注记（2026-10-21 · V0.12.0/V0.13.0 全部交付）**：V0.12.0（R11 调研 → D7 问询双向化 → D4 hooks → A10/A11 设计 → W1 web 客户端 → D5 回放器 → tag fw-v0.12.0）；V0.13.0（BV1 板卡验证域 D/I/R + FIX-1 板级崩机专项 + MP 内存规划〔LLD-A13：memory_audit R0-R7 + 最低内存基线〕+ W2 web 渠道重塑〔LLD-A14：EventBus/呈现层/双模式/收口 + 五缺陷验收修复 + 真机部署验证 + LED 缺陷如实记录〕+ A5 MCP 客户端 + A4 post 钩子 + R12/R13 调研 + HW 域〔LLD-A16：HW-1 定向槽/HW-2 web_search/HW-3 选型/HW-4 硬件事实五面+一〕+ BV2-D 设计〔LLD-A17 门③呈递〕→ tag fw-v0.13.0）。V0.15.0（FIX-2 板级专项：WAMR argc 契约复位循环根治 + P4 C1-C6 首次全绿；BV2-I：LLD-A17 §2/§3 实现——DEC-74 门③按建议值）→ 后续候选：v4.5.0 正式版平移（V0.16.0 候选，上游 ~10-26）/ BV2 真板实战。pi 渠道已裁撤（DEC-76——M1 取消 + Node 永不引入硬边界）。
 
 ## 8. 测试策略（v0.2 增量）
 
@@ -177,7 +177,7 @@ PolicyTable 条目可选 `allow`/`deny` 参数规则（如 `deploy_push_app: {cu
 
 ## 9. V1 范围裁剪清单（v0.2）
 
-不做：ACP/A2A 实现（缝保留；A09/A11 已证明缝有效）/多域 DomainPack 实现（Verifier 接口预留——BV1/MP/HW 已按域内确定性流水线定性落地，非 LLM 创作域不硬套 CreationLoop）/对话级回放（任务级快照 + W2 历史任务栏已覆盖；跨进程持久化 = v2——审计 JSONL 为持久事实源）/多客户端并发创作（单任务单工作区）/MCP 面暴露 ws_*（安全属性）/BV2 适配实现（LLD-A17 设计已落稿，门③三决策点待裁）/pi 渠道（M1 HOLD）。维持：上下文压缩（DEC-38）、HTTP 门面、A5 每调用连接（连接池 = v2）。
+不做：ACP/A2A 实现（缝保留；A09/A11 已证明缝有效）/多域 DomainPack 实现（Verifier 接口预留——BV1/MP/HW 已按域内确定性流水线定性落地，非 LLM 创作域不硬套 CreationLoop）/对话级回放（任务级快照 + W2 历史任务栏已覆盖；跨进程持久化 = v2——审计 JSONL 为持久事实源）/多客户端并发创作（单任务单工作区）/MCP 面暴露 ws_*（安全属性）/BV2 适配实现（LLD-A17 设计已落稿，门③三决策点待裁）/pi 渠道（**DEC-76 终态裁撤**——Node 永不引入为项目硬边界；harness 槽位仅作架构预留）。维持：上下文压缩（DEC-38）、HTTP 门面、A5 每调用连接（连接池 = v2）。
 
 ## 10. 未决依赖与呈递
 

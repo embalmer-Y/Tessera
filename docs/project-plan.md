@@ -274,7 +274,7 @@
 | 序 | 单元 | 内容 | 规模 | 备注 |
 |---|------|------|------|------|
 | R11 ✅ | 开源 Agent 代码调研批 | **已交付（d6a4378 + 续二/续三）**：六项目代码级研读（opencode 协议优先单服务器+SSE 总线+permission/form 协议一等公民〔形态主角〕/ codex protocol crate + EventMsg 版本化 wire + ReviewDecision 三维审批 / gemini-cli semantic-tokens / aider UI 包 CLI 反模式）+ **pi 深评（owner 问 make-vs-buy 触发）**——整体替代否决（域网关/安全哲学/关键路径耦合三理由）/ **pi 第二渠道采纳**（MCP Streamable HTTP 精确匹配） / W1 照旧（pi 无 web）+ Q-48 门③呈递四子项 | ~1 单元 | DEC-66③⑤ |
-| M1 ⏸ | pi 渠道接入 | **HOLD（DEC-66⑥——owner 裁 pi 吸收待定；双运行时代价顾虑）**：ARM 机装 Node + pi（钉版）→ `pi mcp add tessera --url` 直连 FastMCP 网关 → toolExposure 分级 → 严格审批双通道演练 → 验收 = 经 pi 完成 app_develop→deploy 全链。候选替代 = QwenPaw（Python 单运行时——但 350k LOC 助手框架更重，R11 §7.4）——**harness 引入决策推迟至 W1 真实体验后** | ~0.5 | DEC-66⑤⑥ |
+| M1 ✂️ | pi 渠道接入——**取消（DEC-76，owner 2026-10-23：「pi 渠道标记取消，我们永不引入node」）** | 终态裁撤非 HOLD：DEC-66⑤「第二渠道采纳」废止；**Node.js 永不引入 = 项目硬边界**（web 案 A 纯 Python 零 Node 升格永久约束）；渠道定格 Terminal/stdio/MCP-HTTP/web 四渠道，harness 槽位留作架构预留（未来外部消费者须 Python 生态或纯协议侧） | — | DEC-76 废 DEC-66⑤⑥ 接入面 |
 | D7 ✅ | 问询双向化 | **已交付（b8aa6a7）**：QuestionBroker（单次应答契约/枚举域 fail-closed/超时取 default）+ sys_pending_questions/sys_answer（无 token 便利面）+ CreationLoop._emit 异步感知（13 调用点，同步回调行为不变）+ app_develop plan_confirm 桥（缺省 False 行为不变；abort = TA_E_POLICY 结构化终止）——用例 7 | ~0.5 | DEC-67① |
 | D4 ✅ | hooks 拦截面 | **已交付（b5c6d84）**：HookChain pre 裁决（config [hooks] 首匹配；prefix* 前缀；deny = TA_E_POLICY 归因 + 审计 hook_denied / observe = _hook 留观标；坏条目跳过；缺省空链行为不变）+ allow-session 审批三维（会话域记住不落盘/deny 不污染/token 先行）——服务端闸 = 管所有渠道真边界；post 观察面余项随 A10 | ~1 | DEC-67①③ |
 | A10/A11 ✅ | MCI 架构 + web 客户端设计批 | **已落稿**：LLD-A10 v0.1（三层模型/归位表/SSE v1 轮询差分策略〔诚实注记〕/Renderer 契约判据行保真/安全边界两派对照/出站寻址预留不实现）+ LLD-A11 v0.1（案 A 形态/四区页面/语义 token 设计语言/判据行着色正则/零供应链面/测试口径） | ~0.5 | DEC-67 |
@@ -372,6 +372,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.151 · 2026-10-23：**DEC-76 渠道裁撤登记（owner 指令）**：pi 渠道（M1）正式取消（非 HOLD，终态裁撤——DEC-66⑤ 第二渠道采纳废止）；**Node.js 永不引入 = 项目硬边界**（web 案 A 零 Node 升格永久约束）；渠道定格四渠道（Terminal/stdio/MCP-HTTP/web），harness 槽位保留为架构预留。G 表 M1 ✂️、HLD-agent §1/§7/§9 同步。
 - v1.150 · 2026-10-23：**DEC-75 版本节奏纪律登记（owner 指令）+ V0.15.0 推送**：minor 版（0.X.0）= 功能版本，须累积 ~5-8 个 feature 方可收口；issue fix 只走 patch（0.0.X）随修随发；存量版本号不回溯重编（0.13.0/0.14.0/0.15.0 维持原号）。V0.15.0 三笔 + 登记笔随 owner review 完成令推送（main + tag fw-v0.15.0）。后续批规划按 feature 计数排批；v4.5.0 平移批归属（捆绑 feature 或 patch）随批呈递认定。
 - v1.149 · 2026-10-22：**SOURCES.lock 漂移复发登记（dc62682 CI agent-checks 红——4f83586 同类第二复发）+ 提交消息勘误**：dc62682（V0.14.0 收口笔）触碰 AGENTS/plan 等 skill 源文档但 SOURCES.lock 未随更新（tessera-safety/workflow 源哈希漂移）——本地全绿通过是因为 sync 在最终文档编辑**之前**执行，且 docs-only 尾改未复跑 skills 用例；该笔消息「sync 全绿」与事实不符（如实勘误）。**远端实况**：dc62682 的 ci 双 workflow = native-build/l5/repo 三绿 + agent-checks 唯一红（test_sync_check_clean_on_repo）；修复已随本地 V0.15.0 线（HEAD sync 绿）——push 后 HEAD 复绿，dc62682 历史红为常态不可变。**教训升级（4f83586 教训第 2 复发）**：sync 校验必须在**提交前最后一刻**执行（任何后续 touch 文档的编辑——包括提交消息撰写期的 AGENTS 追加——都令前次 sync 失效）；收口检查单将 sync 从「批内一项」升级为「commit 前最后一步」。
 - v1.148 · 2026-10-22：**V0.15.0 收口 ✅（FIX-2 + BV2-I + 收口 = 3 单元全交付）**：回归定格 twister 17/17（115/115——wamr 套件并行 configure_file 竞态 error 单跑 PASS 环境域）/ agent **346+2s**（+11 BV2 + +1 抓取面）/ ruff / repo 5 / sync；HLD-agent **v0.2.4**（工具面 +board_adapt + 现状注记）；README 计数对齐；**tag fw-v0.15.0**（附注式本地，push 待 owner review）。后续候选：v4.5.0 正式版平移（V0.16.0，上游 ~10-26）/ BV2 真板实战 / pi 渠道（M1 HOLD）。
