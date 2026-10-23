@@ -364,6 +364,7 @@
 ## 12. 执行纪律（v1.70 增补质量优先条款）
 
 - **质量优先（DEC-57，owner 2026-10-13 指令原文精神）**：**不允许最简实现**——各交付单元的设计与实现须考虑整体架构、后续可维护性与架构可扩展性；现方案不能很好满足目标时，**停批与 owner 确认讨论重新选择方案或技术**，不得静默绕行或降级实现。
+- 版本节奏纪律（DEC-75，owner 2026-10-23）：**minor 版（0.X.0）须累积 ~5-8 个 feature 方可收口**；issue fix / 板级专项类只走 **patch（0.0.X）** 随修随发；存量版本号不回溯。
 - 其余纪律不变：每单元后 twister + agent pytest + L5 回归（军规 10）；阶段门/军规十条（FOUNDING_PROMPT §2/§3）。
 
 - 规范套件（tag `std-v1`：testing/versioning/progress/coding）+ 军规十条 + 安全与确定性合同（AGENTS.md §6）。
@@ -371,6 +372,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.150 · 2026-10-23：**DEC-75 版本节奏纪律登记（owner 指令）+ V0.15.0 推送**：minor 版（0.X.0）= 功能版本，须累积 ~5-8 个 feature 方可收口；issue fix 只走 patch（0.0.X）随修随发；存量版本号不回溯重编（0.13.0/0.14.0/0.15.0 维持原号）。V0.15.0 三笔 + 登记笔随 owner review 完成令推送（main + tag fw-v0.15.0）。后续批规划按 feature 计数排批；v4.5.0 平移批归属（捆绑 feature 或 patch）随批呈递认定。
 - v1.149 · 2026-10-22：**SOURCES.lock 漂移复发登记（dc62682 CI agent-checks 红——4f83586 同类第二复发）+ 提交消息勘误**：dc62682（V0.14.0 收口笔）触碰 AGENTS/plan 等 skill 源文档但 SOURCES.lock 未随更新（tessera-safety/workflow 源哈希漂移）——本地全绿通过是因为 sync 在最终文档编辑**之前**执行，且 docs-only 尾改未复跑 skills 用例；该笔消息「sync 全绿」与事实不符（如实勘误）。**远端实况**：dc62682 的 ci 双 workflow = native-build/l5/repo 三绿 + agent-checks 唯一红（test_sync_check_clean_on_repo）；修复已随本地 V0.15.0 线（HEAD sync 绿）——push 后 HEAD 复绿，dc62682 历史红为常态不可变。**教训升级（4f83586 教训第 2 复发）**：sync 校验必须在**提交前最后一刻**执行（任何后续 touch 文档的编辑——包括提交消息撰写期的 AGENTS 追加——都令前次 sync 失效）；收口检查单将 sync 从「批内一项」升级为「commit 前最后一步」。
 - v1.148 · 2026-10-22：**V0.15.0 收口 ✅（FIX-2 + BV2-I + 收口 = 3 单元全交付）**：回归定格 twister 17/17（115/115——wamr 套件并行 configure_file 竞态 error 单跑 PASS 环境域）/ agent **346+2s**（+11 BV2 + +1 抓取面）/ ruff / repo 5 / sync；HLD-agent **v0.2.4**（工具面 +board_adapt + 现状注记）；README 计数对齐；**tag fw-v0.15.0**（附注式本地，push 待 owner review）。后续候选：v4.5.0 正式版平移（V0.16.0，上游 ~10-26）/ BV2 真板实战 / pi 渠道（M1 HOLD）。
 - v1.147 · 2026-10-22：**BV2-I ✅（V0.15.0 主单元——DEC-74 三裁决落地）**：domain/board_adapt.py 收录板路全链（定位/布局模板族〔P4 playbook 真锚——与在树 overlay 逐偏移对拍测试〕/五件套/C0 预检/agent/adapt 工作区）+ install_profile owner 闸（BV1 loader 可装载 = 工单两端闭环）+ MCP board_adapt（strict）+ 未收录清单待确认态（go_build 恒 False）；测试 +11。§11h K 表 BV2-I ✅ v1.147。
