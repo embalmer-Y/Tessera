@@ -32,6 +32,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from tessera_agent.domain import app_chain
 from tessera_agent.tools_net import deploy as net_deploy
+from tessera_agent.tools_net import keys
 from tessera_agent.tools_net.zenoh_service import ZenohService
 
 CHECK_ORDER: tuple[str, ...] = ("C1", "C2", "C3", "C4", "C5", "C6")
@@ -374,6 +375,11 @@ class BoardTransport(Protocol):
     def discover(self, timeout_s: float) \
             -> tuple[bool, list[dict[str, Any]]]: ...
 
+    def probe_cube(self, cube: str) -> dict[str, Any] | None:
+        """单 cube 直查兜底（BV2 实战：双板网络通配 quirk 观察项——
+        命中返回 {node_id, cube_id}，未命中/失败返回 None）。"""
+        ...
+
     def node_snapshot(self, node: str, cube: str) \
             -> tuple[bool, dict[str, Any]]: ...
 
@@ -482,6 +488,24 @@ class LiveTransport:
         except Exception as exc:  # noqa: BLE001
             return False, [{"error": f"{type(exc).__name__}: {exc}"}]
 
+    def probe_cube(self, cube: str) -> dict[str, Any] | None:
+        # 单通配 selector（tessera/*/<cube>/…）——BV2 实战实证：单 `*`
+        # 双板可靠，全通配 discover 有单回执 quirk（观察项）。
+        try:
+            with ZenohService(self._locator) as svc:
+                replies = svc.query(
+                    f"tessera/*/{cube}/sys/get-info",
+                    keys.envelope("get-info", f"probe-{cube}"), 6.0)
+            for _, payload in replies:
+                r = keys.parse_reply(payload)
+                node = r.data.get("node")
+                cb = r.data.get("cube")
+                if isinstance(node, str) and node and cb == cube:
+                    return {"node_id": node, "cube_id": cb}
+        except Exception:  # noqa: BLE001 —— 兜底面失败即 None（不掩蔽主判据）
+            pass
+        return None
+
     def node_snapshot(self, node: str, cube: str) \
             -> tuple[bool, dict[str, Any]]:
         try:
@@ -585,7 +609,12 @@ def _c3_boot(profile: BoardProfile, tr: BoardTransport) -> CheckResult:
 
 def _c4_zenoh(profile: BoardProfile, tr: BoardTransport) \
         -> tuple[CheckResult, dict[str, Any]]:
-    """回执附 env（{node, cube, snapshot}）供 C5/C6 消费。"""
+    """回执附 env（{node, cube, snapshot}）供 C5/C6 消费。
+
+    BV2 实战修订：显式指名 cube 时 discover 未命中 → **直查兜底**（单发
+    get-info 探测）——双板网络实测发现通配查询仅回首个在线者（zenoh 路由/
+    pico 声明交互域，登记观察），显式 id 面全通；兜底使命名板不受通配
+    quirk 误判。兜底命中在证据面如实标注。"""
     t0 = time.monotonic()
     ok, nodes = tr.discover(timeout_s=10.0)
     if not ok:
@@ -595,12 +624,21 @@ def _c4_zenoh(profile: BoardProfile, tr: BoardTransport) \
             evidence=[str(n) for n in nodes],
             dur_ms=int((time.monotonic() - t0) * 1000)), {}
     cubes = [(n.get("node_id", ""), n.get("cube_id", "")) for n in nodes]
+    fallback_note = ""
     if profile.zenoh.cube:
         hit = [nc for nc in cubes if nc[1] == profile.zenoh.cube]
+        if not hit:
+            # 直查兜底：discover 候选缺名 ≠ 板不在线（通配 quirk 观察项）
+            probed = tr.probe_cube(profile.zenoh.cube)
+            if probed is not None:
+                hit = [probed]
+                nodes = nodes + [probed]
+                fallback_note = ("（discover 通配单回执 quirk——直查兜底命中，"
+                                 "BV2 实战登记观察项）")
     else:
         hit = cubes  # 空 = 恰一在线即本板
     if len(hit) != 1:
-        why = (f"期望 cube={profile.zenoh.cube} 未在线"
+        why = (f"期望 cube={profile.zenoh.cube} 未在线（含直查兜底）"
                if profile.zenoh.cube else
                f"在线 cube 数={len(cubes)}（未指名 cube 时须恰一——"
                f"多板在线请在画像 [zenoh] cube 回填自报名）")
@@ -618,7 +656,7 @@ def _c4_zenoh(profile: BoardProfile, tr: BoardTransport) \
             dur_ms=int((time.monotonic() - t0) * 1000)), {}
     res = CheckResult(
         check="C4", verdict=PASS,
-        detail=f"node={node} cube={cube} 命令面回执全通",
+        detail=f"node={node} cube={cube} 命令面回执全通{fallback_note}",
         facts={"node": node, "cube": cube, "fw": snap.get("get-info", {})
                .get("fw") if isinstance(snap.get("get-info"), dict) else None},
         dur_ms=int((time.monotonic() - t0) * 1000))

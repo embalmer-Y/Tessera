@@ -1,0 +1,65 @@
+# docs/evidence/bv2_first_board_console.txt · BV2 适配流水线首实战（V0.16.0 累积池首单元）
+# 板对：P4（p4-dev/cube-p4，5B90122202/ttyACM0）+ atk DNESP32-S3B（dbn/dbc，5909066900/ttyACM1）
+# 工作流：双板同接（owner Self-Powered hub）——烧录/串口检查 USB 窗口、测试全程 WiFi
+# 凭据扫描：本文件无凭据面（WiFi 凭据 /tmp cmake CACHE 注入，命令行零凭据）
+
+== 供电评估（owner「评估供电是否足够」）==
+静态：hub lsusb = Terminus 1a40:0101 **Self Powered**（外接供电形态，下游口
+USB2 标准 500mA/口）；dmesg 过流事件 = 0（双板部署带载全程复查仍为 0）。
+带载实证：双板 WiFi 同网 + Agent 部署分块突发 + LN 扇出全程——两板串口
+**零 brownout、零 WDT、零异常复位**（/tmp/bv2_dual_serial.log 双串口并行实抓）。
+结论：供电充足（实测口径）。
+
+== 板身份实测（esptool flash-id）==
+atk：ESP32-S3 Dual Core 240MHz + PSRAM 8MB（AP_3v3 OCT）+ **boya 16MB
+（JEDEC 68:4018——与一四三档案全同）**。Zephyr 板名 dnesp32s3b（树内
+alientek/dnesp32s3b 收录——BV2 收录板路）。
+
+== BV2 流水线（生成件 = 板级面唯一来源，零手写板级件）==
+adapt_included_board(dnesp32s3b, 16384KB, xtensa, psram=oct, pwm_led_pin=4)
+→ agent/adapt/dnesp32s3b/{board.overlay, board.conf, prov.json, workorder.json}
+  · 分区 = 16384 模板（prov 0x7e0000/meta 0x7e1000/slot 32KB×2/noinit——P4 同族）
+  · overlay 含 &wifi 使能 + LEDC_CH0_GPIO4 PWM 绑定 + zephyr_user pwm-uid
+  · conf 含 SPIRAM OCT 家族 + R1/R2 4096 + xtensa main 栈 8192（教训 31⑤）
+C0 预检 OK → deploybench 构建（-DEXTRA_DTC_OVERLAY_FILE/-DEXTRA_CONF_FILE
+指向生成件；凭据 /tmp cmake -C 注入）：
+  第一轮 FAIL：dram0 溢出 25164B——MP 每板预算纪律实测敲定 heap 131072→98304
+  （产物内注记推导；xiao 基线值携其板级裁剪语境）
+  第二轮 PASS：787KB 镜像，**板级面 100% 出自 BV2 生成件**
+
+== 实战回填生成器的三缺口（首实战价值，随批入仓）==
+1. esp32s3 板 &wifi 节点缺省 disabled——模板按 soc 分派使能行；
+2. PWM 硬依赖 bench（deploybench main.c 无桩符号）——模板 pwm_led_pin
+   参数（调用方板级硬件事实，HW-4 source 纪律）→ conf PWM 面 + overlay
+   ledc/pinctrl/zephyr_user 绑定；
+3. 网络内存家族（R1/R2 4096 + xtensa main 8192 + PSRAM 卸载家族）——
+   net 模板恒开。
+另有 prov 陈旧路由修复：deploybench 内嵌 prov = x86 时代 tcp/192.168.2.91:9955
+→ 重生成（cbor2 确定性编码，键序/结构逐字段对拍原 blob，仅路由串 21→22 字符）。
+
+== bring-up（deploybench @ atk）==
+DB0 start → DB1 wifi_connect rc=0 → DBw associated → DB2 prov burn=0
+（node=dbn cube=dbc）→ [ts-net] CONNECTED loc=tcp/192.168.2.101:9957
+→ DB3 deploy target ready——**第二块板入 LN 网**
+（过程一坑：-C 初始缓存脚本须 CACHE 形式 set()，普通 set() 作用域不外溢
+= 空凭据烤入 rc=-22，一三二同型，登记）。
+
+== BV1 C1-C6（画像 = BV2 生成草稿 + bring-up 实测回填）==
+[C1] PASS 串口在场 | [C2] PASS chip=ESP32-S3 size=16384KB
+[C3] PASS boot/console — CONNECTED loc= | [C4] PASS node=dbn cube=dbc 命令面
+[C5] PASS caps 消费 | [C6] PASS 部署+判据命中: (P4W2 PROBE INIT, P4W2 PROBE ALIVE)
+—— BV2 适配板 **C1-C6 全 PASS（185.3s）**，画像 agent/boards/dnesp32s3b.toml
+入目录（owner 本会话「自行完成剩余开发项」泛指令委托，草稿全文随批呈递供事后 review）。
+
+== 双板 LN 拓扑（bv2-ln = cube-p4 + dbc）==
+ln_deploy 扇出：p4 upload slot0 activate confirmed ✓ / dbn upload slot1
+activate confirmed ✓ → 双板暖复位（CG7）→ ln_status 聚合：
+**state=3（ACTIVE）× 2，degraded=[]，LN 判据 = 双 ACTIVE PASS**
+
+== 观察项（登记）==
+1. 通配查询单回执：tessera/*/*/sys/get-info 仅回首个在线者（atk 只应答
+   单 `*` 选择子；尾通配 0 回执）——zenoh 路由/pico 声明交互域；显式 id 面
+   （部署/LN/BV1 显式 cube）全通。BV1 C4 增 probe_cube 直查兜底 + discover
+   缺名 ≠ 离线语义；
+2. 双板网络下画像 [zenoh] cube 空值「恰一」语义歧义——命名板须显式回填
+   （BV2 生成草稿即提醒）。

@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: Apache-2.0
+# BV2 适配画像草稿（LLD-A17——owner review 后入目录；接线前为推定态）
+# 工单：agent/adapt/dnesp32s3b/workorder.json
+[board]
+id = "dnesp32s3b"
+description = "BV2 适配（Zephyr 收录板 dnesp32s3b；16384KB）——接线后 BV1 bring-up 实测回填"
+
+[serial]
+port = "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5909066900-if00" # CH343 5909066900（BV2 实战实测）
+baud = 115200
+
+[flash]
+adapter = "esptool"
+chip = "esp32s3" # esptool 实测（zephyr 板名 dnesp32s3b ≠ esptool chip 名）
+size_kb = 16384
+
+[boot]
+reset = true
+ready_patterns = ["CONNECTED loc="]
+timeout_s = 90.0
+
+[zenoh]
+expect_discover = true
+cube = "dbc" # BV2 实战实测（双板网络下显式指向——空值「恰一」语义歧义）
+
+[caps]
+tiers = ["small"]
+min_slot_pool_kb = 32
+
+[smoke]
+package_path = "agent/demos/P4W/p4w.probe-1.0.0.tsap" # 架构中立探针（BV2 实战 C6 判据）
+pub_path = "agent/demos/P4W/test-root.pub"
+criteria = ["P4W2 PROBE INIT", "P4W2 PROBE ALIVE"]
+window_s = 90.0
+

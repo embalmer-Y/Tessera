@@ -346,6 +346,14 @@
 | BV2-I ✅ | 新板卡适配域实现（LLD-A17 §2/§3/§4——DEC-74 门③三裁决落地） | **收录板路全链**：`domain/board_adapt.py`（locate_board 板定义定位〔hardware.check_zephyr_inclusion 同源归一化匹配〕→ plan_partitions 布局模板族〔**P4 playbook 真锚**：16MB = 0x7e0000/7e1000/7e3000/7eb000/7f3000 原样——测试与在树 p4bench overlay 逐偏移对拍；8MB 保守兼容/4MB 最小档 slot 减半；未知尺寸 fail-closed 不发明〕→ 接入件五件套生成〔board.overlay 模板渲染 + board.conf 内存初值家族〔R3 RV32 main 栈 8192 实测口径随架构表〕+ prov.json 教训 39 offset 注记 + workorder.json 工单〕→ c0_preflight 机械预检〔齐备性/擦除块对齐/越界/slot 尺寸耦合〕→ **agent/adapt/<board>/ 工作区**〔DEC-74① 产物非源码〕）+ install_profile owner 闸（未批准恒拒零落盘；草稿推定态如实标注；**BV1 loader 可装载 = clarify 分支 A 同源可绑——工单两端闭环测试**）+ MCP `board_adapt`（strict——写 adapt 工作区；mode=included/schematic；spawn+D2 progress 同汇）+ **未收录板路清单**（migration_checklist 五项骨架全 pending-confirm 态 + go_build 恒 False——原理图无机械判据，人工确认闸如实登记）；测试 +11（定位命中/未命中转协作、布局矩阵三档+fail-closed、在树 overlay 真锚对拍、五件套+预检防篡改、owner 闸零落盘、工单链可装载、待确认态、MCP 注册） | ~1.5 | agent **346+2s**（+11）；协作 DTS 逐项确认 UI 随 W2 后批（LLD-A17 v1 边界） |
 | 收口 ✅ | 回归定格 + 文档对齐 + tag fw-v0.15.0 | twister 17/17（115/115）+ agent 全套 / ruff / repo 5 / sync；HLD-agent v0.2.4（工具面 +board_adapt）/ README 计数（agent 346 + adapt 行）；tag fw-v0.15.0（附注式本地，push 待 owner review） | ~0.5 | V0.15.0 = FIX-2 + BV2-I + 收口 = 3 单元全 ✅ |
 
+### L. V0.16.0 累积池（§11h，2026-10-23 起——DEC-75 纪律：minor 须累积 ~5-8 feature 方收口；本表逐 feature 登记，攒批即版本）
+
+> 定位 = DEC-75 后的 feature 累积面：逐单元交付、攒够 5-8 个 feature 收口 tag fw-v0.16.0；fix 类随修随发走 patch（fw-v0.15.x）。
+
+| 序 | 单元 | 内容 | 规模 | 备注 |
+|---|------|------|------|------|
+| BV2 实战 ✅ | 适配流水线真板首应用（owner「请先开始BV2实战」+「评估供电是否足够」+「自行完成剩余开发项」） | **全链闭环**：双板同接（Self-Powered hub——供电静态+带载双证零 brownout）→ atk flash-id 实测（boya 16MB JEDEC 68:4018 与一四三档案全同）→ **BV2 流水线生成五件套 = 板级面唯一来源**（deploybench 消费 EXTRA overlay/conf——零手写板级件）→ 构建（dram0 溢出 25164B 实测→heap 98304 MP 纪律敲定）→ 烧录 → prov 重生成（陈旧 x86 路由→当前 9957，cbor2 逐字段对拍）→ **第二板入 LN 网（CONNECTED 9957）**→ **BV1 C1-C6 全 PASS（185.3s）**→ 画像入目录（owner 委托记）→ **双板 LN 双 ACTIVE PASS**（扇出双 confirmed+暖复位+聚合零降级）。**实战回填生成器三缺口**：① esp32s3 &wifi 使能分派 ② PWM 硬依赖面（pwm_led_pin 调用方硬件事实参数——HW-4 source 纪律）③ 网络内存家族（R1/R2+xtensa 8192+PSRAM 卸载）；BV1 C4 增 probe_cube 直查兜底（通配单回执 quirk 观察项——单 `*` 可靠/全通配仅回首个在线者）；deploybench prov 陈旧路由修复入树 | ~1 | 证据 bv2_first_board_console.txt；画像 dnesp32s3b.toml 入目录（owner 委托 + 草稿全文呈递） |
+
 ### F. 健壮性收口批 V0.10.0（§11h，2026-10-17 owner 泛指令点向「按照推荐开发顺序进行开发」——DEC-64；执行序 R1 → R2 → R4 → R3）
 
 > 来源：ARM 重建会话（一四五）三项登记固件健壮性缺陷 + TLS 会话陈旧观察项；owner 按建议序点向开工。定位 = 无路由器/长失联场景 fail-safe 常驻（降级而非复位循环）与 ARM 机新暴露域收口。
@@ -372,6 +380,7 @@
 - 进度记录规则按 `docs/std/progress.md`；本计划的状态列随里程碑更新。
 
 ## 修订记录
+- v1.153 · 2026-10-23：**BV2 实战 ✅（§11h L 表新立——V0.16.0 累积池首单元，DEC-75 纪律）**：适配流水线真板首应用全链闭环（双板接入+供电双证 / atk flash-id / 五件套生成=板级面唯一来源 / deploybench 构建烧录 prov / 第二板入网 / BV1 C1-C6 全 PASS / 画像入目录 owner 委托记 / 双板 LN 双 ACTIVE PASS）。实战回填生成器三缺口（&wifi 分派/PWM 事实面/网络内存家族）+ BV1 C4 probe_cube 直查兜底 + deploybench prov 陈旧路由修复；观察项登记（通配单回执 quirk/双板命名 cube 语义）。
 - v1.152 · 2026-10-23：**DEC-77 硬件域两项登记（owner 指令）**：① C6 stock 重烧任务剔除（owner 实机确认无问题——与我方 V0.14.0 buf-config TLV × STREAM 原生兼容实测双证闭合；IO9+RST 法降纯档案）；② **轮烧工作流**（硬件域事实）：主机单 USB 口不能双板同接——第二块板可通电驻网，烧录/串口检查走 USB 轮流窗口、测试/部署全程走 WiFi（zenoh 与串口解耦）；**BV2 真板实战 + 多真机 LN 复验由挂起转可执行**（板身份首烧窗口 flash-id 实测定）；BV1 判据面适配注记（C1-C3 串口面限 USB 窗口、C4-C6 网络面随时）。
 - v1.151 · 2026-10-23：**DEC-76 渠道裁撤登记（owner 指令）**：pi 渠道（M1）正式取消（非 HOLD，终态裁撤——DEC-66⑤ 第二渠道采纳废止）；**Node.js 永不引入 = 项目硬边界**（web 案 A 零 Node 升格永久约束）；渠道定格四渠道（Terminal/stdio/MCP-HTTP/web），harness 槽位保留为架构预留。G 表 M1 ✂️、HLD-agent §1/§7/§9 同步。
 - v1.150 · 2026-10-23：**DEC-75 版本节奏纪律登记（owner 指令）+ V0.15.0 推送**：minor 版（0.X.0）= 功能版本，须累积 ~5-8 个 feature 方可收口；issue fix 只走 patch（0.0.X）随修随发；存量版本号不回溯重编（0.13.0/0.14.0/0.15.0 维持原号）。V0.15.0 三笔 + 登记笔随 owner review 完成令推送（main + tag fw-v0.15.0）。后续批规划按 feature 计数排批；v4.5.0 平移批归属（捆绑 feature 或 patch）随批呈递认定。

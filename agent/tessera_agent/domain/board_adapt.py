@@ -159,9 +159,16 @@ _WAMR_ARCH_NOTES = {
 
 
 def render_overlay(loc: BoardLocation, plan: PartitionPlan,
-                   target: str) -> str:
+                   target: str, *, net: bool = True,
+                   soc: str = "",
+                   pwm_led_pin: int | None = None) -> str:
     """接入件：五分区 overlay（P4 playbook 同构模板）。target = 板目标
-    全名（v4.5 斜杠限定，如 esp32p4_wifi6_dev_kit/esp32p4/hpcore）。"""
+    全名（v4.5 斜杠限定，如 esp32p4_wifi6_dev_kit/esp32p4/hpcore）。
+    BV2 实战首应用修订（dnesp32s3b）：net=True 且 esp32s3 板 → 追加
+    `&wifi` 节点使能（板 DTS 缺省 disabled——esp32p4 走 esp-hosted 节点
+    树内已启用，无需此行；模板按 soc 分派）。pwm_led_pin = 板载 LED 的
+    PWM 引脚（调用方提供的板级硬件事实，HW-4 source 纪律——缺省 None =
+    不出 PWM 面，PWM 硬依赖 bench 会如实 init 失败）。"""
     assert plan.carve_base % plan.erase_block == 0, "carve 基址须对齐擦除块"
     fw_b_size = plan.flash_kb * 1024 - (plan.noinit_off + plan.erase_block
                                         - plan.carve_base) - plan.carve_base
@@ -174,7 +181,56 @@ def render_overlay(loc: BoardLocation, plan: PartitionPlan,
         " * 尺寸耦合：slot = CONFIG_TS_STORE_SLOT_SIZE（本板 conf = "
         f"{plan.slot_size}；part.c BUILD_ASSERT 把关）。",
         " */",
-        "/delete-node/ &slot1_partition;",
+    ]
+    if pwm_led_pin is not None:
+        lines += [
+            "#include <zephyr/dt-bindings/pinctrl/esp32s3-pinctrl.h>",
+            "",
+        ]
+    lines += ["/delete-node/ &slot1_partition;"]
+    if net and soc.lower() == "esp32s3":
+        # BV2 实战修订（dnesp32s3b）：esp32s3 板 DTS wifi 缺省 disabled
+        lines += [
+            "",
+            "&wifi {",
+            "\tstatus = \"okay\";",
+            "};",
+        ]
+    if pwm_led_pin is not None:
+        lines += [
+            "",
+            f"/* 板载 LED PWM 绑定（调用方硬件事实：pin = IO{pwm_led_pin}——"
+            "HW-4 source 纪律） */",
+            "&pinctrl {",
+            "\tbv_ledc0: bv_ledc0 {",
+            "\t\tgroup1 {",
+            f"\t\t\tpinmux = <LEDC_CH0_GPIO{pwm_led_pin}>;",
+            "\t\t\toutput-enable;",
+            "\t\t};",
+            "\t};",
+            "};",
+            "",
+            "&ledc0 {",
+            "\tstatus = \"okay\";",
+            "\tpinctrl-0 = <&bv_ledc0>;",
+            "\tpinctrl-names = \"default\";",
+            "\t#address-cells = <1>;",
+            "\t#size-cells = <0>;",
+            "\tchannel0@0 {",
+            "\t\treg = <0x0>;",
+            "\t\ttimer = <0>;",
+            "\t};",
+            "};",
+            "",
+            "/ {",
+            "\tzephyr,user {",
+            "\t\t/* PWM 后端绑定（板级九模式）：uid 匹配通道逻辑名 */",
+            "\t\tpwm-uid = \"dbpwm\";",
+            "\t\tpwms = <&ledc0 0 1000000 0>;",
+            "\t};",
+            "};",
+        ]
+    lines += [
         "",
         "&flash0 {",
         "\tpartitions {",
@@ -216,20 +272,66 @@ def render_overlay(loc: BoardLocation, plan: PartitionPlan,
     return "\n".join(lines)
 
 
-def render_board_conf(plan: PartitionPlan, arch: str) -> str:
-    """接入件：板级 conf（内存初值家族 + 架构注记——R1/R2/R3 4096 族由
-    bench prj.conf 承载，板级片段只定 slot/线程栈/main 栈）。"""
-    arch_name, main_stack, note = _WAMR_ARCH_NOTES.get(
+def render_board_conf(plan: PartitionPlan, arch: str, *, net: bool = True,
+                      psram: str | None = None,
+                      pwm_led_pin: int | None = None) -> str:
+    """接入件：板级 conf（slot/线程栈/main 栈 + 网络内存家族）。
+
+    BV2 实战首应用修订（dnesp32s3b）：net=True → R1/R2 防御（rx/sysworkq
+    4096——deploybench xiao 基线 + MP R1/R2 同源）+ xtensa main 栈升 8192
+    （教训 31⑤：verify 链 4096 实测挂死——家族值优先于架构缺省）。psram
+    （"oct"/"quad"）→ WAMR 池 PSRAM 卸载家族（WiFi+zenoh+WAMR 三合一
+    DRAM 装不下——DEC-29；xiao 基线 heap 131072）；未提供 = 堆 98304 +
+    无 PSRAM 警示注记（三合一预算紧张，如实标注推定态）。"""
+    arch_name, arch_main, note = _WAMR_ARCH_NOTES.get(
         arch, (arch, 4096, "未收录架构——缺省 4096，待实测校准（如实注记）"))
-    return "\n".join([
+    main_stack = arch_main
+    lines = [
         "# SPDX-License-Identifier: Apache-2.0",
         f"# BV2 适配接入件：{arch_name} 板级片段（LLD-A17 · DEC-74 产物）。",
         f"# 架构注记：{note}。",
         f"CONFIG_TS_STORE_SLOT_SIZE={plan.slot_size}",
         "CONFIG_TS_APP_THREAD_STACK=16384",
-        f"CONFIG_MAIN_STACK_SIZE={main_stack}",
-        "",
-    ])
+    ]
+    if psram:
+        lines += [
+            "",
+            "# 网络内存家族（BV2 net 模板——deploybench xiao 基线，DEC-29 预算）：",
+            "# WAMR 实例堆入 PSRAM（WiFi+zenoh+WAMR 三合一 DRAM 装不下）；",
+            f"# PSRAM 形态 = {psram.upper()}（调用方提供——板载颗粒/模式须按原理图或",
+            "# flash-id 实测核对，推定态如不符请人工修订）。",
+            "CONFIG_ESP_SPIRAM=y",
+            f"CONFIG_SPIRAM_MODE_{psram.upper()}=y",
+            "CONFIG_ESP_SPIRAM_MEMTEST=y",
+            "CONFIG_TS_APP_PSRAM_HEAP=y",
+            "CONFIG_TS_APP_WAMR_HEAP=262144",
+            "CONFIG_HEAP_MEM_POOL_SIZE=131072",
+        ]
+    else:
+        lines += [
+            "",
+            "# 网络内存家族（BV2 net 模板——R1/R2 防御）：",
+            "# ⚠ 本板未声明 PSRAM——WiFi+zenoh+WAMR 三合一内部 DRAM 预算紧张，",
+            "# 堆值为推定态；三合一无法容纳时须人工出预算（DEC-29）。",
+            "CONFIG_HEAP_MEM_POOL_SIZE=98304",
+        ]
+    if net:
+        lines += [
+            "CONFIG_NET_RX_STACK_SIZE=4096",
+            "CONFIG_SYSTEM_WORKQUEUE_STACK_SIZE=4096",
+        ]
+    if pwm_led_pin is not None:
+        lines += [
+            "",
+            f"# PWM 后端面（板载 LED pin = IO{pwm_led_pin}——调用方硬件事实）：",
+            "CONFIG_PWM=y",
+            "CONFIG_TS_DRV_PWM=y",
+        ]
+    if arch == "xtensa":
+        main_stack = 8192  # 教训 31⑤：xtensa verify 链 4096 实测挂死
+        lines += ["# main 栈 8192 = xtensa verify 链实测口径（教训 31⑤）"]
+    lines += [f"CONFIG_MAIN_STACK_SIZE={main_stack}", ""]
+    return "\n".join(lines)
 
 
 def prov_notes(plan: PartitionPlan) -> dict[str, Any]:
@@ -315,6 +417,20 @@ def migration_checklist(hint: str,
 # ---- 收录板路编排：接入件五件套 → agent/adapt/<board>/ 工作区 ---------------
 
 
+_SOC_TOKENS = ("esp32s3", "esp32p4", "esp32c6", "esp32c3", "nrf52840",
+               "nrf54", "stm32", "rp2040")
+
+
+def _soc_of(target_or_name: str) -> str:
+    """SoC 族推导（从板目标全名/板名找已知 token——overlay 节点分派用；
+    未命中 = 空串，模板按无 SoC 特化面出）。"""
+    low = target_or_name.lower()
+    for tok in _SOC_TOKENS:
+        if tok in low:
+            return tok
+    return ""
+
+
 def adapt_included_board(
     hint: str,
     flash_kb: int,
@@ -323,12 +439,17 @@ def adapt_included_board(
     *,
     arch: str | None = None,
     target: str | None = None,
+    soc: str = "",
+    psram: str | None = None,
+    pwm_led_pin: int | None = None,
 ) -> dict[str, Any]:
     """收录板路全链（LLD-A17 §2）：定位 → 布局 → 五件套生成 → C0 预检。
     产物 = agent/adapt/<board>/（DEC-74①：产物非源码——不入 agent/boards/
     目录；画像入目录须 owner review 后显式 install_profile）。
     arch 缺省 = board.yml 无法机械得出时由调用方提供（HW 域语义理解处）；
-    未提供 = 'unknown' 如实标注。"""
+    未提供 = 'unknown' 如实标注。net 模板恒开（项目正典姿态：板入网）；
+    soc = 板 SoC 族（esp32s3/esp32p4/…——overlay 节点使能分派）；psram =
+    板载 PSRAM 模式（oct/quad/None——调用方提供，板级硬件事实）。"""
     loc = locate_board(hint, west_workspace)
     plan = plan_partitions(flash_kb)
     board_dir_name = hardware._norm(loc.name)
@@ -337,9 +458,14 @@ def adapt_included_board(
 
     arch_key = (arch or "unknown").lower()
     (out_dir / "board.overlay").write_text(
-        render_overlay(loc, plan, target or loc.name), encoding="utf-8")
+        render_overlay(loc, plan, target or loc.name, net=True,
+                       soc=soc or _soc_of(target or loc.name),
+                       pwm_led_pin=pwm_led_pin),
+        encoding="utf-8")
     (out_dir / "board.conf").write_text(
-        render_board_conf(plan, arch_key), encoding="utf-8")
+        render_board_conf(plan, arch_key, net=True, psram=psram,
+                          pwm_led_pin=pwm_led_pin),
+        encoding="utf-8")
     (out_dir / "prov.json").write_text(
         json.dumps(prov_notes(plan), ensure_ascii=False, indent=1) + "\n",
         encoding="utf-8")
@@ -352,6 +478,9 @@ def adapt_included_board(
         "flash_kb": plan.flash_kb,
         "partitions": plan.offsets_dict(),
         "slot_size": plan.slot_size,
+        "net": True,
+        "pwm_led_pin": pwm_led_pin,
+        "psram": psram,
         "artifacts_dir": str(out_dir),
         "c0_preflight": pre,
         "owner_review": "pending",

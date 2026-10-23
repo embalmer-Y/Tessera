@@ -1,0 +1,6 @@
+{
+ "prov_offset": "0x7e0000",
+ "prov_size": "0x1000",
+ "note": "flash_prov --offset 须与本表一致（教训 39：offset 陷阱——缺省值≠本板布局，误烧落主固件槽尾部）",
+ "test_channel": "TS_TEST 构建 prov 注入通道（合同 10）随 bench prj.conf"
+}

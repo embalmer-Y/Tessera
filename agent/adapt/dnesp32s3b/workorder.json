@@ -1,0 +1,31 @@
+{
+ "board": "dnesp32s3b",
+ "rel_path": "alientek/dnesp32s3b/board.yml",
+ "qualifiers": [],
+ "arch": "xtensa",
+ "flash_kb": 16384,
+ "partitions": {
+  "prov": 8257536,
+  "meta": 8261632,
+  "slot_a": 8269824,
+  "slot_b": 8302592,
+  "noinit": 8335360
+ },
+ "slot_size": 32768,
+ "net": true,
+ "pwm_led_pin": 4,
+ "psram": "oct",
+ "artifacts_dir": "/home/radxa/project/Tessera/agent/adapt/dnesp32s3b",
+ "c0_preflight": {
+  "ok": true,
+  "findings": [],
+  "files": [
+   "board.conf",
+   "board.overlay",
+   "prov.json",
+   "workorder.json"
+  ],
+  "c0_note": "真实构建 = west build -b <target>（流水线会话内执行；C0 全局化随 v4.5.0 平移批评估——DEC-74②）"
+ },
+ "owner_review": "pending"
+}

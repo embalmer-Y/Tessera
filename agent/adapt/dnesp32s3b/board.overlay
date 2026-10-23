@@ -1,0 +1,78 @@
+/*
+ * BV2 适配接入件（LLD-A17 · DEC-74——agent/adapt 产物，review 后入树）。
+ * 板：dnesp32s3b（zephyr/boards/alientek/dnesp32s3b/board.yml）；目标 = dnesp32s3b/esp32s3/procpu
+ * flash = 16384KB；ts 五分区 carve 自 0x7e0000（8MB 保守兼容纪律，DEC-23）。
+ * 尺寸耦合：slot = CONFIG_TS_STORE_SLOT_SIZE（本板 conf = 32768；part.c BUILD_ASSERT 把关）。
+ */
+#include <zephyr/dt-bindings/pinctrl/esp32s3-pinctrl.h>
+
+/delete-node/ &slot1_partition;
+
+&wifi {
+	status = "okay";
+};
+
+/* 板载 LED PWM 绑定（调用方硬件事实：pin = IO4——HW-4 source 纪律） */
+&pinctrl {
+	bv_ledc0: bv_ledc0 {
+		group1 {
+			pinmux = <LEDC_CH0_GPIO4>;
+			output-enable;
+		};
+	};
+};
+
+&ledc0 {
+	status = "okay";
+	pinctrl-0 = <&bv_ledc0>;
+	pinctrl-names = "default";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	channel0@0 {
+		reg = <0x0>;
+		timer = <0>;
+	};
+};
+
+/ {
+	zephyr,user {
+		/* PWM 后端绑定（板级九模式）：uid 匹配通道逻辑名 */
+		pwm-uid = "dbpwm";
+		pwms = <&ledc0 0 1000000 0>;
+	};
+};
+
+&flash0 {
+	partitions {
+		ts_prov_part: partition@7e0000 {
+			compatible = "zephyr,mapped-partition";
+			label = "ts-prov";
+			reg = <0x7e0000 0x1000>;
+		};
+		ts_meta_part: partition@7e1000 {
+			compatible = "zephyr,mapped-partition";
+			label = "ts-meta";
+			reg = <0x7e1000 0x2000>;
+		};
+		ts_slot_a_part: partition@7e3000 {
+			compatible = "zephyr,mapped-partition";
+			label = "ts-slot-a";
+			reg = <0x7e3000 0x8000>;
+		};
+		ts_slot_b_part: partition@7eb000 {
+			compatible = "zephyr,mapped-partition";
+			label = "ts-slot-b";
+			reg = <0x7eb000 0x8000>;
+		};
+		ts_noinit_part: partition@7f3000 {
+			compatible = "zephyr,mapped-partition";
+			label = "ts-noinit";
+			reg = <0x7f3000 0x1000>;
+		};
+		/* fw-b：未来 MCUmgr 固件第二 slot 预留（DEC-23；V1 未接线） */
+		fw_b_part: partition@7f4000 {
+			label = "fw-b";
+			reg = <0x7f4000 0x80c000>;
+		};
+	};
+};
