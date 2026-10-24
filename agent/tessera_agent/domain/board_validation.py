@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""板卡验证域（LLD-A12 · DEC-68①；V0.13.0 BV1-I）。
+"""板卡验证域（LLD-agent-board-validation · DEC-68①；V0.13.0 BV1-I）。
 
 确定性检查流水线：输入板卡画像 + 传输面（串口/zenoh/部署链），输出
 结构化 bring-up 报告。板卡验证非 LLM 创作任务——不硬套 CreationLoop；
@@ -66,7 +66,7 @@ _ALLOWED: dict[str, set[str]] = {
     "caps": {"tiers", "min_slot_pool_kb"},
     "smoke": {"package_path", "pub_path", "criteria", "window_s"},
     "build": {"enabled", "app_target"},
-    # HW-4（LLD-A16 §7.1 · v1.1 加性）：引脚级硬件事实（选入节）
+    # HW-4（LLD-agent-hardware-targeting §7.1 · v1.1 加性）：引脚级硬件事实（选入节）
     "hardware": {"zephyr_board", "soc", "ram_kb", "psram_kb", "notes", "pin"},
 }
 _REQUIRED_SECTIONS = ("board", "serial", "flash", "boot", "zenoh")
@@ -123,7 +123,7 @@ class BuildSpec:
 
 @dataclass(frozen=True)
 class HardwarePin:
-    """引脚级硬件事实（HW-4 · LLD-A16 §7.1）——source 必填（R12「每字段
+    """引脚级硬件事实（HW-4 · LLD-agent-hardware-targeting §7.1）——source 必填（R12「每字段
     机械可校验来源」延伸：无来源的引脚声明拒装载）。"""
 
     name: str
@@ -294,7 +294,7 @@ def list_profiles(boards_dir: str | Path) -> list[str]:
     return sorted(p.stem for p in d.glob("*.toml"))
 
 
-# ---- 结果形态（CheckResult 对齐 VerifyOutcome 同型——LLD-A12 §1）-------------
+# ---- 结果形态（CheckResult 对齐 VerifyOutcome 同型——LLD-agent-board-validation §1）-------------
 
 PASS, FAIL, SKIP = "PASS", "FAIL", "SKIP"
 
@@ -551,7 +551,7 @@ class LiveTransport:
         return True, out
 
 
-# ---- 检查项（C1-C6；依赖链 = LLD-A12 §3 表 + §4.1 派生 SKIP 规则）--------------
+# ---- 检查项（C1-C6；依赖链 = LLD-agent-board-validation §3 表 + §4.1 派生 SKIP 规则）----------
 
 def _norm_chip(s: str) -> str:
     return re.sub(r"[^a-z0-9]", "", s.lower())

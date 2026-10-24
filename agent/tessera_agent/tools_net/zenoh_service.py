@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""ZenohService：专属线程 zenoh 会话桥（LLD-A06 §1；Q-19 #1 手搭队列，不引 janus）。
+"""ZenohService：专属线程 zenoh 会话桥（LLD-agent-deploy-net §1；Q-19 #1 手搭队列，不引 janus）。
 
 eclipse-zenoh 1.10.1 同步 API（asyncio 已被上游移除）——会话驻留单一工作线程，
 跨线程调用经队列 + 结果盒封送（部署/查询为请求-响应型，无订阅回调需求时

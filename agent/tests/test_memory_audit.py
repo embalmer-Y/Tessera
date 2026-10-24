@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""memory_audit（LLD-A13 · V0.13.0 MP）测试：解析器三行式/符号归并/
+"""memory_audit（LLD-agent-memory-planner · V0.13.0 MP）测试：解析器三行式/符号归并/
 Discarded 截断/元数据排除/保留窗 + 规则目录 R0-R7 正负样本 + overall
 三态 + 真图摘录锚定（fixtures/map_atk_excerpt.map——atk FIX-1 真行）。
 """

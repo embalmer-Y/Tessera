@@ -121,7 +121,7 @@ ZTEST(framework_safety, test_safety_full_scenario)
 	zassert_true(rb.pwr.en);
 	zassert_equal(rb.pwr.ma, 400);
 
-	/* ---- 4. ISR 调 [thread] API 拒绝（LLD-00 §3） ---- */
+	/* ---- 4. ISR 调 [thread] API 拒绝（LLD-ts-common §3） ---- */
 	v.u = 500;
 	zassert_equal(ts_safety_commit("pwm1", v), TS_OK, "前置：ACTIVE 可写");
 	isr_commit_res = TS_OK;

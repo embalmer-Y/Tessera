@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""会话快照（LLD-A08 §6——Q-38④）：任务级断点续跑。
+"""会话快照（LLD-agent-creation-workspace §6——Q-38④）：任务级断点续跑。
 
 纪律：文件内容本体在 project/（快照只存哈希表——单一事实源不双写）；
 原子写（tmp+os.replace）；resume 哈希校验失败 = TA_E_SNAPSHOT_STALE 如实报。

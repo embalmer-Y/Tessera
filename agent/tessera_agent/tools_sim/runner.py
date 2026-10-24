@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""sim_run 执行器（LLD-A04 §2；M1 定稿的 L4 接口 + G5/单元 H 输入文件实装）。
+"""sim_run 执行器（LLD-agent-sim-harness §2；M1 定稿的 L4 接口 + G5/单元 H 输入文件实装）。
 
 流程：校验场景 → west build 构建 framework.replay 镜像（native_sim）→
 **场景 inputs 落 replay_script.tsv（cwd = 构建目录；固件 test_00 脚本会话
@@ -26,7 +26,7 @@ from tessera_agent.tools_sim.scenario import Scenario
 _JSONL_RE = re.compile(r'\{"t_ms":\d+,"ch":"[^"]+","value_u":\d+\}')
 _FW_BUILD_TIMEOUT_S = 1800  # 来源: DEC-38 #4（同 fw_build 档）
 
-# 脚本会话输出通道（固件 tests/replay test_00 注册面；LLD-A04 §1「通道名在
+# 脚本会话输出通道（固件 tests/replay test_00 注册面；LLD-agent-sim-harness §1「通道名在
 # 固件测试配置面内」的 V1 事实）
 _SCRIPT_CHANNELS = frozenset({"rep_c", "rep_d"})
 

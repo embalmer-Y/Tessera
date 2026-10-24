@@ -7,8 +7,8 @@
 
 | 资产 | 对选型域的价值 |
 |---|---|
-| **BV1 板卡画像**（`agent/boards/*.toml`——LLD-A12 七节：serial/flash/boot/zenoh/caps/smoke/build） | 能力目录的**种子 schema**——每接入一块板即自然沉淀一条目录记录 |
-| **memory_audit + memory-baseline**（LLD-A13/MP） | 选型判定的**硬门**：候选板的 RAM/PSRAM/FLASH ≥ 目标配置档最低需求（docs/memory-baseline.md 三档总账直接消费） |
+| **BV1 板卡画像**（`agent/boards/*.toml`——LLD-agent-board-validation 七节：serial/flash/boot/zenoh/caps/smoke/build） | 能力目录的**种子 schema**——每接入一块板即自然沉淀一条目录记录 |
+| **memory_audit + memory-baseline**（LLD-agent-memory-planner/MP） | 选型判定的**硬门**：候选板的 RAM/PSRAM/FLASH ≥ 目标配置档最低需求（docs/memory-baseline.md 三档总账直接消费） |
 | **caps 自报**（sys/get-info tiers/slot_pool_kb） | 运行时能力实测面（装机后校准目录记录——BV1 C5 已消费） |
 | **twister 套件 + 工具链映射**（xtensa/host/riscv 经验） | 「该板能不能跑起来」的构建域事实（P4 判定批将补 RISC-V 实测） |
 | **真机判据库**（AK/DB/NVD 判据行 + periph 责任链） | bring-up 成本画像（外设驱动自研史 = 工作量估计依据） |
@@ -44,7 +44,7 @@ form = "devkit"                     # devkit | som | custom
  → ⑤ 实测闭环（BV1 全链验证——目录记录回填 caps/串口/flash 真硅）
 ```
 
-**定性（诚实）**：①-③ 是**确定性流水线**（BV1/LLD-A13 同族——机械判定，无 LLM）；④ 排序权重是策略面（owner 可配置）；⑤ 是 BV1 既有域。**LLM 只在需求抽取（①）的语义理解处出现**——与 clarify 域同型。
+**定性（诚实）**：①-③ 是**确定性流水线**（BV1/LLD-agent-memory-planner 同族——机械判定，无 LLM）；④ 排序权重是策略面（owner 可配置）；⑤ 是 BV1 既有域。**LLM 只在需求抽取（①）的语义理解处出现**——与 clarify 域同型。
 
 ## 4. 硬件设计建议边界（DEC-68② 后半）
 

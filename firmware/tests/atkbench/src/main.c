@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* atkbench（K1）：ATK DNESP32-S3B bring-up + 第二 cube 部署链载体
- * （docs/board-deploy-01.md）。链路：WiFi STA（glue = netbench 板级七定稿：
+ * （docs/board-deploy.md）。链路：WiFi STA（glue = netbench 板级七定稿：
  * 固定 2s 无抖动重试 + 断线 DHCP 重启 + media_down 下沉）→ prov flash 持久
  * （首启 TS_TEST 烧入，此后复位全出自 flash——板级五语义）→ ts_core_boot
  * （net_init → zenoh 命令面〔sys/app-* 分步安装链〕+ 步骤 8 slot 装载）。
@@ -115,15 +115,15 @@ static void wifi_handler(struct net_mgmt_event_callback *cb, uint64_t event,
 
 /* {"v":1,"node_id":"akn","cube_id":"akc","routers":["tcp/192.168.2.91:9955"],
  *  "pk0":32×00,"pk1":32×00,"cred":"","pwr_ma":500,"estop":0}（定稿键序，
- *  prov.c 固定走查序）。**数组 = 脚本机械生成**（~/project/logs/gen_ak_prov.py
+ *  prov.c 固定走查序）。**数组 = 脚本机械生成**（~/project/logs/gen_prov_image.py
  *  ——gen_db_prov.py 迁移失落后的重写；手抄禁令，教训 27）。pk 全零：V1
  *  固件验签 = COSE 结构级（K2 后 ES8311/信任链载体——真验签链已在，
  *  K3 信任表上线后实机多根）。 */
 /* v2 12 对形态（F3 · DEC-62①）：v1 前缀 + deploy_mode=orchestrated +
  * estop_remote_clear=0（本地清除板）+ lconf=1（安装闸开——真机判据
- * 载体）。**数组 = 脚本机械生成**（~/project/logs/gen_ak_prov.py；
+ * 载体）。**数组 = 脚本机械生成**（~/project/logs/gen_prov_image.py；
  * 手抄禁令，教训 27）。pk 全零：TEST 有效集 = 测试根 ∪ 信任表（K3）。 */
-/* 机械生成（gen_ak_prov.py——重跑复现；禁手抄，教训 27） */
+/* 机械生成（gen_prov_image.py——重跑复现；禁手抄，教训 27） */
 static const uint8_t prov_blob[] = {
 	0xac, 0x61, 0x76, 0x02, 0x67, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64,
 	0x63, 0x61, 0x6b, 0x6e, 0x67, 0x63, 0x75, 0x62, 0x65, 0x5f, 0x69, 0x64,

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #!/usr/bin/env python3
-"""dav_recv（V0.4.0 M11 重建——原 tools/board 版丢失）：D-AV 帧重组消费端。
+"""dav_recv（V0.4.0 M11 重建——原 tools/board 版丢失）：demo-audio-video（原 D-AV）帧重组消费端。
 
 订阅 `tessera/*/*/av/*/frame` 分片（CBOR 信封 {fid,cid,n,crc,d}——avq.c 5 对
 canonical map），按 fid 收集全部分片 → IEEE crc32 校验 → 重组落盘。

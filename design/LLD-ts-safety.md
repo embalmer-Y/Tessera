@@ -1,6 +1,6 @@
 # LLD · ts-safety v0.3.4
 
-> **状态**：v0.3.4（2026-10-16 K3 真机定案：**F1 审计下沉双修正**——① 异常审计 flash 下沉移出 write_lock〔pend 槽携带、解锁后同调用持久化〕② 持久化 1Hz 节流〔失败提交循环风暴防护——真机擦 APP 对照实证：断链后 APP 每 tick E_STATE 下沉风暴反噬 net_wq 喂狗 → NET WDT 循环复位 noinit 0x20000〕；DEC-52① 意图保留〔首条恒在盘〕+ 丢弃计数可观测）；v0.3.3（2026-10-14 CG6 收口：**§9a 已知限制节补齐**——estop 清除实质面 CG1/CG2 已交付，ISO 13850 偏离与本地通道/仲裁信号源 deferred 如实入节）。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-00-common.md`。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-00-common.md`。
+> **状态**：v0.3.4（2026-10-16 K3 真机定案：**F1 审计下沉双修正**——① 异常审计 flash 下沉移出 write_lock〔pend 槽携带、解锁后同调用持久化〕② 持久化 1Hz 节流〔失败提交循环风暴防护——真机擦 APP 对照实证：断链后 APP 每 tick E_STATE 下沉风暴反噬 net_wq 喂狗 → NET WDT 循环复位 noinit 0x20000〕；DEC-52① 意图保留〔首条恒在盘〕+ 丢弃计数可观测）；v0.3.3（2026-10-14 CG6 收口：**§9a 已知限制节补齐**——estop 清除实质面 CG1/CG2 已交付，ISO 13850 偏离与本地通道/仲裁信号源 deferred 如实入节）。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-ts-common.md`。上位：HLD §3.2/§4 + HLD-contract-v2；公共约定 `LLD-ts-common.md`。
 > **职责**：输出保护层（限幅/slew/限流）、三安全态状态机、estop 直达路径、fail-safe 管线、**控制源仲裁状态（本版新增）**。
 > **合同关联**：合同 1（三安全态）、2（唯一写路径）、3（断链 fail-safe——**部署模式化**，见 §3a）、5（estop 不经队列 + 清除按设备能力）、7（供电同轨）、8（本地独立生效）、**11（控制源仲裁——本版新增）**。
 
@@ -127,7 +127,7 @@ extern const ts_driver_ops_t ts_drivers[3];   /* [GPIO]=native_sim 桩/gpio、[P
 
 - 全库 **唯一** 出现 `gpio_pin_set`/`pwm_set_*` 等输出的文件（testing.md §3.1 白名单 = 本文件）。
 - native_sim：桩驱动把写序列记入每通道环形记录（供 L4 重放 golden 比对）。
-- **真机后端（板级三 GPIO / 板级九 PWM，均默认关）**：`CONFIG_TS_DRV_GPIO`（zephyr,user：uid + io-gpios）与 `CONFIG_TS_DRV_PWM`（zephyr,user：pwm-uid + pwms 三元胞；引脚路由经 PWM 控制器 pinctrl）。写路径 = sim 记录（L4 连续性）+ 真驱动写；uid 匹配通道才落寄存器（V1 单通道绑定，多通道随板声明扩展）。PWM 值域 = 打包 u 低 16 permille [0,1000] / 高 16 hz/100（api 层保证 hz≥100）；写函数 void 返回 → 失败进 `ts_drv_pwm_err_count()` 观测计数。真机验证：LEDC duty 寄存器六点 ±1‰ + 限幅截断 + 端点停止态 + 断链 fail-safe（docs/board-periph-01.md）。
+- **真机后端（板级三 GPIO / 板级九 PWM，均默认关）**：`CONFIG_TS_DRV_GPIO`（zephyr,user：uid + io-gpios）与 `CONFIG_TS_DRV_PWM`（zephyr,user：pwm-uid + pwms 三元胞；引脚路由经 PWM 控制器 pinctrl）。写路径 = sim 记录（L4 连续性）+ 真驱动写；uid 匹配通道才落寄存器（V1 单通道绑定，多通道随板声明扩展）。PWM 值域 = 打包 u 低 16 permille [0,1000] / 高 16 hz/100（api 层保证 hz≥100）；写函数 void 返回 → 失败进 `ts_drv_pwm_err_count()` 观测计数。真机验证：LEDC duty 寄存器六点 ±1‰ + 限幅截断 + 端点停止态 + 断链 fail-safe（docs/board-periph.md）。
 
 ## 7. Kconfig（节选）
 
@@ -158,8 +158,8 @@ extern const ts_driver_ops_t ts_drivers[3];   /* [GPIO]=native_sim 桩/gpio、[P
 - v0.3.2 · 2026-10-14：**CG3（Q-41② · §5b 仲裁机制实现）**——席位/set_arb/来源标记/压制门控/审计 src/事件外发（见 §5b 实现注记）；本地交互源信号源接线随后续设备形态批。顺带：ts_safety_test_reset 补审计环归零（用例序敏感缺陷）。
 - v0.3.1 · 2026-10-14：**CG2（Q-41①③ · §3a/§5a 实现）**——linkmon 模式守卫 + standalone boot 链路声明注记（net/init 侧）+ estop-clear prov 守卫注记；§5b 仲裁（arb_owner/来源标记/租约联动/审计 src）仍随 CG3。
 - v0.3 · 2026-10-14：**CG1（DEC-56/57/Q-41 A，措辞 DEC-58 已批）**——§3a 部署模式守卫（orchestrated 现行为不变 / standalone 断链仅留痕不迁移）；§5a estop 清除按设备能力声明（无交互设备维持远程令牌 = 有据偏离登记；有交互设备本地为主 + prov estop_remote_clear 缺省 disabled）；§5b 控制源仲裁状态（arb_owner 席位/激活压制远程/切换零输出 TS_EVT_ARB_CHANGED/审计 src 维度/租约联动注）；合同 3/5/11 措辞同步 AGENTS.md §6。实现随 CG2/CG3。
-- v0.2.6 · 2026-10-02：板级九（PWM/ADC 真后端，docs/board-periph-01.md）——① §3 断链迁移补"声明值落驱动"（HLD §4.5-S2 欠账修复：此前仅改 shadow，物理输出滞留断链前值；真机 PB5 首证 linkloss 0% 落 LEDC）；② §6 增 CONFIG_TS_DRV_PWM 真机后端（zephyr,user 绑定 + err 计数；LEDC duty 六点 ±1‰ 真机验证）。回归：twister 15/15（65 用例）/L5 6/6 全绿。
-- v0.2.5 · 2026-10-01：板级八（estop 真机，docs/board-estop-01.md）——① §5 estop DT 绑定机制修订：**aliases**（`DT_ALIAS(ts_estop_gpio)` ← 板 overlay `aliases { ts-estop-gpio = &node; }`）替代 chosen——v4.4 EDT 管道不发射非 zephyr 前缀 chosen 宏（dtlib 属性在、edtlib 弃，实证留痕）；DR-11 语义不变；② 真机实证：引脚沿→ISR 直达→fault 落通道 ≤20ms（轮询粒度上界）→锁存→clear+显式 commit 恢复，×3 轮；合同 5 链路真机首证。
+- v0.2.6 · 2026-10-02：板级九（PWM/ADC 真后端，docs/board-periph.md）——① §3 断链迁移补"声明值落驱动"（HLD §4.5-S2 欠账修复：此前仅改 shadow，物理输出滞留断链前值；真机 PB5 首证 linkloss 0% 落 LEDC）；② §6 增 CONFIG_TS_DRV_PWM 真机后端（zephyr,user 绑定 + err 计数；LEDC duty 六点 ±1‰ 真机验证）。回归：twister 15/15（65 用例）/L5 6/6 全绿。
+- v0.2.5 · 2026-10-01：板级八（estop 真机，docs/board-estop.md）——① §5 estop DT 绑定机制修订：**aliases**（`DT_ALIAS(ts_estop_gpio)` ← 板 overlay `aliases { ts-estop-gpio = &node; }`）替代 chosen——v4.4 EDT 管道不发射非 zephyr 前缀 chosen 宏（dtlib 属性在、edtlib 弃，实证留痕）；DR-11 语义不变；② 真机实证：引脚沿→ISR 直达→fault 落通道 ≤20ms（轮询粒度上界）→锁存→clear+显式 commit 恢复，×3 轮；合同 5 链路真机首证。
 - v0.2.4 · 2026-09-26：DEC-43 锁收口——§4 增 write_lock 语义（迁移路径/预算检查-提交纳入同一互斥；estop ISR 无锁直达不变；读路径无锁标注）；回归 framework.conc 3 用例 + twister 13/13（54 用例）全绿。
 - v0.2.3 · 2026-09-25：impl-review-01 修复批（F-8）——§5 clear_fault 复位语义定案（v0.2.2 ③ 复核闭环）：状态条件恢复 + 输出值不回写（保持 fault 安全值直至显式 commit，与 DR-04 同则）。代码注释同步（channel.c），无行为变更。
 - v0.1 · 2026-09-20：首版草案（estop 无锁直达 + commit 末段 irq_lock 复查为本版关键设计）。

@@ -1,4 +1,4 @@
-# tessera-agent 配置模板（LLD-A00 §4）
+# tessera-agent 配置模板（LLD-agent-common §4）
 # 用法：复制为 agent/config.toml（已 gitignore）；密钥一律环境变量，不入本文件。
 # 优先级：内置默认 < config.toml < 环境变量（TESSERA_AGENT_CONFIG / TESSERA_AGENT_DEFAULT_MODEL）。
 
@@ -6,7 +6,7 @@
 workspace_repo = "~/project/tessera"           # 固件仓库（HLD-agent §1 单工作区模型）
 west_workspace = "~/project/zephyrproject"     # west 工作区
 west_venv_python = "~/project/zephyrproject/.venv/bin/python"  # fw_* 工具子进程解释器
-audit_dir = "~/project/tessera/agent/audit"    # 审计双流落盘（LLD-A00 §3）
+audit_dir = "~/project/tessera/agent/audit"    # 审计双流落盘（LLD-agent-common §3）
 
 [providers]
 # 默认模型串（PydanticAI 格式）：openai:gpt-… / anthropic:claude-… / ollama:qwen3 …
@@ -18,7 +18,7 @@ context_window = 32768
 # base_url = "http://127.0.0.1:8000/v1"
 
 [policy]
-# 工具审批类别覆盖（LLD-A02 §3）：只可收紧 auto→confirm→strict，不可放宽。
+# 工具审批类别覆盖（LLD-agent-core §3）：只可收紧 auto→confirm→strict，不可放宽。
 # fw_build = "strict"
 # deploy_push_app = "strict"   # 默认已是 strict
 

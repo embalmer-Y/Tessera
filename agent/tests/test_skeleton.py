@@ -50,7 +50,7 @@ def test_config_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_config_missing_model_rejected() -> None:
-    # 缺失 default_model 必须启动期报错（LLD-A00 §4：启动时校验）
+    # 缺失 default_model 必须启动期报错（LLD-agent-common §4：启动时校验）
     with pytest.raises(ConfigError):
         load_config(PKG_ROOT / "no-such-file.toml")
 

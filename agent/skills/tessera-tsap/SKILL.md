@@ -4,12 +4,12 @@ description: TSAP v1 包格式与 manifest 字段——打包/验签/部署的�
 sources:
   - firmware/module/tessera/include/ts/tsap.h
   - design/LLD-ts-appmgr.md
-  - design/LLD-A05-tsap-tools.md
+  - design/LLD-agent-tsap-tools.md
 ---
 
 # TSAP v1 容器（打包与 APP 开发）
 
-> 派生自 include/ts/tsap.h（M2a 定稿）与 LLD-A05。权威 = 源文件。
+> 派生自 include/ts/tsap.h（M2a 定稿）与 LLD-agent-tsap-tools。权威 = 源文件。
 
 ## 容器布局
 

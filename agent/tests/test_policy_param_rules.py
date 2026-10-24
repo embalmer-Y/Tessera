@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""AG6 审批参数规则测试（Q-38⑤/LLD-A02 §3.1：求值序/AND 匹配/gated_tool 集成）。"""
+"""AG6 审批参数规则测试（Q-38⑤/LLD-agent-core §3.1：求值序/AND 匹配/gated_tool 集成）。"""
 
 from __future__ import annotations
 

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """外部 MCP server 桥接（A5 · D6 客户端——DEC-12 v1.1 双角色消费侧，
-九十六候选⑦；LLD-A15 §2/§3）。
+九十六候选⑦；LLD-agent-mcp-clients-and-post-hooks §2/§3）。
 
 Agent 作为 MCP **client** 接入外部 server，工具桥接进本 Agent 面：
 
@@ -12,7 +12,7 @@ Agent 作为 MCP **client** 接入外部 server，工具桥接进本 Agent 面�
   照常作用于桥接面（渠道=客户端，安全在服务端）。
 - **长任务句柄**：call 走 spawn（外部 server 延迟不可控——句柄化纪律
   DEC-36②；进度/日志/任务栏一致性）。
-- 传输形态（LLD-A15 §2.1）：`url`（HTTP） / `command`（stdio 子进程） /
+- 传输形态（LLD-agent-mcp-clients-and-post-hooks §2.1）：`url`（HTTP） / `command`（stdio 子进程） /
   `_inline`（测试注入的内存 FastMCP——仅测试面，config 加载器不产生）。
 
 会话形态 v1 = 每调用连接（connect→call→close——外部 server 数量少、
@@ -29,7 +29,7 @@ from fastmcp import Client
 from tessera_agent.common.errors import TA_E_ARGS, TA_E_TIMEOUT, TaError
 from tessera_agent.platform import AppContext, DomainPackBase, MountAPI
 
-# 来源: LLD-A15 §3——外部调用超时（外部 server 无 SLA，兜底防悬挂）
+# 来源: LLD-agent-mcp-clients-and-post-hooks §3——外部调用超时（外部 server 无 SLA，兜底防悬挂）
 MCP_CALL_TIMEOUT_S = 60.0
 _SERVER_NAME_RE = re.compile(r"[^A-Za-z0-9_]")
 
@@ -44,7 +44,7 @@ def sanitize_server(name: str) -> str:
 
 
 def _client_for(entry: dict[str, Any]) -> Client:
-    """传输形态解析（url / command / _inline——LLD-A15 §2.1）。"""
+    """传输形态解析（url / command / _inline——LLD-agent-mcp-clients-and-post-hooks §2.1）。"""
     if "_inline" in entry:  # 测试注入面（config 加载器不产生此键）
         return Client(entry["_inline"])
     if "url" in entry:

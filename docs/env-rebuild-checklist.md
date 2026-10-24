@@ -5,7 +5,7 @@
 > **事实来源**：本机 2026-10-11 重建实测（dev-environment §9）+ 2026-10-17
 > fw-v0.9.0 环境审查批核对；aarch64 列已按官方资产与包生态核对（SDK 资产名
 > 实证存在），**标注 ⚠ 的行 = 尚未在 ARM 机实测，首台 ARM 机执行后回填实测注记**。
-> **配套**：板级工具用法 = `tools/board/README.md`；历史迁移记录 = `docs/migration-x86.md`。
+> **配套**：板级工具用法 = `tools/board/README.md`（迁移档案已随 2026-10-24 仓整理删除——本文即唯一重建总单）。
 
 ## 0. 前提与原则
 
@@ -170,7 +170,7 @@ python3 -m venv ~/project/agent-venv
 | ④ | repo pytest | `firmware/tests/pytest` 下 pytest | 2 passed（2026-10-17 实测 = **5 passed**——套件已扩，以实际为准） |
 | ⑤ | sync_check | agent venv `python -m tessera_agent.skills.sync_check` | 与 SOURCES.lock 一致 ✅ |
 | ⑥ | 板级冒烟（有板时） | tools/board/README.md「典型编排」①-⑥ | CONNECTED loc=tls + AKa0/AK7/AKU1 rc=0（**aarch64 实测 ✅**——含 prov 重指本机路由 + 板稳定） |
-| ⑦ | 全链验收（有板+LLM key） | `python3 tools/board/nvd_demo.py` | NVD PASS（真 LLM→部署→真机判据）（**aarch64 实测 ✅ NVD PASS** @ 2026-10-17——注意三点：x86 路径/node-cube 需按机适配（仓外驱动副本惯例）；atk 口径判据窗 90s（boot ~50s，18s 是 xiao 口径）；部署前「复位+等 CONNECTED」纪律（一四二④ 会话陈旧——驱动落地 reset_and_wait_connected）） |
+| ⑦ | 全链验收（有板+LLM key） | `python3 tools/board/nvd_acceptance.py` | NVD PASS（真 LLM→部署→真机判据）（**aarch64 实测 ✅ NVD PASS** @ 2026-10-17——注意三点：x86 路径/node-cube 需按机适配（仓外驱动副本惯例）；atk 口径判据窗 90s（boot ~50s，18s 是 xiao 口径）；部署前「复位+等 CONNECTED」纪律（一四二④ 会话陈旧——驱动落地 reset_and_wait_connected）） |
 
 ## 12. 平台差异登记（已实测 vs 待实测）
 

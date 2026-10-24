@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""高层链测试（DEC-34；LLD-A02 §4 S2/S5）：app_develop（FunctionModel 剧本）/
+"""高层链测试（DEC-34；LLD-agent-core §4 S2/S5）：app_develop（FunctionModel 剧本）/
 app_deploy（FakeCube 全链）。不依赖 LLM 与网络。"""
 
 from __future__ import annotations

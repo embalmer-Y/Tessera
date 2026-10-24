@@ -1,5 +1,5 @@
-/* 交互语法 v2（LLD-A14 §4——对话流 + 三栏 + 响应式三档 1024/768；
- * 只消费 tokens.css 角色 token——LLD-A11 §3 纪律）。 */
+/* 交互语法 v2（LLD-agent-web-reshape §4——对话流 + 三栏 + 响应式三档 1024/768；
+ * 只消费 tokens.css 角色 token——LLD-agent-web-client §3 纪律）。 */
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
@@ -160,7 +160,7 @@ footer {
 #spec { flex: 1; resize: vertical; min-height: 44px; max-height: 160px; }
 .err { color: var(--c-danger); font-size: 13px; margin: 4px 0 0; }
 
-/* ---- 响应式三档（LLD-A14 §4.5：≥1024 三栏 / 768-1023 两栏 / <768 单栏） ------ */
+/* ---- 响应式三档（LLD-agent-web-reshape §4.5：≥1024 三栏 / 768-1023 两栏 / <768 单栏） ------ */
 @media (max-width: 1023px) {
   #layout { grid-template-columns: 200px minmax(0, 1fr) 260px; }
 }

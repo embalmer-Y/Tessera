@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""EventBus（W2 · LLD-A14 §3.1）单测：扇出/重放/慢消费者 resync/
+"""EventBus（W2 · LLD-agent-web-reshape §3.1）单测：扇出/重放/慢消费者 resync/
 线程发布/退订。"""
 
 from __future__ import annotations

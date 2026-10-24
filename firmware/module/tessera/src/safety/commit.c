@@ -110,7 +110,7 @@ static ts_res_t commit_impl(const char *uid, ts_out_value_t v, uint16_t actor, t
 ts_res_t ts_safety_commit(const char *uid, ts_out_value_t v)
 {
 	if (k_is_in_isr()) {
-		return TS_E_PERM; /* [thread] API（ISR 禁入，LLD-00 §3） */
+		return TS_E_PERM; /* [thread] API（ISR 禁入，LLD-ts-common §3） */
 	}
 	ts_audit_pend_t pend = {0};
 
@@ -124,7 +124,7 @@ ts_res_t ts_safety_commit(const char *uid, ts_out_value_t v)
 ts_res_t ts_safety_commit_a(const char *uid, ts_out_value_t v, uint16_t actor)
 {
 	if (k_is_in_isr()) {
-		return TS_E_PERM; /* [thread] API（ISR 禁入，LLD-00 §3） */
+		return TS_E_PERM; /* [thread] API（ISR 禁入，LLD-ts-common §3） */
 	}
 	ts_audit_pend_t pend = {0};
 
@@ -141,7 +141,7 @@ ts_res_t ts_safety_commit_src(const char *uid, ts_out_value_t v, ts_src_t src)
 	 *（TS_SRC_ZENOH）经此入口（未来 sys 写命令面/远程 hal 写）；压制
 	 * 门控在 commit_impl 入口（须持锁后与状态检查同序）。 */
 	if (k_is_in_isr()) {
-		return TS_E_PERM; /* [thread] API（ISR 禁入，LLD-00 §3） */
+		return TS_E_PERM; /* [thread] API（ISR 禁入，LLD-ts-common §3） */
 	}
 	ts_audit_pend_t pend = {0};
 

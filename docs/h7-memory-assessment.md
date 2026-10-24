@@ -58,5 +58,5 @@ nucleo_h743zi 板 dts：ETH MAC+RMII PHY **status okay**（板上 RJ45）——�
 ## 5. 本次测量方法备注（可复现）
 
 - S3 对照构建：`bash ~/project/logs/mem_probe_builds.sh`（netbench/psrambench 重建取 linker 值）。
-- H7 构建：`bash ~/project/logs/h7_build.sh`（l3app @ nucleo_h743zi，`h7mem.conf` 覆盖：ETH_NATIVE_TAP=n / TS_APP_WAMR=n / TS_STORE_SLOT_SIZE=4096）。
-- **测量工件两例（如实登记）**：① l3app 在真板直接构建会因 RAM slot 后端默认 **2×256KB** 溢出 318KB——native_sim 语义默认值不适合真板（各 bench 显式收紧的既有惯例再次确认；RAM 后端默认值是否该降 = 顺手登记不动手）；② 直启 bench（periphbench 型）未被 main 根引用的 APP 面会被 --gc-sections 回收——测足迹须用真跑 APP 的载体（psrambench/deploybench 型），periphbench 的 65KB/99KB 数字是"壳"值。
+- H7 构建：`bash ~/project/logs/h7_build.sh`（netlab @ nucleo_h743zi，`h7mem.conf` 覆盖：ETH_NATIVE_TAP=n / TS_APP_WAMR=n / TS_STORE_SLOT_SIZE=4096）。
+- **测量工件两例（如实登记）**：① netlab 在真板直接构建会因 RAM slot 后端默认 **2×256KB** 溢出 318KB——native_sim 语义默认值不适合真板（各 bench 显式收紧的既有惯例再次确认；RAM 后端默认值是否该降 = 顺手登记不动手）；② 直启 bench（periphbench 型）未被 main 根引用的 APP 面会被 --gc-sections 回收——测足迹须用真跑 APP 的载体（psrambench/deploybench 型），periphbench 的 65KB/99KB 数字是"壳"值。

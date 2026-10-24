@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""web_search 工具面（HW-2 · LLD-A16 §2）测试：凭据打码 / 工厂缺省与未知值
+"""web_search 工具面（HW-2 · LLD-agent-hardware-targeting §2）测试：凭据打码 / 工厂缺省与未知值
 raise / keyless 头形状 / key 升级与 401 回退 / 结果解析 / MCP 注册事实。"""
 
 from __future__ import annotations

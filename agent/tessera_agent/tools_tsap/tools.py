@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""tsap_* 工具实现（LLD-A05 §3）。
+"""tsap_* 工具实现（LLD-agent-tsap-tools §3）。
 
 无签名不产出（合同"Agent 无豁免"硬点）：key 缺失/校验失败 → TA_E_TSAP，
 **不降级出未签名包**。容器 = TSAP v2（DEC-49②：16B 头 flags=1 + 32B
@@ -28,7 +28,7 @@ TSAP_HEADER = struct.Struct(">IHIIH")  # magic|fmt_ver|manifest_len|wasm_len|fla
 
 
 def _resolve_within(out_dir: str, allowed_roots: list[str]) -> Path:
-    """输出目录解析 + workspace 白名单（impl-review IR-13：产物路径必在白名单根内）。"""
+    """输出目录解析 + workspace 白名单（review-archive IR-13：产物路径必在白名单根内）。"""
     real = Path(os.path.expanduser(out_dir)).resolve()
     for root in allowed_roots:
         r = Path(os.path.expanduser(root)).resolve()
@@ -39,7 +39,7 @@ def _resolve_within(out_dir: str, allowed_roots: list[str]) -> Path:
 
 
 def _read_within(path_str: str, allowed_roots: list[str], what: str) -> Path:
-    """读入路径白名单（IR2-03/impl-review-02：读面对偶）——外送内容载体
+    """读入路径白名单（IR2-03/review-archive：读面对偶）——外送内容载体
     （wasm/TSAP 包）的读文件必须落在 allowed_roots 内，堵"读任意主机文件
     打包外送"通道。注：签名密钥/公钥不走本检查——密钥纪律常在仓库外
     （私钥内容永不出进程；公钥为公开材料）。"""

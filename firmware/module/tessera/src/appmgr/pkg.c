@@ -3,7 +3,7 @@
  * 验签（DEC-49，Q-29④）= verify.c 全量管线：TSAP v2 头 + sha256 摘要对拍 +
  * COSE_Sign1 ed25519 真验签（tweetnacl；TEST 构建 = 固定测试根，生产 = prov
  * pk0）——IR2-02 结构桩时代结束；失败 → TS_E_INVALID_SIG + 留痕。
- * MA3.1：安装链分步化（stage_begin/chunk/verify/activate，LLD-A06 §3）——
+ * MA3.1：安装链分步化（stage_begin/chunk/verify/activate，LLD-agent-deploy-net §3）——
  * ts_appmgr_install 与 sys/app-* 命令消费同一内部链（行为一致）。 */
 #include <stdio.h>
 #include <string.h>

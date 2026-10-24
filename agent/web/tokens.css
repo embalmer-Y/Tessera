@@ -1,4 +1,4 @@
-/* 语义 token 层 v2（LLD-A14 §6——gemini-cli semantic-tokens 同型升级：
+/* 语义 token 层 v2（LLD-agent-web-reshape §6——gemini-cli semantic-tokens 同型升级：
  * elevation 三级 + 语义角色 + 动效 token；主题 = token 重映射，
  * 深浅色 = prefers-color-scheme × 手动覆盖（[data-theme]）。 */
 :root {

@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <ts/core.h> /* safety→core 向下依赖（LLD-00 §1）：事件发布/时间源 */
+#include <ts/core.h> /* safety→core 向下依赖（LLD-ts-common §1）：事件发布/时间源 */
 #include <ts/err.h>
 
 #ifdef __cplusplus

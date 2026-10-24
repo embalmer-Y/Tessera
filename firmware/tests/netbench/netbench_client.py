@@ -34,7 +34,7 @@ def tstr(s: str) -> bytes:
 
 
 def req2(op: str, rid: str) -> bytes:
-    """v2 请求 map{ver,kind,rid,src,op}（DEC-40；同 l3_client 定序）。"""
+    """v2 请求 map{ver,kind,rid,src,op}（DEC-40；同 netlab_client 定序）。"""
     return (bytes([0xA5]) + tstr("ver") + bytes([2]) + tstr("kind")
             + bytes([0x10]) + tstr("rid") + tstr(rid) + tstr("src")
             + tstr("nb-client") + tstr("op") + tstr(op))

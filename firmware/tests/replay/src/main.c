@@ -2,7 +2,7 @@
 /*
  * L4 确定性重放雏形（LLD-ts-core §7 / testing.md §2；HLD M1 交付）。
  *
- * MA2 对接接口（LLD-A04 §2 约定，随 M1 定稿）：
+ * MA2 对接接口（LLD-agent-sim-harness §2 约定，随 M1 定稿）：
  *   输入 = 虚拟时钟驱动的脚本序列（G5/单元 H：输入文件实装——外部
  *   replay_script.tsv 在场则按脚本驱动，否则内建脚本 + 编译期 golden）；
  *   输出 = stdout JSONL 行（{"t_ms":..,"ch":..,"value_u":..}）+ 事件序列；
@@ -86,7 +86,7 @@ static const ts_write_rec_t golden[] = {
 	{.t_ms = 230, .value_u = 7},
 };
 
-/* ---- G5（单元 H）：脚本文件会话（LLD-A04 §2「输入文件进」接口实装）--------
+/* ---- G5（单元 H）：脚本文件会话（LLD-agent-sim-harness §2「输入文件进」接口实装）--------
  * 外部脚本 replay_script.tsv（cwd 相对）在场 → 按脚本驱动（runner 模式）；
  * 不在场 → 内建脚本全链（twister/CI 覆盖解析/执行/JSONL）。
  * 行格式（空白分隔）：<t_ms> link <0|1> | <t_ms> estop |

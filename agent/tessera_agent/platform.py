@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""平台层（LLD-A07 §3）：sys_*/task_*/skill_read 工具 + DomainPack 注册表装配。
+"""平台层（LLD-agent-skills-platform §3）：sys_*/task_*/skill_read 工具 + DomainPack 注册表装配。
 
 纪律：**本模块不 import 任何域模块**（tools_fw/tools_sim/tools_tsap/tools_net/
 domain/*）——域工具经 DomainPack.mount 装配（组合根 = gateway/compose.py，
@@ -49,7 +49,7 @@ class AppContext:
     started_at: float = field(default_factory=time.time)
     # tsap_* 产物写白名单根（默认 workspace；测试注入 tmp 根）
     write_roots: list[str] | None = None
-    # W2（LLD-A14 §3）：进程内事件总线——registry/brokers 装配期接线
+    # W2（LLD-agent-web-reshape §3）：进程内事件总线——registry/brokers 装配期接线
     events: EventBus = field(default_factory=EventBus)
 
     def __post_init__(self) -> None:
@@ -143,7 +143,7 @@ def assemble(ctx: AppContext, packs: Sequence[DomainPack]) -> FastMCP:
     limiter = RateLimiter()
 
     def audited(tool_name: str) -> Callable:
-        """审计（工具流）+ TaError → ToolError(JSON)（LLD-A01 §5）。"""
+        """审计（工具流）+ TaError → ToolError(JSON)（LLD-agent-mcp-gateway §5）。"""
 
         def deco(fn: Callable) -> Callable:
             @functools.wraps(fn)
@@ -188,7 +188,7 @@ def assemble(ctx: AppContext, packs: Sequence[DomainPack]) -> FastMCP:
                         state=state,
                         dur_ms=dur,
                     )
-                    # D4b/A4（LLD-A15 §4）：post 观察面——结果摘要经钩子
+                    # D4b/A4（LLD-agent-mcp-clients-and-post-hooks §4）：post 观察面——结果摘要经钩子
                     # 外发（事件总线 hook.post；observe-only，永不反噬调用）
                     try:
                         summary = HookChain.summarize(tool_name, dur, state,
@@ -278,7 +278,7 @@ def assemble(ctx: AppContext, packs: Sequence[DomainPack]) -> FastMCP:
     @mcp.tool
     @audited("sys_tasks")
     async def sys_tasks() -> dict:
-        """任务列表快照（W2 · LLD-A14 §4.6：多任务视图数据源——
+        """任务列表快照（W2 · LLD-agent-web-reshape §4.6：多任务视图数据源——
         进程内注册表全部任务（含终态/过期），创建序。"""
         tasks = [{"task_id": t.id, "tool": t.tool, "state": t.state,
                   "created_at": t.created_at} for t in ctx.registry.list_tasks()]

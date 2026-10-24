@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""deploy_* 单元测试（LLD-A06 §5）：FakeCube 进程内固件语义桩。
+"""deploy_* 单元测试（LLD-agent-deploy-net §5）：FakeCube 进程内固件语义桩。
 
 覆盖：信封编码黄金性质 / 发现（载荷身份）/ push_app 全链（分块重组、租约
 闭环、幂等重试、篡改拒绝、事实对拍失败）/ 门控语义（v2+租约）。

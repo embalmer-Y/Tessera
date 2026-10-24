@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /*
  * estopbench（板级八）：estop chosen DT 绑定（DR-11）真机验证
- * （docs/board-estop-01.md）。链路：GPIO9（BOOT 键脚）输入上升沿中断 →
+ * （docs/board-estop.md）。链路：GPIO9（BOOT 键脚）输入上升沿中断 →
  * estop_isr → ts_safety_force_all_fault（合同 5：直达，不经协议栈/调度
  * 队列）→ 通道 fault 值落驱动 + forced 锁存 + TS_EVT_ESTOP 事后补发
  * → ts_safety_clear_fault（host-only 语义同源，DEC-30①）恢复。

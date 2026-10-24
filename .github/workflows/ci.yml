@@ -30,7 +30,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: L5 安全合同机械检查（testing.md §3，一票否决）
-        run: python3 firmware/tests/l5/check_l5.py
+        run: python3 firmware/tests/safety_check/check_safety_contract.py
 
   agent-checks:
     runs-on: ubuntu-24.04

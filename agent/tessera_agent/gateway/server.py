@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
-"""MCP 网关门面（LLD-A01）——兼容层：实现迁移至 platform/compose（LLD-A07 §3
+"""MCP 网关门面（LLD-agent-mcp-gateway）——兼容层：实现已迁 platform/compose（skills-platform §3
 平台/域拆分），本模块保留原导入路径（build_app/AppContext/run_server）。
 
-错误呈现：TaError → ToolError(JSON payload)（isError + 结构化字段，LLD-A01 §5）。
+错误呈现：TaError → ToolError(JSON payload)（isError + 结构化字段，LLD-agent-mcp-gateway §5）。
 长任务纪律：耗时类工具立即返回句柄（DEC-36②），客户端经 task_* 轮询。
 """
 
@@ -27,8 +27,8 @@ def run_server(cfg: AgentConfig, *, transport: str = "stdio",
     ctx = AppContext(cfg=cfg, budget=budget)  # 单实例——SSE 与 MCP 面共享注册表
     app = build_app(ctx)
     if transport == "http":
-        # W1（LLD-A11）：web 渠道组装——/web 静态前端 + /events SSE 推送
-        # （同源同端口；缺省 127.0.0.1——LLD-A10 §2 安全约束）
+        # W1（LLD-agent-web-client）：web 渠道组装——/web 静态前端 + /events SSE 推送
+        # （同源同端口；缺省 127.0.0.1——LLD-agent-mci-channels §2 安全约束）
         import uvicorn
 
         from tessera_agent.gateway.web import mount_web

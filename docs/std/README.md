@@ -12,6 +12,7 @@
 | [versioning.md](versioning.md) | 版本与 git 规范：分支/提交/tag/semver/外部依赖钉住 | 全项目 |
 | [progress.md](progress.md) | 项目进度记录规则：事实源、会话协议、里程碑登记 | 全项目（AI 会话协作） |
 | [coding.md](coding.md) | 编码规范：C/Zephyr、Python、确定性禁令、常量纪律 | impl 阶段 |
+| [naming.md](naming.md) | 命名规范：文件/目录自描述、纯序号与会话代号禁用（2026-10-24 经 owner 直接指令 DEC-78 加入，随批 review） | 全项目 |
 
 ## 三条贯穿性原则（各文件细化）
 
@@ -21,4 +22,5 @@
 
 ## 修订记录
 
+- v0.2 · 2026-10-24：naming.md 新立加入套件（DEC-78 全仓整理——owner 直接指令，随批 review；存量旧名清理映射 = docs/names.md §6）。
 - v0.1 · 2026-09-19：首版草案（testing / versioning / progress / coding），待 owner review。

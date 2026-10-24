@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* deploybench（板级十）：Agent→真机完整部署 E2E 的板侧载体
- * （docs/board-deploy-01.md）。链路：WiFi STA（glue = netbench 板级七定稿：
+ * （docs/board-deploy.md）。链路：WiFi STA（glue = netbench 板级七定稿：
  * 固定 2s 无抖动重试 + 断线 DHCP 重启 + media_down 下沉）→ prov flash 持久
  * （首启 TS_TEST 烧入，此后复位全出自 flash——板级五语义）→ ts_core_boot
  * （net_init → zenoh 命令面〔sys/app-* 分步安装链〕+ 步骤 8 slot 装载）。

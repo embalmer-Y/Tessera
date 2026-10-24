@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 
 #: 四节模板标记（**任意位置**命中即开新节——行首/行中/单行拼接 spec 均可；
 #: NV-6 首用实证：单行拼接 spec 的行首约定过苛）。
-#: 目标硬件 = HW-4 可选节（LLD-A16 §7.2——缺省不阻塞，旧 spec 兼容）
+#: 目标硬件 = HW-4 可选节（LLD-agent-hardware-targeting §7.2——缺省不阻塞，旧 spec 兼容）
 SECTIONS = ("需求", "资源", "判据", "安全声明")
 _SEC_SPLIT_RE = re.compile(r"【(需求|资源|判据|安全声明|目标硬件)】")
 

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""TSAP manifest 镜像 schema v1 + 档位扩展（LLD-A05 §2；与固件 LLD-ts-appmgr §2/§5a 同源）。
+"""TSAP manifest 镜像 schema v1 + 档位扩展（LLD-agent-tsap-tools §2；与 LLD-ts-appmgr 同源）。
 
 CBOR 键序定稿（canonical，与固件侧消费对齐）：
   map{ app_id(tstr), app_ver(tstr), min_fw_ver(tstr), caps(array tstr),

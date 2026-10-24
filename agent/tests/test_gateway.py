@@ -35,7 +35,7 @@ def run(coro):
 
 
 def unwrap(r) -> dict:
-    """FastMCP CallToolResult → dict payload（工具统一返回裸 dict，LLD-A01 §5）。"""
+    """FastMCP CallToolResult → dict payload（工具统一返回裸 dict，LLD-agent-mcp-gateway §5）。"""
     d = getattr(r, "data", r)
     if hasattr(d, "model_dump"):
         d = d.model_dump()
@@ -43,7 +43,7 @@ def unwrap(r) -> dict:
     return d
 
 
-# ---- 任务注册表（LLD-A00 §2）-----------------------------------------------
+# ---- 任务注册表（LLD-agent-common §2）-----------------------------------------------
 
 
 def test_task_lifecycle_completed_and_failed():
@@ -145,14 +145,14 @@ def test_maybe_compress_triggers_and_keeps_tail():
         new, compressed = await maybe_compress(turns, b, summarize)
         assert compressed
         assert new[0].startswith("[summary]")
-        assert new[-2:] == ["tail-1", "tail-2"]  # 保留近段（LLD-A02 §2）
+        assert new[-2:] == ["tail-1", "tail-2"]  # 保留近段（LLD-agent-core §2）
         same, nc = await maybe_compress(["a", "b"], b, summarize)
         assert not nc and same == ["a", "b"]
 
     run(main())
 
 
-# ---- 审批代理（LLD-A01 §4 / DEC-38 #7）--------------------------------------
+# ---- 审批代理（LLD-agent-mcp-gateway §4 / DEC-38 #7）--------------------------------------
 
 
 def test_approval_deny_by_timeout():
@@ -186,7 +186,7 @@ def test_approval_decide_token_and_flow(monkeypatch):
     run(main())
 
 
-# ---- 网关（FastMCP 客户端 in-memory 实测，LLD-A01 §6）----------------------
+# ---- 网关（FastMCP 客户端 in-memory 实测，LLD-agent-mcp-gateway §6）----------------------
 
 
 def _build(tmp_path: Path):

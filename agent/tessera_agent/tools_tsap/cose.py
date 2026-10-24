@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""COSE_Sign1(ed25519) 双实现（LLD-A05 §1 / DR-21 / R5 §4）。
+"""COSE_Sign1(ed25519) 双实现（LLD-agent-tsap-tools §1 / DR-21 / R5 §4）。
 
 - 主路径 = pycose；DIY = cryptography ed25519 + cbor2 手构 RFC 9052 Sig_structure。
 - **双实现互验**：任一产物必须能被另一实现验签（pycose 验 DIY 产物 / 反之）——

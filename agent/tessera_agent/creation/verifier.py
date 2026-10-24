@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""CreationVerifier 域插件协议（LLD-A08 §4——循环引擎域无关的扩展点）。
+"""CreationVerifier 域插件协议（LLD-agent-creation-workspace §4——循环引擎域无关的扩展点）。
 
 固件域首实现 = domain/firmware_creation.py（FirmwareCreationVerifier）；
 未来域（PCB/结构件）实现本协议即复用整个创作循环（DEC-33 结构原则）。

@@ -1,6 +1,6 @@
 # LLD · ts-hal v0.2.5 草案
 
-> **状态**：v0.2.5（2026-10-16 P1-1：**msg 名单形态实现**——IR-11 登记收口（msg:send:<app_id> 串身份名单〔≤4 目标，幂等，域外字符拒〕；op 仅 send——recv 被动无权限门；ts_perm_check_msg 名单裁决 + 合同 10 留痕）；TS_PERM_OP_SEND 加性）；v0.2.4（2026-10-16 K2：ES8311 全 codec 输入输出 + ts_av_write 输出新面）；v0.2.3（2026-10-14 CG5-B：宿主原语三件 + prefix_match 提取；实现长期在库——早期「草案待 review」标注滞后，本行更正）。上位：HLD §3.3；公共约定 `LLD-00-common.md`。
+> **状态**：v0.2.5（2026-10-16 P1-1：**msg 名单形态实现**——IR-11 登记收口（msg:send:<app_id> 串身份名单〔≤4 目标，幂等，域外字符拒〕；op 仅 send——recv 被动无权限门；ts_perm_check_msg 名单裁决 + 合同 10 留痕）；TS_PERM_OP_SEND 加性）；v0.2.4（2026-10-16 K2：ES8311 全 codec 输入输出 + ts_av_write 输出新面）；v0.2.3（2026-10-14 CG5-B：宿主原语三件 + prefix_match 提取；实现长期在库——早期「草案待 review」标注滞后，本行更正）。上位：HLD §3.3；公共约定 `LLD-ts-common.md`。
 > **职责**：面向 APP 的板无关外设 API（gpio/pwm/adc/power）、**权限执行点**（manifest 能力 → 每调用裁决）、外设实例寻址。
 > **合同关联**：合同 2（输出必经 ts-safety）、3（输入不受保护影响）、10（越权拒绝 + 留痕）。
 
@@ -58,12 +58,12 @@ ts_res_t ts_av_publish(ts_ctx_t c, uint32_t fid, uint32_t cid, uint32_t n_chunks
                        const uint8_t *data, uint32_t len); /* 分片发布 ≤1KB（DEC-47②）；打拍/重试在 ts-net avq（LLD-ts-net §5） */
 ```
 
-- `ts_ctx_t`（所有函数第一参数）定义与防伪造边界见 LLD-00 §3.1（原生侧映射表，wasm 侧仅整数 id）。
+- `ts_ctx_t`（所有函数第一参数）定义与防伪造边界见 LLD-ts-common §3.1（原生侧映射表，wasm 侧仅整数 id）。
 - **输出路径**：写类 API 全部收敛到 `ts_safety_commit`（本模块**零**直接驱动调用——L5 白名单外即违规；L5 检查的输出驱动面 = gpio_pin_set/pwm_set 族）。
 - **权限裁决**（perm.c）：实例不在能力表 → `TS_E_PERM` + `TS_EVT_PERM_DENIED`（调用者 app_id/类/实例/时刻，合同 10 留痕）；裁决在 ts_app 线程上下文同步完成（无锁查只读表，确定性）。
 - 版本策略：符号集变更 = `ts_api_v2` 并行注册，不原地改语义（门 ③ + fw semver X 位）。
 - **PWM 打包域界限（v0.2.2，板级九）**：`ts_pwm_set` 的 hz 打包 = hz/100 → **合法域 [100, 6553500] Hz**（api 层显式拒绝；V1 桩曾静默接受 hz<100，真 PWM 后端按 hz 求周期后收紧）。
-- **ADC 真后端（v0.2.2，板级九）**：`CONFIG_TS_DRV_ADC=y` + zephyr,user（adc-uid + io-channels）→ `ts_adc_read` 真读：12bit / 内部基准 / 12dB 衰减（ADC_GAIN_1_4 最宽量程）；mV = Zephyr 通用换算（1100mV 基准口径——esp32 驱动已将 raw 预补偿：eFuse 校准 + 衰减反归一）；读失败如实 `TS_E_IO`；uid 不匹配/未 init = 桩通道（0mV，L4/sim 连续性）。init = `ts_adc_drv_init()`（boot/bench 显式调用）。**输入直读不经保护层（合同 3）——adc 驱动调用属输入面，不在 L5 输出写路径辖内**。真机：GPIO2 轨到轨注入 0mV / 3122mV（3.3V 饱和，docs/board-periph-01.md PB6/7）。
+- **ADC 真后端（v0.2.2，板级九）**：`CONFIG_TS_DRV_ADC=y` + zephyr,user（adc-uid + io-channels）→ `ts_adc_read` 真读：12bit / 内部基准 / 12dB 衰减（ADC_GAIN_1_4 最宽量程）；mV = Zephyr 通用换算（1100mV 基准口径——esp32 驱动已将 raw 预补偿：eFuse 校准 + 衰减反归一）；读失败如实 `TS_E_IO`；uid 不匹配/未 init = 桩通道（0mV，L4/sim 连续性）。init = `ts_adc_drv_init()`（boot/bench 显式调用）。**输入直读不经保护层（合同 3）——adc 驱动调用属输入面，不在 L5 输出写路径辖内**。真机：GPIO2 轨到轨注入 0mV / 3122mV（3.3V 饱和，docs/board-periph.md PB6/7）。
 
 ## 4. 实例注册（registry.c）
 
@@ -75,7 +75,7 @@ ts_res_t ts_hal_register_class(const ts_periph_desc_t *desc);  /* ts-periph 调�
 
 ## 5. 输入采集 input monitor（DR-02，v0.2 新增）
 
-- 执行体：sysworkq 周期工作项（无独立线程，LLD-00 §4 注）；周期 `CONFIG_TS_HAL_INPUT_POLL_MS`〔DEC-27 #14： 100ms〕。
+- 执行体：sysworkq 周期工作项（无独立线程，LLD-ts-common §4 注）；周期 `CONFIG_TS_HAL_INPUT_POLL_MS`〔DEC-27 #14： 100ms〕。
 - 流程：遍历输入实例（gpio-in/adc）→ 读驱动 → 与上次值比较 → 变化则：发布 `TS_EVT_INPUT_CHANGED`（uid + 旧/新值 + 时间戳）+ 通知 ts-net 发布该实例遥测。
 - 语义：**只观测不改值**（不影响任何控制路径）；断链期间照常采集并进审计面（合同 3"输入流不因保护而中断"的观测侧落点）。
 - 去抖：V1 无（数值抖动 = 遥测抖动，可接受；如需 M2 评审加阈值）。
@@ -109,4 +109,4 @@ ts_res_t ts_hal_register_class(const ts_periph_desc_t *desc);  /* ts-periph 调�
 - v0.1 · 2026-09-20：首版草案。
 - v0.2 · 2026-09-20：review-01 深化——新增 §5 input monitor（DR-02）、ts_ctx_t 指针（DR-10）。
 - v0.2.1 · 2026-09-21：裁决同步——出处标注收敛为 DEC 编号（SC-02）。
-- v0.2.2 · 2026-10-02：板级九——§3 增补：ts_pwm_set hz 下界 100Hz（打包粒度）；ADC 真后端（CONFIG_TS_DRV_ADC + zephyr,user 绑定；真机轨到轨验证留档 docs/board-periph-01.md）。
+- v0.2.2 · 2026-10-02：板级九——§3 增补：ts_pwm_set hz 下界 100Hz（打包粒度）；ADC 真后端（CONFIG_TS_DRV_ADC + zephyr,user 绑定；真机轨到轨验证留档 docs/board-periph.md）。

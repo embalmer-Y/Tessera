@@ -99,7 +99,7 @@ static void on_evt(const ts_evt_t *evt, void *user)
 	case TS_EVT_PERIPH_ATTACH:
 	case TS_EVT_PERIPH_DETACH: {
 		/* payload: ts_periph_evt_t（core.h——uid + periph 类别）。
-		 * F-1（impl-review-01）：插拔归因外发（LLD-ts-periph §3"key 下线
+		 * F-1（docs/history/review-archive）：插拔归因外发（LLD-ts-periph §3"key 下线
 		 * 通告"落点）；QoS = 尽力而为（DEC-42 安全类集合不含插拔）。 */
 		const ts_periph_evt_t *pl = evt->data;
 		uint8_t extra[48];

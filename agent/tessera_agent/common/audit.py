@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""审计双流（LLD-A00 §3）：工具流（本模块）+ 会话流（core/session 侧）。
+"""审计双流（LLD-agent-common §3）：工具流（本模块）+ 会话流（core/session 侧）。
 
 纪律：参数只存摘要（sha256 + 截断预览）；永不记录密钥/令牌；写入失败 = 调用失败。
 V1 全量落盘不滚动（DEC-38 #8）。

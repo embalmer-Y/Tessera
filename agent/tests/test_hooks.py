@@ -160,7 +160,7 @@ def test_gateway_observe_hook(tmp_path):
     asyncio.run(main())
 
 
-# ---- A4 · D4b post 观察面（LLD-A15 §4） --------------------------------------
+# ---- A4 · D4b post 观察面（LLD-agent-mcp-clients-and-post-hooks §4）------------------------------
 
 def test_post_rule_parsing():
     """post 仅 observe（deny 解析期拒收）；pre 语义不变。"""

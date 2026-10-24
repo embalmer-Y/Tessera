@@ -304,7 +304,7 @@ ZTEST(framework_appmgr, test_boot_quarantine_refusal)
 	ts_appmgr_test_reset();
 }
 
-/* ---- MA3.1：分步安装链（stage_begin/chunk/verify/activate，LLD-A06 §3）-- */
+/* ---- MA3.1：分步安装链（stage_begin/chunk/verify/activate，LLD-agent-deploy-net §3）-- */
 
 ZTEST(framework_appmgr, test_staged_install_chain)
 {

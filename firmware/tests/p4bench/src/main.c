@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /*
- * persistbench（板级五）：prov/APP/meta flash 持久化验证（docs/board-persist-01.md）。
+ * persistbench（板级五）：prov/APP/meta flash 持久化验证（docs/board-persist.md）。
  * 流程：
  *   首启（prov 缺失）= 烧录会话：P4B1 prov 注入（TS_TEST 通道）→ P4B2 分步
  *   安装链（stage_begin/chunk/verify/activate——与 sys/app-* 网络命令同一

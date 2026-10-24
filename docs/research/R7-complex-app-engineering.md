@@ -27,7 +27,7 @@
 - 定容 flags：`-Wl,--initial-memory/--max-memory`、`-z stack-size`——**大 APP 的内存上限在链接期钉死**（manifest 声明 → 编译 flags 传递，三方一致的既有纪律平移）。
 - 运行模式代价：**fast interp ≈ 2×内存存预编译码**（vs classic interp）——大 APP（数百 KB）下这是显著项；AOT（wamrc 预编译）"接近原生 + 快启动 + 小足迹"，DEC-25 已留作构建期选项——大 APP 档位可能触发 AOT 提前复评。
 - x86-64 边界检查走硬件 mmap；**嵌入式（xtensa）为软件检查——内存账必须实算**（现每板内存预算表纪律维持，数值随档位扩展）。
-- 数百 KB~MB 模块加载时间：官方基准（PolyBench/CoreMark 等）存在，加载时间数字未查到——**Agent 批拿真实大 APP 实测补**（现有 APP 冷启动 4.8ms 基线在 board-bench-01）。
+- 数百 KB~MB 模块加载时间：官方基准（PolyBench/CoreMark 等）存在，加载时间数字未查到——**Agent 批拿真实大 APP 实测补**（现有 APP 冷启动 4.8ms 基线在 board-bench）。
 
 ## 4. 体积构成与资源放置（wasm 内 vs 设备 fs）
 
@@ -69,4 +69,4 @@
 - aider edit-formats / unified-diffs；fabianhertwig.com 编码助手编辑机制对比
 - Android heap 双档（SO 5350465）；Wasmtime interrupting-wasm + Config（docs.rs）
 - wabt（github.com/webassembly/wabt）；Chrome DevTools wasm 调试；wasm-bindgen-test
-- 本地：wasm_build.py（现门值）/ deploybench 槽池配置 / board-bench-01（冷启动 4.8ms 基线）/ HLD §4.6 内存预算表
+- 本地：wasm_build.py（现门值）/ deploybench 槽池配置 / board-bench（冷启动 4.8ms 基线）/ HLD §4.6 内存预算表

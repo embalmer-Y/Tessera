@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""通用内存规划程序（LLD-A13 · DEC-70；V0.13.0 MP）。
+"""通用内存规划程序（LLD-agent-memory-planner · DEC-70；V0.13.0 MP）。
 
 构建期确定性内存审计：输入一次真实构建的产物（GNU ld linker map +
 Kconfig .config），输出三层内存账本（region / 具名对象 / config 意图）
@@ -7,11 +7,11 @@ Kconfig .config），输出三层内存账本（region / 具名对象 / config �
 格式（xtensa/aarch64/riscv/x86_64 同构实测）与 Kconfig 生效值；芯片
 知识只存在于规则目录（每条挂教训/证据出处，版本化随教训增长）。
 
-定性继承 BV1（LLD-A12 §1）：非 LLM 创作任务，LLM 不在关键路径。
+定性继承 BV1（LLD-agent-board-validation §1）：非 LLM 创作任务，LLM 不在关键路径。
 声明≠生效（R0）：.config 是唯一生效值事实源——atkbench prj.conf 声明
 堆 196608 被板级 conf 覆盖为 58368（2026-10-19 设计批首日实录）。
 
-规则目录 v1（RULES_VERSION=1，出处见 LLD-A13 §4）：R1 rx 栈下限
+规则目录 v1（RULES_VERSION=1，出处见 LLD-agent-memory-planner §4）：R1 rx 栈下限
 （FIX-1 崩机案）/ R2 sysworkq 栈（SENTINEL 案）/ R3 shell 栈
 （EXCCAUSE 0 案）/ R4 wifi TX 堆压（ENOMEM 噪声案）/ R5 TLS 堆下限
 （P1-2 -80 案）/ R6 区域余量 / R7 STATIC TX 观察（教训 41）。
@@ -171,7 +171,7 @@ class MemoryReport:
         return "\n".join(lines)
 
 
-# ---- 解析器（GNU ld map；三行式 input 条目 + 符号归并——LLD-A13 §3.2）----
+# ---- 解析器（GNU ld map；三行式 input 条目 + 符号归并——LLD-agent-memory-planner §3.2）----
 
 _RE_REGION = re.compile(
     r"^([A-Za-z][\w.]*)\s+(0x[0-9a-fA-F]+)\s+(0x[0-9a-fA-F]+)\s+([a-z-]+)?\s*$",
@@ -386,7 +386,7 @@ def _cfg_int(cfg: dict[str, str], key: str) -> int | None:
 
 def run_rules(cfg: dict[str, str], report: MemoryReport,
               diffs: list[dict[str, str]]) -> list[Finding]:
-    """规则目录 v1（LLD-A13 §4——每条挂教训出处；目录版本化）。"""
+    """规则目录 v1（LLD-agent-memory-planner §4——每条挂教训出处；目录版本化）。"""
     out: list[Finding] = []
 
     def num(key: str) -> int | None:
@@ -402,7 +402,7 @@ def run_rules(cfg: dict[str, str], report: MemoryReport,
             f"config 声明≠生效: {d['key']} 声明 {d['declared']}"
             f" → 生效 {d['effective']}（板级 conf/cmake 覆盖链——"
             "以 .config 为准）",
-            "LLD-A13 §4 R0；2026-10-19 MP 设计批首日实录"))
+            "LLD-agent-memory-planner §4 R0；2026-10-19 MP 设计批首日实录"))
 
     heap = num("HEAP_MEM_POOL_SIZE") or 0
     # R1 rx 栈下限（FIX-1：缺省 1500 被部署突发压穿 FATAL）
@@ -413,7 +413,7 @@ def run_rules(cfg: dict[str, str], report: MemoryReport,
                 "R1", "fail",
                 f"NET_RX_STACK_SIZE={rx} < 4096（WiFi 使能——部署突发压穿"
                 " rx_q 栈 FATAL 风险）",
-                "FIX-1 · bv1_c6_crash_console.txt · LLD-A13 §4 R1"))
+                "FIX-1 · bv1_c6_crash_console.txt · LLD-agent-memory-planner §4 R1"))
     # R2 sysworkq 栈（SENTINEL 案：WiFi/DHCP 事件建链窗溢出）
     if flag("TS_NET_ZENOH"):
         sw = num("SYSTEM_WORKQUEUE_STACK_SIZE") or 0
@@ -422,7 +422,7 @@ def run_rules(cfg: dict[str, str], report: MemoryReport,
                 "R2", "fail",
                 f"SYSTEM_WORKQUEUE_STACK_SIZE={sw} < 4096（zenoh 建链窗"
                 " WiFi/DHCP 事件溢出风险）",
-                "R5-V③ STACK_SENTINEL 案 · LLD-A13 §4 R2"))
+                "R5-V③ STACK_SENTINEL 案 · LLD-agent-memory-planner §4 R2"))
     # R3 shell 栈（confirm 链 2048 装不下——EXCCAUSE 0 野跳）
     if flag("SHELL"):
         sh = num("SHELL_STACK_SIZE") or 0
@@ -431,7 +431,7 @@ def run_rules(cfg: dict[str, str], report: MemoryReport,
                 "R3", "fail",
                 f"SHELL_STACK_SIZE={sh} < 4096（confirm 链 stage_commit"
                 " meta flash 写 + shell_print 深栈风险）",
-                "R5-V③ EXCCAUSE 0 案 · LLD-A13 §4 R3"))
+                "R5-V③ EXCCAUSE 0 案 · LLD-agent-memory-planner §4 R3"))
     # R4 wifi TX 堆压（TX 突发 ENOMEM——atk 残余噪声）
     if flag("WIFI") and not flag("ESP32_WIFI_STATIC_TX_BUFFER"):
         txn = num("ESP32_WIFI_DYNAMIC_TX_BUFFER_NUM") or 0
@@ -441,14 +441,14 @@ def run_rules(cfg: dict[str, str], report: MemoryReport,
                 f"wifi 动态 TX 池峰值 {txn}×{WIFI_FRAME_EST_BYTES}B"
                 f" > 系统堆 {heap}B 的 50%（TX 突发 ENOMEM 风险——"
                 "降 TX 上限或增堆）",
-                "R5-I/FIX-1 残余 ENOMEM 噪声 · LLD-A13 §4 R4"))
+                "R5-I/FIX-1 残余 ENOMEM 噪声 · LLD-agent-memory-planner §4 R4"))
     # R5 TLS 建链堆下限（P1-2：50-56K 档 -80 循环实证）
     if flag("TS_NET_TLS") and 0 < heap < 65536:
         out.append(Finding(
             "R5", "warn",
             f"TS_NET_TLS=y 且系统堆 {heap}B < 65536（TLS 建链期"
             " z_malloc -80 量级风险）",
-            "P1-2 双重内存耗尽案 · LLD-A13 §4 R5"))
+            "P1-2 双重内存耗尽案 · LLD-agent-memory-planner §4 R5"))
     # R6 区域余量（链接器擦边不可部署）
     for r in report.regions:
         if r.used and r.slack >= 0 and r.slack < 2048:
@@ -456,7 +456,7 @@ def run_rules(cfg: dict[str, str], report: MemoryReport,
                 "R6", "warn",
                 f"region {r.name} 余量 {r.slack}B < 2048B（对齐/填充漂移"
                 "无缓冲——不可部署擦边态）",
-                "LLD-A13 §4 R6"))
+                "LLD-agent-memory-planner §4 R6"))
     # R7 STATIC TX 观察态（教训 41：两轮实测均劣化——上游映射待核实）
     if flag("ESP32_WIFI_STATIC_TX_BUFFER"):
         out.append(Finding(
@@ -464,5 +464,5 @@ def run_rules(cfg: dict[str, str], report: MemoryReport,
             "ESP32_WIFI_STATIC_TX_BUFFER=y（本机两轮实测均劣化："
             "+SPIRAM heap=数据面死 / 单用=关联失败 rc=-134；4.5-rc1"
             " 双层 TX buffer Kconfig 映射存疑）",
-            "教训 41 · dev-env v2.30 · LLD-A13 §4 R7"))
+            "教训 41 · dev-env v2.30 · LLD-agent-memory-planner §4 R7"))
     return out

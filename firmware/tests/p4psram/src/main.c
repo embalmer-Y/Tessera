@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /*
- * psrambench（板级六）：PSRAM 挂接验证（docs/board-psram-01.md）。
+ * psrambench（板级六）：PSRAM 挂接验证（docs/board-psram.md）。
  * 流程：P4P1 SMH 探针（读写一致性 + 外部 RAM 地址域证据）→ P4P2 通道注册
  * + 链路声明（直启面，framework.app 同款）→ P4P3 APP 启动（WAMR 实例堆
  * 此时自 PSRAM 分配——runtime 打印池地址）→ evt 写路径全链 → PASS。

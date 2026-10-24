@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""MA2 测试：TSAP 打包签名（LLD-A05 §5）与场景校验（LLD-A04 §1）。
+"""MA2 测试：TSAP 打包签名（LLD-agent-tsap-tools §5）与场景校验（LLD-agent-sim-harness §1）。
 
 覆盖：keygen→package→verify 往返；双实现互验（pycose×DIY 四象限）；
 篡改矩阵（坏签名/截断/坏 magic/坏版本/坏 manifest）；单键纪律；
@@ -140,7 +140,7 @@ def test_tsap_package_verify_roundtrip(tmp_path: Path, keypair: tuple[Path, Path
 
 def test_tsap_read_paths_roots(tmp_path: Path, keypair: tuple[Path, Path],
                                wasm_blob: Path):
-    """IR2-03（impl-review-02）读面白名单：wasm/包路径越界拒绝
+    """IR2-03（docs/history/review-archive）读面白名单：wasm/包路径越界拒绝
     （堵"读任意主机文件打包外送"通道）；密钥路径豁免（仓外密钥纪律）。"""
     priv, _pub = keypair
     out = tmp_path / "pkg"

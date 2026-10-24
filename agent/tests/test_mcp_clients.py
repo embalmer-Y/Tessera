@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""A5 外部 MCP server 桥接（LLD-A15）测试：内存 server 全链（list/call/
+"""A5 外部 MCP server 桥接（LLD-agent-mcp-clients-and-post-hooks）测试：内存 server 全链（list/call/
 strict 审批 deny+allow）+ 名字净化 + config 解析 + 组合根注册事实。"""
 
 from __future__ import annotations

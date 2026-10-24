@@ -44,7 +44,7 @@ ts_res_t ts_periph_register(const ts_periph_desc_t *d)
 			return TS_E_PARAM; /* 撞 uid（逻辑名全局唯一） */
 		}
 	}
-	/* F-2（impl-review-01）：先落静态表再注册——ts-safety 通道注册表持指针
+	/* F-2（docs/history/review-archive）：先落静态表再注册——ts-safety 通道注册表持指针
 	 * （slot->desc = ch），注册源必须是本表静态存储（与 ts-power slots 同型；
 	 * 此前注册调用方 &d->safe，栈上组装即悬垂）。失败不递增 desc_count：
 	 * 脏槽不可见（撞名检查只走 [0, desc_count)）；下游已注册项无回滚 =

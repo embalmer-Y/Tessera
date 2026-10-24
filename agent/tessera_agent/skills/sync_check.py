@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""skill 同步检查（Q-19 #13 / DEC-38 #13；LLD-A07 §2 维护纪律）。
+"""skill 同步检查（Q-19 #13 / DEC-38 #13；LLD-agent-skills-platform §2 维护纪律）。
 
 权威文档变更后 skill 须重新派生并更新 SOURCES.lock（sha256 of 源文档）。
 本脚本机械校验：源文档摘要与 lock 一致——不一致 = skill 可能过期，退出码 1。

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""固件域 DomainPack（LLD-A07 §3；DEC-33 多域预留的首个实现）。
+"""固件域 DomainPack（LLD-agent-skills-platform §3；DEC-33 多域预留的首个实现）。
 
 域工具面：fw_*（A03）/ sim_*（A04）/ tsap_*（A05）/ deploy_*（A06）/
 app_*（DEC-34 高层链）。组合根（gateway/compose.py）显式注册本包；
@@ -44,7 +44,7 @@ from tessera_agent.tools_tsap.wasm_build import compile_app_c
 
 @dataclass
 class FirmwareDeployer:
-    """域部署器（LLD-A07 §3 deployer；V1 = deploy.push_app 包装）。"""
+    """域部署器（LLD-agent-skills-platform §3 deployer；V1 = deploy.push_app 包装）。"""
 
     router_locator: str = "tcp/127.0.0.1:7447"
 
@@ -60,7 +60,7 @@ def install_permission_brief(package_path: str) -> str:
 
     strict 审批请求 reason 携带包声明权限面（manifest 摘要——工具内
     强制，不可跳过；坏包在审批前拦截）。有本地交互设备的本地确认路
-    随设备形态批（LLD-A02 §3.2 注记——同型数据面）。"""
+    随设备形态批（LLD-agent-core §3.2 注记——同型数据面）。"""
     s = tsap_tools.manifest_summary(package_path)
     caps = ",".join(s["caps"]) or "∅"
     fs = ";".join(s["fs_paths"] or []) or "∅"
@@ -71,7 +71,7 @@ def install_permission_brief(package_path: str) -> str:
 
 
 def hardware_gate(ctx: AppContext, package_path: str) -> dict | None:
-    """HW-4 ③ caps×画像机械核对门（LLD-A16 §7.3——装前拒，审批前拦截，
+    """HW-4 ③ caps×画像机械核对门（LLD-agent-hardware-targeting §7.3——装前拒，审批前拦截，
     EC3「坏包审批前拦截」同型——不浪费审批轮次）。
 
     生效条件 = 配置 board_profile 绑定画像且画像含 [hardware] 事实节；
@@ -94,7 +94,7 @@ def hardware_gate(ctx: AppContext, package_path: str) -> dict | None:
         TA_E_POLICY,
         "硬件事实门装前拒：caps 申请的通道在目标板画像无物理绑定 "
         f"({', '.join(sorted(set(violations)))})——画像可用："
-        f"{'; '.join(avail)}（board={profile.id}；LLD-A16 §7.3）",
+        f"{'; '.join(avail)}（board={profile.id}；LLD-agent-hardware-targeting §7.3）",
         domain="deploy",
         detail={"state": "HW_GATE_REJECTED", "violations": sorted(set(violations)),
                 "board": profile.id})
@@ -152,8 +152,8 @@ class FirmwareDomainPack(DomainPackBase):
         "app_deploy": "strict",
         "board_validate": "strict",  # V0.13.0 BV1：复位+部署冒烟=板态写入
         "board_adapt": "strict",  # V0.15.0 BV2（DEC-74）：写 adapt 工作区
-        "memory_audit": "confirm",   # V0.13.0 MP：本地只读分析（LLD-A13）
-        "web_search": "confirm",     # HW-2（DEC-73①·LLD-A16 §2）：出站联网
+        "memory_audit": "confirm",   # V0.13.0 MP：本地只读分析（LLD-agent-memory-planner）
+        "web_search": "confirm",     # HW-2（DEC-73①·LLD-agent-hardware-targeting §2）：出站联网
         "diag_classify": "confirm",
         "spec_check": "confirm",
         "simreal_diff": "confirm",
@@ -223,7 +223,7 @@ class FirmwareDomainPack(DomainPackBase):
 
             return await spawn("fw_pytest", args, body)
 
-        # ---- sim_*（MA2，LLD-A04；G5/单元 H 输入文件实装）--------------------
+        # ---- sim_*（MA2，LLD-agent-sim-harness；G5/单元 H 输入文件实装）--------------------
         @mcp.tool
         @audited("sim_validate_scenario")
         async def sim_validate_scenario(scenario: dict) -> dict:
@@ -257,7 +257,7 @@ class FirmwareDomainPack(DomainPackBase):
 
             return await spawn("sim_run", args, body)
 
-        # ---- tsap_*（MA2，LLD-A05；无签名不产出——硬点）----------------------
+        # ---- tsap_*（MA2，LLD-agent-tsap-tools；无签名不产出——硬点）----------------------
         @mcp.tool
         @audited("tsap_keygen")
         async def tsap_keygen(name: str, out_dir: str = "agent/keys") -> dict:
@@ -301,7 +301,7 @@ class FirmwareDomainPack(DomainPackBase):
             # IR2-03：包路径读面白名单（ctx.roots）
             return tsap_tools.tsap_verify(package_path, pub_key_path, ctx.roots())
 
-        # ---- deploy_*（MA3.1，LLD-A06；同步 zenoh 面经 to_thread 桥接）------
+        # ---- deploy_*（MA3.1，LLD-agent-deploy-net；同步 zenoh 面经 to_thread 桥接）------
         @mcp.tool
         @audited("deploy_discover")
         async def deploy_discover(timeout_s: float = 10.0) -> dict:
@@ -562,13 +562,13 @@ class FirmwareDomainPack(DomainPackBase):
 
             return await spawn("app_develop", args, body)
 
-        # ---- app_clarify（W2 · LLD-A14 §5——DEC-69⑥ 普通模式；confirm 类）
+        # ---- app_clarify（W2 · LLD-agent-web-reshape §5——DEC-69⑥ 普通模式；confirm 类）
         @mcp.tool
         @audited("app_clarify")
         async def app_clarify(requirement: str,
                               key_path: str | None = None,
                               out_dir: str = "agent/build") -> dict:
-            """普通模式需求澄清（DEC-69⑥ · LLD-A14 §5.1）：粗糙需求 →
+            """普通模式需求澄清（DEC-69⑥ · LLD-agent-web-reshape §5.1）：粗糙需求 →
             缺口分析 → 澄清问询卡（≤3 轮/≤8 问，sys_answer 应答）→ spec
             合成 → spec_check 门（不变）→ 确认后同任务交棒 app_develop。
             长任务句柄；restart = 结构化中止（可重新发起）。
@@ -624,7 +624,7 @@ class FirmwareDomainPack(DomainPackBase):
 
             return await spawn("app_deploy", args, body)
 
-        # ---- web_search（HW-2 · LLD-A16 §2——DEC-73①；confirm 类：出站联网）
+        # ---- web_search（HW-2 · LLD-agent-hardware-targeting §2——DEC-73①；confirm 类：出站联网）
         @mcp.tool
         @audited("web_search")
         async def web_search(query: str, max_results: int = 5) -> dict:
@@ -643,7 +643,7 @@ class FirmwareDomainPack(DomainPackBase):
                 return {"provider_error": f"{type(exc).__name__}: {exc}",
                         "results": []}
 
-        # ---- board_validate（V0.13.0 BV1 · LLD-A12；strict 类）
+        # ---- board_validate（V0.13.0 BV1 · LLD-agent-board-validation；strict 类）
         @mcp.tool
         @audited("board_validate")
         async def board_validate(profile_id: str,
@@ -691,7 +691,7 @@ class FirmwareDomainPack(DomainPackBase):
 
             return await spawn("board_validate", args, body)
 
-        # ---- board_adapt（V0.15.0 BV2 · LLD-A17 · DEC-74；strict 类）
+        # ---- board_adapt（V0.15.0 BV2 · LLD-agent-board-adaptation · DEC-74；strict 类）
         @mcp.tool
         @audited("board_adapt")
         async def board_adapt(mode: str, hint: str,
@@ -738,12 +738,12 @@ class FirmwareDomainPack(DomainPackBase):
 
             return await spawn("board_adapt", args, body)
 
-        # ---- memory_audit（V0.13.0 MP · LLD-A13；confirm 类——本地只读）
+        # ---- memory_audit（V0.13.0 MP · LLD-agent-memory-planner；confirm 类——本地只读）
         @mcp.tool
         @audited("memory_audit")
         async def memory_audit(map_path: str, config_path: str,
                                prj_conf: str | None = None) -> dict:
-            """构建期内存审计（LLD-A13 · DEC-70）：GNU ld map + Kconfig
+            """构建期内存审计（LLD-agent-memory-planner · DEC-70）：GNU ld map + Kconfig
             .config → 三层内存账本（region 占用/保留/余量 + 具名对象 +
             config 内存意图账）+ 规则目录判定（R0 声明≠生效 / R1-R3 栈
             下限 / R4-R5 堆压 / R6 区域余量 / R7 STATIC TX 观察）。

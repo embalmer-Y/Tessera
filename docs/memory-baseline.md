@@ -1,6 +1,6 @@
 # Tessera 最低内存基线（Memory Baseline）· v0.1
 
-> **本文件是什么**：Tessera 系统按配置档的 DRAM/PSRAM/FLASH 最低需求——DEC-70②（owner：「记录这一套系统的最低要求下内存的需求是多少」）。数据来源 = **memory_audit（LLD-A13）对三档载体的实测构建账**（2026-10-19，Zephyr 4.5.0-rc1 / SDK 1.0.1 / ARM 重建机）。
+> **本文件是什么**：Tessera 系统按配置档的 DRAM/PSRAM/FLASH 最低需求——DEC-70②（owner：「记录这一套系统的最低要求下内存的需求是多少」）。数据来源 = **memory_audit（LLD-agent-memory-planner）对三档载体的实测构建账**（2026-10-19，Zephyr 4.5.0-rc1 / SDK 1.0.1 / ARM 重建机）。
 > **消费方**：R12 板卡选型 / BV1 画像内存门（v2）/ 新板内存可行性预判。
 > **口径**：某档最低需求 = 静态账（map 实测）+ 最低可行堆/栈配置值（本批实测通过组合）。推定项逐条 ⚠ 标注。
 

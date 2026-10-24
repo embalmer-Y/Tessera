@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""审批代理（LLD-A01 §4 / LLD-A02 §3）：strict 类工具挂起 → sys_pending_approvals
+"""审批代理（LLD-agent-mcp-gateway §4；LLD-agent-core §3）：strict 工具挂起 → sys_pending_approvals
 呈现 → sys_approve（token 校验，防其他 MCP 客户端代批，DEC-38 #7）→ 放行/拒绝。"""
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ class ApprovalBroker:
         # D4（DEC-67③）：allow-session 会话域记住集（进程生命周期、不落盘
         # ——codex ReviewDecision::ApprovedForSession 同型；审批疲劳缓释）
         self._session_allowed: set[str] = set()
-        # W2（LLD-A14 §3.2）：可选事件总线——approval.requested/decided 事件
+        # W2（LLD-agent-web-reshape §3.2）：可选事件总线——approval.requested/decided 事件
         self._bus = bus
 
     def attach_bus(self, bus: Any) -> None:
@@ -84,7 +84,7 @@ class ApprovalBroker:
         return approval
 
     async def wait(self, approval: Approval, timeout_s: int = APPROVAL_WAIT_S) -> str:
-        """等待决定；超时自动 deny（LLD-A01 §4）。"""
+        """等待决定；超时自动 deny（LLD-agent-mcp-gateway §4）。"""
         try:
             await asyncio.wait_for(approval.event.wait(), timeout=timeout_s)
         except TimeoutError:

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""A07 skills 测试（LLD-A07 §1/§2/§7）：loader 渐进披露 / 同步检查（Q-19 #13）。"""
+"""A07 skills 测试（LLD-agent-skills-platform §1/§2/§7）：loader 渐进披露/同步检查（Q-19 #13）。"""
 
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""web_search 工具面（HW-2 · LLD-A16 §2——DEC-73 裁决① QwenPaw 同款模式）。
+"""web_search 工具面（HW-2 · LLD-agent-hardware-targeting §2——DEC-73 裁决① QwenPaw 同款模式）。
 
 SearchProvider ABC + TavilyProvider（**keyless 匿名缺省**——`POST
 api.tavily.com/search` 带 `X-Tavily-Access-Mode: keyless` 头免 key 直调；
@@ -7,7 +7,7 @@ api.tavily.com/search` 带 `X-Tavily-Access-Mode: keyless` 头免 key 直调；
 工厂按 config `[web_search] provider` 选择（缺省 tavily；未知值 raise 不
 静默路由——QwenPaw 同款）。弃 ddgs 抓取提案（裁决①）。
 
-凭据过滤（LLD-A16 §2）：查询词进入 provider/审计前过 scrub_query——
+凭据过滤（LLD-agent-hardware-targeting §2）：查询词进入 provider/审计前过 scrub_query——
 常见密钥形态（sk- 前缀/Bearer 串/password= 赋值/长 hex 串）打码，防用户
 需求文本携带的凭据外泄到第三方搜索服务。
 """
@@ -21,7 +21,7 @@ import httpx
 from tessera_agent.common.config import AgentConfig, ConfigError
 
 TAVILY_BASE_URL = "https://api.tavily.com"
-#: 401/429/432 = key 无效/配额尽/匿名态限流——自动回退 keyless（LLD-A16 §2）
+#: 401/429/432 = key 无效/配额尽/匿名态限流——自动回退 keyless（LLD-agent-hardware-targeting §2）
 _KEYLESS_FALLBACK_STATUS = {401, 429, 432}
 SEARCH_TIMEOUT_S = 30.0
 
@@ -36,7 +36,7 @@ _SCRUB_RULES: tuple[tuple[re.Pattern[str], str], ...] = (
 
 
 def scrub_query(query: str) -> str:
-    """查询词凭据打码（进入 provider 与审计日志前调用——LLD-A16 §2）。"""
+    """查询词凭据打码（进入 provider 与审计日志前调用——LLD-agent-hardware-targeting §2）。"""
     out = query
     for pattern, repl in _SCRUB_RULES:
         out = pattern.sub(repl, out)

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""硬件事实域（HW · LLD-A16 v0.3）测试：画像 [hardware] 装载矩阵 /
+"""硬件事实域（HW · LLD-agent-hardware-targeting v0.3）测试：画像 [hardware] 装载矩阵 /
 caps×画像机械门 / 能力缺口 / 选型预筛 / Zephyr 本地检索 / spec【目标硬件】
 可选节 / 硬件写拒扫描 / post_deploy_check 判据降级。"""
 

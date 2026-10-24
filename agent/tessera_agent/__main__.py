@@ -48,7 +48,7 @@ def main(argv: list[str] | None = None) -> int:
     replay.add_argument("--json", action="store_true", help="结构化输出（W1 时间线同源）")
 
     val = sub.add_parser("validate",
-                         help="板卡验证域：画像驱动确定性检查流水线（LLD-A12）")
+                         help="板卡验证域：画像驱动确定性检查流水线（LLD-agent-board-validation）")
     val.add_argument("board_id", help="画像 id（agent/boards/<id>.toml）")
     val.add_argument("--checks", default=None, metavar="C1,C3",
                      help="检查子集（缺省全序 C1-C6）")
@@ -60,7 +60,7 @@ def main(argv: list[str] | None = None) -> int:
                      help="打印 JSON 报告（缺省人读形态）")
 
     mem = sub.add_parser("memory-audit",
-                         help="构建期内存审计（LLD-A13 · DEC-70；本地只读）")
+                         help="构建期内存审计（LLD-agent-memory-planner · DEC-70；本地只读）")
     mem.add_argument("--map", required=True, metavar="PATH",
                      help="GNU ld map（zephyr/zephyr.map；pre0 图亦可）")
     mem.add_argument("--config", required=True, metavar="PATH",
@@ -93,7 +93,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _validate_command(args) -> int:
-    """板卡验证 CLI（LLD-A12 §5）。退出码：0 = PASS；1 = FAIL/DEGRADED；
+    """板卡验证 CLI（LLD-agent-board-validation §5）。退出码：0 = PASS；1 = FAIL/DEGRADED；
     2 = 配置/画像/参数错误。同步阻塞面（检查含串口抓取与部署链）。"""
     from pathlib import Path
 
@@ -143,7 +143,7 @@ def _validate_command(args) -> int:
 
 
 def _memory_audit_command(args) -> int:
-    """内存审计 CLI（LLD-A13 §5）。退出码：0 = PASS；1 = WARN/FAIL；
+    """内存审计 CLI（LLD-agent-memory-planner §5）。退出码：0 = PASS；1 = WARN/FAIL；
     2 = 参数/输入错误。本地只读面（无 LLM 无网络）。"""
     from pathlib import Path
 
@@ -213,7 +213,7 @@ def _fmt_s8_evidence(diag: dict) -> str:
 
 
 def _run_command(args) -> int:
-    """终端门面驱动（LLD-A09 §3）。退出码：0 = PACKAGED（--deploy 含判据）；
+    """终端门面驱动（LLD-agent-terminal-facade §3）。退出码：0 = PACKAGED（--deploy 含判据）；
     1 = FAILED/ABORTED/INTERRUPTED；2 = 参数/环境错误。"""
     import asyncio
     from pathlib import Path

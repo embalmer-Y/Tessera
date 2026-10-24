@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""sim_* 场景模型与校验（LLD-A04 §1）。
+"""sim_* 场景模型与校验（LLD-agent-sim-harness §1）。
 
 scenario_version 1：inputs（虚拟时刻输入序列，t_ms 升序不变量）/
 expectations（eq|within|count 断言）/meta。

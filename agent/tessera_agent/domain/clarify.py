@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""需求澄清域（W2 · LLD-A14 §5.1——DEC-69⑥ 双模式之普通模式）。
+"""需求澄清域（W2 · LLD-agent-web-reshape §5.1——DEC-69⑥ 双模式之普通模式）。
 
 创作循环的**前置阶段**：LLM 驱动但产物过确定性门（NV-2 spec_check）——
 与 CreationLoop 同族定性（LLM 提议澄清轮与问询选项；门与判据派生零
@@ -8,7 +8,7 @@
 一次修复重合成）→ ⑤ 确认（proceed → 交棒 app_develop 同任务句柄 /
 restart → 结构化中止——D7 plan_confirm abort 同型）。
 
-失败语义（LLD-A14 §5.1）：LLM 不可用 → 结构化错误（提示切换开发者
+失败语义（LLD-agent-web-reshape §5.1）：LLM 不可用 → 结构化错误（提示切换开发者
 模式直填 spec）；门硬伤修复后仍不过 → 如实返回 errors 不静默降级。
 """
 from __future__ import annotations
@@ -23,7 +23,7 @@ from tessera_agent.domain import app_chain
 from tessera_agent.domain import hardware as hwdom
 from tessera_agent.domain.app_chain import OUTPUT_RETRIES
 
-# 来源: LLD-A14 §5.1——澄清防循环闸
+# 来源: LLD-agent-web-reshape §5.1——澄清防循环闸
 CLARIFY_ROUNDS_MAX = 3
 CLARIFY_QUESTIONS_MAX = 8
 SPEC_REPAIR_MAX = 1
@@ -52,7 +52,7 @@ _SPEC_SYSTEM = (
     "只输出需求单全文，不要额外解释。全部用中文。"
 )
 
-# HW-3（LLD-A16 §3）：联网选型调研 agent——候选 ≤5 结构化，检索走 search_web
+# HW-3（LLD-agent-hardware-targeting §3）：联网选型调研 agent——候选 ≤5 结构化，检索走 search_web
 # 工具（Tavily keyless）；内存/Zephyr 收录判定由机械预筛完成（LLM 只做语义）。
 _RESEARCH_SYSTEM = (
     "你是嵌入式板卡选型调研助手。依据需求要点（必要时用 search_web 工具检索"
@@ -72,7 +72,7 @@ class ClarifyQuestion(BaseModel):
 class GapAnalysis(BaseModel):
     understood: str
     questions: list[ClarifyQuestion]
-    # HW-1（LLD-A16 §1①）：需求文本中明确提到的目标板卡型号（未提 = 空）
+    # HW-1（LLD-agent-hardware-targeting §1①）：需求文本中明确提到的目标板卡型号（未提 = 空）
     hardware_mention: str = ""
 
 
@@ -114,7 +114,7 @@ def resolve_key_path(ctx: Any, key_path: str | None) -> str:
         domain="clarify", detail={"state": "KEY_NOT_FOUND"})
 
 
-# ---- HW-1/HW-3：S0 硬件定向槽（LLD-A16 §1——问询驱动，无静默假设）-----------
+# ---- HW-1/HW-3：S0 硬件定向槽（LLD-agent-hardware-targeting §1——问询驱动，无静默假设）-----------
 
 _HW_ASK_OTHER = "其他板卡"
 _HW_ASK_RESEARCH = "帮我联网选型"
@@ -163,7 +163,7 @@ async def _web_verify_note_async(ctx: Any, hint: str) -> str:
 
 async def _research_boards(ctx: Any, requirement: str, task: Any, *,
                            model: Any, log: Any) -> dict:
-    """HW-3 联网选型调研（LLD-A16 §3）：结构化候选 ≤5 → 机械预筛（内存
+    """HW-3 联网选型调研（LLD-agent-hardware-targeting §3）：结构化候选 ≤5 → 机械预筛（内存
     口径）→ 候选问询卡 → 用户选定（推定态记录）。"""
     from tessera_agent.domain import hardware as hwdom
 
@@ -242,7 +242,7 @@ async def _hw_section_text(rec: dict, profile: Any) -> str:
 async def _hardware_targeting(ctx: Any, requirement: str, gap: GapAnalysis,
                               task: Any, *, model: Any, log: Any,
                               ask_main: bool = True) -> tuple[dict, Any]:
-    """S0 槽（LLD-A16 §1①②）：返回（定向记录, 绑定画像|None）。
+    """S0 槽（LLD-agent-hardware-targeting §1①②）：返回（定向记录, 绑定画像|None）。
     mention→目录内绑定（A）/ 其他板卡→Zephyr 收录检查（B：收录=BV2 工单 /
     未收录=原理图协作）/ 未提及→主问询（A/B/C/暂不指定）。"""
     from tessera_agent.domain import hardware as hwdom
@@ -408,7 +408,7 @@ async def clarify_and_develop(
             gap = (await gap_agent.run(follow_prompt)).output
             rounds += 1
 
-        # ②b S0 硬件定向槽（HW-1 · LLD-A16 §1——问询驱动，无静默假设）：
+        # ②b S0 硬件定向槽（HW-1 · LLD-agent-hardware-targeting §1——问询驱动，无静默假设）：
         # 需求分析先行（①与本硬件无关），此处才问板卡。
         hw_rec, hw_profile = await _hardware_targeting(
             ctx, requirement, gap, task, model=m, log=log)
@@ -445,7 +445,7 @@ async def clarify_and_develop(
                 detail={"errors": gate.errors, "state": "SPEC_REJECTED"})
         log(f"[clarify] 需求单过门（判据 {len(gate.pass_patterns)} 条）")
 
-        # ③b 能力核对（HW-1 · LLD-A16 §1③）：需求 caps × 画像物理绑定 →
+        # ③b 能力核对（HW-1 · LLD-agent-hardware-targeting §1③）：需求 caps × 画像物理绑定 →
         # 缺口问询（外接硬件/更换板卡/如实标注继续）——换板重走定向一次。
         for _ in range(2):
             if hw_rec["mode"] != "profile" or hw_profile is None:

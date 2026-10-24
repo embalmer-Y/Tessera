@@ -1,6 +1,6 @@
-// Tessera Agent web 前端 v2（W2 · LLD-A14 §4）：对话流消费 + 状态灯 +
+// Tessera Agent web 前端 v2（W2 · LLD-agent-web-reshape §4）：对话流消费 + 状态灯 +
 // 心跳 + 任务栏 + 时间线过滤尾随 + 设置/双模式。判据行保真着色沿用
-// （LLD-A10 §3 契约——原始证据流零改写，普通模式为叠加摘要层）。
+// （LLD-agent-mci-channels §3 契约——原始证据流零改写，普通模式为叠加摘要层）。
 import { callTool, initialize } from "./mcp.js";
 import { PHASES, heartbeatText, phaseSummary, plain } from "./copy.js";
 
@@ -11,7 +11,7 @@ let autoScroll = true;
 let lastActivityTs = 0;
 let railTasks = [];             // 任务列存根（tasks 帧）
 
-// ---- 判据行着色（LLD-A11 §3 正则表——零改写仅样式） ------------------------
+// ---- 判据行着色（LLD-agent-web-client §3 正则表——零改写仅样式） ------------------------
 const VERDICT_RULES = [
   ["verdict-err", /FATAL|EXCCAUSE|<err>|Stack overflow|FAILED/],
   ["verdict-ok", /\bAK[A-Za-z0-9]*\b.*\bPASS\b|\bPASS\b|NVD DONE|deploy done|CONNECTED/],
@@ -78,7 +78,7 @@ function initStreamUi() {
   });
 }
 
-// ---- 状态灯 + 心跳（LLD-A14 §4.2——server 派发 phase，前端零推导） ----------
+// ---- 状态灯 + 心跳（LLD-agent-web-reshape §4.2——server 派发 phase，前端零推导） ----------
 function renderPhase(phase, progress) {
   if (phase && phase !== currentPhase) {
     currentPhase = phase;
@@ -228,7 +228,7 @@ function attachTask(taskId) {
   connect();  // 重连即以新 task_id 建流（服务端按连接起算）
 }
 
-// ---- SSE v2 消费（LLD-A14 §3.3：快照 + 直推 + id 续传） ---------------------
+// ---- SSE v2 消费（LLD-agent-web-reshape §3.3：快照 + 直推 + id 续传） ---------------------
 let es = null;
 
 function connect() {
@@ -308,7 +308,7 @@ function handleFrame(frame) {
   }
 }
 
-// ---- 发起任务（双模式——LLD-A14 §5.2；clarify 域 W2-3 接入） ------------------
+// ---- 发起任务（双模式——LLD-agent-web-reshape §5.2；clarify 域 W2-3 接入） ------------------
 function mode() {
   return localStorage.getItem("tessera.mode") ?? "normal";
 }
@@ -401,7 +401,7 @@ async function initTimeline() {
   setInterval(() => { if (follow.checked) load(); }, 10000);
 }
 
-// ---- 设置（LLD-A14 §4.4：主题/模式/密钥/计划确认——localStorage） -------------
+// ---- 设置（LLD-agent-web-reshape §4.4：主题/模式/密钥/计划确认——localStorage） -------------
 function initSettings() {
   const apply = () => {
     const theme = localStorage.getItem("tessera.theme") ?? "auto";

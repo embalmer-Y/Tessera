@@ -163,7 +163,7 @@ ZTEST(framework_periph, test_03_detach_during_estop_lock)
 	zassert_equal(ts_periph_attach("hp1"), TS_OK, "锁存释放后恢复可达");
 }
 
-/* F-2（impl-review-01）：栈上组装描述符注册的回归测试——注册源改为模块
+/* F-2（docs/history/review-archive）：栈上组装描述符注册的回归测试——注册源改为模块
  * 静态表后，调用帧返回，safety 通道引用（uid 查表/状态/写路径）仍须有效。
  * 修复前：注册的是调用方 &d->safe，帧返回即悬垂。 */
 static ts_res_t register_from_stack_frame(void)

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""deploy E2E（LLD-A06 §5；MA3 退出标准）：spec → TSAP 包 → 部署到仿真立方体。
+"""deploy E2E（LLD-agent-deploy-net §5；MA3 退出标准）：spec → TSAP 包 → 部署到仿真立方体。
 
 门控：环境变量 TESSERA_E2E_DEPLOY=1 且 TAP zeth 在位（复跑环境见
 docs/dev-environment.md §8：TAP 需 sudo 建立；zenohd 由本测试拉起）。
@@ -72,7 +72,7 @@ def cube_env(tmp_path_factory):
     if not exe.is_file():
         subprocess.run(
             [str(WEST_WS / ".venv/bin/west"), "build", "-b", "native_sim",
-             str(REPO / "firmware/l3app"), "-d", str(FW_BUILD), "--",
+             str(REPO / "firmware/tests/netlab"), "-d", str(FW_BUILD), "--",
              f"-DZEPHYR_EXTRA_MODULES={REPO/'firmware/module/tessera'};"
              f"{WEST_WS/'zenoh-pico'}"],
             cwd=str(WEST_WS), check=True, capture_output=True,

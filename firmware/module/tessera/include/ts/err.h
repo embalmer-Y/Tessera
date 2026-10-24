@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /*
- * Tessera 公共错误码（design/LLD-00-common.md §2——唯一出处，模块不得私造）。
+ * Tessera 公共错误码（design/LLD-ts-common.md §2——唯一出处，模块不得私造）。
  */
 #ifndef TS_ERR_H__
 #define TS_ERR_H__
@@ -29,7 +29,7 @@ typedef int32_t ts_res_t; /* TS_OK=0；负数为错误 */
 #define TS_E_PENDING        (-13)  /* 结构化中间态：激活待本地确认（F3 · DEC-62①——非失败） */
 
 /*
- * 故障原因码（LLD-00 §2.1，DR-09）：u32 reason = 来源<<16 | 细因。
+ * 故障原因码（LLD-ts-common §2.1，DR-09）：u32 reason = 来源<<16 | 细因。
  * 用于 ts_safety_system_fail() 与 noinit 留痕；不得挪用为通用 API 返回值。
  */
 #define TS_FAIL_SRC_BOOT    0x0001U /* 细因 = 失败的 boot 步骤 idx */
@@ -40,7 +40,7 @@ typedef int32_t ts_res_t; /* TS_OK=0；负数为错误 */
 #define TS_FAIL_BOOT(idx)   ((uint32_t)TS_FAIL_SRC_BOOT << 16 | (uint32_t)(idx))
 #define TS_FAIL_WDT(src)    ((uint32_t)TS_FAIL_SRC_WDT << 16 | (uint32_t)(src))
 
-/* 调用者不透明上下文（LLD-00 §3.1，DR-10）：ts-appmgr 每 APP 实例化并注入；
+/* 调用者不透明上下文（LLD-ts-common §3.1，DR-10）：ts-appmgr 每 APP 实例化并注入；
  * M2 起 ts-hal/ts-power 以其为第一参数。防伪造边界：wasm 侧只见整数 id。 */
 struct ts_ctx_opaque;
 typedef struct ts_ctx_opaque ts_ctx_t;

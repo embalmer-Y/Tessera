@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""clarify 需求澄清域（W2 · LLD-A14 §8）测试：FunctionModel 剧本——
+"""clarify 需求澄清域（W2 · LLD-agent-web-reshape §8）测试：FunctionModel 剧本——
 缺口分析→澄清问答→合成过门→确认交棒全链 + 门拒修复 + restart 结构化
 中止 + LLM 失败结构化 + app_clarify 注册事实。"""
 
@@ -244,7 +244,7 @@ def test_app_clarify_key_path_optional_signature():
     assert probe is not None
 
 
-# ---- HW-1/HW-3：S0 硬件定向槽（LLD-A16 §1/§3）--------------------------------
+# ---- HW-1/HW-3：S0 硬件定向槽（LLD-agent-hardware-targeting §1/§3）--------------------------
 
 def _hw_model(mention: str = "", n_questions: int = 0,
               spec: str | None = None, research: dict | None = None):

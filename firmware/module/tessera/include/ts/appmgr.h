@@ -39,7 +39,7 @@ typedef struct {
 ts_res_t ts_appmgr_install(const uint8_t *pkg_data, size_t pkg_len,
 			    const uint8_t root_pubkey[32], ts_app_info_t *out);
 
-/* ---- 分步安装（远程部署面，LLD-A06 §3；upload→verify→activate）-----------
+/* ---- 分步安装（远程部署面，LLD-agent-deploy-net §3；upload→verify→activate）-----------
  * 供 ts-net sys/app-* 命令消费：chunk 增量写 inactive slot（断点续传），
  * verify 只校验不动 meta，activate 才整槽 hash + meta 原子切换——与
  * ts_appmgr_install 同一内部链（行为一致）。staging 状态在内存，begin

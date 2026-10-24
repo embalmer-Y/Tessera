@@ -30,12 +30,12 @@
 
 | # | 发现 | 来源 | Tessera 吸收 | 落点 |
 |---|------|------|--------------|------|
-| 1 | 协议优先单服务器，多端消费同一 API+事件流 | opencode | **MCI 主形态定案依据**：MCP gateway = 唯一服务器（已有）；渠道 = 客户端（Terminal 前端已有；web 为新客户端）——核心与工具面零改动 | LLD-A10 |
-| 2 | 事件总线 → SSE 推送端点 | opencode | 现状 task_log 为拉式轮询；MCI 增**推送面**（SSE/Streamable HTTP 通知）——D2 进度面与事件流的推送化 | LLD-A10/A11 |
-| 3 | 审批 = 服务端一等实体（ID + list/reply + 事件） | opencode | ApprovalBroker 已同构（approval_id + sys_pending_approvals + sys_approve）——**验证现状正确**；D7 问询照此形态入 MCP（question request ID + answer 回传） | D7/LLD-A10 |
+| 1 | 协议优先单服务器，多端消费同一 API+事件流 | opencode | **MCI 主形态定案依据**：MCP gateway = 唯一服务器（已有）；渠道 = 客户端（Terminal 前端已有；web 为新客户端）——核心与工具面零改动 | LLD-agent-mci-channels |
+| 2 | 事件总线 → SSE 推送端点 | opencode | 现状 task_log 为拉式轮询；MCI 增**推送面**（SSE/Streamable HTTP 通知）——D2 进度面与事件流的推送化 | LLD-agent-mci-channels/A11 |
+| 3 | 审批 = 服务端一等实体（ID + list/reply + 事件） | opencode | ApprovalBroker 已同构（approval_id + sys_pending_approvals + sys_approve）——**验证现状正确**；D7 问询照此形态入 MCP（question request ID + answer 回传） | D7/LLD-agent-mci-channels |
 | 4 | 审批决策三维（一次/会话内记住/拒绝） | codex | sys_approve decision 语义扩展候选（allow-session）——降审批疲劳不落盘；**随 D4 门③子呈递**（涉审批语义） | D4 |
 | 5 | 版本化事件信封 + 事件分类学 | codex EventMsg | 维持 DEC-42 信封；事件分类参考（turn 生命周期/告警/预算/回滚类）——note_loop_progress 已落 5 类，扩展随用随加 | 已有 |
-| 6 | 语义设计 token（角色映射主题） | gemini-cli | web 客户端建 token 层（简约好看的结构化实现 + 未来换肤零成本） | LLD-A11/W1 |
+| 6 | 语义设计 token（角色映射主题） | gemini-cli | web 客户端建 token 层（简约好看的结构化实现 + 未来换肤零成本） | LLD-agent-web-client/W1 |
 | 7 | 反模式：UI 包 CLI 抓文本流 | aider | 不采用——保持协议优先（MCP 面），web 客户端为 gateway 客户端而非 CLI 包皮 | — |
 
 ## 3. Tessera MCI 架构映射（Q-48 呈递正文要点）
@@ -65,7 +65,7 @@ Channel（渠道） ≡ Transport × Renderer × Interaction
 
 ## 5. 与本项目纪律的对齐
 
-- 门③：Q-48 呈递（MCI 三层定案 + web 选型 + D4 审批语义扩展 allow-session）→ owner 裁后 LLD-A10/A11 落稿 → W1 实现。
+- 门③：Q-48 呈递（MCI 三层定案 + web 选型 + D4 审批语义扩展 allow-session）→ owner 裁后 LLD-agent-mci-channels/A11 落稿 → W1 实现。
 - 安全边界：web 客户端 = gateway 新消费者——**审批 token 语义不变**（TESSERA_AGENT_APPROVAL_TOKEN；「持有 token ≠ 主人本人」缺口维持记录不开发）；HTTP 绑定默认 127.0.0.1 维持（外网暴露 = owner 显式 + 自担）。
 - 合同 9/10 不受影响（固件侧零改动）。
 
@@ -98,7 +98,7 @@ Channel（渠道） ≡ Transport × Renderer × Interaction
 | 8 | MCP client streamable HTTP + 工具暴露控制 | pi mcp.md | M1 单元接入面；toolExposure 分级思路 → 域工具只读面默认放行（param_rules 同向） |
 | 9 | `tool_call` 扩展钩子可授权/修改调用 | pi extensions | pi 侧闸 = 可选第二道；**服务端 gateway 闸（D4）为主边界**——架构注记 |
 | 10 | 会话树 JSONL（id/parentId + 分支摘要） | pi session-format | D5 时间线设计参考（分支语义对我方审计为超集需求，取线性即可） |
-| 11 | 「安全 = OS 边界」哲学 | pi security.md | 与制造门禁哲学的**显式对照**入 LLD-A10：两哲学可分层共存（pi 渠道自由 + 服务端域闸强制） |
+| 11 | 「安全 = OS 边界」哲学 | pi security.md | 与制造门禁哲学的**显式对照**入 LLD-agent-mci-channels：两哲学可分层共存（pi 渠道自由 + 服务端域闸强制） |
 
 ## 7. QwenPaw 深评（owner 2026-10-19 指定重点参照；pi 吸收待定）
 
@@ -125,7 +125,7 @@ Channel（渠道） ≡ Transport × Renderer × Interaction
 
 ### 7.4 引入判定
 
-- **作为 MCI 参照物 = 一级**（渠道契约/renderer/逐工具策略/设计语言四件直接吸收进 LLD-A10/A11）。
+- **作为 MCI 参照物 = 一级**（渠道契约/renderer/逐工具策略/设计语言四件直接吸收进 LLD-agent-mci-channels/A11）。
 - **作为引入物（第二渠道运行时）= 比 pi 更重**：350k LOC 完整助手框架，自带循环/记忆/技能体系与我方核心大面积重叠；Qwen 模型生态倾向（支持 14+ provider 含 Anthropic 兼容，但主场在 QwenPaw-Flash）；引入即运行第二个「助手宇宙」。
 - **pi 吸收待定（owner 裁）**下，两者的共同替代项浮现：**W1 web 客户端先行**（案 A 零新增运行时——消解「Python+Node 双运行时」顾虑），harness 引入决策（pi / QwenPaw / 都不）推迟到 W1 真实体验之后。
 
@@ -133,11 +133,11 @@ Channel（渠道） ≡ Transport × Renderer × Interaction
 
 | # | 发现 | 来源 | 吸收落点 |
 |---|------|------|----------|
-| 12 | 渠道契约「小必需面（5 方法）+ 基类厚供给」 | QwenPaw BaseChannel | LLD-A10 Channel 协议形态（Frontend Protocol v2 演进模板） |
-| 13 | Renderer 独立层 + 渠道能力裁剪（六类 Content + style/caps） | QwenPaw renderer.py | LLD-A10 Renderer 层（D2 进度/事件 → 渠道部件） |
+| 12 | 渠道契约「小必需面（5 方法）+ 基类厚供给」 | QwenPaw BaseChannel | LLD-agent-mci-channels Channel 协议形态（Frontend Protocol v2 演进模板） |
+| 13 | Renderer 独立层 + 渠道能力裁剪（六类 Content + style/caps） | QwenPaw renderer.py | LLD-agent-mci-channels Renderer 层（D2 进度/事件 → 渠道部件） |
 | 14 | MCP 逐工具访问策略（Override/DefaultPolicy）+ 管理 API | QwenPaw app/mcp | D4 策略面 + policy.param_rules 的 MCP 化参照 |
 | 15 | governance（detectors/audit/resource_governor） | QwenPaw | D4 hook 检测器语义参照 |
-| 16 | design.md 设计语言文档（token 优先级/交互语法/实现配方/评审标准） | QwenPaw | LLD-A11/W1 方法论——设计语言先于代码 |
+| 16 | design.md 设计语言文档（token 优先级/交互语法/实现配方/评审标准） | QwenPaw | LLD-agent-web-client/W1 方法论——设计语言先于代码 |
 | 17 | console-as-channel（渠道自身也是服务器客户端） | QwenPaw | TerminalFrontend 归位验证（第三例，MCI 论点巩固） |
 
 ## 8. V0.12.0 逐 feature 吸收映射（实现期对照清单——DEC-66⑥ 执行序：D7 → D4 → A10/A11 → W1 → D5）

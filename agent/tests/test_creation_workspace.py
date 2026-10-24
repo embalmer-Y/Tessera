@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""AG2 工作区 + scoped 编辑动词测试矩阵（LLD-A08 §9——零 LLM/零网络）。
+"""AG2 工作区 + scoped 编辑动词测试矩阵（LLD-agent-creation-workspace §9——零 LLM/零网络）。
 
 覆盖退出标准（HLD-agent v0.2 §7 AG2）：roots 逃逸 / 锚定失配 / 分页边界 / 白名单只读，
 外加：防盲写（STALE）/容量上限/工程清单单一事实源/原子性。

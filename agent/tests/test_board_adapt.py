@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""BV2 新板卡适配域测试（V0.15.0 · LLD-A17 · DEC-74）。
+"""BV2 新板卡适配域测试（V0.15.0 · LLD-agent-board-adaptation · DEC-74）。
 
 矩阵：定位命中/未命中 → 布局模板族（P4 playbook 真锚）→ 接入件五件套 →
 C0 预检（防篡改）→ 工单闭环（owner 闸）→ 未收录清单待确认态。
@@ -163,7 +163,7 @@ def test_mcp_tool_registered() -> None:
 
 def test_workorder_chain_profile_loadable(ws: Path, tmp_path: Path) -> None:
     """工单闭环末端：BV2 生成草稿 → owner 批准入目录 → BV1 loader 可装载
-    （clarify 分支 A mention 绑定同源消费——LLD-A17 §1 工单两端）。"""
+    （clarify 分支 A mention 绑定同源消费——LLD-agent-board-adaptation §1 工单两端）。"""
     from tessera_agent.domain import board_validation as bv
 
     adapt_root = tmp_path / "adapt"

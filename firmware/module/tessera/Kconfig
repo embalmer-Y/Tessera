@@ -526,14 +526,14 @@ config TS_NET_APP_CHUNK_MAX
 	int "Max app-chunk payload bytes (deploy upload)"
 	default 2048
 	help
-	  Source: LLD-A06 3 (2KB default, 4KB ceiling from NeuroLink field data).
+	  Source: LLD-agent-deploy-net 3 (2KB default, 4KB ceiling from NeuroLink field data).
 	  Also sizes the zenoh query request buffer (chunk + envelope margin).
 
 config TS_NET_PUBLISH_MAX_BYTES
 	int "Max av chunk payload bytes (ts_net_publish native)"
 	default 1024
 	help
-	  Source: DEC-47 2 (av-transport-01): chunks stay <=1KB so zenoh-pico
+	  Source: DEC-47 2 (av-transport): chunks stay <=1KB so zenoh-pico
 	  never enters its fragmentation path (Z_BATCH_UNICAST_SIZE=2048).
 
 config TS_NET_PUBLISH_MIN_GAP_MS
@@ -547,13 +547,13 @@ config TS_NET_PUBLISH_RETRY_MAX
 	int "Av chunk publish retries per chunk (avq flush)"
 	default 5
 	help
-	  Source: DEC-47 2 (av-transport-01 field data).
+	  Source: DEC-47 2 (av-transport field data).
 
 config TS_NET_PUBLISH_RETRY_DELAY_MS
 	int "Delay between av chunk retries in ms"
 	default 20
 	help
-	  Source: DEC-47 2 (av-transport-01 field data; <=5x20ms recovers
+	  Source: DEC-47 2 (av-transport field data; <=5x20ms recovers
 	  from WiFi-degraded BLOCK drops).
 
 config TS_NET_AVQ_DEPTH

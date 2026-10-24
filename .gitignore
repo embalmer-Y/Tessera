@@ -9,7 +9,7 @@ compile_commands.json
 *.hex
 *.map
 *.uimg
-# 例外：memory_audit 真图摘录测试夹具（LLD-A13）
+# 例外：memory_audit 真图摘录测试夹具（LLD-agent-memory-planner）
 !agent/tests/fixtures/*.map
 
 # ---- west 工作区误入侵防护（工作区应在仓库外初始化，见 AGENTS.md §7）----
@@ -27,7 +27,7 @@ __pycache__/
 .venv/
 venv/
 
-# ---- Agent 运行时产物（LLD-A00：审计/密钥/构建/本地配置不入库）----
+# ---- Agent 运行时产物（LLD-agent-common：审计/密钥/构建/本地配置不入库）----
 agent/audit/
 agent/keys/
 agent/build/

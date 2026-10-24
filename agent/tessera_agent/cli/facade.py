@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""TerminalFrontend（LLD-A09 §2-§4——Frontend 第二实现，与 MCP 门面同根）。
+"""TerminalFrontend（LLD-agent-terminal-facade §2-§4——Frontend 第二实现，与 MCP 门面同根）。
 
 交互钩子注入式：plan_confirm / question / approval 三回调默认走终端
 （input/getpass），测试注入剧本——交互逻辑与渲染/IO 分离（测试面最大化）。
@@ -32,12 +32,12 @@ class TerminalOptions:
     plan_confirm: bool = True
 
 
-ABORTED = "ABORTED"  # 门面级终态：owner 在计划确认处拒绝（LLD-A09 §4）
-INTERRUPTED = "INTERRUPTED"  # 门面级终态：SIGINT 优雅退出（快照续跑——LLD-A09 §4）
+ABORTED = "ABORTED"  # 门面级终态：owner 在计划确认处拒绝（LLD-agent-terminal-facade §4）
+INTERRUPTED = "INTERRUPTED"  # 门面级终态：SIGINT 优雅退出（快照续跑——LLD-agent-terminal-facade §4）
 
 
 class _Aborted(Exception):
-    """计划确认被拒——按 LLD-A09 语义终止会话（不产出）。"""
+    """计划确认被拒——按 LLD-agent-terminal-facade 语义终止会话（不产出）。"""
 
 
 class TerminalFrontend:
@@ -110,7 +110,7 @@ class TerminalFrontend:
         self, approval_id: str, tool: str, reason: str, *, yes: bool
     ) -> tuple[str, str]:
         if yes:
-            return ("deny", "")  # --yes 不豁免 strict（安全默认——LLD-A09 §3）
+            return ("deny", "")  # --yes 不豁免 strict（安全默认——LLD-agent-terminal-facade §3）
         fn = self._approval_fn or self._default_approval
         return fn(approval_id, tool, reason)
 
@@ -128,7 +128,7 @@ class TerminalFrontend:
         budget: int = 12,
         key_path: str | None = None,
     ) -> LoopResult:
-        """断点续跑（AG6 · LLD-A09 §3 --resume）：快照重建后同 run() 驱动。"""
+        """断点续跑（AG6 · LLD-agent-terminal-facade §3 --resume）：快照重建后同 run() 驱动。"""
         from tessera_agent.creation.loop import CreationLoop
         from tessera_agent.creation.snapshot import restore
 
@@ -201,7 +201,7 @@ class TerminalFrontend:
         return result
 
     def _report(self, result: LoopResult) -> None:
-        """终报（LLD-A09 §4）：--json = 结构化行；文本 = render_final。"""
+        """终报（LLD-agent-terminal-facade §4）：--json = 结构化行；文本 = render_final。"""
         if getattr(self, "_json_mode", False):
             self._emit(json.dumps({
                 "event": "report",

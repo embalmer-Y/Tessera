@@ -28,8 +28,8 @@ tiers = ["small"]
 min_slot_pool_kb = 128 # deploybench caps 自报口径（CG7 实测）
 
 [smoke]
-package_path = "agent/demos/D9/demo.d9.linkloss-1.0.0.tsap"
-pub_path = "agent/demos/D9/test-root.pub"
+package_path = "agent/demos/demo-linkloss/demo.d9.linkloss-1.0.0.tsap"
+pub_path = "agent/demos/demo-linkloss/test-root.pub"
 criteria = ["d9 init"]
 window_s = 90.0
 

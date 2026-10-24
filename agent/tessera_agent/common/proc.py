@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""子进程纪律（LLD-A00 §5 / DR-23）：禁 shell、超时必填、进程组杀、流式日志。"""
+"""子进程纪律（LLD-agent-common §5 / DR-23）：禁 shell、超时必填、进程组杀、流式日志。"""
 
 from __future__ import annotations
 
@@ -80,7 +80,7 @@ async def run_proc(
         msg = f"子进程超时（{timeout_s}s）: {' '.join(cmd[:3])}…"
         raise TaError(TA_E_TIMEOUT, msg, domain="proc", retryable=True) from None
     except asyncio.CancelledError:
-        # IR2-09（impl-review-02）：任务取消（task_cancel/TTL 到期）同样杀整
+        # IR2-09（docs/history/review-archive）：任务取消（task_cancel/TTL 到期）同样杀整
         # 进程组——仅 cancel 协程会留下孤儿（west/clang 继续占 CPU/写产物）。
         try:
             os.killpg(proc.pid, signal.SIGKILL)

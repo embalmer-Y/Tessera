@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""板卡验证域测试（BV1-I · LLD-A12 §7——FakeTransport 全检查矩阵 sim 级）。
+"""板卡验证域测试（BV1-I · LLD-agent-board-validation §7——FakeTransport 全检查矩阵 sim 级）。
 
 覆盖：画像 fail-closed 装载 / 检查项三态（PASS/FAIL/SKIP）× 派生 SKIP 链
 × stop_on_fail / overall 三态判定 / progress 序列 / 报告双形态 / LiveTransport
@@ -49,7 +49,7 @@ window_s = 20.0
 
 
 class FakeTransport:
-    """全好板缺省行为；按参数覆盖即注入失败场景（LLD-A12 §7）。"""
+    """全好板缺省行为；按参数覆盖即注入失败场景（LLD-agent-board-validation §7）。"""
 
     def __init__(self, **kw: object) -> None:
         self.port_ready_ret = kw.get("port_ready_ret", (True, "port open ok"))

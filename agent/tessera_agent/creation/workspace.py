@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""工作区模型（LLD-A08 §2）：布局 / roots 钳制 / project.json 工程清单。
+"""工作区模型（LLD-agent-creation-workspace §2）：布局 / roots 钳制 / project.json 工程清单。
 
 纪律（HLD-agent v0.2 §5.2）：
 - 工作区永不入仓（.gitignore 常设 agent/workspace/）；
@@ -26,7 +26,7 @@ from tessera_agent.common.errors import (
 
 DOMAIN = "creation"
 
-# 容量上限（LLD-A08 §2.3；防资源耗尽——超限 TA_E_WORKSPACE_LIMIT）
+# 容量上限（LLD-agent-creation-workspace §2.3；防资源耗尽——超限 TA_E_WORKSPACE_LIMIT）
 MAX_FILE_BYTES = 512 * 1024
 MAX_TOTAL_BYTES = 4 * 1024 * 1024
 MAX_FILE_COUNT = 64
@@ -35,7 +35,7 @@ PROJECT_JSON = "project.json"
 
 
 def _empty_project(app_id: str = "", app_ver: str = "1.0.0") -> dict[str, Any]:
-    """project.json v1 初始骨架（LLD-A08 §2.2——files/exports = 编译与面检查唯一来源）。"""
+    """project.json v1 初始骨架（LLD-agent-creation-workspace §2.2；files/exports 为唯一来源）。"""
     return {
         "schema": 1,
         "app_id": app_id,
@@ -127,7 +127,7 @@ class Workspace:
             json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
-        os.replace(tmp, path)  # 原子写（LLD-A08 §6.2 纪律平移）
+        os.replace(tmp, path)  # 原子写（LLD-agent-creation-workspace §6.2 纪律平移）
 
     # ---- 路径钳制（符号链接防御核心） ----------------------------------
 

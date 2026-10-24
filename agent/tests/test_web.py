@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""W2 web 渠道（LLD-A14 §8 测试口径；W1 静态/路由/URL 纪律沿用）：
+"""W2 web 渠道（LLD-agent-web-reshape §8 测试口径；W1 静态/路由/URL 纪律沿用）：
 
 - /web 静态挂载（index/app.js 可达 + Content-Type + ES import 路径全存在）
 - /events v2：EventBus 直推（快照首帧/task.created 任务帧/Last-Event-ID 续传）
@@ -92,7 +92,7 @@ def test_web_urls_are_root_absolute(tmp_path):
             assert target.startswith("/"), f"{name}: new URL(\"{target}\") 非根绝对"
 
 
-# ---- phase 派发表（11 态单源——LLD-A14 §4.2） ------------------------------
+# ---- phase 派发表（11 态单源——LLD-agent-web-reshape §4.2） ------------------------------
 
 def test_derive_phase_priority():
     assert derive_phase(None, {}, [], []) == "idle"
@@ -193,7 +193,7 @@ def test_event_frame_question_approval_mapping(tmp_path):
 
 def test_registry_question_approval_bus_zero_change_without_bus(
         tmp_path, monkeypatch):
-    """对照组（LLD-A14 §3.2 纪律）：bus=None 缺省构造 = 行为逐字节等价
+    """对照组（LLD-agent-web-reshape §3.2 纪律）：bus=None 缺省构造 = 行为逐字节等价
     （问答/审批/日志全功能可用，仅无事件）。"""
 
     from tessera_agent.common.tasks import TaskRegistry

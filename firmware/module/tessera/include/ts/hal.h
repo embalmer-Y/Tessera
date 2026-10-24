@@ -16,7 +16,7 @@
 extern "C" {
 #endif
 
-/* ---- ts_ctx_t（LLD-00 §3.1，DR-10）：调用者不透明上下文 ------------------ */
+/* ---- ts_ctx_t（LLD-ts-common §3.1，DR-10）：调用者不透明上下文 ------------------ */
 struct ts_ctx_opaque {
 	uint16_t app_id;    /* 分配序号（ts-appmgr 管理） */
 	uint16_t _rsv;

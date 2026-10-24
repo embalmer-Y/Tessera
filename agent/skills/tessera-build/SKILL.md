@@ -22,7 +22,7 @@ sources:
 - 构建：`west build -b native_sim <app> -d <build> -- -DZEPHYR_EXTRA_MODULES="<tessera>;<zenoh-pico>"`
 - twister：`west twister -p native_sim -T ~/project/tessera/firmware/tests --extra-args=ZEPHYR_EXTRA_MODULES=$HOME/project/tessera/firmware/module/tessera`
 - pytest（军规 4 编码）：`~/project/zephyrproject/.venv/bin/python -m pytest firmware/tests/pytest`
-- L5 机械检查：`python3 firmware/tests/l5/check_l5.py`
+- L5 机械检查：`python3 firmware/tests/safety_check/check_safety_contract.py`
 
 ## 钉版纪律（versioning.md）
 
@@ -32,4 +32,4 @@ Python 依赖见 agent/pyproject.toml（升级 = 显式提交 + 全量回归）�
 ## zenoh-pico 接入要点（dev-env §7）
 
 上游零源码补丁；唯一非上游文件 = 生成的 `include/zenoh-pico/config.h`；
-`CONFIG_POSIX_API=y` 关键（netdb 冲突）；pthread 链与 POSIX 池参数见 l3app/prj.conf 注释。
+`CONFIG_POSIX_API=y` 关键（netdb 冲突）；pthread 链与 POSIX 池参数见 netlab/prj.conf 注释。

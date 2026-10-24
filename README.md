@@ -34,12 +34,13 @@
 | 路径 | 内容 |
 |---|---|
 | `firmware/module/tessera/` | 固件框架源码（ts-* 七模块） |
-| `firmware/tests/` | twister 套件（17 套件 117 用例——aarch64 /64 现行口径：115 过 + 2 skipped）+ 板级 bench（netbench/deploybench/otabench/…） |
+| `firmware/tests/` | twister 套件（17 套件 117 用例——aarch64 /64 现行口径：115 过 + 2 skipped）+ 板级 bench（netbench/deploybench/otabench/…）+ netlab（native_sim zenoh 联调镜像）+ safety_check（安全合同机械检查） |
 | `firmware/app/` | 生产 app（板级片段：S3 PSRAM/WiFi/分区） |
 | `agent/` | MCP server + 模拟器 + TSAP 工具链 + skills + web 渠道 + 板卡画像（agent/boards）/ 硬件事实域 / 新板适配域（agent/adapt 产物面）（pytest 346 用例 + 2 skipped） |
-| `design/` | HLD×2（framework/agent）+ 七模块固件 LLD + Agent LLD A00-A17（含 BV1/MP/W2/MCI/HW/BV2 域设计） |
+| `agent/demos/` | demo 阶梯（demo-led-blink … demo-p4-probe，描述性命名——映射见 `docs/names.md` §6） |
+| `design/` | HLD×2（framework/agent）+ 固件 LLD（LLD-ts-*：七模块 + 公共约定）+ Agent 域 LLD（LLD-agent-*：网关/核心/部署/创作/MCI/HW/BV1/BV2 等） |
 | `tools/board/` | 板级联调工具（E2E 驱动/prov·证书生成/串口持有器/消费端——README 含典型编排） |
-| `docs/` | dev-environment（环境事实源）/ **env-rebuild-checklist（全新机器重建总单，含 ARM Linux）** / project-plan / memory-baseline / research（R12 选型·R13 结构件） / evidence / impl-review 族 |
+| `docs/` | dev-environment（环境事实源）/ **env-rebuild-checklist（全新机器重建总单，含 ARM Linux）** / project-plan（现行计划）/ memory-baseline / research（R12 选型·R13 结构件）/ std（规范套件，含 naming 命名规范）/ evidence（真机证据，README 有索引）/ history（历史归档：状态日志/旧计划/评审档案） |
 | `decisions.md` | Q/DEC 裁决登记册（全部决策可溯） |
 
 ## 依赖与钉版
@@ -49,7 +50,7 @@
 | 依赖 | 钉版 | 用途 | 引入方式 |
 |---|---|---|---|
 | Zephyr RTOS | v4.5.0-rc1 | 固件 RTOS 基线 | west 工作区（`west init --mr`） |
-| Zephyr SDK | 1.0.1 | 交叉工具链（xtensa-esp32s3 等）+ hosttools | `west sdk install` |
+| Zephyr SDK | 1.0.1 | 交叉工具链（xtensa-esp32s3 等）+ hostools | `west sdk install` |
 | espressif HAL blobs | 随 Zephyr 版本 | WiFi/BT 预编译库 | `west blobs fetch hal_espressif` |
 | WAMR | 2.4.5 | wasm 运行时（APP 沙箱） | 源码 @ `TS_WAMR_DIR`（仓外 deps，构建期变量） |
 | zenoh-pico | 1.10.1 | 板侧 zenoh 传输 | west 工作区模块 |
@@ -63,7 +64,7 @@
 
 ## 快速上手（Linux 环境）
 
-环境事实源见 `docs/dev-environment.md`；**从零重建（多机/含 ARM Linux）按 `docs/env-rebuild-checklist.md` 逐项执行**（Zephyr v4.5.0-rc1 + Zephyr SDK 1.0.1 钉版；目录规范 `~/project/{Tessera,zephyrproject,logs}`）。迁移历史与平台差异记录见 `docs/migration-x86.md`（WSL2 历史口径见 dev-environment §1-8）。
+环境事实源见 `docs/dev-environment.md`；**从零重建（多机/含 ARM Linux）按 `docs/env-rebuild-checklist.md` 逐项执行**（Zephyr v4.5.0-rc1 + Zephyr SDK 1.0.1 钉版；目录规范 `~/project/{Tessera,zephyrproject,logs}`）。x86/WSL2 历史口径见 dev-environment §1-8（迁移档案已随 2026-10-24 仓整理删除——重建以 checklist 为唯一总单）。
 
 ```bash
 # 固件构建（native_sim）
@@ -82,24 +83,25 @@ cd ~/project/Tessera/agent && python -m pytest tests/ -q && python -m ruff check
 
 ## Demo 链（真机验证记录）
 
-| Demo | 内容 | 状态 |
+目录均为 `agent/demos/`（2026-10-24 起描述性命名；旧代号映射见 `docs/names.md` §6）。
+
+| Demo 目录 | 内容 | 状态 |
 |---|---|---|
-| D1–D7 | 控制/输入/安全/部署阶梯（blink→estop→限幅→ADC） | 真机 PASS |
-| D4/D6 | ADC 变化上报 / 滞回控制环（clamp 限幅实证 + 真实落驱动） | 真机 PASS |
-| D-SD | SD 卡文件系统 APP（白名单拒绝物理证据 + 宿主独立复核） | 真机 PASS |
-| D8 | 三版本部署链（初装→升级 G4 即停→健康回滚→复活） | 真机 PASS |
-| D9 | 断链 fail-safe 时间线（合同 3 双证据：sim + 真机） | 真机 PASS |
-| D-AV | 摄像头帧采集发布（采集自愈 + 发送层根治后全链） | 真机 PASS（V0.2.0） |
+| demo-led-blink … demo-health-rollback | 控制/输入/安全/部署阶梯（blink→estop→限幅→ADC→滞回→回滚） | 真机 PASS |
+| demo-sd-storage | SD 卡文件系统 APP（白名单拒绝物理证据 + 宿主独立复核） | 真机 PASS |
+| demo-lifecycle | 三版本部署链（初装→升级即停→健康回退→复活） | 真机 PASS |
+| demo-linkloss | 断链 fail-safe 时间线（合同 3 双证据：sim + 真机） | 真机 PASS |
+| demo-audio-video | 摄像头帧采集发布（采集自愈 + 发送层根治后全链） | 真机 PASS（V0.2.0） |
 | OTA | MCUboot 双槽 SMP 全链（上传→swap→confirm） | 真机 PASS |
 | NV1 | 修复闭环（LLM 生成→部署→判据 PASS 一枪全链） | 真机 PASS |
-| DP / DT | PDM 音频全链 / 真 wasm 多线程（原子共享 + join） | 真机 PASS |
-| MA / NVD / AG7 | 多 APP 并行 / 新机全链 NVD / 真 LLM 多文件工程收敛 | 真机 PASS |
+| demo-pdm-audio / demo-threads | PDM 音频全链 / 真 wasm 多线程（原子共享 + join） | 真机 PASS |
+| demo-multiapp / NVD / demo-thermo | 多 APP 并行 / 新机全链 NVD / 真 LLM 多文件工程收敛 | 真机 PASS |
 | CG7 | V0.7.0 合同泛化 spot check（caps 自报 + 预检消费 + 部署全链） | 真机 PASS |
-| AK AUDIO | ES8311 全 codec 音频输入输出（第二板 dnesp32s3b） | 真机 PASS |
-| AK3 TRUST | 多开发者信任链 E2E（注册→多根部署→防回滚→撤回，无线） | 真机 PASS |
-| AK4 RES | net+SD 资源推送（sha256 读回校验 + APP 消费端字节命中） | 真机 PASS |
-| AK5 LARGE | 206KB wasm 大档全链（板上验签 412KB 包 + PSRAM 装载 + 运行） | 真机 PASS |
-| AK6 LN | 双板逻辑节点编排（扇出部署 + 聚合状态双 ACTIVE） | 真机 PASS |
+| K2 AUDIO | ES8311 全 codec 音频输入输出（第二板 dnesp32s3b） | 真机 PASS |
+| K3 TRUST | 多开发者信任链 E2E（注册→多根部署→防回滚→撤回，无线） | 真机 PASS |
+| K4 RES | net+SD 资源推送（sha256 读回校验 + APP 消费端字节命中） | 真机 PASS |
+| K5 LARGE | 206KB wasm 大档全链（板上验签 412KB 包 + PSRAM 装载 + 运行） | 真机 PASS |
+| K6 LN | 双板逻辑节点编排（扇出部署 + 聚合状态双 ACTIVE） | 真机 PASS |
 
 ## 安全与确定性合同（摘要，全文 `AGENTS.md` §6）
 

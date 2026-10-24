@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""渲染层（LLD-A09 §5）：事件 → 字符串的纯函数（无 IO——单测直接断言）。
+"""渲染层（LLD-agent-terminal-facade §5）：事件 → 字符串的纯函数（无 IO——单测直接断言）。
 
 行式渲染（非全屏 TUI）：无 curses 依赖、输出可重定向、--json 同源。
 """
@@ -37,7 +37,7 @@ def render_evidence(ev: dict[str, Any]) -> str:
 
 
 def render_final(result: Any) -> str:
-    """终报（LLD-A09 §4）：状态/判据/产物/工作区/预算。"""
+    """终报（LLD-agent-terminal-facade §4）：状态/判据/产物/工作区/预算。"""
     lines = [
         "―――― 终报 ――――",
         f"状态：{result.state}",

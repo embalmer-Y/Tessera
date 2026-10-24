@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Skill loader（LLD-A07 §1，DEC-37 修订：自建，开放标准目录约定）。
+"""Skill loader（LLD-agent-skills-platform §1，DEC-37 修订：自建，开放标准目录约定）。
 
 渐进披露：会话系统提示只注入 name+description 一览；全文经 skill_read(name)
 按需读取。skill 内容从权威文档派生（不双写真相）——同步纪律见 sync_check.py
@@ -85,7 +85,7 @@ def read_skill(name: str, skills_dir: Path = SKILLS_DIR) -> str:
 
 
 def system_prompt_listing(skills_dir: Path = SKILLS_DIR) -> str:
-    """注入系统提示的一览（激活快照同时记录——审计确定性，LLD-A07 §1）。"""
+    """注入系统提示的一览（激活快照同时记录——审计确定性，LLD-agent-skills-platform §1）。"""
     refs = load_skills(skills_dir)
     if not refs:
         return "（无已注册 skill）"

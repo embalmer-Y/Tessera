@@ -78,7 +78,7 @@ REBOOT_RETRY_S = 2.0
 
 
 class DevelopOutcome(BaseModel):
-    """app_develop 结构化产物（LLD-A02 §4 PlanDto 的 MA3 落地形态；
+    """app_develop 结构化产物（LLD-agent-core §4 PlanDto 的 MA3 落地形态；
     DEC-45 扩展：source_c 可选——LLM 直接产 C 源，链内编译为 wasm）。
 
     列表字段经 _unwrap_item 容错（MD1.1 实证：MiniMax-M3 结构化输出的
@@ -196,7 +196,7 @@ def _plan_system_prompt() -> str:
 
 
 def _implement_system_prompt() -> str:
-    """创作循环 implement 轮系统提示（AG6 · LLD-A08 §5.4）。"""
+    """创作循环 implement 轮系统提示（AG6 · LLD-agent-creation-workspace §5.4）。"""
     return "\n\n".join([
         "你是 Tessera 固件域 APP 开发者，在创作工作区中多轮迭代实现工程。",
         "manifest 必须满足 TsapManifest v1（app_id 反向域名小写串（仅 a-z0-9.，"
@@ -220,7 +220,7 @@ def _implement_system_prompt() -> str:
 
 
 class PlanOutcome(BaseModel):
-    """创作循环 plan 阶段产物（AG6 · LLD-A02 §5a）。"""
+    """创作循环 plan 阶段产物（AG6 · LLD-agent-core §5a）。"""
 
     dto_version: int = 1
     requirements_summary: str
@@ -418,7 +418,7 @@ async def app_develop(
         msg = f"spec 质量门未过：{'；'.join(gate.errors)}"
         raise TaError(TA_E_ARGS, msg, domain="app_develop",
                       detail={"errors": gate.errors})
-    # HW-4 ②（LLD-A16 §7.2）：直填 spec 无【目标硬件】段且配置绑定画像 →
+    # HW-4 ②（LLD-agent-hardware-targeting §7.2）：直填 spec 无【目标硬件】段且配置绑定画像 →
     # 自动追加硬件事实段（可用通道/实例/禁假设纪律注入创作链——LLM 不再
     # 凭空假设「gpio 0 = 板载 LED」）；未配置/无事实 = 原样（不静默改判）。
     from tessera_agent.domain import hardware as hwdom
@@ -480,7 +480,7 @@ async def _app_develop_loop(
     task: Any = None,
     plan_confirm: bool = False,
 ) -> dict[str, Any]:
-    """创作循环后端（HLD-agent v0.2 §2.2；LLD-A08 全链）。"""
+    """创作循环后端（HLD-agent v0.2 §2.2；LLD-agent-creation-workspace 全链）。"""
     repo = Path(ctx.cfg.workspace_repo)
     base = repo / "agent" / "workspace"
     task_id = f"t-{secrets.token_hex(4)}"
@@ -501,7 +501,7 @@ async def _app_develop_loop(
         log(f"loop:{kind} {json.dumps(data, ensure_ascii=False)[:200]}")
         if task is not None:
             note_loop_progress(task.progress, kind, data)
-            # W2（LLD-A14 §4.2）：活动触碰 + 总线发布（registry 单一入口）
+            # W2（LLD-agent-web-reshape §4.2）：活动触碰 + 总线发布（registry 单一入口）
             ctx.registry.note_progress(task)
         # D7（DEC-67①）：计划确认经问询实体透传（MCP 客户端应答；超时取
         # default/无 default 异常）。CLI 路径不走此桥（门面终端确认不变）。

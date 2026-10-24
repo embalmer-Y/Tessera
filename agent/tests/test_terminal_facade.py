@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""AG4 终端门面测试（LLD-A09 §8——渲染纯函数 + 门面交互钩子，零 LLM/零网络）。"""
+"""AG4 终端门面测试（LLD-agent-terminal-facade §8——渲染纯函数 + 门面交互钩子，零 LLM/零网络）。"""
 
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""接口缝预留（LLD-A07 §4/§5）：A2A PeerTransport 与 Frontend 抽象。
+"""接口缝预留（LLD-agent-skills-platform §4/§5）：A2A PeerTransport 与 Frontend 抽象。
 
 V1 仅协议定义 + 打桩可运行（编译级冒烟）；实现属未来 Q——
 - PeerTransport（DEC-36④ A2A 预留，owner 要求显式登记）：启用条件 = 跨主体/
@@ -38,7 +38,7 @@ class Frontend(Protocol):
 
 
 class McpFrontend:
-    """V1 唯一 Frontend 实现：任务日志行 + 待审批呈现（LLD-A02 §1）。"""
+    """V1 唯一 Frontend 实现：任务日志行 + 待审批呈现（LLD-agent-core §1）。"""
 
     def __init__(self, log_fn=print) -> None:
         self._log = log_fn

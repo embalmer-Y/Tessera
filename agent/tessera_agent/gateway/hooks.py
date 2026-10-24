@@ -5,7 +5,7 @@
 - **pre 面**：deny = 结构化拒绝（TA_E_POLICY + rule_id 归因），observe =
   留观放行。服务端闸 = 管所有渠道（含未来外部 harness 客户端）的真边界
   （R11 §6.2——pi 缺省无逐调用审批，服务端闸更不可或缺）。
-- **post 面（A4 · LLD-A15 §4）**：调用后结果摘要经钩子外发——observe-only
+- **post 面（A4，LLD-agent-mcp-clients-and-post-hooks §4）**：调用后结果摘要经钩子外发——observe-only
   （post deny 语义为空，规则解析期拒收）；摘要 = {tool, dur_ms, state,
   result_preview}，经事件总线 `hook.post` 事件外发（W2 SSE 消费）——诊断
   自动注入缝（v1 仅外发；消费侧闭环随诊断批）。

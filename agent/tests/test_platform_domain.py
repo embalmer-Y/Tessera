@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""平台/域拆分测试（LLD-A07 §3/§7）：导入图 / DomainPack 装配 / 策略只收紧 /
+"""平台/域拆分测试（LLD-agent-skills-platform §3/§7）：导入图 / DomainPack 装配 / 策略只收紧 /
 接口缝（A2A/ACP）打桩。"""
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ PKG = Path(__file__).resolve().parent.parent / "tessera_agent"
 
 
 def test_platform_imports_no_domain_modules():
-    """架构硬约束（LLD-A07 §3）：平台层不 import 任何域模块。"""
+    """架构硬约束（LLD-agent-skills-platform §3）：平台层不 import 任何域模块。"""
     tree = ast.parse((PKG / "platform.py").read_text(encoding="utf-8"))
     imported: list[str] = []
     for node in ast.walk(tree):

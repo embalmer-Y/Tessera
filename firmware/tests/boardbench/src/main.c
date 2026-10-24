@@ -10,7 +10,7 @@
  *   ③ 写路径端到端：ts_gpio_write × N → ns/call（perm→唯一写路径→驱动桩）
  *   ④ mailbox 时延分布：ECHO 采样 → min/p50/p95/max（µs）
  *   ⑥ 并发（SMP 双核）：压测线程直写独立通道期间重测 ④ + estop 全局强制
- *      生效性 + 恢复；⑤ 足迹为构建期数据（见 docs/board-bench-01.md）。
+ *      生效性 + 恢复；⑤ 足迹为构建期数据（见 docs/board-bench.md）。
  * native_sim 上仅作构建/流程回归（模拟时钟忙循环下冻结——dev-env 教训 11，
  * 数字无意义只打印）。 */
 #include <stdbool.h>

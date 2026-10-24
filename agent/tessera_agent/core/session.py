@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""会话编排核心（LLD-A02，MA1 最小集）。
+"""会话编排核心（LLD-agent-core，MA1 最小集）。
 
 审批闸落点（MA1 形态）：**工具包装层**——所有注册给 PydanticAI Agent 的工具
 （含自建编辑工具）经 `gated_tool` 装饰：strict 类先向 ApprovalBroker 请求并等待，
@@ -24,14 +24,14 @@ from tessera_agent.common.errors import TA_E_APPROVAL_DENIED, TaError
 from tessera_agent.common.limits import ContextBudget
 from tessera_agent.gateway.approvals import ApprovalBroker
 
-# 审批类别（HLD §5.1 / LLD-A01 §2 表）：auto 直行 / confirm 会话内直行（可经 config
+# 审批类别（HLD §5.1 / LLD-agent-mcp-gateway §2 表）：auto 直行 / confirm 会话内直行（可经 config
 # 收紧为挂起）/ strict 必须宿主批准。
 CATEGORIES = ("auto", "confirm", "strict")
 
 
 @dataclass
 class PolicyParamRules:
-    """参数级规则（Q-38⑤/DEC-57 · LLD-A02 §3.1）。
+    """参数级规则（Q-38⑤/DEC-57 · LLD-agent-core §3.1）。
 
     语义（owner 已批 Q-38⑤ 原义）：deny 命中 = 拒；allow 命中 = **strict 自动
     放行**（白名单参数免逐次审批——如"仅允许目标 cube=开发板"的部署）。
@@ -44,7 +44,7 @@ class PolicyParamRules:
 
 def _rule_match(rule: dict[str, list[Any]], kwargs: dict[str, Any]) -> bool:
     """规则内全部参数精确等值（AND）；值比对经 str 归一（toml int/str 与
-    工具参数 str 的桥接）；无通配——可预测性优先（LLD-A02 §3.1）。"""
+    工具参数 str 的桥接）；无通配——可预测性优先（LLD-agent-core §3.1）。"""
     return all(
         str(kwargs.get(k)) in {str(v) for v in vals}
         for k, vals in rule.items()
@@ -124,7 +124,7 @@ def gated_tool(
 
 
 class PlanDto(BaseModel):
-    """app_develop 的计划产物（LLD-A02 §4；结构化强制校验的 MA1 示例载体）。"""
+    """app_develop 的计划产物（LLD-agent-core §4；结构化强制校验的 MA1 示例载体）。"""
 
     dto_version: int = 1
     requirements_summary: str
@@ -145,7 +145,7 @@ async def maybe_compress(
     total = sum(budget.estimate_tokens(t) for t in turns)
     if total <= budget.compress_at_tokens:
         return turns, False
-    keep_budget = int(budget.window_tokens * 0.35)  # 阈值内预算的后 50%（LLD-A02 §2）
+    keep_budget = int(budget.window_tokens * 0.35)  # 阈值内预算的后 50%（LLD-agent-core §2）
     kept: list[str] = []
     kept_tokens = 0
     for turn in reversed(turns):

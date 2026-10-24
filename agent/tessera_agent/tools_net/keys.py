@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
-"""zenoh key 约定与命令信封镜像（LLD-A06 §2；固件侧权威 = LLD-ts-net §3/§4.4）。
+"""zenoh key 约定与命令信封镜像（LLD-agent-deploy-net §2；固件侧权威 = LLD-ts-net §3/§4.4）。
 
 镜像纪律：key 构造与 kind 注册表**不自行发明**——固件侧定义变更时本文件同步
-（与 l3_client.py 同源对拍，Q-19 #13 skill/镜像同步检查项的部署面部分）。
+（与 netlab_client.py 同源对拍，Q-19 #13 skill/镜像同步检查项的部署面部分）。
 请求编码 = 固件 cbor_min 确定性子集（definite map/tstr/uint/bstr，定键序）；
 回执解析用 cbor2 全解码（host 侧只读，容错未知 kind 透传不解析——DEC-42 §0）。
 """
@@ -34,7 +34,7 @@ HOLDER_MAX = 24
 TO_MAX_MS = 5000
 
 
-# IR2-11（impl-review-02）zenoh key 表达式注入防御：node/cube/uid 段只允许
+# IR2-11（docs/history/review-archive）zenoh key 表达式注入防御：node/cube/uid 段只允许
 # 无键语义字符（禁 / * # $ 与空白——含之可越出目标 cube 键空间）
 _SEG_RE = re.compile(r"^[A-Za-z0-9._-]{1,48}$")
 

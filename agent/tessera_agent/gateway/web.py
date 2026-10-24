@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Web 渠道服务面（W2 · LLD-A14 §3.3）：静态前端同源挂载 + SSE 直推。
+"""Web 渠道服务面（W2 · LLD-agent-web-reshape §3.3）：静态前端同源挂载 + SSE 直推。
 
 - `/web` = StaticFiles（agent/web/，单页 ES modules 零构建——Q-48② 案 A）
 - `/events` = SSE v2：EventBus 直推（W1 的 0.5s 轮询差分删除；保留
   10s 慢速对账 tick 作遗漏防御）+ 首帧全量快照 + `Last-Event-ID` 续传
   （环形缓冲重放）+ 15s `: ping` 保活 + 慢消费者 `resync`（客户端收到
-  即全量重对齐——LLD-A14 §3.1）。
-- 消费面 = 手写 mcp.js（浏览器原生 fetch/EventSource，零 Node——LLD-A11 §1）
+  即全量重对齐——LLD-agent-web-reshape §3.1）。
+- 消费面 = 手写 mcp.js（浏览器原生 fetch/EventSource，零 Node——LLD-agent-web-client §1）
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ PHASES = (
 
 def derive_phase(state: str | None, progress: dict[str, Any],
                  questions: list, approvals: list) -> str:
-    """状态灯单源派生（LLD-A14 §4.2——server 侧一张映射表，前端零推导）。
+    """状态灯单源派生（LLD-agent-web-reshape §4.2——server 侧一张映射表，前端零推导）。
 
     优先级：等待人 > 终态 > 部署 > 循环阶段。"""
     if questions:
@@ -55,7 +55,7 @@ def derive_phase(state: str | None, progress: dict[str, Any],
 
 
 def build_tasks_frame(ctx: Any) -> dict[str, Any]:
-    """任务列表帧（多任务视图——LLD-A14 §4.6；轻量快照）。"""
+    """任务列表帧（多任务视图——LLD-agent-web-reshape §4.6；轻量快照）。"""
     tasks = [
         {"task_id": t.id, "tool": t.tool, "state": t.state,
          "created_at": t.created_at,

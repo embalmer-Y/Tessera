@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /*
- * periphbench（板级九）：PWM/ADC 真后端真机验证（docs/board-periph-01.md）。
+ * periphbench（板级九）：PWM/ADC 真后端真机验证（docs/board-periph.md）。
  *
  * PWM 输出链（合同 2 唯一写路径全链）：ts_pwm_set（权限裁决 + 打包域校验）
  * → ts_safety_commit（限幅→slew→审计）→ ts_drivers[TS_CH_PWM]（pwm_set →

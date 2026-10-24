@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""长任务句柄注册表（LLD-A00 §2，DEC-36②/DEC-38 #4/#5）。
+"""长任务句柄注册表（LLD-agent-common §2，DEC-36②/DEC-38 #4/#5）。
 
 状态机对齐 MCP Tasks V2 语义：working → completed|failed|cancelled；
 working 可进 input_required（审批等待）后回 working。
@@ -76,7 +76,7 @@ class Task:
 class TaskRegistry:
     """进程内任务注册表；create() 立即返回句柄（句柄化纪律，DEC-36②）。
 
-    W2（LLD-A14 §3.2）：可选事件总线——接线后发布 task.created/state/log
+    W2（LLD-agent-web-reshape §3.2）：可选事件总线——接线后发布 task.created/state/log
     事件；bus=None（缺省）行为逐字节等价（对照组纪律）。"""
 
     def __init__(self, bus: Any | None = None) -> None:
@@ -162,7 +162,7 @@ class TaskRegistry:
         self._publish("task.log", task, lines=[line])
 
     def note_progress(self, task: Task, patch: dict[str, Any] | None = None) -> None:
-        """进度变更 + 活动触碰 + 总线发布（W2 · LLD-A14 §4.2——调用方
+        """进度变更 + 活动触碰 + 总线发布（W2 · LLD-agent-web-reshape §4.2——调用方
         经此单一入口更新 progress；patch = None 表示仅触碰/发布）。"""
         if patch:
             task.progress.update(patch)

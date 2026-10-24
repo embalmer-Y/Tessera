@@ -115,7 +115,7 @@ ts_res_t ts_store_meta_read(void *buf, uint16_t *len)
 	 * 启动）时 memcpy 给调用方的是 copy1 的旧内容。触发面 = "双副本皆
 	 * 有效且 copy0 较新"（真机连续部署 D3/D7 100% 复现的根因；metabench
 	 * 六轮受控复现——盘上双副本 dump 正确而 meta_read 返回旧值，留痕
-	 * docs/demos-01.md §4 / MD1.1b 报告）。 */
+	 * docs/demos.md §4 / MD1.1b 报告）。 */
 	uint8_t data0[CONFIG_TS_STORE_META_MAX];
 	uint8_t data1[CONFIG_TS_STORE_META_MAX];
 	uint32_t s0, s1;

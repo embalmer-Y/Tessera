@@ -2,7 +2,7 @@
 """APP C 源 → wasm32 自由固件编译 + 面检查（DEC-45 / Q-25 方案 A；G1）。
 
 可靠性工程（调研 Claude Code / Codex CLI / aider 的实践映射，见
-docs/agent-codegen-reliability-01.md）：
+docs/agent-codegen-reliability.md）：
 - **验证阶梯的确定性门**（R1/R5）：编译（clang 固定 flags）→ 导入/导出
   面检查（白名单 fail-closed）→ 尺寸上限 → **双编译字节一致**（同源两次
   编译产物逐字节相等——确定性自证，合同 9 精神延伸到工具链；不一致 =
@@ -193,7 +193,7 @@ def wasm_func_surface(path: str | Path) -> tuple[set[str], set[str]]:
 
 # ---- 编译 + 面检查 ------------------------------------------------------------
 
-# IR2-03（impl-review-02）预处理读面封死：自由固件零 include（natives 经
+# IR2-03（docs/history/review-archive）预处理读面封死：自由固件零 include（natives 经
 # extern 声明）；#include 与 __has_include 可探读/回显主机任意文件（clang
 # 诊断含被包含源文本 → stderr 回喂 LLM），一律拒绝。放宽须走门 ③。
 _INCLUDE_RE = re.compile(r"^\s*#\s*include\b", re.MULTILINE)
@@ -220,7 +220,7 @@ def _gate_source(source_c: str) -> None:
     _gate_health_ping(source_c)
 
 
-# 多文件工程包含门（AG3 · LLD-A08 §2.2）：引号包含仅限工程内相对头
+# 多文件工程包含门（AG3 · LLD-agent-creation-workspace §2.2）：引号包含仅限工程内相对头
 _INCLUDE_ANGLE_RE = re.compile(r"^\s*#\s*include\s*<", re.M)
 _INCLUDE_QUOTED_RE = re.compile(r'^\s*#\s*include\s*"([^"]+)"', re.M)
 
@@ -430,7 +430,7 @@ def compile_project_c(
     tier: str = "small",
     needs: dict | None = None,
 ) -> dict[str, Any]:
-    """多文件工程 → 单 wasm（AG3 · LLD-A08 §2.2/§4——工程清单驱动，Q-39①）。
+    """多文件工程 → 单 wasm（AG3 · LLD-agent-creation-workspace §2.2/§4——工程清单驱动，Q-39①）。
 
     files = {相对路径: 源文本}（.c 入编译命令；.h 落盘供引号包含解析）；
     exports = 工程清单导出表 → 逐符号 `-Wl,--export=`（缺符号 = 链接错，

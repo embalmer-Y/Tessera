@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""错误模型（LLD-A00 §1）：TaError 结构化异常 + TA_E_* 错误码族。"""
+"""错误模型（LLD-agent-common §1）：TaError 结构化异常 + TA_E_* 错误码族。"""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ TA_E_SIM = 12
 TA_E_POLICY = 13
 TA_E_NOT_FOUND = 14
 TA_E_NOT_CONFIGURED = 15
-# 创作工作区族（LLD-A08 §7 · DEC-57 Q-38）
+# 创作工作区族（LLD-agent-creation-workspace §7 · DEC-57 Q-38）
 TA_E_WORKSPACE_PATH = 16
 TA_E_WORKSPACE_STALE = 17
 TA_E_WORKSPACE_LIMIT = 18
@@ -31,7 +31,7 @@ TA_E_SNAPSHOT_STALE = 22
 
 
 class TaError(Exception):
-    """结构化错误：MCP 工具统一转结构化返回，不抛裸异常（LLD-A00 §1）。"""
+    """结构化错误：MCP 工具统一转结构化返回，不抛裸异常（LLD-agent-common §1）。"""
 
     def __init__(
         self,

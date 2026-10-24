@@ -144,7 +144,7 @@ FUNC_NORETURN void ts_core_boot(void)
 	};
 	ts_evt_publish(&done);
 
-	/* main 线程 init 后转监督（LLD-00 §4 线程表） */
+	/* main 线程 init 后转监督（LLD-ts-common §4 线程表） */
 	for (;;) {
 		k_sleep(K_FOREVER);
 	}

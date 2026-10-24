@@ -34,15 +34,15 @@ tiers = ["small"]
 min_slot_pool_kb = 32 # 现行镜像 = BV2 deploybench（slot 32KB，workorder slot_size）；atkbench 产线镜像 slot_pool=2048KB（BV1-R 实测）——重烧后回填
 
 [smoke]
-package_path = "agent/demos/P4W/p4w.probe-1.0.0.tsap" # 架构中立探针（BV2 实战 C6 判据；匹配现行 deploybench 镜像）
-pub_path = "agent/demos/P4W/test-root.pub"
+package_path = "agent/demos/demo-p4-probe/p4w.probe-1.0.0.tsap" # 架构中立探针（BV2 实战 C6 判据；匹配现行 deploybench 镜像）
+pub_path = "agent/demos/demo-p4-probe/test-root.pub"
 criteria = ["P4W2 PROBE INIT", "P4W2 PROBE ALIVE"]
 window_s = 90.0 # 暖复位后 boot ~50s 实测 × 裕度（NVD v4 教训：窗 << boot 必 miss）
 
 [build]
 enabled = false # C0 全局化未接入（DEC-74②——随 v4.5.0 平移批评估）；adapt 工作区 c0_preflight ok 在案
 
-# HW-4（LLD-A16 §7.1 · v1.1 加性）：引脚级硬件事实——创作链/部署门/判据
+# HW-4（LLD-agent-hardware-targeting §7.1 · v1.1 加性）：引脚级硬件事实——创作链/部署门/判据
 # 感知的唯一物理真相源。每 pin.source 必填（R12 来源纪律）。
 [hardware]
 zephyr_board = "dnesp32s3b_esp32s3" # CONFIG_BOARD 自报匹配键（S0 在线辨认辅助）

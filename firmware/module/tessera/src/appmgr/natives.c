@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /* ts_api_v1 的 wasm 导入面（DEC-25 最小导入面 = 权限硬边界落点；
  * LLD-ts-hal §3 + LLD-ts-appmgr §5）。
- * 防伪造（LLD-00 §3.1）：调用者 ctx 由宿主经 exec_env user_data 注入
+ * 防伪造（LLD-ts-common §3.1）：调用者 ctx 由宿主经 exec_env user_data 注入
  * （runtime.c），wasm 传入的 ctx 位仅作不透明占位——natives 只信注入值。
  * 权限裁决：全部经 ts-hal（perm 表 + TS_EVT_PERM_DENIED 留痕 = 合同 10）。
  * 已知偏差（LLD-ts-appmgr 修订登记）：WAMR natives 为全局注册，

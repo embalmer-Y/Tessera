@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""创作循环引擎（LLD-A08 §5——域无关状态机/预算/计划/证据自动回喂）。
+"""创作循环引擎（LLD-agent-creation-workspace §5——域无关状态机/预算/计划/证据自动回喂）。
 
 引擎不含任何固件语义：LLM 交互经 LoopRunner 协议注入（生产 = PydanticAI
 适配器〔AG6〕；测试 = 剧本桩）；验证经 CreationVerifier 协议注入。
@@ -20,7 +20,7 @@ from tessera_agent.creation.verifier import (
 )
 from tessera_agent.creation.workspace import Workspace
 
-# 状态机（LLD-A08 §5.1）
+# 状态机（LLD-agent-creation-workspace §5.1）
 DRAFT = "DRAFT"
 PLANNING = "PLANNING"
 IMPLEMENTING = "IMPLEMENTING"
@@ -29,7 +29,7 @@ CONVERGED = "CONVERGED"
 PACKAGED = "PACKAGED"
 FAILED = "FAILED"
 
-DEFAULT_BUDGET = 12  # LLD-A08 §5.1（轮次预算；config 化随 AG6）
+DEFAULT_BUDGET = 12  # LLD-agent-creation-workspace §5.1（轮次预算；config 化随 AG6）
 
 EventFn = Callable[[str, dict[str, Any]], None]
 
@@ -181,7 +181,7 @@ class CreationLoop:
     # ---- 主流程 ----------------------------------------------------------
 
     def _snapshot(self) -> None:
-        """状态迁移/轮末快照（AG5 · LLD-A08 §6.2——原子写；失败如实抛）。"""
+        """状态迁移/轮末快照（AG5 · LLD-agent-creation-workspace §6.2——原子写；失败如实抛）。"""
         from tessera_agent.creation import snapshot
 
         snapshot.take(self)

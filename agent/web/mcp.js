@@ -1,4 +1,4 @@
-// 极简 MCP-over-HTTP 客户端（LLD-A11 §1——手写，零依赖零 Node）。
+// 极简 MCP-over-HTTP 客户端（LLD-agent-web-client §1——手写，零依赖零 Node）。
 // Streamable HTTP：POST JSON-RPC 至 /mcp；会话经 mcp-session-id 头维持；
 // 响应可能为纯 JSON 或 SSE 帧（event/data），两者兼容解析。
 let nextId = 1;

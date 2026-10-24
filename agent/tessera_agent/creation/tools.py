@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""scoped 编辑动词（LLD-A08 §3）：LLM 创作面四件——ws_read/ws_write/ws_edit/ws_list。
+"""scoped 编辑动词（LLD-agent-creation-workspace §3）：ws_read/ws_write/ws_edit/ws_list 四动词。
 
 语义要点：
 - 先读后写（防盲写）：覆写/编辑要求目标自最近一次读后未变（mtime_ns+size 指纹）；

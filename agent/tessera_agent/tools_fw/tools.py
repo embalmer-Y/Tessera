@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""fw_* 固件域工具集（LLD-A03；MA1 最小集）。
+"""fw_* 固件域工具集（LLD-agent-fw-tools；MA1 最小集）。
 
 子进程纪律（A00 §5）：west/pytest 经 venv 解释器调用；build/输出目录在 agent/build/
 （任务级隔离，任务结束保留）；extra_args 白名单前缀校验（防任意注入）。

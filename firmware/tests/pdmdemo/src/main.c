@@ -101,7 +101,7 @@ static void wifi_handler(struct net_mgmt_event_callback *cb, uint64_t event,
 }
 
 /* {"v":1,"node_id":"dpn","cube_id":"dpc","routers":["tcp/192.168.2.91:9955"],
- *  …}（dp_demo.py cbor2 机械派生，往返 dav blob 验证编码器——教训 27
+ *  …}（demo_pdm.py cbor2 机械派生，往返 dav blob 验证编码器——教训 27
  * 反手抄纪律）。 */
 static const uint8_t prov_blob[] = {
 	0xa9, 0x61, 0x76, 0x01, 0x67, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64,

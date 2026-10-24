@@ -44,26 +44,26 @@ DTR/RTS 双 deassert（下载电路毛刺域）；烧录端口显式指定（`ES
 
 | 脚本 | 用途 | 对应登记 |
 |---|---|---|
-| `ak_tls_e2e.py` | P1-2 TLS E2E：经 9957 TCP 驱动部署，板走 9956 mTLS，安装闸 timeout 路判据 | docs/evidence/p1_tls_e2e_console.txt |
-| `ak1_deploy_check.py` | atk 板部署冒烟（deploy→激活→判据） | K1 批 |
-| `ak3_trust_e2e.py` | 信任链 T0-T7（注册/多根/防回滚/撤回） | docs/evidence/ak3_trust_*.txt |
-| `ak4_res_e2e.py` | net+SD 资源推送 E2E（needs.resources + sha256 读回） | AK4 RES PASS |
-| `ak5_large_e2e.py` | large 档 206KB wasm 全链 | AK5 LARGE PASS |
-| `ak6_ln_e2e.py` | 双板逻辑节点扇出/聚合（需第二板） | AK6 LN PASS |
-| `cg7_deploy_check.py` | 合同泛化 spot check（caps 预检 + 部署链） | docs/evidence/cg7_deploy_console.txt |
-| `ma_demo.py` | 多 APP 并行部署（双 slot） | docs/evidence/ma_PASS_console.txt |
-| `nvd_demo.py` | 新机全链：真 LLM 生成 → 部署 → 判据（环境验收金标准） | docs/evidence/nvd_PASS_console_native.txt |
-| `ag7_demo.py` | 真 LLM 多文件工程创作循环 | docs/evidence/ag7_console.txt |
-| `dp_demo.py` / `dt_demo.py` | PDM 音频 / wasm 多线程 demo | docs/evidence/dp_PASS_console.txt 等 |
+| `e2e_tls.py` | P1-2 TLS E2E：经 9957 TCP 驱动部署，板走 9956 mTLS，安装闸 timeout 路判据 | docs/evidence/p1_tls_e2e_console.txt |
+| `e2e_deploy_smoke.py` | atk 板部署冒烟（deploy→激活→判据） | K1 批 |
+| `e2e_trust_chain.py` | 信任链 T0-T7（注册/多根/防回滚/撤回） | docs/evidence/ak3_trust_*.txt |
+| `e2e_resource_push.py` | net+SD 资源推送 E2E（needs.resources + sha256 读回） | AK4 RES PASS |
+| `e2e_large_deploy.py` | large 档 206KB wasm 全链 | AK5 LARGE PASS |
+| `e2e_ln_fanout.py` | 双板逻辑节点扇出/聚合（需第二板） | AK6 LN PASS |
+| `e2e_contract_spotcheck.py` | 合同泛化 spot check（caps 预检 + 部署链） | docs/evidence/cg7_deploy_console.txt |
+| `demo_multiapp.py` | 多 APP 并行部署（双 slot） | docs/evidence/ma_PASS_console.txt |
+| `nvd_acceptance.py` | 新机全链：真 LLM 生成 → 部署 → 判据（环境验收金标准） | docs/evidence/nvd_PASS_console_native.txt |
+| `demo_llm_creation.py` | 真 LLM 多文件工程创作循环 | docs/evidence/ag7_console.txt |
+| `demo_pdm.py` / `demo_threads.py` | PDM 音频 / wasm 多线程 demo | docs/evidence/dp_PASS_console.txt 等 |
 
 ### 支撑工具
 
 | 脚本 | 用途 |
 |---|---|
-| `gen_ak_prov.py` | prov 分区映像生成（v1/v2 字段族）——正式烧录建议 `agent/tools/flash_prov.py`（esptool 直写 + TLS 三元组 + lconf） |
+| `gen_prov_image.py` | prov 分区映像生成（v1/v2 字段族）——正式烧录建议 `agent/tools/flash_prov.py`（esptool 直写 + TLS 三元组 + lconf） |
 | `gen_tls_certs.sh` | TLS 证书链生成（EC P-256 CA/router〔SAN IP〕/device；设备私钥 PKCS8 DER——mbedtls 4.x 解析链定案）→ `~/project/tls/`（600 仓外） |
 | `console_smoke.py` | 串口冒烟（板启动行捕获） |
-| `ak_holder2.py` | 韧性串口持有器（USJ 断连自愈；CH343 用法 = 复制后改端口 + 打开后 DTR/RTS 双 deassert + EN 脉冲，见 dev-env 教训 38/39） |
+| `console_holder.py` | 韧性串口持有器（USJ 断连自愈；CH343 用法 = 复制后改端口 + 打开后 DTR/RTS 双 deassert + EN 脉冲，见 dev-env 教训 38/39） |
 | `fetch_blobs.py` | hal_espressif WiFi blobs 补齐（代理通道下 west blobs fetch 的替代手法） |
 | `dav_recv.py` / `pdm_recv.py` | PC 侧帧/音频消费端（分片 crc 重组 → .rgb565/.pcm/.wav 落盘） |
 | `ota_client.py` | MCUmgr SMP OTA 客户端（上传 → swap → confirm） |
@@ -88,5 +88,5 @@ python3 agent/tools/flash_prov.py --node akn --cube akc --router 'tls/192.168.2.
 # ⑤ 复位 → console 判据：AKa0 rc=0 / AK7 SD mounted / AKU1 rc=0 /
 #    [ts-net] tls: mTLS 注入 / CONNECTED loc=tls/…:9956
 # ⑥ 驱动验收
-python3 tools/board/ak_tls_e2e.py
+python3 tools/board/e2e_tls.py
 ```

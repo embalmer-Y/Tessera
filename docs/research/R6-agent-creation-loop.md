@@ -1,7 +1,7 @@
 # R6 · Agent 创作循环架构调研（DEC-56 通用域解放 · R 批①）——Agent 批设计输入
 
 > **日期**：2026-10-13 · **触发**：DEC-56（Agent 双角色 + 智能内化）· **消费方**：Agent 批（plan §11d，V0.6.0 候选）design。
-> **方法**：本会话已完成 `docs/agent-cli-research-01.md`（Codex/opencode/Gemini CLI/Claude Code 四路实抓 + ZCode 自省 + aider R1-R8 基础）——本文不重复其事实，只做**面向 Tessera 的映射决策**；本地事实经代码核证（platform/domain/gateway/core/skills/tools_diag/tools_tsap/tools_net）。
+> **方法**：本会话已完成 `docs/agent-cli-research.md`（Codex/opencode/Gemini CLI/Claude Code 四路实抓 + ZCode 自省 + aider R1-R8 基础）——本文不重复其事实，只做**面向 Tessera 的映射决策**；本地事实经代码核证（platform/domain/gateway/core/skills/tools_diag/tools_tsap/tools_net）。
 > **结论先行**：Agent 批的架构动作 = 三件——①**内环改造**（app_develop 的单工位 LLM → 多轮创作循环：工作区 scoped 文件面 + 计划/进度 + sim 自测迭代）；②**独立门面**（终端 CLI：交互循环 + 终端审批呈现 + 会话持久化）；③**外环接线**（MCP 面复用不动，A2A/ACP 缝维持预留）。安全模型重划 = 创作面放宽、交付门不撤。
 
 ## 1. 目标形态（DEC-56 定案的边界）
@@ -21,7 +21,7 @@
 
 三个角色边界：**创作循环里的 LLM = 有编辑自由的开发者**；**交付管线 = 机器验收**；**外部 AI CLI（经 MCP）与终端人（经 CLI）= 同一循环的两个入口**。
 
-## 2. CLI 调研 → Tessera 的直接映射（设计事实，出处 = agent-cli-research-01）
+## 2. CLI 调研 → Tessera 的直接映射（设计事实，出处 = agent-cli-research）
 
 | 业界共识 | Tessera Agent 批采纳形态 |
 |---|---|
@@ -66,6 +66,6 @@
 
 ## 6. 来源
 
-- `docs/agent-cli-research-01.md`（本会话四路实抓调研——本文全部业界事实的出处）
+- `docs/agent-cli-research.md`（本会话四路实抓调研——本文全部业界事实的出处）
 - 本地核证：`agent/tessera_agent/{platform,domain/firmware,domain/app_chain,gateway/approvals,gateway/server,core/session}.py`、`tools_diag/`、`tools_tsap/wasm_build.py`、`skills/`
 - 决策依据：DEC-56 / DEC-11/12 v1.1 / DEC-33（平台域解耦）/ DEC-34（双层工具面）/ DEC-38 #6（上下文压缩）

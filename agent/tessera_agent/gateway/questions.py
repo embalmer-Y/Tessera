@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """问询代理（D7 · DEC-67①：问询/审批为 MCP 一等实体——opencode permission/form
-同型，LLD-A01 §4 审批族的姊妹面）。
+同型，LLD-agent-mcp-gateway §4 审批族的姊妹面）。
 
 问询面 = 便利交互面：sys_answer 无 token（多渠道应答为设计意图），审计归因；
 **安全边界 = strict 审批 token（DEC-38 #7 不变）**。答案枚举域内 fail-closed；
@@ -46,7 +46,7 @@ class Question:
 class QuestionBroker:
     def __init__(self, bus: Any | None = None) -> None:
         self._pending: dict[str, Question] = {}
-        # W2（LLD-A14 §3.2）：可选事件总线——question.opened/closed 事件
+        # W2（LLD-agent-web-reshape §3.2）：可选事件总线——question.opened/closed 事件
         self._bus = bus
 
     def attach_bus(self, bus: Any) -> None:

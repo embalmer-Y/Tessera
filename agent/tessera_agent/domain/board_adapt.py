@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""BV2 新板卡适配域（V0.15.0 · LLD-A17 v0.1 · DEC-74 门③三裁决落地）。
+"""BV2 新板卡适配域（V0.15.0 · LLD-agent-board-adaptation v0.1 · DEC-74 门③三裁决落地）。
 
 DEC-33 原则面：确定性流水线为骨、LLM 只在语义理解处。本模块 = 收录板路
 的**机械变换**主体（板定义定位 → 接入件五件套生成 → C0 预检 → 工单闭环）
@@ -174,7 +174,7 @@ def render_overlay(loc: BoardLocation, plan: PartitionPlan,
                                         - plan.carve_base) - plan.carve_base
     lines = [
         "/*",
-        " * BV2 适配接入件（LLD-A17 · DEC-74——agent/adapt 产物，review 后入树）。",
+        " * BV2 适配接入件（LLD-agent-board-adaptation·DEC-74：agent/adapt 产物，review 后入树）。",
         f" * 板：{loc.name}（zephyr/boards/{loc.rel_path}）；目标 = {target}",
         f" * flash = {plan.flash_kb}KB；ts 五分区 carve 自 0x{plan.carve_base:x}"
         "（8MB 保守兼容纪律，DEC-23）。",
@@ -288,7 +288,7 @@ def render_board_conf(plan: PartitionPlan, arch: str, *, net: bool = True,
     main_stack = arch_main
     lines = [
         "# SPDX-License-Identifier: Apache-2.0",
-        f"# BV2 适配接入件：{arch_name} 板级片段（LLD-A17 · DEC-74 产物）。",
+        f"# BV2 适配接入件：{arch_name} 板级片段（LLD-agent-board-adaptation · DEC-74 产物）。",
         f"# 架构注记：{note}。",
         f"CONFIG_TS_STORE_SLOT_SIZE={plan.slot_size}",
         "CONFIG_TS_APP_THREAD_STACK=16384",
@@ -389,7 +389,7 @@ _CHECKLIST_ITEMS = (
 
 def migration_checklist(hint: str,
                         schematic: dict[str, Any] | None = None) -> dict:
-    """未收录板路：原理图协作移植清单（LLD-A17 §3）。v1 = 结构骨架 +
+    """未收录板路：原理图协作移植清单（LLD-agent-board-adaptation §3）。v1 = 结构骨架 +
     待确认态强制：所有条目 status='pending-confirm'，confirmed=False；
     **未确认条目不进构建**（go_build 恒 False——唯一人工环节如实登记，
     原理图正确性无机械判据）。schematic = 调用方（LLM/人）提供的原理图
@@ -443,7 +443,7 @@ def adapt_included_board(
     psram: str | None = None,
     pwm_led_pin: int | None = None,
 ) -> dict[str, Any]:
-    """收录板路全链（LLD-A17 §2）：定位 → 布局 → 五件套生成 → C0 预检。
+    """收录板路全链（LLD-agent-board-adaptation §2）：定位 → 布局 → 五件套生成 → C0 预检。
     产物 = agent/adapt/<board>/（DEC-74①：产物非源码——不入 agent/boards/
     目录；画像入目录须 owner review 后显式 install_profile）。
     arch 缺省 = board.yml 无法机械得出时由调用方提供（HW 域语义理解处）；
@@ -507,7 +507,7 @@ def install_profile(adapt_root: Path, board_id: str, boards_dir: Path,
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text("\n".join([
         "# SPDX-License-Identifier: Apache-2.0",
-        "# BV2 适配画像草稿（LLD-A17——owner review 后入目录；接线前为推定态）",
+        "# BV2 适配画像草稿（LLD-agent-board-adaptation——owner review 后入目录；接线前为推定态）",
         f"# 工单：agent/adapt/{hardware._norm(board_id)}/workorder.json",
         "[board]",
         f'id = "{board_id}"',

@@ -1,6 +1,6 @@
 # R5 · Agent Python 栈 HLD 级核验（PydanticAI / FastMCP / TSAP 签名栈 / zenoh-python）
 
-> **状态**：v1.0 · 2026-09-22 · research 阶段产出（阶段白名单内）· 结论供 Agent HLD 与 `design/design-review-02-agent-python-ripple.md` 使用。
+> **状态**：v1.0 · 2026-09-22 · research 阶段产出（阶段白名单内）· 结论供 Agent HLD 与 `docs/history/review-archive.md` 使用。
 > **任务来源**：owner 2026-09-22 指令（Q-18 裁定附带）——"有调整的地方需要重新research"；DEC-37 定全 Python（PydanticAI + FastMCP + 自建编码工具集）后，原基于 TS/pi 的设计输入需 Python 侧 HLD 级事实替换。
 > **核验方式**：2 个并行调研子代理于 **2026-09-22 实查**（pydantic.dev / gofastmcp.com 官方文档原文、GitHub 仓库与 pyproject.toml、PyPI JSON API、库源码 raw 抓取）；来源见 §8，未能核验项以 ⚠️ 标注。
 

@@ -39,7 +39,7 @@ from tessera_agent.tools_net.zenoh_service import ZenohService
 
 ZENOHD = Path("~/project/tools/zenohd").expanduser()
 NODE, CUBE = "dbn", "dbc"
-DEMO = REPO / "agent" / "demos" / "D8"
+DEMO = REPO / "agent" / "demos" / "demo-lifecycle"
 TS_APP_ACTIVE = 3  # ts_app_state_t ACTIVE
 HB_KEY = f"tessera/{NODE}/{CUBE}/sys/hb-host"  # linkmon 判活源（DR-12）
 

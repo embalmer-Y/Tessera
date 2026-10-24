@@ -34,7 +34,7 @@ CONFIG_CONSOLE=n                      # 关 console 子系统防双路重印（D
 DT: zephyr,shell-uart = &uart0
 ```
 
-- **判据行兼容**：bench 判据行（AK*/NVD/tsi）为日志行原样输出；驱动/watcher 按子串匹配不受 shell prompt 干扰（prompt 行不含判据子串）——`simreal_diff`/NVD/`nvd_demo --window` 口径零改动。
+- **判据行兼容**：bench 判据行（AK*/NVD/tsi）为日志行原样输出；驱动/watcher 按子串匹配不受 shell prompt 干扰（prompt 行不含判据子串）——`simreal_diff`/NVD/`nvd_acceptance --window` 口径零改动。
 - **DRAM 预算**：shell 任务栈（CONFIG_SHELL_STACK_SIZE 调优）+ log MPSC 队列——atkbench 昨日余量 140B 基线上按实测增减重平（NET_MAX_CONTEXTS 富余可回收；build 溢出即调，纪律同前批）。
 
 ## 4. Kconfig

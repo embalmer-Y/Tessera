@@ -1,4 +1,4 @@
-# Tessera Agent 包定义（MA0 骨架；LLD-A00…A07）
+# Tessera Agent 包定义（MA0 骨架；LLD-agent-common…A07）
 # 依赖钉版出处：Q-19 #1 / DEC-38；升级走显式提交 + agent 测试全量回归（docs/std/versioning.md §4.1）。
 [build-system]
 requires = ["hatchling"]

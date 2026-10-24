@@ -1,5 +1,5 @@
 /*
- * BV2 适配接入件（LLD-A17 · DEC-74——agent/adapt 产物，review 后入树）。
+ * BV2 适配接入件（LLD-agent-board-adaptation · DEC-74——agent/adapt 产物，review 后入树）。
  * 板：dnesp32s3b（zephyr/boards/alientek/dnesp32s3b/board.yml）；目标 = dnesp32s3b/esp32s3/procpu
  * flash = 16384KB；ts 五分区 carve 自 0x7e0000（8MB 保守兼容纪律，DEC-23）。
  * 尺寸耦合：slot = CONFIG_TS_STORE_SLOT_SIZE（本板 conf = 32768；part.c BUILD_ASSERT 把关）。

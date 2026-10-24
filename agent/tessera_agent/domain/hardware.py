@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""硬件事实域（HW · LLD-A16 v0.3——DEC-73 + HW-4 五面）。
+"""硬件事实域（HW · LLD-agent-hardware-targeting v0.3——DEC-73 + HW-4 五面）。
 
 确定性机械面（零 LLM）：画像目录装载 / caps×画像机械核对门（装前拒——
 soft-pass/hard-invalid 缺口补位）/ 【目标硬件】段合成（创作链注入事实）/
@@ -23,7 +23,7 @@ from tessera_agent.domain.board_validation import (  # noqa: F401
     load_profile,
 )
 
-# 来源: LLD-A16 §7.3——物理域 caps 解析（spec_gate._CAP_RE 同文法子集）
+# 来源: LLD-agent-hardware-targeting §7.3——物理域 caps 解析（spec_gate._CAP_RE 同文法子集）
 _CAP_SPLIT_RE = re.compile(
     r"^(gpio|pwm|adc|av):(read|write|set|list|delete):"
     r"([0-3])(?:-([0-3]))?(?:,([0-3](?:-[0-3])?))*$")
@@ -82,7 +82,7 @@ def expand_cap_instances(cap: str) -> list[tuple[str, int]]:
 
 def check_caps_against_profile(caps: list[str],
                                profile: bv.BoardProfile) -> list[str]:
-    """caps×画像机械核对（LLD-A16 §7.3）：申请的物理通道实例在画像无物理
+    """caps×画像机械核对（LLD-agent-hardware-targeting §7.3）：申请的物理通道实例在画像无物理
     绑定 → 违规串列表（空 = 过）。画像无 [hardware] = 跳过（[]，调用方
     以 hardware_facts_present 区分「过」与「未核对」）。"""
     hw = profile.hardware
@@ -183,7 +183,7 @@ def check_zephyr_inclusion(hint: str, west_workspace: Path) -> dict[str, Any]:
 
 def prefilter_candidates(candidates: list[dict[str, Any]]) -> tuple[
         list[dict[str, Any]], list[dict[str, str]]]:
-    """候选机械预筛（LLD-A16 §3）：总内存（ram+psram）低于 net 档口径 →
+    """候选机械预筛（LLD-agent-hardware-targeting §3）：总内存（ram+psram）低于 net 档口径 →
     剔除并标注（LLM 候选只做语义理解，剔除判定机械）。返回 (保留, 剔除)。
     内存字段缺失 = 不剔除但标 presumed-unknown（推定态注记）。"""
     kept: list[dict[str, Any]] = []

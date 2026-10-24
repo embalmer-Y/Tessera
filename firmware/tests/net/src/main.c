@@ -465,7 +465,7 @@ ZTEST(framework_net, test_07_telemetry_and_events)
 		zassert_equal(last_qos, TS_NET_QOS_SAFETY, "安全事件 = 阻塞式高优先级");
 	}
 
-	/* F-1（impl-review-01）：periph 插拔事件归因外发（LLD-ts-periph §3
+	/* F-1（docs/history/review-archive）：periph 插拔事件归因外发（LLD-ts-periph §3
 	 * "key 下线通告"）——payload 携 uid/pkind，QoS = 尽力而为 */
 	fake_pub_calls = 0;
 	const ts_periph_evt_t ppl = {.uid = "tel1", .kind = (uint8_t)TS_PK_GPIO};
@@ -825,7 +825,7 @@ ZTEST(framework_net, test_09_lease)
 					  sizeof(resp), &resp_len), TS_E_PARAM);
 }
 
-/* ---- MA3.1：远程部署命令面（LLD-A06 §3；gated = v2 + 租约）---------------- */
+/* ---- MA3.1：远程部署命令面（LLD-agent-deploy-net §3；gated = v2 + 租约）---------------- */
 
 static bool put_bstr(uint8_t *buf, size_t cap, size_t *pos, const uint8_t *d, uint32_t n)
 {

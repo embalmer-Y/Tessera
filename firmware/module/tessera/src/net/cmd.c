@@ -750,7 +750,7 @@ static ts_res_t cmd_lease_get(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap
 	return TS_OK;
 }
 
-/* ---- sys 命令实现：远程部署面（MA3.1，LLD-A06 §3；gated = v2+租约）------ */
+/* ---- sys 命令实现：远程部署面（MA3.1，LLD-agent-deploy-net §3；gated = v2+租约）------ */
 
 static ts_res_t cmd_app_begin(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
 {
@@ -1044,7 +1044,7 @@ static bool parse_args_body(ts_cbor_rd_t *r, uint32_t pairs, struct req_env *e)
 			}
 		} else if (e->v2 && strcmp(akey, "data") == 0) {
 			/* bstr 零拷贝引用（生存期 = 分发调用域）；块长上限 =
-			 * CONFIG_TS_NET_APP_CHUNK_MAX（LLD-A06 §3：默认 2048/上限 4096） */
+			 * CONFIG_TS_NET_APP_CHUNK_MAX（LLD-agent-deploy-net §3：默认 2048/上限 4096） */
 			if (!ts_cbor_bstr_ref(r, &e->args.chunk, &e->args.chunk_len) ||
 			    e->args.chunk_len > CONFIG_TS_NET_APP_CHUNK_MAX) {
 				return false;
@@ -1344,7 +1344,7 @@ ts_res_t ts_net_cmd_dispatch(const char *key_suffix, const uint8_t *req, uint32_
 		return encode_err(resp, cap, resp_len, &e, TS_E_PARAM, "to>5000ms rejected");
 	}
 	/* key 后缀与 op 双重匹配（sys/get-info 处 op 必须为 get-info——防表项错位）。
-	 * F-4（impl-review-01）：匹配先于 idem 回放——回执只应在与其执行同 key 的
+	 * F-4（docs/history/review-archive）：匹配先于 idem 回放——回执只应在与其执行同 key 的
 	 * 查询上回放，跨 key 同 idem = op/key mismatch 拒绝（原实现回放先于
 	 * 匹配，语义松：同 idem 可在任意 key 得到回执）。 */
 	char expect[36];
@@ -1447,7 +1447,7 @@ ts_res_t ts_net_cmd_sys_init(void)
 		if (r != TS_OK) {
 			return r; /* 表满/撞名 = 装配错误，init 如实上抛（boot fail-safe） */
 		}
-		/* F-3（impl-review-01）：gated 位按 suffix 回查回填——公共注册面
+		/* F-3（docs/history/review-archive）：gated 位按 suffix 回查回填——公共注册面
 		 * 占首个空位，若本表不是表的首个注册方，数组下标与表位错开；
 		 * 按名回填使门控位恒指向本命令（按下标回填错位 = 写命令未门控，
 		 * 不可接受）。注册已成功 → find 必中（assert 防御装配回归）。 */

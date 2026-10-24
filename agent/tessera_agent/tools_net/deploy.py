@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""deploy_* 实现（LLD-A06 §3）：发现 / 状态 / TSAP 包分块推送。
+"""deploy_* 实现（LLD-agent-deploy-net §3）：发现 / 状态 / TSAP 包分块推送。
 
 push_app 纪律（全部硬点，工具内强制）：
   ① tsap_verify 复验不可跳过（链外直调同样强制）；
@@ -25,7 +25,7 @@ from tessera_agent.tools_net import keys
 from tessera_agent.tools_net.zenoh_service import ZenohService
 from tessera_agent.tools_tsap import tools as tsap_tools
 
-# 来源: LLD-A06 §3（2KB 默认 / 4KB 上限）
+# 来源: LLD-agent-deploy-net §3（2KB 默认 / 4KB 上限）
 CHUNK_DEFAULT = 2048
 CHUNK_MAX = 4096
 TS_E_PENDING = -13  # 固件 err.h（F3 · DEC-62①）：安装闸结构化中间态
@@ -389,7 +389,7 @@ def post_deploy_check(
                               pass_patterns=pass_patterns or [])
     out["diag"] = {"category": r.category, "summary": r.summary,
                    "repair_hint": r.repair_hint, "evidence": r.evidence}
-    # HW-4 ④⑤（LLD-A16 §7.4/§7.5）：硬件写拒扫描 + 判据硬件感知——判据行
+    # HW-4 ④⑤（LLD-agent-hardware-targeting §7.4/§7.5）：硬件写拒扫描 + 判据硬件感知——判据行
     # 命中但窗内存在 `<TOKEN> WRITE REJECTED` = soft-pass/hard-invalid，
     # criteria_pass 降级 False（物理动作未发生，日志行是假象）；扫描结果
     # 随回执进修复轮证据链（S8 criteria_pass=False → repair 零改动消费）。
@@ -486,7 +486,7 @@ def push_resources(
 
 
 def trust_get(svc: ZenohService, node: str, cube: str) -> dict[str, Any]:
-    """信任根表读取（V0.8.0 EC2 · Q-43⑤/DEC-60④；LLD-A06 §3）。
+    """信任根表读取（V0.8.0 EC2 · Q-43⑤/DEC-60④；LLD-agent-deploy-net §3）。
 
     返回 {ver, keys: [bytes×n]}（公钥 = 公开材料——未门控命令）。
     旧固件/未使能 TS_STORE_TRUST 设备 = op 未知拒 → CmdError 如实上抛
@@ -589,7 +589,7 @@ def push_prov(
     holder: str = keys.DEFAULT_SRC,
     log_fn: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
-    """远程 prov 维护通道（V0.4.0 M10，Q-34/DEC-53；LLD-A06 §6 例外收口）。
+    """远程 prov 维护通道（V0.4.0 M10，Q-34/DEC-53；LLD-agent-deploy-net §6 例外收口）。
 
     lease 门控 + confirm="prov" 硬令牌 + 固件侧写前全量 schema 校验 +
     per-boot 一次性窗（再写须复位循环）。生效 = 下次复位（返回 applies

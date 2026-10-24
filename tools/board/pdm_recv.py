@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #!/usr/bin/env python3
-"""pdm_recv（V2 纵深 M18）：D-PDM 帧重组消费端——pcm16 音频落盘。
+"""pdm_recv（V2 纵深 M18）：demo-pdm-audio（原 D-PDM）帧重组消费端——pcm16 音频落盘。
 
 订阅 `tessera/*/*/av/*/frame` 分片（CBOR 信封 {fid,cid,n,crc,d}——avq.c 5 对
 canonical map），按 fid 收集全部分片 → IEEE crc32 校验 → 重组 → 依 fid 序

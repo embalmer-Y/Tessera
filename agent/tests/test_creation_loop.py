@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""AG3 循环引擎 + 域验证器测试（LLD-A08 §9——零 LLM/零网络；真 clang 编译链）。
+"""AG3 循环引擎 + 域验证器测试（LLD-agent-creation-workspace §9——零 LLM/零网络；真 clang 编译链）。
 
 两层：① DummyVerifier + 剧本 Runner 的状态机全矩阵（域无关引擎）；
 ② FirmwareCreationVerifier 真链（多文件聚合编译/面检查/真签名打包）。
@@ -256,7 +256,7 @@ def test_compile_project_c_gates(tmp_path):
 
 
 def test_caps_natives_consistency_led_signature(tmp_path):
-    """HW-4 ③'（LLD-A16 §7.3a）：LED 缺陷签名回归——源码调 ts_gpio_write
+    """HW-4 ③'（LLD-agent-hardware-targeting §7.3a）：LED 缺陷签名回归——源码调 ts_gpio_write
     而 manifest 只申报 log → face_check 拒（声明-调用不一致）；申报 gpio
     后过；log 豁免（TEST 语义自动授予——runtime.c IR-16）不误伤既有工程。"""
     from tessera_agent.domain.firmware_creation import caps_natives_violations

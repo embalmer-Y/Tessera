@@ -1,5 +1,5 @@
 # SPDX-License-License: Apache-2.0
-"""固件域创作验证器（AG3 · LLD-A08 §4 的固件域首实现）。
+"""固件域创作验证器（AG3 · LLD-agent-creation-workspace §4 的固件域首实现）。
 
 装配关系：平台层 creation/ 零 import 本模块（导入图测试守卫）；
 组合根（AG6 接线）构造 FirmwareCreationVerifier 注入 CreationLoop。
@@ -34,7 +34,7 @@ from tessera_agent.tools_tsap.wasm_build import (
 
 SimFn = Callable[[Workspace, dict[str, Any]], VerifyOutcome]
 
-# HW-4 ③'（LLD-A16 §7.3a · owner 2026-10-21 扩令）：源码导入 ⇔ manifest caps
+# HW-4 ③'（LLD-agent-hardware-targeting §7.3a · owner 2026-10-21 扩令）：源码导入 ⇔ manifest caps
 # 声明一致性——LED 缺陷第一层（app 调 ts_gpio_write 但 manifest 只申报
 # log → 权限层运行期拒，168 对 WRITE REJECTED）的机械补位：包装前 face
 # 检查即拦，修复轮拿到结构化证据而非猜测。豁免（如实注记）：

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""进程内事件总线（W2 · LLD-A14 §3.1——SSE 轮询差分 → 直推）。
+"""进程内事件总线（W2 · LLD-agent-web-reshape §3.1——SSE 轮询差分 → 直推）。
 
 发布模型：sync `publish`（工作线程安全——TaskRegistry.append_log 在
 worker 线程）→ 每订阅者独立 asyncio.Queue 扇出；慢消费者策略 = 丢最旧
@@ -7,7 +7,7 @@ worker 线程）→ 每订阅者独立 asyncio.Queue 扇出；慢消费者策略
 假死）。环形缓冲（512 条单调 seq）支持 Last-Event-ID 重放。
 
 零订阅者 = 纯环形缓冲记录（发布开销 = 一次 append + 一次扇出调度）；
-未接线总线（bus=None）的组件行为逐字节等价——LLD-A14 §3.2 对照组纪律。
+未接线总线（bus=None）的组件行为逐字节等价——LLD-agent-web-reshape §3.2 对照组纪律。
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Any
 
-# 来源: LLD-A14 §3.1——订阅者队列上限 / 重放缓冲上限
+# 来源: LLD-agent-web-reshape §3.1——订阅者队列上限 / 重放缓冲上限
 EVENT_QUEUE_MAX = 512
 EVENT_REPLAY_MAX = 512
 

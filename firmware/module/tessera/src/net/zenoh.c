@@ -133,7 +133,7 @@ static void on_query(z_loaned_query_t *query, void *ctx)
 
 	const z_loaned_bytes_t *pl = z_query_payload(query);
 	z_bytes_reader_t rd = z_bytes_get_reader(pl);
-	/* 部署面请求上限 = 块上限 + 信封余量（MA3.1，LLD-A06 §3）；分发回调
+	/* 部署面请求上限 = 块上限 + 信封余量（MA3.1，LLD-agent-deploy-net §3）；分发回调
 	 * 串行（单 query 任务线程），静态缓冲与既有纪律一致 */
 	static uint8_t req[CONFIG_TS_NET_APP_CHUNK_MAX + 512];
 	size_t rlen = z_bytes_reader_read(&rd, req, sizeof(req));

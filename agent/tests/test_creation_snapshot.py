@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""AG5 会话快照测试（LLD-A08 §6/§9：往返一致性/STALE 检测/断点续跑端到端/SIGINT）。"""
+"""AG5 会话快照测试（LLD-agent-creation-workspace §6/§9：往返一致/STALE 检测/断点续跑/SIGINT）。"""
 
 from __future__ import annotations
 
