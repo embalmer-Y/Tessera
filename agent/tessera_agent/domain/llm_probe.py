@@ -239,13 +239,20 @@ def probe(url: str, key: str, *, model: str | None = None,
 
         # ---- ③ 配置建议（无 key 值——只有 env 名） ----
         if protocols.get("anthropic"):
+            # anthropic SDK 在 base 后自拼 /v1/messages——base 已含 /v1 时须剥（实测 2026-10-24：
+            # /api/v1 形态经 SDK = /api/v1/v1/messages → 路由 404；/api 形态 200）
+            _sdk_base = url.rstrip("/")
+            if _sdk_base.endswith("/v1"):
+                _sdk_base = _sdk_base[: -len("/v1")]
             rep.suggestion = {
                 "provider_prefix": "anthropic",
                 "base_url": url,
+                "sdk_base_url": _sdk_base,
                 "model_string": f"anthropic:{target}" if target else None,
                 "env": {"base": "ANTHROPIC_BASE_URL", "key": "ANTHROPIC_API_KEY"},
                 "note": "Anthropic 兼容（Tessera 正典形态）——模型串入 config.toml"
-                        " default_model；base_url/key 入 env.sh（600 仓外）",
+                        " default_model；env.sh 用 sdk_base_url（SDK 自拼 /v1/messages，"
+                        "已含 /v1 的探测地址须剥尾段——实测 /api/v1 → SDK base /api）",
             }
         elif protocols.get("openai"):
             rep.suggestion = {
@@ -292,8 +299,11 @@ def render_report(rep: LlmProbeReport) -> str:
         lines.append(f"  模型可用性    {_mark(c.get('ok'))}  {c.get('model')}（{extra}）")
     s = rep.suggestion
     if s:
+        sdk_note = ((f"（SDK base={s['sdk_base_url']}——剥 /v1 尾段）")
+                    if s.get("sdk_base_url") and s["sdk_base_url"] != s["base_url"] else "")
+        model_str = s.get("model_string") or "待定"
         lines.append(f"  配置建议      provider={s['provider_prefix']} · "
-                     f"base_url={s['base_url']} · 模型串={s.get('model_string') or '待定'} · "
+                     f"base_url={s['base_url']}{sdk_note} · 模型串={model_str} · "
                      f"env：{s['env']['base']} / {s['env']['key']}")
     lines.append(f"  总判定        {_mark(rep.overall_ok)}")
     return "\n".join(lines)

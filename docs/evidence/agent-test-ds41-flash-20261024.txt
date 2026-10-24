@@ -1,0 +1,40 @@
+# deepseek/deepseek-v4.1-flash 模型 Agent 真实链路测试证据（2026-10-24 · owner 指令）
+# 端点 router.shengsuanyun.com（anthropic 兼容形态 base=/api——SDK 自拼 /v1/messages）；两次独立运行
+
+===== 探针（llm-check --model deepseek/deepseek-v4.1-flash） =====
+LLM 端点探测：https://router.shengsuanyun.com/api/v1
+  URL 合法性    ✓  OK
+  连通性        ✓  HTTP 200
+  协议          ✓  openai + anthropic
+  模型列表      ✓  共 197 个（样本：openai/gpt-6-astra、openai/gpt-6.1-sol、openai/gpt-6-luna、bigmodel/glm-5.3、bigmodel/glm-5.3-flash…）
+  KEY 有效性    ✓  鉴权面 HTTP 200 通过（401 才判 key 无效）
+  模型可用性    ✓  deepseek/deepseek-v4.1-flash（1291ms）
+  配置建议      provider=anthropic · base_url=https://router.shengsuanyun.com/api/v1（SDK base=https://router.shengsuanyun.com/api——剥 /v1 尾段） · 模型串=anthropic:deepseek/deepseek-v4.1-flash · env：ANTHROPIC_BASE_URL / ANTHROPIC_API_KEY
+  总判定        ✓
+
+===== app_develop 创作循环 · 第二次运行（真 LLM → clang 真编译 → TSAP 签名打包） =====
+  loop:evidence {"step": "compile", "round": 3}
+  loop:evidence {"step": "face_check", "round": 3}
+  loop:state {"state": "IMPLEMENTING"}
+  manifest 落盘：app_id=tessera.apps.hbcounter exports=['app_init', 'app_tick', 'app_evt', 'health_ping']
+  loop:round {"round": 4, "budget": 12, "declared_done": true, "summary": "修复上轮 compile 阻塞：include/ 内头文件的引号包含越界（include/hb_config.h）。最小修复方案是把 include/ 内头文件改为自包含，彻底消除跨目录引号包含：include/hb_counter.h 与 include/logq.h 不再
+  loop:state {"state": "VERIFYING"}
+  loop:state {"state": "CONVERGED"}
+  loop:state {"state": "PACKAGED", "package": "/home/emb/project/Tessera/agent/workspace/t-6ca1e3b7/artifacts/tessera.apps.hbcounter-1.0.0.tsap"}
+  loop:final {"state": "PACKAGED", "rounds": 4}
+  loop PACKAGED: /home/emb/project/Tessera/agent/workspace/t-6ca1e3b7/artifacts/tessera.apps.hbcounter-1.0.0.tsap（4 轮）
+
+循环完成 278.6s：state=PACKAGED rounds=4
+workspace=/home/emb/project/Tessera/agent/workspace/t-6ca1e3b7
+package=/home/emb/project/Tessera/agent/workspace/t-6ca1e3b7/artifacts/tessera.apps.hbcounter-1.0.0.tsap
+compile_facts={'wasm_path': '/home/emb/project/Tessera/agent/workspace/t-6ca1e3b7/artifacts/app.wasm', 'size': 1183, 'imports': ['ts_log_write'], 'exports': ['app_evt', 'app_init', 'app_tick', 'health_ping'], 'deterministic': True}
+判定：PASS（2758B 包在盘）
+（第一次运行：126.4s / rounds=1 / wasm 998B / imports 仅 ts_log_write / 2412B 包——记录于会话）
+
+===== 过程两发现（供应链 + 语义） =====
+1) anthropic SDK 传递依赖未钉版：最新版 Beta 类型映射崩（typing.Union 实例化——venv 全新安装即踩）；<1.3 provider 导入面缺；==1.3.* 实测兼容 pydantic-ai 2.47——已钉 agent/pyproject.toml
+2) anthropic SDK 在 base 后自拼 /v1/messages：探测地址 /api/v1 经 SDK = /api/v1/v1/messages → 路由 404；env ANTHROPIC_BASE_URL 须用剥尾形态 /api（SDK 直调 200 实证）——llm_probe 建议面已补 sdk_base_url 字段
+===== 板上部署段 =====
+板卡发现（tcp/192.168.2.101:9957 与 tcp/192.168.2.91:9955）：[]——板不在网，部署段待板上线补测
+===== 远端 CI =====
+push e963b3b..b862413（5 笔）→ run #207 @ b862413 = SUCCESS（8m55s）

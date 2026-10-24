@@ -13,6 +13,7 @@ license = { text = "Apache-2.0" }
 dependencies = [
     # 来源: DEC-38 #1（R5 §6 定案）
     "pydantic-ai-slim[openai,anthropic,google,mcp]==2.47.*",
+    "anthropic==1.3.*",  # 传递依赖钉版（DEC-80 批实测）：最新版 Beta 类型映射崩（typing.Union 实例化）/ <1.3 provider 导入面缺——pydantic-ai 2.47 配套域
     "fastmcp==4.0.*",
     "cbor2==6.1.4",
     "pycose==1.1.0",

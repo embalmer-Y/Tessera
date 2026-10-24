@@ -70,6 +70,7 @@ def test_probe_dual_protocol_full_pass():
     assert mc["usage"]["output_tokens"] == 16
     sug = rep.suggestion
     assert sug["provider_prefix"] == "anthropic"
+    assert sug["sdk_base_url"] == "https://router.example.com/api"   # /v1 剥尾（SDK 自拼语义）
     assert sug["model_string"] == "anthropic:bigmodel/glm-5.3-flash"
     assert sug["env"] == {"base": "ANTHROPIC_BASE_URL", "key": "ANTHROPIC_API_KEY"}
     # 凭据红线：报告 JSON 全文不含 key
