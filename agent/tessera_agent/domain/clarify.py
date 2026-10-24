@@ -122,8 +122,8 @@ _HW_ASK_SKIP = "暂不指定"
 
 
 def _match_catalog(hint: str, ids: list[str]) -> str | None:
-    """需求提及型号 ↔ 画像目录匹配（归一化双向子串——「ATK DNESP32-S3」
-    ↔「atk-dnesp32s3b」同族形态可中）；恰一命中才绑定，多命中/零命中
+    """需求提及型号 ↔ 画像目录匹配（归一化双向子串——「ATK DNESP32-S3B」
+    ↔「dnesp32s3b」同族形态可中）；恰一命中才绑定，多命中/零命中
     = None（零命中走分支 B 收录检查）。"""
     hits = [i for i in ids
             if hwdom._norm(i) in hwdom._norm(hint)

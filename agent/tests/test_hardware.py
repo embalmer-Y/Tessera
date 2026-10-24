@@ -21,7 +21,7 @@ from tessera_agent.tools_diag import spec_gate
 
 # ---- 画像 [hardware] 节（v1.1 加性）------------------------------------------
 
-_ATK_PROFILE = Path(__file__).resolve().parents[1] / "boards" / "atk-dnesp32s3b.toml"
+_ATK_PROFILE = Path(__file__).resolve().parents[1] / "boards" / "dnesp32s3b.toml"
 
 
 def test_atk_profile_hardware_facts() -> None:

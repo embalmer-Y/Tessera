@@ -293,11 +293,11 @@ def test_clarify_hw_mention_binds_catalog_profile(env, monkeypatch):
             _answer_soon(env, "proceed", delay_s=0.15)
             out = await clarify.clarify_and_develop(
                 env, "让板载 LED 闪烁", task, "k.key",
-                model=_hw_model(mention="ATK DNESP32-S3"), log=lambda s: None)
+                model=_hw_model(mention="ATK DNESP32-S3B"), log=lambda s: None)
         finally:
             clarify.app_chain.app_develop = orig
         assert out["clarify"]["hardware"]["mode"] == "profile"
-        assert out["clarify"]["hardware"]["board"] == "atk-dnesp32s3b"
+        assert out["clarify"]["hardware"]["board"] == "dnesp32s3b"
         assert "LEDB=pwm:0" in got["spec"]
         assert "【目标硬件】" in got["spec"]
 
@@ -445,7 +445,7 @@ def test_clarify_capability_gap_continue(env, monkeypatch):
             _answer_soon(env, "proceed", delay_s=0.3)
             await clarify.clarify_and_develop(
                 env, "板载 LED 闪烁", task, "k.key",
-                model=_hw_model(mention="ATK DNESP32-S3", spec=spec_gpio),
+                model=_hw_model(mention="ATK DNESP32-S3B", spec=spec_gpio),
                 log=lambda s: None)
         finally:
             clarify.app_chain.app_develop = orig
@@ -463,6 +463,6 @@ def test_clarify_hw_gate_would_reject_led_signature():
     from tessera_agent.domain.board_validation import load_profile
 
     prof = load_profile(Path(__file__).resolve().parents[1] / "boards" /
-                        "atk-dnesp32s3b.toml")
+                        "dnesp32s3b.toml")
     assert hwdom.check_caps_against_profile(["gpio:write:0"], prof)
     assert not hwdom.check_caps_against_profile(["pwm:set:0"], prof)

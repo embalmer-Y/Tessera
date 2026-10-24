@@ -2,7 +2,7 @@
 
 > **本文件是什么**：板卡验证域低层设计——V0.13.0 BV1-D 单元（DEC-68① 高优；owner「Agent 端应有能力在面对新板卡时自行进行验证工作」）。
 > **权威顺序**：owner 裁决 > FOUNDING_PROMPT > 本文件。
-> **状态**：v0.1.1（2026-10-19 BV1-I 实现批同步修订：§3 C5 补 C4 链路派生 SKIP、C0 明确拒装载不留桩）。
+> **状态**：v0.1.2（2026-10-24 示例 id 同步：atk-dnesp32s3b/dnesp32s3b 同板去重合并——画像 id 取流水线规范名 = Zephyr 板名，见 names.md 同日登记；v0.1.1 = 2026-10-19 BV1-I 实现批同步修订：§3 C5 补 C4 链路派生 SKIP、C0 明确拒装载不留桩）。
 > **执行注记修订生效**：首任务 = **现役板自验**（atkbench/xiao——先在已知好板上证明验证域本身）；P4 判定批实测 = 第二任务（随 v4.5.0 平移批，DEC-68 注记修订 2026-10-19）。
 
 ## 1. 定位与架构定性
@@ -29,8 +29,8 @@
 
 ```toml
 [board]
-id = "atk-dnesp32s3b"              # 画像标识（= 文件名 stem）
-description = "正点原子 ATK DNESP32-S3B V1.1（es8311+SD+LCD）"
+id = "dnesp32s3b"                   # 画像标识（= 文件名 stem；流水线规范名 = Zephyr 板名）
+description = "正点原子 ATK DNESP32-S3B V1.1（Zephyr 收录板 alientek/dnesp32s3b；es8311+SD+LCD）"
 
 [serial]                            # C1 串口在场 + 全部串口检查的通道
 port = "/dev/serial/by-id/usb-1a86-CH343-if00-uart0"   # 稳定路径纪律（一四六教训：观察器走 by-id）

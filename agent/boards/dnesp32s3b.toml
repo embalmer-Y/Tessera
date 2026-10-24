@@ -1,35 +1,59 @@
 # SPDX-License-Identifier: Apache-2.0
-# BV2 适配画像草稿（LLD-A17——owner review 后入目录；接线前为推定态）
-# 工单：agent/adapt/dnesp32s3b/workorder.json
+# 板卡画像：正点原子 ATK DNESP32-S3B V1.1（= Zephyr 收录板 alientek/dnesp32s3b）。
+# 同板去重合并（owner 2026-10-24 指令「这两个应该是一块板子」）：原
+# atk-dnesp32s3b.toml（BV1 手工画像）+ dnesp32s3b.toml（BV2 实战流水线画像）→
+# 单画像；id 取流水线规范名 = Zephyr 板名（install_profile 生成键——防 BV2
+# 再生成重现重复；双画像并存曾令全名提及多命中拒绝绑定）。
+# 轮烧工作流（DEC-77）：烧录/串口检查走 USB 轮流窗口；测试/部署走 WiFi。
 [board]
 id = "dnesp32s3b"
-description = "BV2 适配（Zephyr 收录板 dnesp32s3b；16384KB）——接线后 BV1 bring-up 实测回填"
+description = "ATK DNESP32-S3B V1.1（Zephyr 收录板 alientek/dnesp32s3b；ES8311+SD+LCD；boya 16MB 真硅；现网 cube=dbc）"
 
 [serial]
-port = "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5909066900-if00" # CH343 5909066900（BV2 实战实测）
+# by-id 稳定路径纪律（一四六：ttyACM 漂移免疫）；CH343 = console(uart0 诊断
+# 形态)+esptool+EN 复位三功能；验证期须停持有器（单读者纪律）
+port = "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5909066900-if00"
 baud = 115200
 
 [flash]
 adapter = "esptool"
-chip = "esp32s3" # esptool 实测（zephyr 板名 dnesp32s3b ≠ esptool chip 名）
-size_kb = 16384
+chip = "esp32s3" # esptool 实测 chip 名（≠ Zephyr 板名 dnesp32s3b）
+size_kb = 16384 # boya 16MB 真硅（bootloader + JEDEC 0x68:0x4018 双证——一四三；BV2 flash-id 复证全同）
 
 [boot]
 reset = true
-ready_patterns = ["CONNECTED loc="]
-timeout_s = 90.0
+ready_patterns = ["CONNECTED loc="] # zenoh 连通行 = 板就绪正典判据
+timeout_s = 90.0 # boot ~50s 实测口径 × 裕度
 
 [zenoh]
 expect_discover = true
-cube = "dbc" # BV2 实战实测（双板网络下显式指向——空值「恰一」语义歧义）
+cube = "dbc" # BV2 实战 prov（node=dbn）——双板网络显式回填（空值「恰一在线」语义歧义；一五五观察项④就此板闭合）
 
 [caps]
 tiers = ["small"]
-min_slot_pool_kb = 32
+min_slot_pool_kb = 32 # 现行镜像 = BV2 deploybench（slot 32KB，workorder slot_size）；atkbench 产线镜像 slot_pool=2048KB（BV1-R 实测）——重烧后回填
 
 [smoke]
-package_path = "agent/demos/P4W/p4w.probe-1.0.0.tsap" # 架构中立探针（BV2 实战 C6 判据）
+package_path = "agent/demos/P4W/p4w.probe-1.0.0.tsap" # 架构中立探针（BV2 实战 C6 判据；匹配现行 deploybench 镜像）
 pub_path = "agent/demos/P4W/test-root.pub"
 criteria = ["P4W2 PROBE INIT", "P4W2 PROBE ALIVE"]
-window_s = 90.0
+window_s = 90.0 # 暖复位后 boot ~50s 实测 × 裕度（NVD v4 教训：窗 << boot 必 miss）
 
+[build]
+enabled = false # C0 全局化未接入（DEC-74②——随 v4.5.0 平移批评估）；adapt 工作区 c0_preflight ok 在案
+
+# HW-4（LLD-A16 §7.1 · v1.1 加性）：引脚级硬件事实——创作链/部署门/判据
+# 感知的唯一物理真相源。每 pin.source 必填（R12 来源纪律）。
+[hardware]
+zephyr_board = "dnesp32s3b_esp32s3" # CONFIG_BOARD 自报匹配键（S0 在线辨认辅助）
+soc = "esp32s3"
+ram_kb = 512
+psram_kb = 8192 # SMH 4MB 在用（K5）；总 8MB
+notes = "gpio 域无板载绑定（atkbench overlay zephyr,user 无 io-gpios——akled 通道 -ENODEV；板载 LED 在 PWM 域）。BOOT 键 IO0 为固件本地手势源，不经 ts 通道表。"
+
+[[hardware.pin]]
+name = "LEDB"
+domain = "pwm"
+instance = 0
+desc = "板载用户 LED（IO4，经 PWM 通道驱动）"
+source = "原理图 LEDB=IO4 + atkbench overlay ledc0 channel0@0 + BV2 adapt overlay LEDC_CH0_GPIO4 同源 + w2_hb_live_console.txt 168 对 LED WRITE REJECTED 实测（2026-10-20 验收）"
