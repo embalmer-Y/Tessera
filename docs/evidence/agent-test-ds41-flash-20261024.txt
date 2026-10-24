@@ -34,7 +34,18 @@ compile_facts={'wasm_path': '/home/emb/project/Tessera/agent/workspace/t-6ca1e3b
 ===== 过程两发现（供应链 + 语义） =====
 1) anthropic SDK 传递依赖未钉版：最新版 Beta 类型映射崩（typing.Union 实例化——venv 全新安装即踩）；<1.3 provider 导入面缺；==1.3.* 实测兼容 pydantic-ai 2.47——已钉 agent/pyproject.toml
 2) anthropic SDK 在 base 后自拼 /v1/messages：探测地址 /api/v1 经 SDK = /api/v1/v1/messages → 路由 404；env ANTHROPIC_BASE_URL 须用剥尾形态 /api（SDK 直调 200 实证）——llm_probe 建议面已补 sdk_base_url 字段
-===== 板上部署段 =====
-板卡发现（tcp/192.168.2.101:9957 与 tcp/192.168.2.91:9955）：[]——板不在网，部署段待板上线补测
+===== 板上部署段（owner「两块板卡我已经接入该机器的USB」→ 双板全链补测 PASS） =====
+[0] 板态迁移：双板 prov 均为 ARM 时代陈旧路由 tcp|tls/192.168.2.101:9956|9957（ARM 机 .101 仍在线、ping 0.29ms——板曾连其路由=prov 指向即归属，LAN 多路由共存观察项）。
+    zenohd 本机明文 9955+9957；flash_prov 重烧（esptool hash verified）：
+    · P4（ttyACM0，GD c8:4018）@0x7e0000 v1 九键 p4-dev/cube-p4 → tcp/192.168.2.91:9957（171B）→ CONNECTED ✅
+    · S3=atk=同板 dnesp32s3b（ttyACM1，boya 68:4018；owner 同板定案画像合并注记）@0x7e0000 v1 dbn/dbc → 9957（164B）→ CONNECTED ✅
+      （误烧一轮 0x5f0000 = atk 残留布局假设——BV2 workorder prov_offset=0x7e0000 为准；0x5f0000/0x170000 两处历史残留 prov 解剖实录，均非生效位）
+[1] 签名面：deploybench TEST 语义板验签对象 = fixtures/ts-test-root（编译内 pk0=f084a4e5 与 prov pk0 同源）——ds41 包的 tsap_keygen 临时钥签名必拒（-9 族），以 ts-test-root.key 重签（tsap_package 重打包 2758B）。IR2-03 白名单两踩：wasm 输入与输出目录均须在允许根内。
+[2] S3（dbn/dbc）两次部署全 PASS：tsap_verify PASS → lease → upload 2758B/11 分块 → verify PASS facts={manifest_len:134, wasm_len:1183, cose_off:1365} → activate confirmed → 暖复位 ~10s → get-app state=3 ACTIVE（slot 0→1 乒乓按设计）→ 判据窗 HB n= 57 样本（30..590 / 100..660）严格单调 → DS41 DEPLOY PASS ×2
+[3] P4（p4-dev/cube-p4）PASS（三段式）：push 链全 PASS（同上 facts）→ activate confirmed slot=1 → **state 停 2 STAGED——p4bench 旧镜像无「激活即暖复位」语义（deploybench 有；V0.14.0「RTS 脉冲复位助手」场景再现）** → 外部复位完成 stage→active → get-app state=3 slot=1 → 判据窗 v2（CONNECTED 后切段）58 样本 10..580 单调 1 boot → DS41 P4 WINDOW PASS
+    · P4B FAIL app_evt(1) write = p4bench 自检项对第三方 app 固有失配（health_fails=0、板稳驻网——观察项登记）
+[4] wasm 架构中立实证：同一包（1183B wasm）跨 xtensa（S3）/RV32（P4）双板部署运行全 PASS——WAMR 双后端 + 判据行同构。
+[5] 方法学：CH343 开埠 DTR/RTS 复位脉动 = 每次串口 open 板复位（双板实证）；复位脉动窗内 SHA-256 校验瞬态读失败象两例（后续 boot 全净，无固件损伤）——判据窗必须以 CONNECTED 行切段（v1 窗混入上一实例残留行产生单调性伪影，v2 修正）。
+完整串口捕获（仓外惯例）：~/project/logs/ds41_deploy_s3_console.txt、~/project/logs/ds41_deploy_p4_console.txt；驱动 ~/project/logs/ds41_board_deploy.py
 ===== 远端 CI =====
 push e963b3b..b862413（5 笔）→ run #207 @ b862413 = SUCCESS（8m55s）

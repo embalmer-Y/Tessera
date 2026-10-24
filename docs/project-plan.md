@@ -67,7 +67,8 @@
 
 ### 待 owner（当前）
 
-- 本地待 review/push：af3df09（板卡画像同板去重合并）+ 本整理批提交。
+- 本地待 review/push：8adaa76（fix：anthropic 钉版 + sdk_base_url + 模型测试证据）+ 本部署段补全笔（v1.159）。
+- V0.16.0 累积 4 feature（DEC-75 线 ~5-8）——续作随点向。
 
 ### 候选池（随 owner 点向）
 
@@ -94,6 +95,7 @@
 
 
 ## 修订记录
+- v1.159 · 2026-10-24：**deepseek-v4.1-flash 模型测试部署段补全 ✅ 双板全链 PASS（owner「两块板卡我已经接入该机器的USB，请你检查并继续刚刚的测试」；v1.158 挂起段收口）**：① 板态迁移——双板 prov 均为 ARM 时代陈旧路由（.101:9956|9957；ARM 机仍在线 ping 0.29ms = prov 指向即归属观察），zenohd 本机 9955+9957 起 + flash_prov 重烧（P4 @0x7e0000 p4-dev/cube-p4 / S3=atk 同板 dbn/dbc @0x7e0000 workorder 位——误烧 0x5f0000 一轮 = atk 残留布局假设，0x5f0000/0x170000 历史残留位解剖实录）→ 双板 CONNECTED .91:9957。② 签名面纪律实证：deploybench TEST 语义板验签 = fixtures/ts-test-root（临时钥必拒）→ ds41 包测试根重签 2758B（IR2-03 白名单：输入/输出均须在允许根）。③ S3 双跑全 PASS（11 分块/verify facts 对拍/activate/暖复位 10s ACTIVE/slot 0→1 乒乓/HB 57 样本单调 ×2）+ P4 三段式 PASS（push 全链 PASS → p4bench 无激活即暖复位语义 state 停 STAGED → 外部复位完成转正〔RTS 助手场景再现〕→ 判据窗 v2 58 样本 10..580 单调）。④ wasm 架构中立实证：同包跨 xtensa/RV32 双板运行。⑤ 观察项五条：ARM 机 .101 仍在线 / CH343 开埠复位脉动双板实证 + 复位窗 SHA-256 瞬态两例（后续 boot 全净）/ p4bench activate 不暖复位 / P4B FAIL app_evt = bench 自检对第三方 app 固有失配（health_fails=0）/ deploybench caps=null quirk 再现。证据 agent-test-ds41-flash-20261024.txt（部署段全文）。
 - v1.158 · 2026-10-24：**五笔随令推送（CI #207 全绿）+ deepseek-v4.1-flash 模型真实链路测试（fix 类补笔）**：app_develop 双运行均 PACKAGED（单轮 126.4s + 四轮含修复链）；随批修复 anthropic 传递依赖钉版（==1.3.*——最新版 Beta 类型崩/＜1.3 导入面缺，新装 venv 即踩）+ llm_probe 建议面增 sdk_base_url（anthropic SDK 自拼 /v1/messages——base 含 /v1 须剥尾，实测 /api/v1→404、/api→200）；板上部署段待板上线（双路由地址发现为空）。证据 agent-test-ds41-flash-20261024.txt。
 - v1.157 · 2026-10-24：**LLM 端点探针 ✅（owner 指令 → DEC-80；L 表第四单元）**：domain/llm_probe.py 五面检测（URL 合法性/连通性分类/协议检测/模型列表/KEY 有效性+模型可用性——鉴权面合一判定）+ 配置建议；MCP llm_check（confirm 类；key 只经 key_env 环境变量名——值不入参/审计）+ CLI llm-check；实测回填三事实（/models 可不鉴权、max_tokens≥16、reasoning 小预算文本空≠不可用）；tools/env 85 步联动自动校验；测试 +10（MockTransport 注入）——agent 366+2s 全绿。V0.16.0 累积：BV2 + 仓整理 + 安装程序 + 探针 = 4 feature（DEC-75 线 ~5-8 渐近）。
 - v1.156 · 2026-10-24：**环境自动部署脚本 ✅（owner 指令 → DEC-79；L 表第三单元）**：tools/env/ 面向用户安装套件（install.sh/--dev/steps×10/verify_env.sh/README——sudo 交互索密 + --proxy 代理支持 + 凭据交互或 --config 导入 600 仓外）；本机（x86_64/Ubuntu 26.04）开发环境全链恢复实测：twister 17/17 套件 115+2s（framework.net 并行 configure_file 竞态单跑 17/17 过——v1.148 同型环境域）+ agent 356+2s 全绿（clang-18 apt 路线 = 18.1.8 精确对齐 CI；23 环境域失败全转正）+ repo 6+5 + sync 全绿。顺带修复仓内潜伏缺陷：zenoh-pico-tls.patch hunk 计数头（19→12）与 primitives.h 段缺 --- 头行（新机必踩——git apply 全拒）+ zenoh-pico 剥宏清单 12→13（AUTO_RECONNECT，R5-V 起补丁基线——checklist §3 勘误 v1.4）；固件 venv 钉 cmake 3.31.6（发行版 cmake 4.x 与 Zephyr 4.5 兼容风险免疫）；守恒测试 firmware/tests/pytest/test_env_installer.py +6。
