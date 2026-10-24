@@ -56,6 +56,8 @@ ZENOHD_TCP_PORT=9957                            # 可选——本机 zenohd TCP 
 
 落盘：`~/project/logs/env.sh`（凭据 + 环境变量，600）+ `<repo>/agent/config.toml`（Agent
 运行配置，gitignored，600）。**已存在的配置绝不覆盖**（改配置直接编辑或删除后重跑）。
+提供 URL+Key 时安装末尾自动跑 **LLM 端点探针**（`llm-check`：连通/协议/模型列表/KEY
+有效性/模型可用性——DEC-80；非阻断）。
 
 ## 步骤化与幂等
 

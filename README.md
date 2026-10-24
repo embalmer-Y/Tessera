@@ -36,7 +36,7 @@
 | `firmware/module/tessera/` | 固件框架源码（ts-* 七模块） |
 | `firmware/tests/` | twister 套件（17 套件 117 用例——aarch64 /64 现行口径：115 过 + 2 skipped）+ 板级 bench（netbench/deploybench/otabench/…）+ netlab（native_sim zenoh 联调镜像）+ safety_check（安全合同机械检查） |
 | `firmware/app/` | 生产 app（板级片段：S3 PSRAM/WiFi/分区） |
-| `agent/` | MCP server + 模拟器 + TSAP 工具链 + skills + web 渠道 + 板卡画像（agent/boards）/ 硬件事实域 / 新板适配域（agent/adapt 产物面）（pytest 356 用例 + 2 skipped） |
+| `agent/` | MCP server + 模拟器 + TSAP 工具链 + skills + web 渠道 + 板卡画像（agent/boards）/ 硬件事实域 / 新板适配域（agent/adapt 产物面）（pytest 366 用例 + 2 skipped） |
 | `agent/demos/` | demo 阶梯（demo-led-blink … demo-p4-probe，描述性命名——映射见 `docs/names.md` §6） |
 | `design/` | HLD×2（framework/agent）+ 固件 LLD（LLD-ts-*：七模块 + 公共约定）+ Agent 域 LLD（LLD-agent-*：网关/核心/部署/创作/MCI/HW/BV1/BV2 等） |
 | `tools/env/` | **自动化安装程序**（面向用户：install.sh + verify_env.sh——DEC-79） |

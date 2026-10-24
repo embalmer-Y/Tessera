@@ -71,6 +71,18 @@ def main(argv: list[str] | None = None) -> int:
                      help="报告 JSON 落盘路径")
     mem.add_argument("--json", action="store_true",
                      help="打印 JSON 报告（缺省人读形态）")
+    llmc = sub.add_parser(
+        "llm-check",
+        help="LLM 端点探针：URL/连通/协议/模型列表/KEY 有效性/模型可用性（DEC-80）")
+    llmc.add_argument("--url", default=None,
+                      help="端点 base（缺省 = $ANTHROPIC_BASE_URL）")
+    llmc.add_argument("--key-env", default="ANTHROPIC_API_KEY",
+                      help="密钥所在环境变量名（缺省 ANTHROPIC_API_KEY）")
+    llmc.add_argument("--model", default=None,
+                      help="指定冒烟模型（缺省自动从模型表挑 flash/mini 类）")
+    llmc.add_argument("--timeout", type=float, default=20.0, help="每请求超时秒")
+    llmc.add_argument("--json", action="store_true", help="结构化输出（缺省人读形态）")
+
     args = parser.parse_args(argv)
 
     if args.command == "serve":
@@ -88,8 +100,34 @@ def main(argv: list[str] | None = None) -> int:
         return _validate_command(args)
     if args.command == "memory-audit":
         return _memory_audit_command(args)
+    if args.command == "llm-check":
+        return _llm_check_command(args)
     parser.print_help()
     return 0
+
+
+def _llm_check_command(args) -> int:
+    """LLM 端点探针 CLI（DEC-80）——key 经环境变量（--key-env 指名，值不入 argv）。"""
+    import os
+    import sys as _sys
+
+    from tessera_agent.domain import llm_probe
+
+    url = args.url or os.environ.get("ANTHROPIC_BASE_URL", "")
+    if not url:
+        print("✗ 缺少 URL：--url 或环境 ANTHROPIC_BASE_URL", file=_sys.stderr)
+        return 2
+    key = os.environ.get(args.key_env, "")
+    if not key:
+        print(f"✗ 环境变量 {args.key_env} 未设置（key 不经命令行参数传递）", file=_sys.stderr)
+        return 2
+    rep = llm_probe.probe(url, key, model=args.model, timeout_s=args.timeout)
+    if args.json:
+        import json as _json
+        print(_json.dumps(rep.to_dict(), ensure_ascii=False, indent=1))
+    else:
+        print(llm_probe.render_report(rep))
+    return 0 if rep.overall_ok else 1
 
 
 def _validate_command(args) -> int:

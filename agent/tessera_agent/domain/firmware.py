@@ -135,6 +135,7 @@ class FirmwareDomainPack(DomainPackBase):
         "app_develop", "app_deploy", "app_compile",
         "app_clarify",
         "board_validate", "memory_audit", "web_search", "board_adapt",
+        "llm_check",
         "diag_classify", "spec_check", "simreal_diff",
     ])
     skills: list[str] = field(default_factory=lambda: [
@@ -154,6 +155,7 @@ class FirmwareDomainPack(DomainPackBase):
         "board_adapt": "strict",  # V0.15.0 BV2（DEC-74）：写 adapt 工作区
         "memory_audit": "confirm",   # V0.13.0 MP：本地只读分析（LLD-agent-memory-planner）
         "web_search": "confirm",     # HW-2（DEC-73①·LLD-agent-hardware-targeting §2）：出站联网
+        "llm_check": "confirm",      # DEC-80：出站探测用户 LLM 端点（key 经 env 名——值不入审计）
         "diag_classify": "confirm",
         "spec_check": "confirm",
         "simreal_diff": "confirm",
@@ -642,6 +644,33 @@ class FirmwareDomainPack(DomainPackBase):
             except Exception as exc:  # noqa: BLE001 —— 结构化故障不裸抛
                 return {"provider_error": f"{type(exc).__name__}: {exc}",
                         "results": []}
+
+        # ---- llm_check（DEC-80 · LLM 端点探针；confirm 类：出站联网——key 只经 env 名）
+        @mcp.tool
+        @audited("llm_check")
+        async def llm_check(url: str, model: str | None = None,
+                            key_env: str = "ANTHROPIC_API_KEY",
+                            timeout_s: float = 20.0) -> dict:
+            """LLM 端点探针：URL 合法性 / 连通性（错误分类+代理提示）/ 协议检测
+            （OpenAI·Anthropic 兼容）/ 模型列表 / KEY 有效性（经鉴权面 401 判定
+            ——/models 可不鉴权）/ 模型可用性（最小调用 200+usage）+ 配置建议
+            （provider 前缀/模型串/env 名——无 key 值）。凭据红线：key 一律从
+            环境变量读取（key_env 指名）——**不接受 key 值入参**（防审计落盘）。"""
+            import asyncio
+            import os
+
+            key = os.environ.get(key_env)
+            if not key:
+                return {"error": f"环境变量 {key_env} 未设置——请先 export（key 不经参数传递）",
+                        "url": url}
+            from tessera_agent.domain import llm_probe
+
+            try:
+                rep = await asyncio.to_thread(
+                    llm_probe.probe, url, key, model=model, timeout_s=timeout_s)
+                return {"report": rep.to_dict(), "rendered": llm_probe.render_report(rep)}
+            except Exception as exc:  # noqa: BLE001 —— 结构化故障不裸抛
+                return {"error": f"{type(exc).__name__}: {exc}", "url": url}
 
         # ---- board_validate（V0.13.0 BV1 · LLD-agent-board-validation；strict 类）
         @mcp.tool

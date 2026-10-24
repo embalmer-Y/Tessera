@@ -120,4 +120,14 @@ if [ -n "$CFG_ANTHROPIC_API_KEY" ]; then
         _warn "API key 疑似出现在仓内文件——请检查（红线：凭据不入仓）"
     fi
 fi
+# ---- 联动校验：LLM 端点探针（DEC-80；非阻断——结果仅呈现/提示） ----
+if [ -n "$CFG_ANTHROPIC_BASE_URL" ] && [ -n "$CFG_ANTHROPIC_API_KEY" ] \
+   && [ -x "$AGENT_VENV/bin/tessera-agent" ]; then
+    _log "85-③ LLM 端点探针（连通/协议/模型列表/KEY/模型可用性）"
+    TESSERA_PROBE_KEY="$CFG_ANTHROPIC_API_KEY" \
+        "$AGENT_VENV/bin/tessera-agent" llm-check \
+        --url "$CFG_ANTHROPIC_BASE_URL" --key-env TESSERA_PROBE_KEY \
+        || _warn "探针未全绿——核对输出（安装继续；修正配置后可随时重查）"
+    unset TESSERA_PROBE_KEY
+fi
 _ok "85 用户配置完成（未配置项可后续手工补 $ENV_SH / agent/config.toml）"

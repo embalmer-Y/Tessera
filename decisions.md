@@ -1199,3 +1199,11 @@
 - **本机恢复（指令①）**：x86_64/Ubuntu 26.04 全链实测（west 工作区 10G 代理通道/blobs 73/SDK 1.0.1/WAMR/zenoh-pico+TLS/zenohd/apt clang-18=18.1.8 精确对齐 CI）；**twister 17/17 套件（115+2s；framework.net 并行 configure_file 竞态单跑 17/17 过——v1.148 同型环境域）+ agent 356+2s 全绿（clang 恢复后 23 环境域失败全转正）+ repo pytest + sync**。
 - **顺带修复两枚仓内潜伏缺陷（新机必踩）**：zenoh-pico-tls.patch ① tcp_zephyr.c 段 hunk 计数头 19→12（重生成期缺陷——GNU patch 判 malformed、git apply 全拒）② primitives.h 段缺 `--- a/` 头行；剥宏清单 12→**13**（+AUTO_RECONNECT——R5-V 起补丁基线，checklist §3 ② 滞后勘误）。守恒测试 `test_env_installer.py` +6（bash -n/步骤引用/钉版三方/diff 计数自检器/help 契约/命名合规）。
 - **V0.16.0 归属**：L 表第三单元（owner 明示「V0.16.0的一部分功能」）。
+
+## DEC-80（LLM 端点探针指令，2026-10-24——owner 指令要点：「优化 Agent 侧的工具……根据大模型 URL 和 KEY 自动检测是否合法、是否联通、支持哪些模型、模型是否可用，参考 CCR 的相关实现」〔CCR=claude-code-router——其 ccr-next 对 provider key 与模型名经 /models 校验同思路〕；随令提供实测端点 router.shengsuanyun.com/api/v1）
+
+- **落地**：`domain/llm_probe.py` + MCP `llm_check`（confirm 类）+ CLI `tessera-agent llm-check`。五面检测：URL 静态合法性（scheme/主机/CRLF 注入拒绝）/ 连通性（httpx 异常族分类：DNS 拒连/超时/TLS + 代理提示）/ 协议检测（OpenAI Bearer 与 Anthropic x-api-key 双头探测 /models）/ 模型列表（三形态 id/api_name/name 归一）/ KEY 有效性 + 模型可用性（**合一于鉴权面最小调用**：200+usage=可用、401=key 无效、429=限流 ◐、404/400=模型名问题）+ 配置建议（provider 前缀/模型串/env 名）。
+- **实测回填三事实**（router.shengsuanyun.com：197 模型，双协议并存）：① /models **可不鉴权**（坏 key 亦 200）——key 有效性必须经鉴权面（/messages 401）判定，探针据此设计；② 部分路由 max_tokens 下限 16（8→400 参数错——该 400 恰证明连通+鉴权通过）；③ reasoning 模型小 token 预算可全耗于推理（文本空 ≠ 不可用——判定以 200+usage 为准）。
+- **凭据红线**：MCP 面 key 只经 `key_env` 环境变量名解析（**值不入工具参数/审计流**）；CLI 同（--key-env 指名，值不入 argv）；报告与建议全程无 key（测试断言贯穿）；owner 提供的实测 key 仅经环境变量使用，未落任何仓内文件。
+- **联动**：tools/env 安装器 85 步采集 URL+Key 后自动跑探针（非阻断呈现）；测试 +10（MockTransport 注入零真实网络：校验/双协议/不鉴权面/状态分类/异常分类/红线/注册）——agent 366+2s 全绿。
+- **V0.16.0 归属**：L 表第四单元。
