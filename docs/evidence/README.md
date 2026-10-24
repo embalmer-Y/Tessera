@@ -1,6 +1,6 @@
 # docs/evidence/README.md · 真机证据留痕索引
 
-> **本文件是什么**：2026-10-24 仓整理（DEC-78）为 55 件真机验证留痕建立的索引——
+> **本文件是什么**：2026-10-24 仓整理（DEC-78）为 52 件真机验证留痕建立的索引——
 > 文件名沿用历史会话单元代号**不回溯**（历史登记不回溯 + 引用链稳定；代号释义见
 > `docs/names.md` 与 AGENTS 历史归档 `docs/history/agents-status-archive.md`）。
 > **新增证据建议命名**：`<主题>-<yyyymmdd>.txt`（docs/std/naming.md §2）。
@@ -28,14 +28,14 @@
 | cg7_deploy_console.txt | CG7 合同泛化部署链 spot check | 合同泛化批 |
 | d8_PASS_native_rerun.txt | D8 lifecycle demo native 重跑 PASS | V2 批 |
 | dav_norecover_console2.txt | AV demo 不可恢复故障路径 | MD1.2 |
-| dp_PASS_console.txt / pdmb_PASS_console.txt | D-PDM 音频 / PDM bench 真机 PASS | MD1.2 |
+| dp_PASS_console.txt | D-PDM 音频真机 PASS | MD1.2 |
 | dsd_PASS_newcard.txt | D-SD（重格新卡后）真机 PASS | 一四三 |
 | dt_PASS_console.txt | D-THR 真 wasm 多线程 PASS | V2 批 |
 | fix2_p4_probe_console.txt | FIX-2 P4 探针根治（ALIVE t=11s 首印/C1-C6 全绿） | 一五四 |
 | frame_2.rgb565 / frame_3.rgb565 | AV 视频帧样本（二进制图像） | 视频批 |
 | ma_PASS_console.txt | 多 APP 并行部署 PASS | M 批 |
 | mp_atk_enomem_console.txt | MP 内存重平后 ENOMEM 观察窗（接受态登记） | 一四八·续十二 |
-| nv1_PASS_console_native.txt / nv1_loop_result.json / nv1_simreal_baseline.json | NVD v1 判定（console + 循环结果 + sim/real 基线） | NV 批 |
+| nv1_PASS_console.txt / nv1_loop_result.json / nv1_simreal_baseline.json | NVD v1 判定（console + 循环结果 + sim/real 基线） | NV 批 |
 | nv6_PASS_console.txt / nv6_result.json | NVD v6 全链 PASS（判据精确命中） | NV 批 |
 | nvd_PASS_console_native.txt | NVD native 口径 PASS | NV 批 |
 | nvd_app_source.c | NVD heartbeat app 源留档 | NV 批 |

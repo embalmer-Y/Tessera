@@ -11,7 +11,7 @@
  *   L4 system_fail noinit 留痕（强实现 store/noinit.c）+ 停机后通道无人
  *       喂 → sys_reboot（k_sleep 不停 k_timer）。注：task_wdt 直通复位路径
  *       无 noinit 留痕（ISR 上下文不可写 flash）——该极端场景归因缺失，
- *       如实在 impl-review-02/DEC-48 登记；常规逾期经巡检 → system_fail
+ *       如实在 docs/history/review-archive（impl-review-02 节）/DEC-48 登记；常规逾期经巡检 → system_fail
  *       → 有留痕。
  */
 #include <ts/core.h>

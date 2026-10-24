@@ -13,7 +13,7 @@ APP 侧 console 行（d8 v1/v2/bad init）为辅助证据（console 抓取另跑
 预置：deploybench 已烧录（db_build.sh + db_e2e.sh 同型）；zenohd 由本脚本拉起。
 
 用法（agent-venv，WSL 内）：
-  ~/project/agent-venv/bin/python d8_client.py [--router tcp/127.0.0.1:9955]
+  ~/project/agent-venv/bin/python lifecycle_client.py [--router tcp/127.0.0.1:9955]
 判定：末行 D8 PASS；任一环节失败非零退出（军规 7）。
 """
 from __future__ import annotations

@@ -1055,7 +1055,7 @@ ZTEST(framework_net, test_10_deploy_face)
 	zassert_equal(resp_data_uint("active_slot"), 1);
 }
 
-/* ---- impl-review-01 修复批：F-3 gated 按 suffix 回填 / F-4 idem 先匹配 ---- */
+/* ---- review-archive（impl-review-01）修复批：F-3 gated 按 suffix 回填 / F-4 idem 先匹配 ---- */
 
 static ts_res_t cmd_probe(const ts_net_cmd_args_t *a, uint8_t *r, size_t cap, size_t *n)
 {

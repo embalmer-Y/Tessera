@@ -295,6 +295,8 @@
 
 **agent/scenarios/（2 件）**：d8-v1-ramp.json → lifecycle-ramp.json；d9-linkloss.json → linkloss.json。
 
+**缓办（随固件 C 批）**：firmware/tests/inputdemo/src/d4_pkg.h、d6_pkg.h 与 linkdemo/src/d9_pkg.h（内嵌包机械生成头——改名牵固件 C include/extern 链，本整理批执行机无 Zephyr 工具链不可验证，登记缓办）；firmware/tests/deploybench/d8_client.py 已随复核修补笔改名 lifecycle_client.py。
+
 **删除件与去向**
 
 | 删除件 | 去向/理由 |

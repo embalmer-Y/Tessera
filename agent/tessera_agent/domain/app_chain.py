@@ -722,7 +722,7 @@ async def app_deploy(
             deployed = net_deploy.push_app(svc, n, c, package_path, pub_key_path,
                                            log_fn=log)
             # activate 后板自动暖复位装载（DR-14）——立即 status 会撞复位
-            # 窗口（板断链 ~10s 重连；d8_client 同型 boot-wait 时序）。先试
+            # 窗口（板断链 ~10s 重连；lifecycle_client 同型 boot-wait 时序）。先试
             # 后等轮询至板回来（NV-1 真机实证竞态：立即核验 Timeout 误报
             # 部署失败而部署实际已确认——DB PASS + APP 运行单迹）。
             status_after = None
