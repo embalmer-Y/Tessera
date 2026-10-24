@@ -36,9 +36,10 @@
 | `firmware/module/tessera/` | 固件框架源码（ts-* 七模块） |
 | `firmware/tests/` | twister 套件（17 套件 117 用例——aarch64 /64 现行口径：115 过 + 2 skipped）+ 板级 bench（netbench/deploybench/otabench/…）+ netlab（native_sim zenoh 联调镜像）+ safety_check（安全合同机械检查） |
 | `firmware/app/` | 生产 app（板级片段：S3 PSRAM/WiFi/分区） |
-| `agent/` | MCP server + 模拟器 + TSAP 工具链 + skills + web 渠道 + 板卡画像（agent/boards）/ 硬件事实域 / 新板适配域（agent/adapt 产物面）（pytest 346 用例 + 2 skipped） |
+| `agent/` | MCP server + 模拟器 + TSAP 工具链 + skills + web 渠道 + 板卡画像（agent/boards）/ 硬件事实域 / 新板适配域（agent/adapt 产物面）（pytest 356 用例 + 2 skipped） |
 | `agent/demos/` | demo 阶梯（demo-led-blink … demo-p4-probe，描述性命名——映射见 `docs/names.md` §6） |
 | `design/` | HLD×2（framework/agent）+ 固件 LLD（LLD-ts-*：七模块 + 公共约定）+ Agent 域 LLD（LLD-agent-*：网关/核心/部署/创作/MCI/HW/BV1/BV2 等） |
+| `tools/env/` | **自动化安装程序**（面向用户：install.sh + verify_env.sh——DEC-79） |
 | `tools/board/` | 板级联调工具（E2E 驱动/prov·证书生成/串口持有器/消费端——README 含典型编排） |
 | `docs/` | dev-environment（环境事实源）/ **env-rebuild-checklist（全新机器重建总单，含 ARM Linux）** / project-plan（现行计划）/ memory-baseline / research（R12 选型·R13 结构件）/ std（规范套件，含 naming 命名规范）/ evidence（真机证据，README 有索引）/ history（历史归档：状态日志/旧计划/评审档案） |
 | `decisions.md` | Q/DEC 裁决登记册（全部决策可溯） |
@@ -64,7 +65,9 @@
 
 ## 快速上手（Linux 环境）
 
-环境事实源见 `docs/dev-environment.md`；**从零重建（多机/含 ARM Linux）按 `docs/env-rebuild-checklist.md` 逐项执行**（Zephyr v4.5.0-rc1 + Zephyr SDK 1.0.1 钉版；目录规范 `~/project/{Tessera,zephyrproject,logs}`）。x86/WSL2 历史口径见 dev-environment §1-8（迁移档案已随 2026-10-24 仓整理删除——重建以 checklist 为唯一总单）。
+**一键安装（推荐）**：`./tools/env/install.sh`（标准档）或 `--dev` 开发者档（sudo 交互 + `--proxy` 支持 + LLM 端点/密钥运行时引导——详见 `tools/env/README.md`）。
+
+手工路线：环境事实源见 `docs/dev-environment.md`；**从零重建（多机/含 ARM Linux）按 `docs/env-rebuild-checklist.md` 逐项执行**（Zephyr v4.5.0-rc1 + Zephyr SDK 1.0.1 钉版；目录规范 `~/project/{Tessera,zephyrproject,logs}`）。x86/WSL2 历史口径见 dev-environment §1-8（迁移档案已随 2026-10-24 仓整理删除——重建以 checklist 为唯一总单）。
 
 ```bash
 # 固件构建（native_sim）

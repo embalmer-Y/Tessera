@@ -1189,3 +1189,13 @@
 - **落地**（详见 plan v1.155 / AGENTS 一五七 / names §6 登记册）：① 删除 14 件（九份一次性评审/自检档合并 `docs/history/review-archive.md` 保 IR/IR2/DR/SC 发现编号溯源链；migration-x86〔env-rebuild-checklist 为唯一重建总单〕/agent-llm-smoke-01/agent-demo-readiness-01〔结论已消费〕/agent/decisions.md 陈旧孤儿/legacy+hardware 空目录）；② 命名规范化（`docs/std/naming.md` 新立：自描述 slug、纯序号/会话代号命名禁用——LLD-A 系 19 件→LLD-agent-\*/LLD-ts-common、docs \*-01 16 件去号、demos 16 目录→demo-\*、l3app→firmware/tests/netlab、tests/l5→tests/safety_check、tools/board 16 脚本描述化、scenarios 2 件；新旧映射唯一权威 = names.md §6）；③ 文档瘦身（AGENTS §1 留近三会话 658→102 行、plan 540→113 行现行化、names 旧修订归档——历史正文**逐字搬运非改写**至 docs/history/）；④ 代码面：agent Python 死模块扫描零命中；固件 C 逻辑不动（仅注释引用同步；执行机无 Zephyr 工具链——军规 10 交付即验证，如实登记；d4/d6/d9_pkg.h 内嵌包头改名随固件批缓办——子智能体复核后登记）。
 - **纪律注记**：历史登记不回溯原则维持——归档为搬运非改写；decisions.md 本体（权威裁决记录）不随本整理瘦身；docs/evidence/ 留痕文件名不回溯（README 索引化）；HLD 文内结构节号（A00-A17 等）非文件名，维持。
 - **V0.16.0 归属**：L 表第二单元（owner 明示「主要任务之一」）；子智能体复核（owner 指令）为批内必经步骤。
+
+## DEC-79（环境自动部署脚本指令，2026-10-24——owner 指令要点：①「请你先在该机器上恢复项目开发环境，并着手开发一套面向Linux（X86/AArch64）的自动化环境部署脚本，允许一键搭建开发环境，这一项也是V0.16.0的一部分功能」；②「该脚本必须提供sudo权限，脚本执行时向用户索要root密码」；③「不尝试解决网络问题，支持配置代理，例如本机代理为http://127.0.0.1:7890」；④「该项目主要部署在linux设备中该程序是用户下载使用时的自动化安装程序，所以本程序应该是面向用户的，例如Agent需要的URL，API key需要用户在脚本执行时提供或执行前通过引入配置文件导入」）
+
+- **落地**：`tools/env/` 安装套件（owner 定位 = **面向用户的产品安装程序**）：`install.sh` 单入口（标准档=Agent venv+zenohd+esptool+用户配置引导 / `--dev` 追加固件全链）+ `env_common.sh` 公共库（钉版 PIN_*/架构探测/代理/sudo）+ `steps/`×10 幂等分步（真实状态探测跳过——任意失败断点续装）+ `verify_env.sh` 分层验证（checklist §11 ①-⑤ 机械）+ README（用户文档）。
+- **sudo（指令②）**：交互终端 `sudo -v` 索要密码（缓存凭证）；管道场景 `sudo -S` stdin；皆不可用转 `--skip-sudo` 用户态回退（65-llvm tarball/SDK hosttools）。
+- **代理（指令③）**：`--proxy URL` 或环境继承（git/wget/curl/pip 全生效；apt 经显式 `-o Acquire::*::Proxy`）；**不做镜像绕行工程**。
+- **凭据（指令④）**：LLM URL/API key/WiFi 经交互输入（密钥隐藏不回显）或 `--config KEY=VALUE` 文件导入；落盘仅 600 仓外（`~/project/logs/env.sh` + gitignored `agent/config.toml`）；**绝不入仓**；已存在配置不覆盖。
+- **本机恢复（指令①）**：x86_64/Ubuntu 26.04 全链实测（west 工作区 10G 代理通道/blobs 73/SDK 1.0.1/WAMR/zenoh-pico+TLS/zenohd/apt clang-18=18.1.8 精确对齐 CI）；**twister 17/17 套件（115+2s；framework.net 并行 configure_file 竞态单跑 17/17 过——v1.148 同型环境域）+ agent 356+2s 全绿（clang 恢复后 23 环境域失败全转正）+ repo pytest + sync**。
+- **顺带修复两枚仓内潜伏缺陷（新机必踩）**：zenoh-pico-tls.patch ① tcp_zephyr.c 段 hunk 计数头 19→12（重生成期缺陷——GNU patch 判 malformed、git apply 全拒）② primitives.h 段缺 `--- a/` 头行；剥宏清单 12→**13**（+AUTO_RECONNECT——R5-V 起补丁基线，checklist §3 ② 滞后勘误）。守恒测试 `test_env_installer.py` +6（bash -n/步骤引用/钉版三方/diff 计数自检器/help 契约/命名合规）。
+- **V0.16.0 归属**：L 表第三单元（owner 明示「V0.16.0的一部分功能」）。

@@ -1,0 +1,40 @@
+# 环境恢复 + 自动化安装程序验证证据（x86_64 / Ubuntu 26.04 · 2026-10-24 · DEC-79）
+# 执行机：全新环境（2026-10-24 clone，无预装工具链）· root 密码经 stdin sudo -S（未落任何仓内文件）
+
+===== 工具链版本 =====
+gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+Ubuntu clang version 18.1.8 (20ubuntu8)
+esptool: esptool v5.4.0
+cmake(venv 钉版): cmake version 3.31.6
+zenohd: [2m2026-10-24T04:56:27.618224Z[0m [32m INFO[0m main ThreadId(01) [2mzenohd[0m[2m:[0m zenohd v1.10.1 built with rustc 1.97.1 (8bab26f4f 2026-07-14)
+SDK: xtensa-espressif_esp32s3_zephyr-elf
+blobs: 73 件 .a
+WAMR version.h: -rw-rw-r--
+
+===== verify_env.sh ① twister（单轮全绿） =====
+17 of 17 executed test configurations passed (100.00%), 0 built (not run), 0 failed, 0 errored, with no warnings in 30.82 seconds.
+115 of 115 executed test cases passed (100.00%) on 1 out of total 1784 platforms (0.06%).
+[1;34m[tessera-installer][0m ① twister PASS
+  ① twister PASS
+
+===== verify_env.sh ④ repo + L5 =====
+11 passed in 0.17s
+L5 OK: 7/7 机械检查通过（唯一写路径/三态完备/禁用模式/常量出处/estop 路径/prov 零写/slot 收口）
+
+===== verify_env.sh ③ agent（sync 待终更前 355+1；终更后见下） =====
+11 passed in 0.17s
+
+===== zenoh-pico TLS 补丁修复实证（git apply 严格域） =====
+REVERSE_CHECK_OK（补丁与工作树逐行一致）
+ M include/zenoh-pico/api/primitives.h
+ M include/zenoh-pico/link/transport/tls_stream.h
+ M include/zenoh-pico/system/platform/zephyr.h
+ M src/api/api.c
+ M src/link/transport/tcp/tcp_zephyr.c
+ M src/link/transport/upper/tls_stream.c
+ M zephyr/CMakeLists.txt
+ M zephyr/Kconfig.zenoh
+?? include/zenoh-pico/config.h
+
+===== 终态 agent 回归（sync 终更后） =====
+356 passed, 2 skipped, 1 warning in 17.69s

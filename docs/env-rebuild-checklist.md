@@ -5,7 +5,7 @@
 > **事实来源**：本机 2026-10-11 重建实测（dev-environment §9）+ 2026-10-17
 > fw-v0.9.0 环境审查批核对；aarch64 列已按官方资产与包生态核对（SDK 资产名
 > 实证存在），**标注 ⚠ 的行 = 尚未在 ARM 机实测，首台 ARM 机执行后回填实测注记**。
-> **配套**：板级工具用法 = `tools/board/README.md`（迁移档案已随 2026-10-24 仓整理删除——本文即唯一重建总单）。
+> **配套**：板级工具用法 = `tools/board/README.md`；**一键自动化 = `tools/env/install.sh`**（本单的机械化——DEC-79；手工配方仍以本文为权威）。
 
 ## 0. 前提与原则
 
@@ -65,8 +65,10 @@ pip install esptool==5.4.0        # 直装——`west packages pip --install` �
   ① `git clone --depth 1 --branch 1.10.1 https://github.com/eclipse-zenoh/zenoh-pico.git \
      ~/project/zephyrproject/zenoh-pico`
   ② `cmake -S <zenoh-pico> -B <tmpdir>` 生成 config.h → 落位 `include/zenoh-pico/config.h`，
-     **只剥 12 个 Kconfig 管辖宏**（MULTI_THREAD/PUBLICATION/SUBSCRIPTION/QUERYABLE/QUERY/
-     LINK_TCP/LINK_UDP_UNICAST/LINK_SERIAL/LINK_UDP_MULTICAST/LINK_WS/RAWETH_TRANSPORT/SCOUTING），
+     **剥 13 个 Kconfig/补丁管辖宏**（MULTI_THREAD/PUBLICATION/SUBSCRIPTION/QUERYABLE/QUERY/
+     LINK_TCP/LINK_UDP_UNICAST/LINK_SERIAL/LINK_UDP_MULTICAST/LINK_WS/RAWETH_TRANSPORT/SCOUTING
+     /AUTO_RECONNECT——**v1.4 勘误：第 13 个 = AUTO_RECONNECT**，R5-V 起 tls.patch config.h
+     hunk 以其已剥为基线，此前文档漏记），
      其余保留（dev-env §7-2——剥光触发上游笔误分支编译失败）
   ③ 板级构建（atkbench 基线含 `CONFIG_ZENOH_PICO_LINK_TLS=y`）**必施 TLS 补丁**：
      `patch -p1 -d <zenoh-pico> < Tessera/firmware/module/tessera/ext/zenoh-pico-tls.patch`
@@ -203,6 +205,7 @@ python3 -m venv ~/project/agent-venv
     走 github 直连在同款网络下恒败）。
 
 ## 修订记录
+- v1.4 · 2026-10-24：**DEC-79 环境安装程序批**——§0 增一键入口（tools/env/install.sh = 本单机械化）；§3 ② 剥宏 12→**13** 勘误（+AUTO_RECONNECT）；同批修复 ext/zenoh-pico-tls.patch 两处潜伏格式缺陷（tcp 段 hunk 计数头 19→12 + primitives.h 段缺 --- a/ 头行——git apply 严格域全拒，GNU patch 部分容忍 = 历史机侥幸根因；守恒测试 test_env_installer.py 防复发）。x86_64/Ubuntu 26.04 全链实测回填（apt clang-18=18.1.8；venv cmake 钉 3.31.6 免发行版 4.x 风险）。
 
 - v1.1 · 2026-10-17：**首台 ARM 机（Radxa Cubie A7A）全量实测回填**——§12 aarch64 全列
   ✅ 落值；§3 zenoh-pico 接入三步更正（不在 mainline manifest——「随 west update 就位」失实）
