@@ -1,0 +1,33 @@
+{
+  "suite": "tessera-agent-eval/1 (AC-1, DEC-81)",
+  "generated_at": "2026-10-29T07:56:35+00:00",
+  "model": "anthropic:deepseek/deepseek-v4.1-flash",
+  "sim_section": "skip（AC-3 判据闭环单元补全场景定义）",
+  "summary": {
+    "tasks": 1,
+    "pass": 0,
+    "partial": 0,
+    "fail": 1,
+    "pass_rate": 0.0,
+    "avg_rounds_done": null,
+    "total_elapsed_s": 0.0
+  },
+  "tasks": [
+    {
+      "id": "T2",
+      "title": "多文件工程（滑动平均 + 独立滤波模块）",
+      "verdict": "FAIL",
+      "checks": {
+        "converged": {
+          "ok": false,
+          "detail": "超时（>720s）"
+        }
+      },
+      "rounds": null,
+      "elapsed_s": 0.0,
+      "workspace": "",
+      "package_path": "",
+      "error": "超时（>720s）"
+    }
+  ]
+}

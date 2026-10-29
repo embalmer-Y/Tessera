@@ -1231,3 +1231,11 @@
 3. **`app_criteria_run` MCP 工具**（confirm 类——串口只读采集，不动板态；单读者纪律由串口固有互斥承担）：port + rules + segment_marker + window_s → capture_window（tools_diag/capture.py 复用）→ 判据窗引擎（**CONNECTED 切段**取末段 + present/monotonic 两规则 v1——ds41 方法学升格）。真机验收 = 现网 hbcounter 判据窗（板在线时）。
 4. **eval --with-sim 实装**：suite 任务加 sim 定义（T1/T2/T3 = ticks+verdict_patterns+可选 monotonic；T4/T5 = sim=None 如实登记「线程/资源档真机域」）；scorer PACKAGED 后跑执行器核验（毫秒级/任务——非 west build 重放）。
 5. **diag 联动**：判据报告 render_evidence() 产出修复链可直喂文本（S8 repair 通道组合面，无新机制）。
+
+## DEC-83（AC-4 经验复用设计要点，2026-10-29——owner 指令「请你开始AC-4」；plan v1.161 AC-4 行 = 批准范围）
+
+1. **库形态**：无持久索引——`agent/workspace/t-*` 目录即库，**扫描即索引**（成功判定 = artifacts/app.wasm + *.tsap 双产物在盘，比 snapshot.state 可靠——快照时机滞后实证）；持久索引留 v2（规模需时）。
+2. **检索算法 v1（词面机械，零嵌入模型）**：token 分词（英文词粒度 + 汉字单字粒度）Jaccard + caps 前缀族重合 ×0.5 + imports 重合 ×0.5；语义代理 = 快照 plan 步骤文本（spec 原文仅 digest 入库——模型写的实施计划是需求语义最佳载体）。top_k=2、score>0 才注入。
+3. **注入面**：PLANNING 阶段——`PydanticLoopRunner.reference_block`（新属性）在 plan() 输入拼接（spec + 参考样例块 + 判据约束）；注入预算 = top_k×300B 摘要；样例块明示「结构可参照、禁止照抄业务逻辑」（创作自由度与防抄袭平衡）；命中经 log 外显（reference: 命中 N 样例）。
+4. **纪律面**：检索发生在 loop.run() 前——本轮工作区天然不在库中（自匹配排除）；空库零注入（零变化向后兼容）。
+5. **消费面**：eval 即插即用度量注入价值（同任务带/不带库的收敛轮数对比——AC-1 基准直接兑现）。

@@ -35,6 +35,7 @@ from tessera_agent.creation.loop import (
 )
 from tessera_agent.creation.tools import WorkspaceTools
 from tessera_agent.creation.workspace import Workspace
+from tessera_agent.domain import patterns
 from tessera_agent.domain.firmware_creation import FirmwareCreationVerifier, creation_sim_runner
 from tessera_agent.platform import AppContext
 from tessera_agent.skills import loader as skill_loader
@@ -301,6 +302,7 @@ class PydanticLoopRunner:
         self.safety_notes: list[str] = []
         self.test_plan: list[str] = []
         self.steps: list[str] = []
+        self.reference_block = ""  # AC-4（DEC-83③）：PLANNING 参考样例块
 
     async def plan(self, spec: str, criteria: list[str]) -> list[PlanItem]:
         clause = ""
@@ -308,7 +310,7 @@ class PydanticLoopRunner:
             lines = "\n".join(f'  - "{c}"' for c in criteria)
             clause = ("\n\n[判据/附属证据行约束——实现必须让这些行逐字出现：\n"
                       f"{lines}\n]")
-        result = await self._plan_agent.run(spec + clause)
+        result = await self._plan_agent.run(spec + self.reference_block + clause)
         out = result.output
         self.requirements_summary = out.requirements_summary
         self.safety_notes = list(out.safety_notes)
@@ -498,6 +500,16 @@ async def _app_develop_loop(
 
     runner = PydanticLoopRunner(ctx, ws, model=model, log_fn=log)
     verifier = FirmwareCreationVerifier(sim_runner=creation_sim_runner)
+
+    # AC-4（DEC-83③）：样例库检索 → PLANNING 参考样例注入（本轮工作区
+    # 尚无产物 = 天然不在库中；空库零注入向后兼容）
+    try:
+        ref_block, ref_hits = patterns.retrieve(base, spec)
+        if ref_block:
+            runner.reference_block = ref_block
+            log(f"reference: 样例库命中 {len(ref_hits)} 样例 {ref_hits}")
+    except OSError as exc:  # 库检索失败不阻断创作（log 留痕）
+        log(f"reference: 检索跳过（{type(exc).__name__}）")
 
     async def _on_event(kind: str, data: dict[str, Any]) -> None:
         log(f"loop:{kind} {json.dumps(data, ensure_ascii=False)[:200]}")
