@@ -1,0 +1,235 @@
+{
+  "suite": "tessera-agent-eval/1 (AC-1, DEC-81)",
+  "generated_at": "2026-10-29T03:42:12+00:00",
+  "model": "anthropic:deepseek/deepseek-v4.1-flash",
+  "sim_section": "skip（AC-3 判据闭环单元补全场景定义）",
+  "summary": {
+    "tasks": 5,
+    "pass": 2,
+    "partial": 1,
+    "fail": 2,
+    "pass_rate": 0.4,
+    "avg_rounds_done": 2.67,
+    "total_elapsed_s": 1196.2
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "单文件 log-only 基线（心跳计数）",
+      "verdict": "PASS",
+      "checks": {
+        "converged": {
+          "ok": true,
+          "detail": ""
+        },
+        "rounds": {
+          "ok": true,
+          "detail": 3
+        },
+        "imports": {
+          "ok": true,
+          "detail": [
+            "ts_log_write"
+          ]
+        },
+        "exports": {
+          "ok": true,
+          "detail": []
+        },
+        "deterministic": {
+          "ok": true,
+          "detail": ""
+        },
+        "size": {
+          "ok": true,
+          "detail": "973B / cap 16384B"
+        },
+        "caps": {
+          "ok": true,
+          "detail": "want=[] got=[]"
+        },
+        "threads": {
+          "ok": true,
+          "detail": 1
+        },
+        "tier": {
+          "ok": true,
+          "detail": "small"
+        },
+        "needs": {
+          "ok": true,
+          "detail": "n/a"
+        },
+        "source_files": {
+          "ok": true,
+          "detail": 6
+        },
+        "package_on_disk": {
+          "ok": true,
+          "detail": "/home/emb/project/Tessera/agent/workspace/t-ddfc55cc/artifacts/tessera.app.heartbeat-1.0.0.tsap"
+        }
+      },
+      "rounds": 3,
+      "elapsed_s": 574.5,
+      "workspace": "/home/emb/project/Tessera/agent/workspace/t-ddfc55cc",
+      "package_path": "/home/emb/project/Tessera/agent/workspace/t-ddfc55cc/artifacts/tessera.app.heartbeat-1.0.0.tsap",
+      "error": ""
+    },
+    {
+      "id": "T2",
+      "title": "多文件工程（滑动平均 + 独立滤波模块）",
+      "verdict": "PASS",
+      "checks": {
+        "converged": {
+          "ok": true,
+          "detail": ""
+        },
+        "rounds": {
+          "ok": true,
+          "detail": 2
+        },
+        "imports": {
+          "ok": true,
+          "detail": [
+            "ts_log_write"
+          ]
+        },
+        "exports": {
+          "ok": true,
+          "detail": []
+        },
+        "deterministic": {
+          "ok": true,
+          "detail": ""
+        },
+        "size": {
+          "ok": true,
+          "detail": "1427B / cap 16384B"
+        },
+        "caps": {
+          "ok": true,
+          "detail": "want=[] got=['log:write:0']"
+        },
+        "threads": {
+          "ok": true,
+          "detail": 1
+        },
+        "tier": {
+          "ok": true,
+          "detail": "small"
+        },
+        "needs": {
+          "ok": true,
+          "detail": "n/a"
+        },
+        "source_files": {
+          "ok": true,
+          "detail": 5
+        },
+        "package_on_disk": {
+          "ok": true,
+          "detail": "/home/emb/project/Tessera/agent/workspace/t-6d659708/artifacts/tessera.app.movavg8-0.1.0.tsap"
+        }
+      },
+      "rounds": 2,
+      "elapsed_s": 248.3,
+      "workspace": "/home/emb/project/Tessera/agent/workspace/t-6d659708",
+      "package_path": "/home/emb/project/Tessera/agent/workspace/t-6d659708/artifacts/tessera.app.movavg8-0.1.0.tsap",
+      "error": ""
+    },
+    {
+      "id": "T3",
+      "title": "caps 真写入（输出通道自检）",
+      "verdict": "FAIL",
+      "checks": {
+        "converged": {
+          "ok": false,
+          "detail": "UnexpectedModelBehavior: Tool 'ws_write' exceeded max retries count of 3. Consider raising the retry limit, or see the docs on tool retries: https://pydantic.dev/docs/ai/tools-toolsets/tools-advanced/#tool-retries"
+        }
+      },
+      "rounds": null,
+      "elapsed_s": 0.0,
+      "workspace": "",
+      "package_path": "",
+      "error": "UnexpectedModelBehavior: Tool 'ws_write' exceeded max retries count of 3. Consider raising the retry limit, or see the docs on tool retries: https://pydantic.dev/docs/ai/tools-toolsets/tools-advanced/#tool-retries"
+    },
+    {
+      "id": "T4",
+      "title": "threads 档（双线程并行累加）",
+      "verdict": "PARTIAL",
+      "checks": {
+        "converged": {
+          "ok": true,
+          "detail": ""
+        },
+        "rounds": {
+          "ok": true,
+          "detail": 3
+        },
+        "imports": {
+          "ok": true,
+          "detail": [
+            "ts_log_write"
+          ]
+        },
+        "exports": {
+          "ok": true,
+          "detail": []
+        },
+        "deterministic": {
+          "ok": true,
+          "detail": ""
+        },
+        "size": {
+          "ok": true,
+          "detail": "3788B / cap 16384B"
+        },
+        "caps": {
+          "ok": true,
+          "detail": "want=[] got=[]"
+        },
+        "threads": {
+          "ok": false,
+          "detail": 1
+        },
+        "tier": {
+          "ok": true,
+          "detail": "small"
+        },
+        "needs": {
+          "ok": true,
+          "detail": "n/a"
+        },
+        "source_files": {
+          "ok": true,
+          "detail": 9
+        },
+        "package_on_disk": {
+          "ok": true,
+          "detail": "/home/emb/project/Tessera/agent/workspace/t-27dd5b28/artifacts/tessera.demo.parallel-1.0.0.tsap"
+        }
+      },
+      "rounds": 3,
+      "elapsed_s": 373.3,
+      "workspace": "/home/emb/project/Tessera/agent/workspace/t-27dd5b28",
+      "package_path": "/home/emb/project/Tessera/agent/workspace/t-27dd5b28/artifacts/tessera.demo.parallel-1.0.0.tsap",
+      "error": ""
+    },
+    {
+      "id": "T5",
+      "title": "resources 外置（large 档校准查表）",
+      "verdict": "FAIL",
+      "checks": {
+        "converged": {
+          "ok": false,
+          "detail": "IsADirectoryError: [Errno 21] Is a directory: '/home/emb/project/Tessera/agent/workspace/t-838f2b0a/project.tmp' -> '/home/emb/project/Tessera/agent/workspace/t-838f2b0a/project'"
+        }
+      },
+      "rounds": null,
+      "elapsed_s": 0.0,
+      "workspace": "",
+      "package_path": "",
+      "error": "IsADirectoryError: [Errno 21] Is a directory: '/home/emb/project/Tessera/agent/workspace/t-838f2b0a/project.tmp' -> '/home/emb/project/Tessera/agent/workspace/t-838f2b0a/project'"
+    }
+  ]
+}

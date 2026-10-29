@@ -1207,3 +1207,15 @@
 - **凭据红线**：MCP 面 key 只经 `key_env` 环境变量名解析（**值不入工具参数/审计流**）；CLI 同（--key-env 指名，值不入 argv）；报告与建议全程无 key（测试断言贯穿）；owner 提供的实测 key 仅经环境变量使用，未落任何仓内文件。
 - **联动**：tools/env 安装器 85 步采集 URL+Key 后自动跑探针（非阻断呈现）；测试 +10（MockTransport 注入零真实网络：校验/双协议/不鉴权面/状态分类/异常分类/红线/注册）——agent 366+2s 全绿。
 - **V0.16.0 归属**：L 表第四单元。
+
+## DEC-81（V0.17.0「Agent 能力版」立项 + AC-1 评估基准设计要点，2026-10-29——owner 指令：「同意v0.16打tag，同意Agent优化规划。请你开始实施」；plan v1.161 = 批准范围原文）
+
+1. **版本面**：fw-v0.16.0 tag 随令打（指向 939f3dd 收口 HEAD）；V0.17.0 按 plan v1.161 单元集/执行序（AC-1→AC-5）实施，版本验收 = 真实需求端到端 Agent 自主交付 + eval 基线机械对比。
+2. **AC-1 评估基准（首单元）设计要点按建议值**（plan v1.161 AC-1 行批准范围 + 实施细节）：
+   - 任务谱 T1-T5：T1 单文件 log-only（ts_log_write/ts_time_ms）；T2 多文件工程（3+ 源文件 + include/，log-only 面）；T3 caps 真写入（ts_gpio_write/ts_pwm_set + manifest caps 声明）；T4 threads 档（ts_thread_start/join + manifest threads=2——M19/DEC-55 已裁已实施面）；T5 resources 外置（needs.resources + ts_fs_read——AK4 协议面）。spec 文本 = 真实需求措辞（非内部术语腔）。
+   - 评分器五维度（全 headless 机械）：① converged（state==PACKAGED）② 收敛轮数 ③ compile_facts 合规（imports ⊆ 任务期望族/exports 齐/deterministic/尺寸档门）④ 包规范对拍（tsap_verify + 包内 manifest caps/threads/needs 对拍任务期望）⑤ sim 判据（**可选段 `--with-sim`，缺省 off**——sim_run 走 west build 重放双跑，分钟级/任务；首基线不跑以控耗时，报告标注 skip）。
+   - CLI：`python -m tessera_agent agent-eval`（--tasks 选择子集/--with-sim/--out 报告落点/--timeout-per-task 单任务墙钟上限缺省 600s）；任务顺序执行（路由侧限流安全）。
+   - 报告：JSON + markdown 双形态；基线报告落 docs/evidence/（证据惯例）。
+   - 测试同批：任务谱契约 + 评分器机械判定 + CLI 契约——全部 Mock 注入不真调 LLM（回归零网络依赖）。
+3. **首基线**：deepseek/deepseek-v4.1-flash（config.toml 现行模型串），真 LLM 顺序跑 T1-T5 全谱，报告随单元交付。
+4. **归属**：V0.17.0 L 表 AC-1（plan v1.161）；AC-2..5 逐单元开工前各自呈递 Q 门不变。

@@ -1,0 +1,284 @@
+{
+  "suite": "tessera-agent-eval/1 (AC-1, DEC-81)",
+  "generated_at": "2026-10-29T04:16:20+00:00",
+  "model": "anthropic:deepseek/deepseek-v4.1-flash",
+  "sim_section": "skip（AC-3 判据闭环单元补全场景定义）",
+  "summary": {
+    "tasks": 5,
+    "pass": 4,
+    "partial": 0,
+    "fail": 1,
+    "pass_rate": 0.8,
+    "avg_rounds_done": 2.0,
+    "total_elapsed_s": 1360.5
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "单文件 log-only 基线（心跳计数）",
+      "verdict": "PASS",
+      "checks": {
+        "converged": {
+          "ok": true,
+          "detail": ""
+        },
+        "rounds": {
+          "ok": true,
+          "detail": 1
+        },
+        "imports": {
+          "ok": true,
+          "detail": [
+            "ts_log_write"
+          ]
+        },
+        "exports": {
+          "ok": true,
+          "detail": []
+        },
+        "deterministic": {
+          "ok": true,
+          "detail": ""
+        },
+        "size": {
+          "ok": true,
+          "detail": "767B / cap 16384B"
+        },
+        "caps": {
+          "ok": true,
+          "detail": "want=[] got=['log:write:0']"
+        },
+        "threads": {
+          "ok": true,
+          "detail": 1
+        },
+        "tier": {
+          "ok": true,
+          "detail": "small"
+        },
+        "needs": {
+          "ok": true,
+          "detail": "n/a"
+        },
+        "source_files": {
+          "ok": true,
+          "detail": 7
+        },
+        "package_on_disk": {
+          "ok": true,
+          "detail": "/home/emb/project/Tessera/agent/workspace/t-d0ed9b4e/artifacts/tessera.app.hbcount-1.0.0.tsap"
+        }
+      },
+      "rounds": 1,
+      "elapsed_s": 155.6,
+      "workspace": "/home/emb/project/Tessera/agent/workspace/t-d0ed9b4e",
+      "package_path": "/home/emb/project/Tessera/agent/workspace/t-d0ed9b4e/artifacts/tessera.app.hbcount-1.0.0.tsap",
+      "error": ""
+    },
+    {
+      "id": "T2",
+      "title": "多文件工程（滑动平均 + 独立滤波模块）",
+      "verdict": "PASS",
+      "checks": {
+        "converged": {
+          "ok": true,
+          "detail": ""
+        },
+        "rounds": {
+          "ok": true,
+          "detail": 2
+        },
+        "imports": {
+          "ok": true,
+          "detail": [
+            "ts_log_write"
+          ]
+        },
+        "exports": {
+          "ok": true,
+          "detail": []
+        },
+        "deterministic": {
+          "ok": true,
+          "detail": ""
+        },
+        "size": {
+          "ok": true,
+          "detail": "1371B / cap 16384B"
+        },
+        "caps": {
+          "ok": true,
+          "detail": "want=[] got=[]"
+        },
+        "threads": {
+          "ok": true,
+          "detail": 1
+        },
+        "tier": {
+          "ok": true,
+          "detail": "small"
+        },
+        "needs": {
+          "ok": true,
+          "detail": "n/a"
+        },
+        "source_files": {
+          "ok": true,
+          "detail": 6
+        },
+        "package_on_disk": {
+          "ok": true,
+          "detail": "/home/emb/project/Tessera/agent/workspace/t-63316422/artifacts/tessera.app.avg8-1.0.0.tsap"
+        }
+      },
+      "rounds": 2,
+      "elapsed_s": 399.9,
+      "workspace": "/home/emb/project/Tessera/agent/workspace/t-63316422",
+      "package_path": "/home/emb/project/Tessera/agent/workspace/t-63316422/artifacts/tessera.app.avg8-1.0.0.tsap",
+      "error": ""
+    },
+    {
+      "id": "T3",
+      "title": "caps 真写入（输出通道自检）",
+      "verdict": "PASS",
+      "checks": {
+        "converged": {
+          "ok": true,
+          "detail": ""
+        },
+        "rounds": {
+          "ok": true,
+          "detail": 3
+        },
+        "imports": {
+          "ok": true,
+          "detail": [
+            "ts_gpio_read",
+            "ts_gpio_write",
+            "ts_log_write",
+            "ts_time_ms"
+          ]
+        },
+        "exports": {
+          "ok": true,
+          "detail": []
+        },
+        "deterministic": {
+          "ok": true,
+          "detail": ""
+        },
+        "size": {
+          "ok": true,
+          "detail": "2308B / cap 16384B"
+        },
+        "caps": {
+          "ok": true,
+          "detail": "want=['gpio:'] got=['gpio:read:0', 'gpio:write:0']"
+        },
+        "threads": {
+          "ok": true,
+          "detail": 1
+        },
+        "tier": {
+          "ok": true,
+          "detail": "small"
+        },
+        "needs": {
+          "ok": true,
+          "detail": "n/a"
+        },
+        "source_files": {
+          "ok": true,
+          "detail": 3
+        },
+        "package_on_disk": {
+          "ok": true,
+          "detail": "/home/emb/project/Tessera/agent/workspace/t-13f56895/artifacts/tessera.demo.toggle-0.1.0.tsap"
+        }
+      },
+      "rounds": 3,
+      "elapsed_s": 337.5,
+      "workspace": "/home/emb/project/Tessera/agent/workspace/t-13f56895",
+      "package_path": "/home/emb/project/Tessera/agent/workspace/t-13f56895/artifacts/tessera.demo.toggle-0.1.0.tsap",
+      "error": ""
+    },
+    {
+      "id": "T4",
+      "title": "threads 档（双线程并行累加）",
+      "verdict": "PASS",
+      "checks": {
+        "converged": {
+          "ok": true,
+          "detail": ""
+        },
+        "rounds": {
+          "ok": true,
+          "detail": 2
+        },
+        "imports": {
+          "ok": true,
+          "detail": [
+            "ts_log_write"
+          ]
+        },
+        "exports": {
+          "ok": true,
+          "detail": []
+        },
+        "deterministic": {
+          "ok": true,
+          "detail": ""
+        },
+        "size": {
+          "ok": true,
+          "detail": "1574B / cap 16384B"
+        },
+        "caps": {
+          "ok": true,
+          "detail": "want=[] got=['log:write:0']"
+        },
+        "threads": {
+          "ok": true,
+          "detail": 2
+        },
+        "tier": {
+          "ok": true,
+          "detail": "small"
+        },
+        "needs": {
+          "ok": true,
+          "detail": "n/a"
+        },
+        "source_files": {
+          "ok": true,
+          "detail": 8
+        },
+        "package_on_disk": {
+          "ok": true,
+          "detail": "/home/emb/project/Tessera/agent/workspace/t-293293d6/artifacts/tessera.demo.parallel-1.0.0.tsap"
+        }
+      },
+      "rounds": 2,
+      "elapsed_s": 467.4,
+      "workspace": "/home/emb/project/Tessera/agent/workspace/t-293293d6",
+      "package_path": "/home/emb/project/Tessera/agent/workspace/t-293293d6/artifacts/tessera.demo.parallel-1.0.0.tsap",
+      "error": ""
+    },
+    {
+      "id": "T5",
+      "title": "resources 外置（large 档校准查表）",
+      "verdict": "FAIL",
+      "checks": {
+        "converged": {
+          "ok": false,
+          "detail": "UnexpectedModelBehavior: Exceeded maximum output retries (3)"
+        }
+      },
+      "rounds": null,
+      "elapsed_s": 0.0,
+      "workspace": "",
+      "package_path": "",
+      "error": "UnexpectedModelBehavior: Exceeded maximum output retries (3)"
+    }
+  ]
+}

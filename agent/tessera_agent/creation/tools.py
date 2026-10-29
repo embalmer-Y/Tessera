@@ -104,6 +104,11 @@ class WorkspaceTools:
                 detail={"bytes": len(data)},
             )
         resolved = self.ws.resolve_write(path)
+        if resolved.is_dir():
+            # 目录路径直写会在原子替换（tmp.replace）裸抛 IsADirectoryError——
+            # fail-closed 化（eval 基线首跑 T5 实证缺陷，AC-1 随批修复）
+            raise TaError(TA_E_WORKSPACE_PATH, f"写入路径为目录: {path}",
+                          domain=DOMAIN, detail={"path": path})
         rel = str(resolved.relative_to(self.ws.project_dir))
         exists = resolved.is_file()
         if exists:

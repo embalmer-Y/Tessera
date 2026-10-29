@@ -83,6 +83,24 @@ def main(argv: list[str] | None = None) -> int:
     llmc.add_argument("--timeout", type=float, default=20.0, help="每请求超时秒")
     llmc.add_argument("--json", action="store_true", help="结构化输出（缺省人读形态）")
 
+    ev = sub.add_parser(
+        "agent-eval",
+        help="Agent 能力评估基准：任务谱 T1-T5 × headless 评分（AC-1 · DEC-81）")
+    ev.add_argument("--tasks", default=None, metavar="T1,T2",
+                    help="任务 id 子集（缺省全谱 T1-T5）")
+    ev.add_argument("--config", default=None, metavar="PATH",
+                    help="agent config.toml 路径（缺省 <repo>/agent/config.toml）")
+    ev.add_argument("--key", default=None, metavar="PATH",
+                    help="TSAP 签名私钥路径（缺省 fixtures/ts-test-root.key）")
+    ev.add_argument("--timeout-per-task", type=float, default=600.0,
+                    help="单任务墙钟上限秒（缺省 600）")
+    ev.add_argument("--with-sim", action="store_true",
+                    help="sim 判据段（v1 = 装载冒烟，场景定义随 AC-3 补全）")
+    ev.add_argument("--out-dir", default=None, metavar="PATH",
+                    help="报告落盘目录（缺省 docs/evidence/）")
+    ev.add_argument("--json", action="store_true",
+                    help="打印 JSON 报告（缺省人读形态）")
+
     args = parser.parse_args(argv)
 
     if args.command == "serve":
@@ -102,8 +120,76 @@ def main(argv: list[str] | None = None) -> int:
         return _memory_audit_command(args)
     if args.command == "llm-check":
         return _llm_check_command(args)
+    if args.command == "agent-eval":
+        return _agent_eval_command(args)
     parser.print_help()
     return 0
+
+
+def _agent_eval_command(args) -> int:
+    """AC-1 能力评估基准 CLI（DEC-81）——任务谱顺序真跑 + headless 评分。"""
+    import asyncio
+    import sys as _sys
+    from pathlib import Path
+
+    from tessera_agent.common.config import load_config
+    from tessera_agent.eval import report as eval_report
+    from tessera_agent.eval import scorer as eval_scorer
+    from tessera_agent.eval import suite as eval_suite
+
+    repo = Path(__file__).resolve().parents[2]
+    try:
+        tasks = eval_suite.select(
+            args.tasks.split(",") if args.tasks else None)
+    except ValueError as exc:
+        print(f"✗ {exc}", file=_sys.stderr)
+        return 2
+
+    key_path = args.key or str(
+        repo / "agent" / "tests" / "fixtures" / "ts-test-root.key")
+    if not Path(key_path).is_file():
+        print(f"✗ 签名私钥不存在: {key_path}", file=_sys.stderr)
+        return 2
+
+    cfg_path = args.config or str(repo / "agent" / "config.toml")
+    cfg = load_config(cfg_path)
+
+    print(f"agent-eval：{len(tasks)} 任务 模型={cfg.default_model} "
+          f"单任务上限={args.timeout_per_task:.0f}s sim={'on' if args.with_sim else 'skip'}",
+          flush=True)
+
+    async def _run():
+        scores = []
+        for t in tasks:
+            print(f"\n===== {t.id} {t.title} =====", flush=True)
+
+            def log(s: str, _t=t) -> None:
+                print(f"  [{_t.id}] {s}", flush=True)
+
+            sc = await eval_scorer.run_task(
+                cfg, t, key_path, timeout_s=args.timeout_per_task,
+                log_fn=log)
+            failed = [k for k, v in sc.checks.items() if not v["ok"]]
+            print(f"  --> {sc.verdict} 轮数={sc.rounds} 耗时={sc.elapsed_s:.1f}s"
+                  f" 未过={failed or '—'}", flush=True)
+            scores.append(sc)
+        return scores
+
+    scores = asyncio.run(_run())
+    rep = eval_report.report_dict(scores, model=str(cfg.default_model),
+                                  with_sim=args.with_sim)
+    out_dir = args.out_dir or str(repo / "docs" / "evidence")
+    from datetime import datetime as _dt
+    stem = "eval-" + _dt.now().strftime("%Y%m%d-%H%M%S")
+    jp, mp = eval_report.write_reports(rep, out_dir, stem)
+    summary = rep["summary"]
+    print(f"\n===== 汇总 PASS={summary['pass']} PARTIAL={summary['partial']} "
+          f"FAIL={summary['fail']} 通过率={summary['pass_rate']} =====", flush=True)
+    print(f"报告：{mp}\n      {jp}", flush=True)
+    if args.json:
+        import json as _json
+        print(_json.dumps(rep, ensure_ascii=False, indent=2))
+    return 0 if summary["fail"] == 0 else 1
 
 
 def _llm_check_command(args) -> int:

@@ -53,6 +53,16 @@ def test_roots_outside_rejected(env):
     assert _err_code(tools.ws_read, "/etc/passwd") == TA_E_WORKSPACE_PATH
 
 
+def test_ws_write_directory_path_rejected(env):
+    """目录路径直写 = fail-closed（eval 基线首跑 T5 实证缺陷——
+    模型以 path="project" 调 ws_write 时原子替换裸抛 IsADirectoryError
+    崩链；AC-1 随批修复 + 回归）。"""
+    ws, tools, ro = env
+    assert _err_code(tools.ws_write, "project", "x") == TA_E_WORKSPACE_PATH
+    (ws.project_dir / "include").mkdir()
+    assert _err_code(tools.ws_write, "project/include", "x") == TA_E_WORKSPACE_PATH
+
+
 def test_roots_symlink_escape_rejected(env):
     ws, tools, ro = env
     secret = ro.parent / "secret.txt"
