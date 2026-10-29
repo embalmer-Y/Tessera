@@ -13,6 +13,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from pydantic_ai.exceptions import UnexpectedModelBehavior
+
 from tessera_agent.creation.verifier import (
     CreationVerifier,
     PackageOutcome,
@@ -189,7 +191,18 @@ class CreationLoop:
     async def run(self) -> LoopResult:
         self.state = PLANNING
         await self._emit("state", {"state": self.state})
-        self.plan = await self.runner.plan(self.spec, self.criteria)
+        try:
+            self.plan = await self.runner.plan(self.spec, self.criteria)
+        except UnexpectedModelBehavior as exc:
+            # 结构化计划输出重试超限（模型侧 JSON 翻车）→ 降级线性计划继续
+            # 创作——IMPLEMENTING 才是主力阶段，计划失败不阻断链路
+            # （AC-2 容错面；eval 首基线 T5 实证死法）
+            detail = f"plan 输出重试超限，降级线性计划：{str(exc)[:120]}"
+            self.plan = [PlanItem("s1", "按 spec 直接实施（计划阶段降级）")]
+            self.evidence_log.append(
+                {"round": 0, "step": "plan_fallback", "detail": detail})
+            await self._emit("evidence",
+                             {"step": "plan_fallback", "round": 0})
         await self._emit("plan", {"items": [
             {"id": p.id, "desc": p.desc, "status": p.status} for p in self.plan
         ]})
@@ -238,7 +251,25 @@ class CreationLoop:
         self._failure_reason = ""
         while self.round < self.budget:
             prompt = self._assemble_prompt()
-            outcome = await self.runner.implement(prompt)
+            try:
+                outcome = await self.runner.implement(prompt)
+            except (UnexpectedModelBehavior, OSError) as exc:
+                # 工具参数/输出格式重试耗尽或退化输出打穿工具面（模型侧退化）
+                # → 计失败轮转反馈，
+                # 预算内下轮重试，不崩链（AC-2 容错面；首基线 T2/T3 实证
+                # ws_write 空参数三连败死法；终态语义不变）
+                self.round += 1
+                detail = (f"输出/工具重试超限：{str(exc)[:120]}")
+                self.evidence_log.append(
+                    {"round": self.round, "step": "implement_retry_exhausted",
+                     "detail": detail})
+                await self._emit("round", {
+                    "round": self.round, "budget": self.budget,
+                    "declared_done": False, "summary": detail})
+                self._snapshot()
+                self._last_summary = (
+                    f"【上轮失败】{detail}——请用完整、直接的参数重新完成本轮")
+                continue
             self.round += 1
             await self._emit("round", {
                 "round": self.round, "budget": self.budget,

@@ -30,6 +30,8 @@ from tessera_agent.creation.workspace import (
     Workspace,
 )
 
+MAX_PATH_LEN = 256  # 路径入参上限（模型退化输出防御——eval AC-2 轮 T2 实证 DSML 泄漏）
+
 DEFAULT_PAGE = 400
 
 
@@ -93,6 +95,11 @@ class WorkspaceTools:
 
     def ws_write(self, path: str, content: str) -> dict[str, Any]:
         """新建/整文件覆写（仅 project/）。覆写要求先读（防盲写）。"""
+        if len(path) > MAX_PATH_LEN or "\n" in path or "\r" in path:
+            # 模型退化输出可把模板记号串进 path（eval AC-2 轮实证：DSML
+            # 泄漏 → File name too long 打穿 OS 层）——入参面 fail-closed
+            raise TaError(TA_E_ARGS, f"path 非法（长度/换行）: {path[:80]!r}",
+                          domain=DOMAIN, detail={"path_len": len(path)})
         if "\x00" in content:
             raise TaError(TA_E_ARGS, "内容含 NUL", domain=DOMAIN)
         data = content.encode("utf-8")
@@ -194,6 +201,8 @@ class WorkspaceTools:
                 n = 0
             entries.append({"file": str(rel), "lines": n})
         return {"base": path, "entries": entries, "count": len(entries)}
+
+
 
 
 def _nearest_line(text: str, needle: str) -> int | None:

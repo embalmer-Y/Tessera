@@ -63,6 +63,18 @@ def test_ws_write_directory_path_rejected(env):
     assert _err_code(tools.ws_write, "project/include", "x") == TA_E_WORKSPACE_PATH
 
 
+def test_ws_write_path_degenerate_output_rejected(env):
+    """模型退化输出防御（eval AC-2 轮 T2 实证）：DSML 模板记号泄漏进
+    path（超长串/换行）→ 入参面 fail-closed（TA_E_ARGS），不再打穿 OS 层。"""
+    from tessera_agent.common.errors import TA_E_ARGS
+
+    ws, tools, ro = env
+    dsml = ('include/input_gen.h</parameter>\n<｜DSML｜ parameter name="content"'
+            ' string="true">#ifndef X')
+    assert _err_code(tools.ws_write, dsml, "x") == TA_E_ARGS
+    assert _err_code(tools.ws_write, "a" * 300, "x") == TA_E_ARGS
+
+
 def test_roots_symlink_escape_rejected(env):
     ws, tools, ro = env
     secret = ro.parent / "secret.txt"

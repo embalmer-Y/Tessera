@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 
 import pytest
+from pydantic_ai.exceptions import UnexpectedModelBehavior
 
 from tessera_agent.common.errors import TA_E_ARGS, TA_E_NOT_CONFIGURED, TaError
 from tessera_agent.creation.loop import (
@@ -167,6 +168,58 @@ def test_sim_skipped_without_scenario_and_honest_without_runner(ws):
     with pytest.raises(TaError) as ei:
         fw.simulate(ws, {"inputs": []})
     assert ei.value.code == TA_E_NOT_CONFIGURED
+
+
+def test_plan_output_retry_exhausted_falls_back_to_linear(ws):
+    """AC-2 容错面：PLANNING 结构化输出重试超限 → 降级线性计划继续创作
+    （eval 首基线 T5 实证死法；证据留痕 plan_fallback）。"""
+    events: list = []
+    runner = ScriptedRunner([RoundOutcome(declared_done=True, summary="v1")])
+    runner.plan_raises = True
+
+    async def _plan_boom(spec, criteria):
+        raise UnexpectedModelBehavior("Exceeded maximum output retries (3)")
+
+    runner.plan = _plan_boom
+    verifier = DummyVerifier()
+    loop = CreationLoop(
+        ws, verifier, runner, "复杂长 spec", criteria=["X DONE"],
+        key_path="/tmp/k", on_event=lambda k, d: events.append((k, d)),
+    )
+    result = _run(loop)
+    assert result.state == PACKAGED
+    steps = [e["step"] for e in result.evidence_log]
+    assert "plan_fallback" in steps
+
+
+def test_implement_retry_exhausted_becomes_feedback_round(ws):
+    """AC-2 容错面：implement 侧工具参数/输出重试耗尽 → 计失败轮转反馈
+    （预算内下轮重试），不崩链（首基线 T2/T3 ws_write 空参数三连败实证）。"""
+    events: list = []
+    runner = ScriptedRunner([RoundOutcome(declared_done=True, summary="v2")])
+    calls = {"n": 0}
+
+    async def _implement(prompt):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise UnexpectedModelBehavior(
+                "Tool 'ws_write' exceeded max retries count of 3")
+        runner.prompts.append(prompt)
+        return RoundOutcome(declared_done=True, summary="v2")
+
+    runner.implement = _implement
+    verifier = DummyVerifier()
+    loop = CreationLoop(
+        ws, verifier, runner, "spec", criteria=["X DONE"],
+        key_path="/tmp/k", on_event=lambda k, d: events.append((k, d)),
+    )
+    result = _run(loop)
+    assert result.state == PACKAGED
+    assert result.rounds_used == 2  # 失败轮计入预算
+    steps = [e["step"] for e in result.evidence_log]
+    assert "implement_retry_exhausted" in steps
+    # 失败反馈回喂下轮 prompt
+    assert "上轮失败" in runner.prompts[0]
 
 
 def test_converged_without_keypath(ws):
