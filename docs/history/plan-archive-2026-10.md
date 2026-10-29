@@ -467,3 +467,38 @@
 - v1.5 · 2026-09-25：M3b 行更新（里程碑退出；固件轨 M0…M3b 全绿，余 = M2b.2〔WAMR，需网络〕与板级移植〔前置 Zephyr SDK〕）。
 - v1.4 · 2026-09-25：MA3 里程碑退出（MA3.2 交付：skills/DomainPack/高层链；58 用例 + ruff 全绿；push_prov 例外登记）。
 - v1.2 · 2026-09-23：M3a 行补 DEC-40/41/42 实现批次（信封 v2/租约/事件遥测信封/QoS/is_up；L3 五验证点；twister 35 用例全绿，提交 486427c）。
+
+
+# V0.16.0 L 表归档（2026-10-29 v1.161 重构逐字搬运；收口待 tag fw-v0.16.0 随 owner 令）
+
+## 7. L 表 · V0.16.0 累积池与后续计划（2026-10-24 v1.155 重构；DEC-75 纪律）
+
+> 定位 = DEC-75 后的 feature 累积面：逐单元交付、攒够 5-8 个 feature 收口 tag fw-v0.16.0；fix 类随修随发走 patch（fw-v0.15.x）。历史批次计划（M/MA 排期与 V0.1-V0.15 各版本批表）已归档 `docs/history/plan-archive-2026-10.md`。
+
+| 序 | 单元 | 内容 | 规模 | 备注 |
+|---|------|------|------|------|
+
+| BV2 实战 ✅ | 适配流水线真板首应用（owner「请先开始BV2实战」+「评估供电是否足够」+「自行完成剩余开发项」） | **全链闭环**：双板同接（Self-Powered hub——供电静态+带载双证零 brownout）→ atk flash-id 实测（boya 16MB JEDEC 68:4018 与一四三档案全同）→ **BV2 流水线生成五件套 = 板级面唯一来源**（deploybench 消费 EXTRA overlay/conf——零手写板级件）→ 构建（dram0 溢出 25164B 实测→heap 98304 MP 纪律敲定）→ 烧录 → prov 重生成（陈旧 x86 路由→当前 9957，cbor2 逐字段对拍）→ **第二板入 LN 网（CONNECTED 9957）**→ **BV1 C1-C6 全 PASS（185.3s）**→ 画像入目录（owner 委托记）→ **双板 LN 双 ACTIVE PASS**（扇出双 confirmed+暖复位+聚合零降级）。**实战回填生成器三缺口**：① esp32s3 &wifi 使能分派 ② PWM 硬依赖面（pwm_led_pin 调用方硬件事实参数——HW-4 source 纪律）③ 网络内存家族（R1/R2+xtensa 8192+PSRAM 卸载）；BV1 C4 增 probe_cube 直查兜底（通配单回执 quirk 观察项——单 `*` 可靠/全通配仅回首个在线者）；deploybench prov 陈旧路由修复入树 | ~1 | 证据 bv2_first_board_console.txt；画像 dnesp32s3b.toml 入目录（owner 委托 + 草稿全文呈递） |
+
+| 仓整理 ✅ | 全仓精简与命名规范化（owner 2026-10-24 指令「项目已混乱臃肿……精简文档/规范命名/删除不必要文件/优化多余代码……本次整理也作为V0.16.0的主要任务之一」→ DEC-78） | **删除**（14 件：9 评审档合并 docs/history/review-archive.md 保 IR/IR2 溯源 + migration-x86 + 孤儿/空目录）；**改名**（LLD-A 系→LLD-agent-\*、docs \*-01 去号、demos→demo-\*、l3app→tests/netlab、tests/l5→tests/safety_check、tools/board 脚本描述化——新旧映射 = names.md §6 登记册）；**瘦身**（AGENTS/plan/names 历史逐字归档 docs/history/）；**新立**（docs/std/naming.md 命名规范 + docs/evidence/README.md 索引）；**代码面** agent 死模块扫描零命中（固件 C 逻辑不动〔注释引用同步〕如实登记）；**子智能体复核**（owner 指令）通过 | ~1 | V0.16.0 主任务之二；验证 = 引用扫零 + agent 333+2s+23 env-fail + ruff + repo pytest + sync + 子智能体复核修补轮 |
+| 环境安装程序 ✅ | 自动化环境部署脚本（owner 2026-10-24 指令「面向Linux（X86/AArch64）一键搭建……V0.16.0的一部分」+ 后续三点修正〔sudo 交互/代理支持/面向用户定位与凭据运行时输入〕→ DEC-79） | `tools/env/` 套件：install.sh 单入口（标准档 Agent+zenohd+esptool+配置引导 / --dev 固件全链）+ steps×10 幂等分步 + verify_env.sh 分层验证 + README；sudo 交互索密（sudo -S 管道兼容）+ --proxy 全链代理（不做镜像绕行）+ 凭据交互/\--config 导入（600 仓外红线）；**本机恢复全链实测**（x86_64/Ubuntu 26.04：twister 17/17〔net 并行竞态单跑过——环境域〕+ agent **356+2s 全绿**〔clang 恢复 23 环境域失败全转正〕+ repo 6+5 + sync）；顺带修复 zenoh-pico-tls.patch 两处潜伏格式缺陷 + 剥宏 12→13 勘误 + 守恒测试 ×6 | ~1.5 | V0.16.0 主任务之三 |
+| LLM 端点探针 ✅ | Agent 工具优化：URL+KEY 自动五面检测（owner 指令「是否合法/是否联通/支持哪些模型/模型是否可用——参考 CCR」+ 实测端点随令 → DEC-80） | domain/llm_probe.py + MCP llm_check（confirm；key 只经 env 名——值不入参/审计）+ CLI llm-check：URL 静态校验（CRLF 拒）/连通分类（DNS/超时/TLS+代理提示）/双协议检测（OpenAI·Anthropic）/模型列表（三形态归一）/KEY 有效性+模型可用性（鉴权面合一判定：/models 可不鉴权——401 才是 key 问题；max_tokens=16 下限实测）/配置建议；安装器 85 步联动自动校验；实测 owner 端点 197 模型双协议全绿（glm-5.3-flash 冒烟 1522ms）；测试 +10（MockTransport 零网络） | ~1 | V0.16.0 主任务之四；agent 366+2s |
+| v4.5.0 平移捆绑 ✅ | Zephyr v4.5.0-rc1 → 正式版平移（owner「检查 v4.5.0 状态……已发布则切换」；上游 2026-10-28 发布——DEC-50「正式版发布后平移」兑现） | 工作区切换（checkout v4.5.0 + west update + blobs 73 + requirements）+ **回归三绿**（twister 17/17 零回归 / deploybench BV2 EXTRA 形态构建绿零调平 / atkbench dram0 溢出 6716B→调平绿：heap 61440 + mbedtls 24576〔明文形态对位〕+ PSA 4 + pkt 12·buf 24）+ **heap ADD_SIZE 下限新知入册**（Σ=56384 顶住无效域，三轮实证）+ 钉版面六处同步（PIN/守恒测试/ci.yml/checklist/README）+ checklist v1.5（rc1 反向 checkout 不可行注记） | ~0.5 | 守恒测试 6/6；真机镜像重烧待凭据（观察项）；V0.16.0 累积 5 |
+
+### 待 owner（当前）
+
+- 本地待 review/push：991a8bd（部署段补全笔，v1.159）+ 本平移批笔（v1.160）。
+- V0.16.0 累积 **5 feature**（BV2 实战 / 仓整理 / 环境安装程序 / LLM 探针 / v4.5.0 平移捆绑）——已入 DEC-75 收口窗（5-8），**可收口 tag fw-v0.16.0 或续作随点向**。
+
+### 候选池（随 owner 点向）
+
+- ~~v4.5.0 正式版平移捆绑~~ ✅（v1.160，已入 L 表第五单元）。
+- R12 板卡选型 / R13 结构件（调研已交付 docs/research/，实施面随点向）。
+- HW-4 P4 板 [hardware] 引脚采集（画像补全）。
+
+### E. 长期方向（既有登记维持）
+
+- 多域 DomainPack（PCB/结构件域 agent——CreationVerifier 第二实现；DEC-33 北极星）
+- A2A/ACP 协议接入（缝保留，真实消费者出现再启）
+- 生产化批（安全认证路径/量产烧录流水线——owner 点向后规划）
+- SMP 多核 APP 并行（维持裁剪：rt[N] 单核已满足语义——需求实据出现再评估）
