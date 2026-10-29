@@ -14,7 +14,7 @@
 #   - 幂等：每步以真实状态探测判定已完成即跳过（无 marker 文件——状态漂移免疫）。
 
 # ---------- 钉版常量（与 README「依赖与钉版」表一致；测试面守恒） ----------
-readonly PIN_ZEPHYR_REF="v4.5.0-rc1"
+readonly PIN_ZEPHYR_REF="v4.5.0"
 readonly PIN_SDK_VER="1.0.1"
 readonly PIN_WAMR_REF="WAMR-2.4.5"
 readonly PIN_ZENOH_PICO_REF="1.10.1"

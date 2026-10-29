@@ -50,7 +50,7 @@
 
 | 依赖 | 钉版 | 用途 | 引入方式 |
 |---|---|---|---|
-| Zephyr RTOS | v4.5.0-rc1 | 固件 RTOS 基线 | west 工作区（`west init --mr`） |
+| Zephyr RTOS | v4.5.0 | 固件 RTOS 基线 | west 工作区（`west init --mr`） |
 | Zephyr SDK | 1.0.1 | 交叉工具链（xtensa-esp32s3 等）+ hostools | `west sdk install` |
 | espressif HAL blobs | 随 Zephyr 版本 | WiFi/BT 预编译库 | `west blobs fetch hal_espressif` |
 | WAMR | 2.4.5 | wasm 运行时（APP 沙箱） | 源码 @ `TS_WAMR_DIR`（仓外 deps，构建期变量） |
@@ -67,7 +67,7 @@
 
 **一键安装（推荐）**：`./tools/env/install.sh`（标准档）或 `--dev` 开发者档（sudo 交互 + `--proxy` 支持 + LLM 端点/密钥运行时引导——详见 `tools/env/README.md`）。
 
-手工路线：环境事实源见 `docs/dev-environment.md`；**从零重建（多机/含 ARM Linux）按 `docs/env-rebuild-checklist.md` 逐项执行**（Zephyr v4.5.0-rc1 + Zephyr SDK 1.0.1 钉版；目录规范 `~/project/{Tessera,zephyrproject,logs}`）。x86/WSL2 历史口径见 dev-environment §1-8（迁移档案已随 2026-10-24 仓整理删除——重建以 checklist 为唯一总单）。
+手工路线：环境事实源见 `docs/dev-environment.md`；**从零重建（多机/含 ARM Linux）按 `docs/env-rebuild-checklist.md` 逐项执行**（Zephyr v4.5.0 + Zephyr SDK 1.0.1 钉版；目录规范 `~/project/{Tessera,zephyrproject,logs}`）。x86/WSL2 历史口径见 dev-environment §1-8（迁移档案已随 2026-10-24 仓整理删除——重建以 checklist 为唯一总单）。
 
 ```bash
 # 固件构建（native_sim）

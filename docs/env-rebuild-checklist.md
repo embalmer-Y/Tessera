@@ -45,14 +45,14 @@ mkdir -p ~/project/{logs,deps,tools,builds}
 git clone git@github.com:embalmer-Y/Tessera.git ~/project/Tessera   # 大写 T
 ```
 
-## 3. 固件 Python venv + west 工作区（Zephyr v4.5.0-rc1 钉版）
+## 3. 固件 Python venv + west 工作区（Zephyr v4.5.0 钉版）
 
 ```bash
 python3 -m venv ~/project/zephyrproject/.venv
 source ~/project/zephyrproject/.venv/bin/activate
 pip install west
 cd ~/project
-west init -m https://github.com/zephyrproject-rtos/zephyr --mr v4.5.0-rc1 zephyrproject
+west init -m https://github.com/zephyrproject-rtos/zephyr --mr v4.5.0 zephyrproject
 cd zephyrproject
 west update                       # 代理慢时：可改 git fetch --depth 1 手法（dev-env §9.3）
 west blobs fetch hal_espressif    # WiFi blobs——必做，不随 west update 拉取（教训 30）
@@ -205,6 +205,8 @@ python3 -m venv ~/project/agent-venv
     走 github 直连在同款网络下恒败）。
 
 ## 修订记录
+- v1.5 · 2026-10-29：**Zephyr v4.5.0 正式版平移（V0.16.0 平移批，owner 指令「检查 v4.5.0 状态……已发布则切换」）**——§3 钉版 v4.5.0-rc1 → v4.5.0（上游 2026-10-28 发布，实测切换）。平移实测注记：① 切换手法 = zephyr 主树 `git fetch origin tag v4.5.0 && git checkout v4.5.0` + `west update`（模块随 final west.yml 对齐）；**rc1 时代 clone 的工作区不可反向 checkout rc1**——模块已是 final 锚定 SHA，混树 Kconfig warnings abort；② blobs 73 件不变 + requirements 刷新；③ 回归 = twister 17/17（115+2s）全绿 + deploybench（BV2 EXTRA 形态）构建绿零调平 + **atkbench dram0 溢出 6716B**（rc1→final 全库静态面累积，bss 大头无单域暴涨）→ 调平绿：atkbench 板级 heap 58368→61440 + prj.conf 四键（mbedtls 专用堆 31744→24576〔现行 prov 明文形态对位释放，TLS 复验回抬〕/ PSA key slot 16→4 / net pkt 14→12 / net buf 36→24）。**heap 下限新知**：CONFIG_HEAP_MEM_POOL_ADD_SIZE_ESP_WIFI=51200 等 Σ=56384——heap 低于该和被 kernel/CMakeLists final_heap_size 顶住无效（mempool.c noinit 符号实测 56468）。
+
 - v1.4 · 2026-10-24：**DEC-79 环境安装程序批**——§0 增一键入口（tools/env/install.sh = 本单机械化）；§3 ② 剥宏 12→**13** 勘误（+AUTO_RECONNECT）；同批修复 ext/zenoh-pico-tls.patch 两处潜伏格式缺陷（tcp 段 hunk 计数头 19→12 + primitives.h 段缺 --- a/ 头行——git apply 严格域全拒，GNU patch 部分容忍 = 历史机侥幸根因；守恒测试 test_env_installer.py 防复发）。x86_64/Ubuntu 26.04 全链实测回填（apt clang-18=18.1.8；venv cmake 钉 3.31.6 免发行版 4.x 风险）。
 
 - v1.1 · 2026-10-17：**首台 ARM 机（Radxa Cubie A7A）全量实测回填**——§12 aarch64 全列

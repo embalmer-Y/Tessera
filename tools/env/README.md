@@ -29,7 +29,7 @@ bash tools/env/verify_env.sh      # 分层验证（checklist §11 ①-⑤）
 | zenohd 1.10.1 本机路由（standalone 二进制） | ✅ | ✅ |
 | esptool 5.4.0（板卡烧录） | ✅ | ✅ |
 | 用户配置引导（LLM 端点/API key/WiFi） | ✅ | ✅ |
-| west 工作区（Zephyr v4.5.0-rc1 + blobs + zenoh-pico+TLS 补丁） | — | ✅ |
+| west 工作区（Zephyr v4.5.0 + blobs + zenoh-pico+TLS 补丁） | — | ✅ |
 | Zephyr SDK 1.0.1（xtensa-esp32s3；`TESSERA_SDK_RISCV=1` 加 riscv64） | — | ✅ |
 | WAMR 2.4.5（version.h 444 只读屏障） | — | ✅ |
 | twister/构建回归面 | — | ✅ |

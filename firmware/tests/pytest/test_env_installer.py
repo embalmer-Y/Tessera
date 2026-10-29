@@ -16,7 +16,7 @@ REPO = Path(__file__).resolve().parents[3]
 ENV_DIR = REPO / "tools" / "env"
 
 EXPECTED_PINS = {
-    "PIN_ZEPHYR_REF": "v4.5.0-rc1",
+    "PIN_ZEPHYR_REF": "v4.5.0",
     "PIN_SDK_VER": "1.0.1",
     "PIN_WAMR_REF": "WAMR-2.4.5",
     "PIN_ZENOH_PICO_REF": "1.10.1",
@@ -56,7 +56,7 @@ def test_pins_match_expected():
     assert pins == EXPECTED_PINS, "钉版漂移：改版本须 env_common/README 依赖表/本测试三处同步"
     # README 依赖表对齐抽查
     readme = (REPO / "README.md").read_text(encoding="utf-8")
-    for pin in ("v4.5.0-rc1", "1.0.1", "2.4.5", "1.10.1"):
+    for pin in ("v4.5.0", "1.0.1", "2.4.5", "1.10.1"):
         assert pin in readme, f"README 依赖与钉版表缺少 {pin}"
 
 

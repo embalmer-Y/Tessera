@@ -64,15 +64,16 @@
 | 仓整理 ✅ | 全仓精简与命名规范化（owner 2026-10-24 指令「项目已混乱臃肿……精简文档/规范命名/删除不必要文件/优化多余代码……本次整理也作为V0.16.0的主要任务之一」→ DEC-78） | **删除**（14 件：9 评审档合并 docs/history/review-archive.md 保 IR/IR2 溯源 + migration-x86 + 孤儿/空目录）；**改名**（LLD-A 系→LLD-agent-\*、docs \*-01 去号、demos→demo-\*、l3app→tests/netlab、tests/l5→tests/safety_check、tools/board 脚本描述化——新旧映射 = names.md §6 登记册）；**瘦身**（AGENTS/plan/names 历史逐字归档 docs/history/）；**新立**（docs/std/naming.md 命名规范 + docs/evidence/README.md 索引）；**代码面** agent 死模块扫描零命中（固件 C 逻辑不动〔注释引用同步〕如实登记）；**子智能体复核**（owner 指令）通过 | ~1 | V0.16.0 主任务之二；验证 = 引用扫零 + agent 333+2s+23 env-fail + ruff + repo pytest + sync + 子智能体复核修补轮 |
 | 环境安装程序 ✅ | 自动化环境部署脚本（owner 2026-10-24 指令「面向Linux（X86/AArch64）一键搭建……V0.16.0的一部分」+ 后续三点修正〔sudo 交互/代理支持/面向用户定位与凭据运行时输入〕→ DEC-79） | `tools/env/` 套件：install.sh 单入口（标准档 Agent+zenohd+esptool+配置引导 / --dev 固件全链）+ steps×10 幂等分步 + verify_env.sh 分层验证 + README；sudo 交互索密（sudo -S 管道兼容）+ --proxy 全链代理（不做镜像绕行）+ 凭据交互/\--config 导入（600 仓外红线）；**本机恢复全链实测**（x86_64/Ubuntu 26.04：twister 17/17〔net 并行竞态单跑过——环境域〕+ agent **356+2s 全绿**〔clang 恢复 23 环境域失败全转正〕+ repo 6+5 + sync）；顺带修复 zenoh-pico-tls.patch 两处潜伏格式缺陷 + 剥宏 12→13 勘误 + 守恒测试 ×6 | ~1.5 | V0.16.0 主任务之三 |
 | LLM 端点探针 ✅ | Agent 工具优化：URL+KEY 自动五面检测（owner 指令「是否合法/是否联通/支持哪些模型/模型是否可用——参考 CCR」+ 实测端点随令 → DEC-80） | domain/llm_probe.py + MCP llm_check（confirm；key 只经 env 名——值不入参/审计）+ CLI llm-check：URL 静态校验（CRLF 拒）/连通分类（DNS/超时/TLS+代理提示）/双协议检测（OpenAI·Anthropic）/模型列表（三形态归一）/KEY 有效性+模型可用性（鉴权面合一判定：/models 可不鉴权——401 才是 key 问题；max_tokens=16 下限实测）/配置建议；安装器 85 步联动自动校验；实测 owner 端点 197 模型双协议全绿（glm-5.3-flash 冒烟 1522ms）；测试 +10（MockTransport 零网络） | ~1 | V0.16.0 主任务之四；agent 366+2s |
+| v4.5.0 平移捆绑 ✅ | Zephyr v4.5.0-rc1 → 正式版平移（owner「检查 v4.5.0 状态……已发布则切换」；上游 2026-10-28 发布——DEC-50「正式版发布后平移」兑现） | 工作区切换（checkout v4.5.0 + west update + blobs 73 + requirements）+ **回归三绿**（twister 17/17 零回归 / deploybench BV2 EXTRA 形态构建绿零调平 / atkbench dram0 溢出 6716B→调平绿：heap 61440 + mbedtls 24576〔明文形态对位〕+ PSA 4 + pkt 12·buf 24）+ **heap ADD_SIZE 下限新知入册**（Σ=56384 顶住无效域，三轮实证）+ 钉版面六处同步（PIN/守恒测试/ci.yml/checklist/README）+ checklist v1.5（rc1 反向 checkout 不可行注记） | ~0.5 | 守恒测试 6/6；真机镜像重烧待凭据（观察项）；V0.16.0 累积 5 |
 
 ### 待 owner（当前）
 
-- 本地待 review/push：8adaa76（fix：anthropic 钉版 + sdk_base_url + 模型测试证据）+ 本部署段补全笔（v1.159）。
-- V0.16.0 累积 4 feature（DEC-75 线 ~5-8）——续作随点向。
+- 本地待 review/push：991a8bd（部署段补全笔，v1.159）+ 本平移批笔（v1.160）。
+- V0.16.0 累积 **5 feature**（BV2 实战 / 仓整理 / 环境安装程序 / LLM 探针 / v4.5.0 平移捆绑）——已入 DEC-75 收口窗（5-8），**可收口 tag fw-v0.16.0 或续作随点向**。
 
 ### 候选池（随 owner 点向）
 
-- v4.5.0 正式版平移捆绑（上游正式版发布后——捆绑 feature 或 patch 随批呈递认定）。
+- ~~v4.5.0 正式版平移捆绑~~ ✅（v1.160，已入 L 表第五单元）。
 - R12 板卡选型 / R13 结构件（调研已交付 docs/research/，实施面随点向）。
 - HW-4 P4 板 [hardware] 引脚采集（画像补全）。
 
@@ -95,6 +96,7 @@
 
 
 ## 修订记录
+- v1.160 · 2026-10-29：**Zephyr v4.5.0 正式版平移 ✅（owner「检查 v4.5.0 状态……已发布则切换」→ L 表第五单元；DEC-50 修订记录「正式 v4.5.0 发布后平移」兑现）**：① 上游 2026-10-28 发布（prerelease=False 实测核实）→ 工作区切换（zephyr checkout v4.5.0 @41d10b59730 + west update 模块对齐 + blobs 73 件 + requirements 刷新）；② **回归三绿**：twister 17/17 套件（115+2s）零回归 + **deploybench（BV2 EXTRA 形态 = 现行真机镜像形态）构建绿零调平**（787812B）+ atkbench **dram0 溢出 6716B 调平绿**（1299604B——rc1→final 全库静态面累积，bss 大头 mbedtls 31KB/tessera 18.8KB/lvgl 16.6KB 无单域暴涨）；③ 调平面：atkbench 板级 heap 58368→61440 + prj.conf 四键（mbedtls 专用堆 31744→24576〔现行 prov 明文形态对位释放，TLS 复验回抬〕/ PSA key slot 16→4 / net pkt 14→12 / net buf 36→24）——**heap 下限新知入册**：CONFIG_HEAP_MEM_POOL_ADD_SIZE_ESP_WIFI=51200 等 Σ=56384，heap 低于该和被 kernel/CMakeLists final_heap_size 顶住无效（三轮实证 4732B 恒定不动）；④ 钉版面六处同步（env_common.sh PIN / 守恒测试 / ci.yml ×3 / checklist §3 / README×2 / tools/env README）+ checklist v1.5 平移注记（**rc1 工作区不可反向 checkout**——模块已 final 锚定 SHA，混树 Kconfig abort）；⑤ 守恒测试 6/6 + rc1 基线对照构建因模块混树不可行（工作区一致性约束，如实登记）。V0.16.0 累积 5 feature（DEC-75 线 5-8 收口窗内）。证据：本会话 twister/构建输出；板级 conf 注记谱系。
 - v1.159 · 2026-10-24：**deepseek-v4.1-flash 模型测试部署段补全 ✅ 双板全链 PASS（owner「两块板卡我已经接入该机器的USB，请你检查并继续刚刚的测试」；v1.158 挂起段收口）**：① 板态迁移——双板 prov 均为 ARM 时代陈旧路由（.101:9956|9957；ARM 机仍在线 ping 0.29ms = prov 指向即归属观察），zenohd 本机 9955+9957 起 + flash_prov 重烧（P4 @0x7e0000 p4-dev/cube-p4 / S3=atk 同板 dbn/dbc @0x7e0000 workorder 位——误烧 0x5f0000 一轮 = atk 残留布局假设，0x5f0000/0x170000 历史残留位解剖实录）→ 双板 CONNECTED .91:9957。② 签名面纪律实证：deploybench TEST 语义板验签 = fixtures/ts-test-root（临时钥必拒）→ ds41 包测试根重签 2758B（IR2-03 白名单：输入/输出均须在允许根）。③ S3 双跑全 PASS（11 分块/verify facts 对拍/activate/暖复位 10s ACTIVE/slot 0→1 乒乓/HB 57 样本单调 ×2）+ P4 三段式 PASS（push 全链 PASS → p4bench 无激活即暖复位语义 state 停 STAGED → 外部复位完成转正〔RTS 助手场景再现〕→ 判据窗 v2 58 样本 10..580 单调）。④ wasm 架构中立实证：同包跨 xtensa/RV32 双板运行。⑤ 观察项五条：ARM 机 .101 仍在线 / CH343 开埠复位脉动双板实证 + 复位窗 SHA-256 瞬态两例（后续 boot 全净）/ p4bench activate 不暖复位 / P4B FAIL app_evt = bench 自检对第三方 app 固有失配（health_fails=0）/ deploybench caps=null quirk 再现。证据 agent-test-ds41-flash-20261024.txt（部署段全文）。
 - v1.158 · 2026-10-24：**五笔随令推送（CI #207 全绿）+ deepseek-v4.1-flash 模型真实链路测试（fix 类补笔）**：app_develop 双运行均 PACKAGED（单轮 126.4s + 四轮含修复链）；随批修复 anthropic 传递依赖钉版（==1.3.*——最新版 Beta 类型崩/＜1.3 导入面缺，新装 venv 即踩）+ llm_probe 建议面增 sdk_base_url（anthropic SDK 自拼 /v1/messages——base 含 /v1 须剥尾，实测 /api/v1→404、/api→200）；板上部署段待板上线（双路由地址发现为空）。证据 agent-test-ds41-flash-20261024.txt。
 - v1.157 · 2026-10-24：**LLM 端点探针 ✅（owner 指令 → DEC-80；L 表第四单元）**：domain/llm_probe.py 五面检测（URL 合法性/连通性分类/协议检测/模型列表/KEY 有效性+模型可用性——鉴权面合一判定）+ 配置建议；MCP llm_check（confirm 类；key 只经 key_env 环境变量名——值不入参/审计）+ CLI llm-check；实测回填三事实（/models 可不鉴权、max_tokens≥16、reasoning 小预算文本空≠不可用）；tools/env 85 步联动自动校验；测试 +10（MockTransport 注入）——agent 366+2s 全绿。V0.16.0 累积：BV2 + 仓整理 + 安装程序 + 探针 = 4 feature（DEC-75 线 ~5-8 渐近）。
