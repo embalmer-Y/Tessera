@@ -1219,3 +1219,15 @@
    - 测试同批：任务谱契约 + 评分器机械判定 + CLI 契约——全部 Mock 注入不真调 LLM（回归零网络依赖）。
 3. **首基线**：deepseek/deepseek-v4.1-flash（config.toml 现行模型串），真 LLM 顺序跑 T1-T5 全谱，报告随单元交付。
 4. **归属**：V0.17.0 L 表 AC-1（plan v1.161）；AC-2..5 逐单元开工前各自呈递 Q 门不变。
+
+## DEC-82（AC-3 判据自评价闭环设计要点，2026-10-29——owner 指令「请你开启AC-3的开发」；plan v1.161 AC-3 行 = 批准范围）
+
+1. **创作 wasm 的 sim 执行器**（`domain/wasm_sim.py`，SimFn 预留缝的 AG6 时代实现——FirmwareCreationVerifier(sim_runner) 错误信息明言「sim 接线随 AG6」）：
+   - 选型 **wasmtime**（PC 侧 wasm 运行时，py 绑定成熟/维护活跃；钉大版本入 pyproject）——新增依赖按建议值（owner 已批 AC-3「sim 判据接线」范围）。
+   - natives stub 面 v1：ts_log_write（线性内存读串→判据行采集）/ ts_time_ms（虚拟时钟 = tick×周期）/ ts_gpio_write·ts_pwm_set·ts_gpio_read·ts_adc_read（写序列记录/常量读）；**不支持族返回负错误码**：ts_thread_start·ts_fs_read·ts_net_publish·ts_av_*·ts_kv_*·ts_msg_*·ts_power_*。
+   - **sim 适用门（诚实面）**：manifest.threads>1（线程档真机域）或 needs.resources 非空（资源外置部署管线域）→ sim 步 skip 并以 facts.sim_skipped 注记，不跑假 sim。
+   - 调用约定 = FIX-2 教训域：app_init/app_tick/app_evt 带 ctx 调用（argc≥param cell）；health_ping 收尾。
+2. **接线**（全部 additive，向后兼容零变化）：`_app_develop_loop` 恒注入 sim_runner（scenario=None 时 _verify 跳过 = 现行为）；app_develop 增可选参 `sim_scenario`；MCP 面同增。
+3. **`app_criteria_run` MCP 工具**（confirm 类——串口只读采集，不动板态；单读者纪律由串口固有互斥承担）：port + rules + segment_marker + window_s → capture_window（tools_diag/capture.py 复用）→ 判据窗引擎（**CONNECTED 切段**取末段 + present/monotonic 两规则 v1——ds41 方法学升格）。真机验收 = 现网 hbcounter 判据窗（板在线时）。
+4. **eval --with-sim 实装**：suite 任务加 sim 定义（T1/T2/T3 = ticks+verdict_patterns+可选 monotonic；T4/T5 = sim=None 如实登记「线程/资源档真机域」）；scorer PACKAGED 后跑执行器核验（毫秒级/任务——非 west build 重放）。
+5. **diag 联动**：判据报告 render_evidence() 产出修复链可直喂文本（S8 repair 通道组合面，无新机制）。

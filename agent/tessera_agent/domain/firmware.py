@@ -135,7 +135,7 @@ class FirmwareDomainPack(DomainPackBase):
         "app_develop", "app_deploy", "app_compile",
         "app_clarify",
         "board_validate", "memory_audit", "web_search", "board_adapt",
-        "llm_check",
+        "llm_check", "app_criteria_run",
         "diag_classify", "spec_check", "simreal_diff",
     ])
     skills: list[str] = field(default_factory=lambda: [
@@ -156,6 +156,7 @@ class FirmwareDomainPack(DomainPackBase):
         "memory_audit": "confirm",   # V0.13.0 MP：本地只读分析（LLD-agent-memory-planner）
         "web_search": "confirm",     # HW-2（DEC-73①·LLD-agent-hardware-targeting §2）：出站联网
         "llm_check": "confirm",      # DEC-80：出站探测用户 LLM 端点（key 经 env 名——值不入审计）
+        "app_criteria_run": "confirm",  # AC-3（DEC-82③）：串口只读判据窗（不动板态）
         "diag_classify": "confirm",
         "spec_check": "confirm",
         "simreal_diff": "confirm",
@@ -543,16 +544,22 @@ class FirmwareDomainPack(DomainPackBase):
         async def app_develop(spec: str, key_path: str,
                               out_dir: str = "agent/build",
                               wasm_path: str | None = None,
-                              plan_confirm: bool = False) -> dict:
+                              plan_confirm: bool = False,
+                              sim_scenario: dict | None = None) -> dict:
             """高层链：需求 spec →（LLM：计划/manifest + source_c C 源）→
             manifest 硬校验 + 链内编译（导入白名单/导出面/尺寸/确定性，
             DEC-45）→ TSAP 打包签名 → 复验（confirm 类；长任务句柄）。
             skills 渐进披露注入编排会话；校验/编译错误反馈回路（预算 3）。
             wasm_path 可选 = 调用方自带产物路径（source_c 缺省时必需）。
             plan_confirm（D7 · DEC-67①）= 计划经问询实体确认（MCP 客户端
-            经 sys_answer 应答 proceed/abort；超时缺省 abort）。"""
+            经 sys_answer 应答 proceed/abort；超时缺省 abort）。
+            sim_scenario（AC-3 · DEC-82②）可选 = VERIFYING 阶段 sim 判据场景
+            （{"ticks": int, "verdict_patterns": [str], "monotonic": str?}——
+            创作 wasm PC 侧执行器核验判据行；threads/resources 档自动 skip
+            注记）。"""
             args = {"spec": spec, "key_path": key_path, "out_dir": out_dir,
-                    "wasm_path": wasm_path, "plan_confirm": plan_confirm}
+                    "wasm_path": wasm_path, "plan_confirm": plan_confirm,
+                    "sim_scenario": sim_scenario}
 
             async def body(task) -> dict:
                 log = lambda ln: ctx.registry.append_log(task, ln)  # noqa: E731
@@ -560,6 +567,7 @@ class FirmwareDomainPack(DomainPackBase):
                     ctx, spec, key_path, out_dir, wasm_path=wasm_path, log_fn=log,
                     task=task,  # D2：循环事件 → task.progress（task_progress 面）
                     plan_confirm=plan_confirm,  # D7：计划确认经问询实体
+                    sim_scenario=sim_scenario,  # AC-3（DEC-82②）：VERIFYING sim 判据
                 )
 
             return await spawn("app_develop", args, body)
@@ -672,7 +680,32 @@ class FirmwareDomainPack(DomainPackBase):
             except Exception as exc:  # noqa: BLE001 —— 结构化故障不裸抛
                 return {"error": f"{type(exc).__name__}: {exc}", "url": url}
 
-        # ---- board_validate（V0.13.0 BV1 · LLD-agent-board-validation；strict 类）
+        # ---- app_criteria_run（AC-3 · DEC-82③；confirm 类——串口只读采集）
+        @mcp.tool
+        @audited("app_criteria_run")
+        async def app_criteria_run(port: str, rules: list[dict],
+                                   segment_marker: str = "CONNECTED",
+                                   window_s: float = 60.0,
+                                   baud: int = 115200) -> dict:
+            """真机判据窗核验（AC-3 · DEC-82③）：串口被动抓取 window_s 秒全文
+            → 段标记切段（取末段——CH343 开埠复位脉动去伪，ds41 方法学升格）
+            → present/monotonic 规则机械判定。confirm：只读采集不动板态；
+            开埠可能触发复位脉动（单读者纪律 = 串口固有互斥）。
+            rules 元素：{"type":"present","pattern":str,"min_count":int=1} |
+            {"type":"monotonic","pattern":str}（正则捕获组 1 提取整数序列）。"""
+            from tessera_agent.domain.criteria import judge_lines
+            from tessera_agent.tools_diag.capture import capture_window
+
+            def work() -> tuple[dict, str]:
+
+                text = capture_window(port, window_s, baud=baud)
+                rep = judge_lines(text.splitlines(), rules, segment_marker)
+                return rep.to_dict(), rep.render_evidence()
+
+            report, evidence = await asyncio.to_thread(work)
+            return {"report": report, "evidence": evidence}
+
+                # ---- board_validate（V0.13.0 BV1 · LLD-agent-board-validation；strict 类）
         @mcp.tool
         @audited("board_validate")
         async def board_validate(profile_id: str,

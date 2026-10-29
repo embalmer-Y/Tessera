@@ -22,6 +22,9 @@ dependencies = [
     # 来源: NV-1（V2-2 审视补齐）——tools_diag/capture.py 真机串口抓取
     # （懒导入：CI 无串口不触发；venv 实装 3.5，钉版声明补齐）
     "pyserial==3.5",
+    # 来源: DEC-82（AC-3）——创作 wasm PC 侧执行器（domain/wasm_sim.py，
+    # SimFn 预留缝 AG6 实现；wasmtime py 绑定钉大版本）
+    "wasmtime==50.*",
 ]
 
 [project.optional-dependencies]

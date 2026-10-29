@@ -65,22 +65,27 @@ class EvalTask:
 def _e(**kw) -> dict:
     """expect 缺省补全（评分器侧再兜底——此处显式声明任务差异面）。"""
     base = {"caps_expected": [], "threads": 1, "tier": "small",
-            "needs_expected": None, "min_source_files": 1}
+            "needs_expected": None, "min_source_files": 1, "sim": None}
     base.update(kw)
     return base
 
 
+# sim 定义（AC-3 · DEC-82④）：{"ticks", "verdict_patterns", "monotonic"?}。
+# T4/T5 = None（线程/资源档真机域——DEC-82① 适用门如实登记）。
 SUITE: list[EvalTask] = [
     EvalTask("T1", "单文件 log-only 基线（心跳计数）", T1_SPEC, _e(
         imports_allowed=["ts_log_write", "ts_time_ms"],
         exports_required=["health_ping", "app_init", "app_tick"],
         max_size_kb=16,
+        sim={"ticks": 300, "verdict_patterns": ["HB n="],
+             "monotonic": r"HB n=(\d+)"},
     )),
     EvalTask("T2", "多文件工程（滑动平均 + 独立滤波模块）", T2_SPEC, _e(
         imports_allowed=["ts_log_write", "ts_time_ms"],
         exports_required=["health_ping", "app_init", "app_tick"],
         min_source_files=2,
         max_size_kb=16,
+        sim={"ticks": 600, "verdict_patterns": ["AVG k="]},
     )),
     EvalTask("T3", "caps 真写入（输出通道自检）", T3_SPEC, _e(
         imports_allowed=["ts_gpio_write", "ts_gpio_read", "ts_time_ms",
@@ -88,6 +93,7 @@ SUITE: list[EvalTask] = [
         exports_required=["health_ping", "app_init", "app_tick"],
         caps_expected=["gpio:"],
         max_size_kb=16,
+        sim={"ticks": 6000, "verdict_patterns": ["TOGGLE cycles="]},
     )),
     EvalTask("T4", "threads 档（双线程并行累加）", T4_SPEC, _e(
         imports_allowed=["ts_thread_start", "ts_thread_join", "ts_log_write",
@@ -95,6 +101,7 @@ SUITE: list[EvalTask] = [
         exports_required=["health_ping", "app_init", "app_tick"],
         threads=2,
         max_size_kb=16,
+        sim=None,
     )),
     EvalTask("T5", "resources 外置（large 档校准查表）", T5_SPEC, _e(
         imports_allowed=["ts_fs_read", "ts_time_ms", "ts_log_write"],
@@ -103,6 +110,7 @@ SUITE: list[EvalTask] = [
         tier="large",
         needs_expected={"resources": True},
         max_size_kb=256,
+        sim=None,
     )),
 ]
 

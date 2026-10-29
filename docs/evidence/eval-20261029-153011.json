@@ -1,0 +1,83 @@
+{
+  "suite": "tessera-agent-eval/1 (AC-1, DEC-81)",
+  "generated_at": "2026-10-29T07:30:11+00:00",
+  "model": "anthropic:deepseek/deepseek-v4.1-flash",
+  "sim_section": "run",
+  "summary": {
+    "tasks": 1,
+    "pass": 1,
+    "partial": 0,
+    "fail": 0,
+    "pass_rate": 1.0,
+    "avg_rounds_done": 2.0,
+    "total_elapsed_s": 466.2
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "单文件 log-only 基线（心跳计数）",
+      "verdict": "PASS",
+      "checks": {
+        "converged": {
+          "ok": true,
+          "detail": ""
+        },
+        "rounds": {
+          "ok": true,
+          "detail": 2
+        },
+        "imports": {
+          "ok": true,
+          "detail": [
+            "ts_log_write"
+          ]
+        },
+        "exports": {
+          "ok": true,
+          "detail": []
+        },
+        "deterministic": {
+          "ok": true,
+          "detail": ""
+        },
+        "size": {
+          "ok": true,
+          "detail": "530B / cap 16384B"
+        },
+        "caps": {
+          "ok": true,
+          "detail": "want=[] got=['log:write:0']"
+        },
+        "threads": {
+          "ok": true,
+          "detail": 1
+        },
+        "tier": {
+          "ok": true,
+          "detail": "small"
+        },
+        "needs": {
+          "ok": true,
+          "detail": "n/a"
+        },
+        "source_files": {
+          "ok": true,
+          "detail": 4
+        },
+        "package_on_disk": {
+          "ok": true,
+          "detail": "/home/emb/project/Tessera/agent/workspace/t-3667c8c9/artifacts/tessera.demo.heartbeat-1.0.0.tsap"
+        },
+        "sim": {
+          "ok": true,
+          "detail": "ticks=300 writes=0"
+        }
+      },
+      "rounds": 2,
+      "elapsed_s": 466.2,
+      "workspace": "/home/emb/project/Tessera/agent/workspace/t-3667c8c9",
+      "package_path": "/home/emb/project/Tessera/agent/workspace/t-3667c8c9/artifacts/tessera.demo.heartbeat-1.0.0.tsap",
+      "error": ""
+    }
+  ]
+}

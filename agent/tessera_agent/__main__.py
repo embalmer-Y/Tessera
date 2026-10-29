@@ -168,7 +168,7 @@ def _agent_eval_command(args) -> int:
 
             sc = await eval_scorer.run_task(
                 cfg, t, key_path, timeout_s=args.timeout_per_task,
-                log_fn=log)
+                with_sim=args.with_sim, log_fn=log)
             failed = [k for k, v in sc.checks.items() if not v["ok"]]
             print(f"  --> {sc.verdict} 轮数={sc.rounds} 耗时={sc.elapsed_s:.1f}s"
                   f" 未过={failed or '—'}", flush=True)

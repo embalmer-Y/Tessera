@@ -71,6 +71,28 @@ def _from_ta_error(exc: TaError) -> VerifyOutcome:
     return VerifyOutcome(ok=False, detail=detail, facts=exc.detail)
 
 
+def creation_sim_runner(ws, scenario: dict) -> VerifyOutcome:
+    """SimFn 桥（DEC-82②）：适用门 → WasmSim 执行 → 判据核验。
+    skip = ok+facts.sim_skipped 注记（不跑假 sim）；判据不过 = ok=False
+    （evidence 回喂创作循环）。"""
+    from tessera_agent.domain import wasm_sim
+
+    try:
+        wasm_sim.check_applicable(ws.load_project())
+    except wasm_sim.SimSkip as exc:
+        return VerifyOutcome(ok=True, detail=f"sim skip：{exc}",
+                             facts={"sim_skipped": str(exc)})
+    wasm = artifacts_wasm(ws)
+    if not wasm.is_file():
+        return VerifyOutcome(ok=False, detail="sim 目标缺失（artifacts/app.wasm）",
+                             facts={})
+    try:
+        facts = wasm_sim.run_sim_criteria(wasm, scenario)
+    except TaError as exc:
+        return VerifyOutcome(ok=False, detail=str(exc), facts=exc.detail or {})
+    return VerifyOutcome(ok=True, detail="sim 判据全过", facts=facts)
+
+
 class FirmwareCreationVerifier:
     """工程清单驱动：compile（多文件聚合）→ face_check（产物复检）→ package（签名）。"""
 

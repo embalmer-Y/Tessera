@@ -312,6 +312,7 @@
 **AGENTS/plan/names 历史正文**：AGENTS §1 旧条目 → docs/history/agents-status-archive.md；plan 旧批次计划与修订 → docs/history/plan-archive-2026-10.md；names 旧修订 → docs/history/names-revisions-archive.md（均逐字搬运）。**docs/evidence/ 留痕文件名一律不回溯**（历史审计链——索引见 docs/evidence/README.md）。
 
 ## 修订记录
+- 2026-10-29 · **AC-3 判据自评价闭环**：MCP 工具 `app_criteria_run` 新立（app_* 族——DEC-82③；判据窗引擎 domain/criteria.py + 创作 wasm 执行器 domain/wasm_sim.py + MCP app_develop 增 sim_scenario 可选参）。
 - 2026-10-29 · **V0.17.0「Agent 能力版」立项登记**：AC-1…AC-5 单元代号新立（plan §7 v1.161——评估基准/创作深度/判据闭环/经验复用/硬件感知；DEC-75 累积池）。
 - 2026-10-24 · **deepseek-v4.1-flash 模型链路测试 + 供应链钉版登记（owner 指令「push 后采用该模型测试 Agent」）**：push e963b3b..b862413（CI #207 SUCCESS）；app_develop 双运行 PACKAGED（126.4s 单轮/四轮修复链）；anthropic 钉版 ==1.3.*（pydantic-ai 2.47 配套——最新版 Beta 崩/＜1.3 缺导入面）；llm_probe 建议面增 sdk_base_url（SDK 自拼 /v1/messages 语义）。消费：plan v1.158、AGENTS 一六〇。
 - 2026-10-24 · **LLM 端点探针登记（owner 指令 → DEC-80；L 表第四单元）**：domain/llm_probe.py（validate_url/probe/render_report——双协议检测 + 鉴权面 KEY 判定 + 模型冒烟 + 配置建议）+ MCP llm_check（confirm；key_env 机制 = 密钥值不入工具参数与审计流）+ CLI llm-check 子命令 + tools/env 85 步联动；实测 router.shengsuanyun.com/api/v1（197 模型/openai+anthropic 双协议/max_tokens≥16 下限）。消费：plan v1.157、AGENTS 一五九。

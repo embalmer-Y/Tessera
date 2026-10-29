@@ -35,7 +35,7 @@ from tessera_agent.creation.loop import (
 )
 from tessera_agent.creation.tools import WorkspaceTools
 from tessera_agent.creation.workspace import Workspace
-from tessera_agent.domain.firmware_creation import FirmwareCreationVerifier
+from tessera_agent.domain.firmware_creation import FirmwareCreationVerifier, creation_sim_runner
 from tessera_agent.platform import AppContext
 from tessera_agent.skills import loader as skill_loader
 from tessera_agent.tools_diag import spec_gate
@@ -398,6 +398,7 @@ async def app_develop(
     log_fn: Callable[[str], None] | None = None,
     task: Any = None,
     plan_confirm: bool = False,
+    sim_scenario: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """spec → APP 开发包（双路径，AG6 · DEC-56/57）：
 
@@ -479,6 +480,7 @@ async def _app_develop_loop(
     repair_feedback: str = "",
     task: Any = None,
     plan_confirm: bool = False,
+    sim_scenario: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """创作循环后端（HLD-agent v0.2 §2.2；LLD-agent-creation-workspace 全链）。"""
     repo = Path(ctx.cfg.workspace_repo)
@@ -495,7 +497,7 @@ async def _app_develop_loop(
     log(f"workspace: {ws.root}")
 
     runner = PydanticLoopRunner(ctx, ws, model=model, log_fn=log)
-    verifier = FirmwareCreationVerifier()
+    verifier = FirmwareCreationVerifier(sim_runner=creation_sim_runner)
 
     async def _on_event(kind: str, data: dict[str, Any]) -> None:
         log(f"loop:{kind} {json.dumps(data, ensure_ascii=False)[:200]}")
@@ -525,7 +527,7 @@ async def _app_develop_loop(
     loop = CreationLoop(
         ws, verifier, runner, spec,
         criteria=list(gate.pass_patterns), budget=LOOP_BUDGET,
-        key_path=key_path, on_event=_on_event,
+        key_path=key_path, on_event=_on_event, scenario=sim_scenario,
     )
     if repair_feedback:
         loop.evidence_log.append(

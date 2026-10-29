@@ -141,9 +141,38 @@ def score_outcome(task: EvalTask, outcome: dict | None,
     return sc
 
 
+def _score_sim(task: EvalTask, outcome: dict) -> dict[str, Any]:
+    """--with-sim 段（AC-3 · DEC-82④）：PACKAGED workspace 跑创作 wasm
+    执行器核验判据行；sim=None 任务 = 真机域注记（不降判定）。"""
+    from tessera_agent.domain import wasm_sim
+
+    sim_def = task.expect.get("sim")
+    if not sim_def:
+        return {"ok": True, "detail": "无 sim 定义（真机域——T4/T5）"}
+    ws = outcome.get("workspace") or ""
+    wasm = Path(ws) / "artifacts" / "app.wasm" if ws else None
+    if not wasm or not wasm.is_file():
+        return {"ok": False, "detail": "sim 目标缺失（artifacts/app.wasm）"}
+    try:
+        wasm_sim.check_applicable(json.loads(
+            (Path(ws) / "project.json").read_text(encoding="utf-8")))
+    except wasm_sim.SimSkip as exc:
+        return {"ok": True, "detail": f"sim skip：{exc}"}
+    try:
+        facts = wasm_sim.run_sim_criteria(wasm, sim_def)
+    except TaError as exc:
+        return {"ok": False, "detail": str(exc)[:200],
+                "facts": exc.detail or {}}
+    except Exception as exc:  # noqa: BLE001 —— sim 段异常不否决整轮（PARTIAL）
+        return {"ok": False, "detail": f"sim 异常: {type(exc).__name__}: {exc}"[:200]}
+    return {"ok": True, "detail": f"ticks={facts['ticks']} "
+                                  f"writes={facts['writes_n']}"}
+
+
 async def run_task(cfg, task: EvalTask, key_path: str, *,
                    timeout_s: float = DEFAULT_TIMEOUT_S,
-                   develop_fn=None, log_fn: Callable[[str], None] |
+                   develop_fn=None, with_sim: bool = False,
+                   log_fn: Callable[[str], None] |
                    None = None) -> TaskScore:
     """单任务真链执行 + 评分。develop_fn 缺省 = domain.app_chain.app_develop
     （签名 (ctx, spec, key_path)——cfg 经 AppContext 包装）。测试注入
@@ -177,5 +206,9 @@ async def run_task(cfg, task: EvalTask, key_path: str, *,
         return score_outcome(task, None,
                              f"{type(exc).__name__}: {exc}")
     sc = score_outcome(task, outcome)
+    if with_sim:
+        sc.checks["sim"] = _score_sim(task, outcome)
+        hard = [k for k, v in sc.checks.items() if not v["ok"]]
+        sc.verdict = "PASS" if not hard else "PARTIAL"
     sc.elapsed_s = time.monotonic() - t0
     return sc
