@@ -73,6 +73,16 @@
 	pinctrl-names = "default";
 };
 
+&i2c0 {
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_STANDARD>;
+	pinctrl-0 = <&i2c0_default>;
+	pinctrl-names = "default";
+	/* Dev-board ES8311 codec on this bus (expect 0x18) — I2S0 pad map
+	 * pending vendor confirmation (schematic text layer has the I2S0_*
+	 * nets but not their GPIO mapping). */
+};
+
 &trng0 {
 	status = "okay";
 };
@@ -102,6 +112,27 @@
 };
 
 &sdhc {
+	sdhc0: sdhc@0 {
+		status = "okay";
+		/* Dev-board TF slot (schematic text layer): CLK=GPIO44,
+		 * CMD=GPIO43, D3..D0=GPIO42..39. SD_DET net exists but its P4
+		 * GPIO is unmapped in the text layer — polled detection. */
+		bus-width = <4>;
+		max-bus-freq = <DT_FREQ_M(40)>;
+		clk-pin = <44>;
+		cmd-pin = <43>;
+		d0-pin = <39>;
+		d1-pin = <40>;
+		d2-pin = <41>;
+		d3-pin = <42>;
+
+		mmc {
+			compatible = "zephyr,sdmmc-disk";
+			disk-name = "SD";
+			status = "okay";
+		};
+	};
+
 	sdhc1: sdhc@1 {
 		status = "okay";
 		/* ESP32-C5 companion (c5-p4-connection.png): C5 slave firmware
