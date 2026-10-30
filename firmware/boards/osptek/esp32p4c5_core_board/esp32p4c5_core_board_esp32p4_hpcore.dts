@@ -173,3 +173,18 @@
 &usb_serial {
 	status = "disabled";
 };
+
+&i2s0 {
+	/* Audio face (dev-board schematic text layer, spatially aligned):
+	 * MCLK=GPIO21, BCLK=GPIO20, WS(LRCK)=GPIO12, DO(DSDIN)=GPIO11,
+	 * DI(ASDOUT)=GPIO13; ES8311 @ i2c0 0x18 (probed online), NS4150 PA
+	 * ctrl = GPIO53. Held disabled: the in-tree i2s_esp32 P4 path has
+	 * zero in-tree users and its GDMA wiring needs upstream-level work
+	 * (v4.5.0 esp32-gdma driver is M2M-oriented); bring-up app + facts
+	 * archived 2026-10-30. */
+	status = "disabled";
+	pinctrl-0 = <&i2s0_default>;
+	pinctrl-names = "default";
+	dmas = <&dma 0>, <&dma 1>;
+	dma-names = "rx", "tx";
+};
