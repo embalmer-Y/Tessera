@@ -41,6 +41,7 @@
 | nvd_app_source.c | NVD heartbeat app 源留档 | NV 批 |
 | p1_tls_blocker_console.txt / p1_tls_e2e_console.txt | P1-2 TLS 阻断定位（PSA ECDSA）与 E2E 收口 | 一四〇/一四二 |
 | p4w1_console.txt / p4w2_console.txt | P4 WiFi 数据面复活 / P4 入 LN 网 | 一五二/一五三 |
+| p4c5_audio_acoustic_loop_20261030.txt | P4C5 音频声学回环 PASS（引脚定案 + 根因链） | 一七三 |
 | pdmb_PASS_console.txt | PDM bench（8 帧活信号） | M17 |
 | periph_restore_console.txt | 外设三路失败破案（I2C0 锁死）+ 板复原 | 一四三 |
 | r2_tls_oneway_root_cause.txt | R2 TLS 单向黑洞根因 + ≤15s 自愈判据 | 一四六 |

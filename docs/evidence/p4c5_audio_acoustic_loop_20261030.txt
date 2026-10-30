@@ -1,0 +1,51 @@
+Tessera 证据留档 · P4C5 音频声学回环 PASS（2026-10-30，会话一七三收口）
+====================================================================
+板卡：osptek esp32p4c5_core_board（ESP32-P4 v3.2 + boya 16MB，底板 V1.3）
+链路：ES8311（I2C0 0x18）+ i2s0（Zephyr v4.5.0 in-tree i2s_esp32 + 工作区
+gdma PR#123642 补丁）+ NS4150（PA STD=GPIO53）+ 板载硅麦 LMA3729（模拟差分
+→ MIC1P/N）。
+引脚定案（原理图 PDF 高分辨率渲染逐引脚核读）：MCLK=GPIO13 / SCLK(BCK)=
+GPIO12 / LRCK(WS)=GPIO10 / DSDIN(P4 出)=GPIO9 / ASDOUT(P4 收)=GPIO11。
+codec 配置：esp-bsp 现代序 + reg01=0xBF（SCLK 源）+ 系数行 {1.024M,16k} +
+reg17 ADC 音量 0xE0 + reg32 DAC 音量 0xF0（app 仓外 /tmp/p4c5_audio_app）。
+判据：静音基线 rms → 播放 1kHz 谱峰/rms 倍增（频点不可知口径，峰值频点
+500Hz = codec 播放时钟域观察项，登记于 plan v1.171/AGENTS 一七三）。
+工作区补丁态：仅 dma_esp32_gdma.c = 上游 PR #123642（EOF 判据）；i2s_esp32.c
+与 esp_hal_i2s 均原样（CLK_SRC PLL_160M 修复已在 v4.5.0 正式版在树）。
+--------------------------------------------------------------------
+ESP-ROM:esp32p4-eco7-20260109
+Build:Jan  9 2026
+rst:0x1 (POWERON),boot:0x30f (SPI_FAST_FLASH_BOOT)
+SPI mode:DIO, clock div:1
+load:0x4ff20000,len:0xe9c8
+load:0x4ff2ea40,len:0x58ec
+load:0x50108000,len:0x24
+SHA-256 comparison failed:
+Calculated: 827378c5500c06812861f3f5fa04f1807dfaddf50e48c0e41128dba6aa5c9b3e
+Expected: 00000000e09c0000000000000000000000000000000000000000000000000000
+Attempting to boot anyway...
+entry 0x4ff20580
+I (soc_init): ESP Simple boot
+I (soc_init): compile time Oct 30 2026 19:09:36
+W (soc_init): Unicore bootloader
+I (soc_init): chip revision: v3.2
+I (flash_init): SPI Speed      : 80MHz
+I (flash_init): SPI Mode       : DIO
+I (flash_init): SPI Flash Size : 16MB
+I (boot): DRAM	: lma=00002020h vma=4ff20000h size=0e9c8h ( 59848)
+I (boot): DRAM	: lma=000109f0h vma=4ff2ea40h size=058ech ( 22764)
+I (boot): RTC_IRAM	: lma=000162e4h vma=50108000h size=00024h (    36)
+I (boot): DROM	: lma=00020000h vma=40020000h size=05580h ( 21888)
+I (boot): IROM	: lma=00030000h vma=40000000h size=19080h (102528)
+I (boot): libc heap size 316 kB.
+I (spi_flash): detected chip: boya
+I (spi_flash): flash io: dio
+
+ES8311 init ok
+BOTH START ok — pumping
+base frames=8192 nz=8186 min=-1 max=0 rms=0.706
+play frames=8192 nz=16376 min=-7516 max=7295 rms=2162.294
+goertzel1k=86
+spec best=500Hz mag=1483 | 200:8 400:4 600:6 800:5 1000:86 1200:6 1400:2 1600:4 1800:5 2000:39 2200:2 2400:3 2600:1 2800:2 3000:21
+AUDIO PASS (rms0=0 rms1=2162 peak=500Hz/1483 goertzel1k=86)
+

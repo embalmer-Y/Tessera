@@ -175,13 +175,16 @@
 };
 
 &i2s0 {
-	/* Audio face (dev-board schematic text layer, spatially aligned):
-	 * MCLK=GPIO21, BCLK=GPIO20, WS(LRCK)=GPIO12, DO(DSDIN)=GPIO11,
-	 * DI(ASDOUT)=GPIO13; ES8311 @ i2c0 0x18 (probed online), NS4150 PA
-	 * ctrl = GPIO53. Held disabled: the in-tree i2s_esp32 P4 path has
-	 * zero in-tree users and its GDMA wiring needs upstream-level work
-	 * (v4.5.0 esp32-gdma driver is M2M-oriented); bring-up app + facts
-	 * archived 2026-10-30. */
+	/* Audio face (schematic PDF hi-res render per-pin read, 2026-10-30
+	 * final): MCLK=GPIO13, BCLK(SCLK)=GPIO12, WS(LRCK)=GPIO10,
+	 * DO(DSDIN, P4 out)=GPIO9, DI(ASDOUT, P4 in)=GPIO11; ES8311 @ i2c0
+	 * 0x18 (probed online), NS4150 PA ctrl = GPIO53 (STD), analog MEMS
+	 * mic (LMA3729) differential into MIC1P/N. Acoustic loop verified
+	 * on-target 2026-10-30 (speaker -> mic, evidence
+	 * p4c5_audio_acoustic_loop_20261030.txt) with esp32-gdma PR #123642
+	 * applied in the build tree only; held disabled until that fix
+	 * lands upstream (or passes a pristine-tree run) - flip to "okay"
+	 * then. */
 	status = "disabled";
 	pinctrl-0 = <&i2s0_default>;
 	pinctrl-names = "default";

@@ -23,11 +23,16 @@
 
 	i2s0_default: i2s0_default {
 		group1 {
-			pinmux = <I2S0_MCLK_GPIO21>, <I2S0_O_BCK_GPIO20>,
-				 <I2S0_O_WS_GPIO12>, <I2S0_O_SD_GPIO11>;
+			/* 原理图 PDF 高分辨率渲染逐引脚核读（底板 V1.3 Audio
+			 * CODEC U11 ES8311）：MCLK=GPIO13/SCLK=GPIO12/LRCK=
+			 * GPIO10/DSDIN (P4 出)=GPIO9/ASDOUT (P4 收)=GPIO11，
+			 * PA(STD)=GPIO53——2026-10-30 定案（两轮低清误读 21/20/
+			 * 12/11/13 与 23/22/20/21/26 均废） */
+			pinmux = <I2S0_MCLK_GPIO13>, <I2S0_O_BCK_GPIO12>,
+				 <I2S0_O_WS_GPIO10>, <I2S0_O_SD_GPIO9>;
 		};
 		group2 {
-			pinmux = <I2S0_I_SD_GPIO13>;
+			pinmux = <I2S0_I_SD_GPIO11>;
 			input-enable;
 		};
 	};
