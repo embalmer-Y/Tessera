@@ -8,9 +8,20 @@
  * Board facts (osptek docs + esptool probe 2026-10-30): 16MB NOR flash,
  * 32MB embedded PSRAM, CH343 USB-UART bridge on UART0 (GPIO37/38),
  * ESP32-P4 rev v3.2. No on-board LED/buttons (88-pin stamp core board).
- * TODO(companion): ESP32-C5 (SDIO + reset GPIO) bring-up needs the C5
- * connection diagram (c5-p4-connection.png) and C5 slave firmware —
- * deferred; wifi/bt surfaces stay disabled until then.
+ * C5 companion wiring (c5-p4-connection.png, row-aligned + esp-hosted
+ * slot convention cross-check with waveshare C6 board): SDIO pads
+ * P4 GPIO14/15/16/17/18/19 = D0/D1/D2/D3/CLK/CMD, reset P4 GPIO54 ->
+ * C5 CHIP_PU (= &gpio1 22 in the gpio1 controller 32-base numbering,
+ * same companion-reset convention as the waveshare C6 reference),
+ * handshake P4 GPIO6 <-> C5 GPIO2 (not modeled by the current
+ * esp_hosted_mcu binding). Enabled: C5 runs an esp-hosted 3.x slave
+ * firmware (owner-confirmed 2026-10-30) matching the driver contract.
+ * Bring-up 2026-10-30: RPC handshake PASS (coprocessor firmware
+ * v3.0.10 reported over SDIO); wifi scan data plane FAILS at the
+ * slave (mgmt-level "Scan request failed", no driver-side error) —
+ * open item, candidate causes: slave-side scan preconditions,
+ * regulatory domain, unmodeled handshake IO; needs C5 UART logs
+ * (pins 4/5, not wired to CH343) or a C6-board A/B comparison.
  */
 
 /dts-v1/;
@@ -29,6 +40,7 @@
 		zephyr,shell-uart = &uart0;
 		zephyr,flash = &flash0;
 		zephyr,code-partition = &slot0_partition;
+		zephyr,bt-hci = &esp_hosted_mcu_hci;
 	};
 
 	aliases {
@@ -91,9 +103,39 @@
 
 &sdhc {
 	sdhc1: sdhc@1 {
-		status = "disabled";
-		/* ESP32-C5 companion (SDIO + IO) — pins per c5-p4-connection.png
-		 * unconfirmed; enable with C5 slave firmware in a follow-up batch. */
+		status = "okay";
+		/* ESP32-C5 companion (c5-p4-connection.png): C5 slave firmware
+		 * = esp-hosted 3.x (owner-confirmed 2026-10-30, matches the
+		 * driver's major-3 contract).
+		 * Handshake IO: P4 GPIO6 <-> C5 GPIO2 (not modeled by the
+		 * current esp_hosted_mcu binding). */
+		bus-width = <4>;
+		max-bus-freq = <DT_FREQ_M(40)>;
+		clk-pin = <18>;
+		cmd-pin = <19>;
+		d0-pin = <14>;
+		d1-pin = <15>;
+		d2-pin = <16>;
+		d3-pin = <17>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		esp_hosted_mcu: esp-hosted-mcu@0 {
+			compatible = "espressif,esp-hosted-mcu";
+			reg = <0>;
+			reset-gpios = <&gpio1 22 GPIO_ACTIVE_HIGH>;
+			status = "okay";
+
+			esp_hosted_mcu_wifi: wifi {
+				compatible = "espressif,esp-hosted-mcu-wifi";
+				status = "okay";
+			};
+
+			esp_hosted_mcu_hci: bt-hci {
+				compatible = "espressif,esp-hosted-mcu-bt-hci";
+				status = "okay";
+			};
+		};
 	};
 };
 

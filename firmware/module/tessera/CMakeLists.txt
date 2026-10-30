@@ -184,10 +184,12 @@ if(CONFIG_TS_APP_WAMR)
     # ATK DNESP32-S3B（K1）：同为 ESP32-S3 XTENSA——xiao 同映射
     set(WAMR_BUILD_TARGET "XTENSA")
     set(WAMR_BUILD_INVOKE_NATIVE_GENERAL 0)
-  elseif(BOARD STREQUAL "esp32p4_wifi6_dev_kit")
+  elseif(BOARD STREQUAL "esp32p4_wifi6_dev_kit"
+         OR BOARD STREQUAL "esp32p4c5_core_board")
     # P4（P4 适配批）：HP 核 = RV32；解释器-only（AOT/JIT 关）下 target
     # 声明仅取 word 长/ABI 元数据，fast 解释器目标无关。invokeNative 不
-    # 参与构建（AOT=0），GENERAL 旗标不设。
+    # 参与构建（AOT=0），GENERAL 旗标不设。esp32p4c5_core_board（P4C5
+    # 适配批）同为 P4 HP 核 RV32。
     set(WAMR_BUILD_TARGET "RISCV32")
   elseif(BOARD STREQUAL "mini_stm32h743")
     # H7（H7 移植批）：Cortex-M7（Thumb-2）。target 取 THUMBV7EM 而非
