@@ -101,6 +101,7 @@
 | STM32H7 | ST 目标板 | 有 EMAC，需外挂 PHY；FMC SDRAM 待核验 |
 | RP2350 | （原目标板，**DEC-28 移出**：Zephyr 无 PSRAM 驱动 + 520KB SRAM，不符高性能取向） | 存档 |
 | native_sim | Zephyr 仿真平台 | CI 平台 |
+| esp32p4c5_core_board | 鱼鹰光电（osptek）ESP32-P4C5 核心板（P4 v3.2 + C5HF4 伴芯 SDIO/16MB flash/32MB 片内 PSRAM/CH343@UART0；树外板定义 firmware/boards/osptek——BV2 域新板，2026-10-30 bring-up PASS） | 新增（待画像/收纳入库随批） |
 
 ## 4. 项目与外部名称
 
@@ -312,6 +313,7 @@
 **AGENTS/plan/names 历史正文**：AGENTS §1 旧条目 → docs/history/agents-status-archive.md；plan 旧批次计划与修订 → docs/history/plan-archive-2026-10.md；names 旧修订 → docs/history/names-revisions-archive.md（均逐字搬运）。**docs/evidence/ 留痕文件名一律不回溯**（历史审计链——索引见 docs/evidence/README.md）。
 
 ## 修订记录
+- 2026-10-30 · **P4C5 新板适配（bring-up 界）**：`esp32p4c5_core_board`（vendor osptek）树外板定义新立 + 板名登记。
 - 2026-10-29 · **AC-3 判据自评价闭环**：MCP 工具 `app_criteria_run` 新立（app_* 族——DEC-82③；判据窗引擎 domain/criteria.py + 创作 wasm 执行器 domain/wasm_sim.py + MCP app_develop 增 sim_scenario 可选参）。
 - 2026-10-29 · **V0.17.0「Agent 能力版」立项登记**：AC-1…AC-5 单元代号新立（plan §7 v1.161——评估基准/创作深度/判据闭环/经验复用/硬件感知；DEC-75 累积池）。
 - 2026-10-24 · **deepseek-v4.1-flash 模型链路测试 + 供应链钉版登记（owner 指令「push 后采用该模型测试 Agent」）**：push e963b3b..b862413（CI #207 SUCCESS）；app_develop 双运行 PACKAGED（126.4s 单轮/四轮修复链）；anthropic 钉版 ==1.3.*（pydantic-ai 2.47 配套——最新版 Beta 崩/＜1.3 缺导入面）；llm_probe 建议面增 sdk_base_url（SDK 自拼 /v1/messages 语义）。消费：plan v1.158、AGENTS 一六〇。
